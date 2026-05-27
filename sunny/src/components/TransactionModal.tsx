@@ -172,7 +172,6 @@ export function TransactionModal({ open, editing, groupTransfers = [], onClose, 
               <input
                 type="text" inputMode="decimal" placeholder="0" value={amount}
                 onChange={e => { setAmount(e.target.value.replace(/[^\d.,]/g, '')); setAmountError(false); }}
-                autoFocus={!editing}
                 className="bg-transparent text-4xl font-bold text-center w-40 outline-none balance-num placeholder:text-divider transition-colors"
                 style={{ color: amountError ? '#C0605A' : undefined }}
               />

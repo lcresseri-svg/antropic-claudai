@@ -56,11 +56,6 @@ function Main({ user, onLogOut }: { user: import('firebase/auth').User; onLogOut
   const handleSave = (deleteIds: string[], create: Omit<Transaction, 'id'>[]) =>
     tx.replaceGroup(deleteIds, create);
 
-  const pageTitle: Record<Exclude<View, 'home'>, string> = {
-    transactions: 'Movimenti',
-    settings:     'Impostazioni',
-  };
-
   return (
     <div className="min-h-screen">
       {/* Header */}
@@ -118,16 +113,16 @@ function Main({ user, onLogOut }: { user: import('firebase/auth').User; onLogOut
         )}
         {view !== 'home' && (
           <div className="pt-4">
-            <h1 className="text-2xl font-bold text-primary tracking-[-0.03em] mb-6">
-              {pageTitle[view]}
-            </h1>
             {view === 'transactions' && (
-              <TransactionList
-                transactions={tx.transactions}
-                onEdit={openEdit} onDelete={tx.deleteTransaction}
-                onBulkUpdate={tx.updateTransactions} onBulkDelete={tx.deleteTransactions}
-                onAdd={openAdd}
-              />
+              <>
+                <h1 className="text-2xl font-bold text-primary tracking-[-0.03em] mb-6">Movimenti</h1>
+                <TransactionList
+                  transactions={tx.transactions}
+                  onEdit={openEdit} onDelete={tx.deleteTransaction}
+                  onBulkUpdate={tx.updateTransactions} onBulkDelete={tx.deleteTransactions}
+                  onAdd={openAdd}
+                />
+              </>
             )}
             {view === 'settings' && (
               <SettingsScreen user={user} onLogOut={onLogOut} onDeleteAll={tx.deleteAll} />
