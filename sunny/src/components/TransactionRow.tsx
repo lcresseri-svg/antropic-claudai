@@ -1,4 +1,4 @@
-import { Transaction, TYPE_META } from '../types';
+import { Transaction, TYPE_META, ownShare } from '../types';
 import { formatCurrency, formatDate } from '../utils';
 import { useSettings } from '../settings';
 
@@ -57,9 +57,13 @@ export function TransactionRow({ tx, selectable, selected, onToggle, onClick }: 
         <p className="text-[15px] font-semibold balance-num" style={{ color: amountColor }}>
           {prefix}{formatCurrency(tx.amount)}
         </p>
-        {!isTransfer && (
+        {tx.shared ? (
+          <p className="text-[11px] text-secondary mt-0.5">
+            tua: {formatCurrency(ownShare(tx))}
+          </p>
+        ) : !isTransfer ? (
           <p className="text-[11px] text-secondary mt-0.5">{TYPE_META[tx.type].label}</p>
-        )}
+        ) : null}
       </div>
     </button>
   );

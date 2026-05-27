@@ -36,6 +36,12 @@ export interface Transaction {
   account: string;       // AccountDef.id
   toAccount?: string;    // AccountDef.id — transfers only
   notes?: string;
+  shared?: number;       // others' part of a shared expense; counted as movement, not spending
+}
+
+/** The portion of an expense that is actually yours (excludes the shared part). */
+export function ownShare(t: Transaction): number {
+  return t.type === 'expense' ? t.amount - (t.shared ?? 0) : t.amount;
 }
 
 /** Patch used by bulk edit. */

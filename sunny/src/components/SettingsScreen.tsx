@@ -7,13 +7,15 @@ import { EditDefSheet, DefDraft } from './EditDefSheet';
 interface Props {
   user: User;
   onLogOut: () => void;
+  onDeleteAll: () => Promise<void>;
 }
 
 const newId = () => `x_${Date.now().toString(36)}`;
 
-export function SettingsScreen({ user, onLogOut }: Props) {
+export function SettingsScreen({ user, onLogOut, onDeleteAll }: Props) {
   const { categories, accounts, saveCategories, saveAccounts } = useSettings();
   const [editing, setEditing] = useState<{ kind: 'category' | 'account'; draft: DefDraft; isNew: boolean } | null>(null);
+  const [confirmReset, setConfirmReset] = useState(false);
 
   const openCategory = (c?: CategoryDef) => setEditing({
     kind: 'category', isNew: !c,
@@ -89,6 +91,28 @@ export function SettingsScreen({ user, onLogOut }: Props) {
           })}
         </div>
       </Section>
+
+      {/* Danger zone */}
+      <div className="bg-card rounded-2xl overflow-hidden">
+        {confirmReset ? (
+          <div className="p-4 space-y-3">
+            <p className="text-sm font-medium text-primary">Eliminare tutte le transazioni?</p>
+            <p className="text-xs text-secondary">Questa azione è irreversibile.</p>
+            <div className="flex gap-2">
+              <button onClick={() => setConfirmReset(false)}
+                className="flex-1 py-2.5 rounded-xl bg-elevated text-secondary text-sm font-medium">Annulla</button>
+              <button onClick={async () => { await onDeleteAll(); setConfirmReset(false); }}
+                className="flex-1 py-2.5 rounded-xl bg-[#E08B8B]/15 text-[#E08B8B] text-sm font-semibold">Elimina tutto</button>
+            </div>
+          </div>
+        ) : (
+          <button onClick={() => setConfirmReset(true)}
+            className="w-full flex items-center gap-3.5 p-4 text-left active:bg-card-hover">
+            <span className="text-[#E08B8B]">🗑</span>
+            <span className="text-sm font-medium text-[#E08B8B]">Elimina tutte le transazioni</span>
+          </button>
+        )}
+      </div>
 
       <p className="text-center text-xs text-secondary/60 pt-2">Sunny · finanza personale</p>
 

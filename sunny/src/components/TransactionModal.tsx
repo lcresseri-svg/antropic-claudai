@@ -1,5 +1,6 @@
 import { useState, useEffect } from 'react';
 import { Transaction, TransactionType, TYPE_META, TYPE_ORDER } from '../types';
+import { formatCurrency } from '../utils';
 import { useSettings } from '../settings';
 
 interface Props {
@@ -22,6 +23,8 @@ export function TransactionModal({ open, editing, onClose, onSave, onDelete }: P
   const [account, setAccount] = useState('');
   const [toAccount, setToAccount] = useState('');
   const [notes, setNotes] = useState('');
+  const [isShared, setIsShared] = useState(false);
+  const [yourPart, setYourPart] = useState('');
 
   useEffect(() => {
     if (!open) return;
@@ -31,10 +34,13 @@ export function TransactionModal({ open, editing, onClose, onSave, onDelete }: P
       setCategory(editing.category); setAccount(editing.account);
       setToAccount(editing.toAccount ?? accounts[1]?.id ?? '');
       setNotes(editing.notes ?? '');
+      setIsShared(!!editing.shared);
+      setYourPart(editing.shared ? String(editing.amount - editing.shared) : '');
     } else {
       setType('expense'); setDescription(''); setAmount(''); setDate(today());
       setCategory(''); setAccount(accounts[0]?.id ?? '');
       setToAccount(accounts[1]?.id ?? ''); setNotes('');
+      setIsShared(false); setYourPart('');
     }
   }, [open, editing]);
 
@@ -48,12 +54,17 @@ export function TransactionModal({ open, editing, onClose, onSave, onDelete }: P
     e.preventDefault();
     const value = parseFloat(amount.replace(',', '.'));
     if (!value || value <= 0 || !description.trim()) return;
+    const mine = parseFloat(yourPart.replace(',', '.'));
+    const shared = type === 'expense' && isShared && mine > 0 && mine < value
+      ? value - mine
+      : undefined;
     onSave({
       type, description: description.trim(), amount: value, date,
       category: type === 'transfer' ? 'trasferimento' : category,
       account,
       toAccount: type === 'transfer' ? toAccount : undefined,
       notes: notes.trim() || undefined,
+      shared,
     });
     onClose();
   };
@@ -119,6 +130,51 @@ export function TransactionModal({ open, editing, onClose, onSave, onDelete }: P
                 })}
               </div>
             </Field>
+          )}
+
+          {/* Shared expense */}
+          {type === 'expense' && (
+            <div className="bg-card rounded-2xl overflow-hidden">
+              <button type="button"
+                onClick={() => { setIsShared(s => !s); setYourPart(''); }}
+                className="w-full flex items-center justify-between px-4 py-3.5 text-left">
+                <div>
+                  <p className="text-sm font-medium text-primary">Spesa condivisa</p>
+                  <p className="text-xs text-secondary mt-0.5">Hai pagato per altri — conta solo la tua parte</p>
+                </div>
+                <div className={`w-11 h-6 rounded-full transition-colors relative flex-shrink-0 ${isShared ? 'bg-gold' : 'bg-divider'}`}>
+                  <span className={`absolute top-0.5 w-5 h-5 bg-white rounded-full shadow transition-transform ${isShared ? 'translate-x-5' : 'translate-x-0.5'}`} />
+                </div>
+              </button>
+              {isShared && (() => {
+                const total = parseFloat(amount.replace(',', '.')) || 0;
+                const mine = parseFloat(yourPart.replace(',', '.')) || 0;
+                const others = total > 0 && mine > 0 && mine < total ? total - mine : null;
+                return (
+                  <div className="border-t border-divider px-4 pb-4 pt-3 space-y-3">
+                    <div>
+                      <label className="text-xs font-medium text-secondary mb-2 block">La tua parte (€)</label>
+                      <input type="text" inputMode="decimal" placeholder="es. 25"
+                        value={yourPart}
+                        onChange={e => setYourPart(e.target.value.replace(/[^\d.,]/g, ''))}
+                        className="w-full bg-elevated rounded-xl px-4 py-3 text-primary placeholder:text-secondary/40 outline-none focus:ring-1 focus:ring-gold/40 text-lg font-semibold balance-num" />
+                    </div>
+                    {others !== null && (
+                      <div className="flex items-center justify-between text-xs">
+                        <span className="text-secondary">Parte degli altri (movimento)</span>
+                        <span className="font-semibold text-secondary balance-num">{formatCurrency(others)}</span>
+                      </div>
+                    )}
+                    {others !== null && (
+                      <div className="flex items-center justify-between text-xs">
+                        <span className="text-secondary">Tua spesa effettiva</span>
+                        <span className="font-semibold text-primary balance-num">{formatCurrency(mine)}</span>
+                      </div>
+                    )}
+                  </div>
+                );
+              })()}
+            </div>
           )}
 
           {/* Accounts */}

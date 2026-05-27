@@ -4,8 +4,7 @@ import {
   addDoc, deleteDoc, doc, updateDoc, writeBatch,
 } from 'firebase/firestore';
 import { User } from 'firebase/auth';
-import { Transaction, TransactionPatch } from './types';
-import { demoTransactions } from './demoData';
+import { Transaction, TransactionPatch, ownShare } from './types';
 import { db } from './firebase';
 
 function stripUndefined<T extends object>(obj: T): T {
@@ -18,21 +17,13 @@ export function useTransactions(user: User | null) {
 
   useEffect(() => {
     if (!user) {
-      setTransactions(demoTransactions);
+      setTransactions([]);
       setLoading(false);
       return;
     }
     const col = collection(db, 'users', user.uid, 'transactions');
     const q = query(col, orderBy('date', 'desc'));
-    let seeded = false;
-    return onSnapshot(q, async snap => {
-      if (snap.empty && !seeded) {
-        seeded = true;
-        const batch = writeBatch(db);
-        demoTransactions.forEach(({ id: _id, ...data }) => batch.set(doc(col), stripUndefined(data)));
-        await batch.commit();
-        return;
-      }
+    return onSnapshot(q, snap => {
       setTransactions(snap.docs.map(d => ({ id: d.id, ...(d.data() as Omit<Transaction, 'id'>) })));
       setLoading(false);
     });
@@ -77,6 +68,16 @@ export function useTransactions(user: User | null) {
     batch.commit();
   }, [user]);
 
+  const deleteAll = useCallback(async () => {
+    if (!user) return;
+    const ids = transactions.map(t => t.id);
+    for (let i = 0; i < ids.length; i += 450) {
+      const batch = writeBatch(db);
+      ids.slice(i, i + 450).forEach(id => batch.delete(doc(db, 'users', user.uid, 'transactions', id)));
+      await batch.commit();
+    }
+  }, [user, transactions]);
+
   // ── Derived ────────────────────────────────────────────────────────────────
   const derived = useMemo(() => {
     const now = new Date();
@@ -89,7 +90,7 @@ export function useTransactions(user: User | null) {
     const monthTx = transactions.filter(t => inCurrentMonth(t.date));
 
     const monthlyIncome = monthTx.filter(t => t.type === 'income').reduce((s, t) => s + t.amount, 0);
-    const monthlyExpenses = monthTx.filter(t => t.type === 'expense').reduce((s, t) => s + t.amount, 0);
+    const monthlyExpenses = monthTx.filter(t => t.type === 'expense').reduce((s, t) => s + ownShare(t), 0);
     const monthlyInvestments = monthTx.filter(t => t.type === 'investment').reduce((s, t) => s + t.amount, 0);
 
     const investmentTotal = transactions.filter(t => t.type === 'investment').reduce((s, t) => s + t.amount, 0);
@@ -99,7 +100,8 @@ export function useTransactions(user: User | null) {
     for (const t of transactions) {
       const bal = (id: string, delta: number) => { accountBalances[id] = (accountBalances[id] ?? 0) + delta; };
       if (t.type === 'income') bal(t.account, t.amount);
-      else if (t.type === 'expense' || t.type === 'investment') bal(t.account, -t.amount);
+      else if (t.type === 'investment') bal(t.account, -t.amount);
+      else if (t.type === 'expense') bal(t.account, -ownShare(t));
       else if (t.type === 'transfer') { bal(t.account, -t.amount); if (t.toAccount) bal(t.toAccount, t.amount); }
     }
     const liquidity = Object.values(accountBalances).reduce((s, v) => s + v, 0);
@@ -109,14 +111,14 @@ export function useTransactions(user: User | null) {
     const categoryTotals: Record<string, number> = {};
     for (const t of monthTx) {
       if (t.type !== 'expense') continue;
-      categoryTotals[t.category] = (categoryTotals[t.category] ?? 0) + t.amount;
+      categoryTotals[t.category] = (categoryTotals[t.category] ?? 0) + ownShare(t);
     }
 
     // Spending by account (current month, expenses)
     const expenseByAccount: Record<string, number> = {};
     for (const t of monthTx) {
       if (t.type !== 'expense') continue;
-      expenseByAccount[t.account] = (expenseByAccount[t.account] ?? 0) + t.amount;
+      expenseByAccount[t.account] = (expenseByAccount[t.account] ?? 0) + ownShare(t);
     }
 
     // 6-month trend
@@ -131,7 +133,7 @@ export function useTransactions(user: User | null) {
       const slot = trend.find(s => s.key === key);
       if (!slot) continue;
       if (t.type === 'income') slot.income += t.amount;
-      else if (t.type === 'expense') slot.expense += t.amount;
+      else if (t.type === 'expense') slot.expense += ownShare(t);
     }
 
     const recent = [...transactions]
@@ -149,7 +151,7 @@ export function useTransactions(user: User | null) {
     transactions, loading,
     addTransaction, addTransactions,
     updateTransaction, updateTransactions,
-    deleteTransaction, deleteTransactions,
+    deleteTransaction, deleteTransactions, deleteAll,
     ...derived,
   };
 }

@@ -92,7 +92,7 @@ function Main({ user, onLogOut }: { user: import('firebase/auth').User; onLogOut
         {view === 'settings' && (
           <div className="pt-2">
             <h1 className="text-2xl font-bold text-primary mb-4 px-1">Impostazioni</h1>
-            <SettingsScreen user={user} onLogOut={onLogOut} />
+            <SettingsScreen user={user} onLogOut={onLogOut} onDeleteAll={tx.deleteAll} />
           </div>
         )}
       </main>
