@@ -1,5 +1,5 @@
 import { useState, useRef } from 'react';
-import { Transaction, TransactionType } from '../types';
+import { Transaction, TransactionType, TYPE_META } from '../types';
 import { formatCurrency, formatDate } from '../utils';
 import { useSettings } from '../settings';
 
@@ -24,12 +24,14 @@ function parseAmount(val: unknown): number {
   return Math.abs(parseFloat(String(val ?? '').replace(/[^\d,.\-]/g, '').replace(',', '.')));
 }
 
-function parseType(val: unknown): TransactionType {
-  const s = String(val ?? '').toLowerCase();
-  if (/entrat|income|ricav/.test(s)) return 'income';
-  if (/invest/.test(s)) return 'investment';
-  if (/trasfer|moviment|transfer/.test(s)) return 'transfer';
-  return 'expense';
+function parseType(val: unknown): { type: TransactionType; recognized: boolean } {
+  const s = String(val ?? '').toLowerCase().trim();
+  if (!s) return { type: 'expense', recognized: true };
+  if (/entrat|income|ricav|accredit|stipend|salari|rimborso/.test(s)) return { type: 'income', recognized: true };
+  if (/invest|etf|azion|fond/.test(s)) return { type: 'investment', recognized: true };
+  if (/trasfer|moviment|transfer|bonifico|girocont/.test(s)) return { type: 'transfer', recognized: true };
+  if (/uscit|spesa|pagament|expense|cost|acquist|prelievo/.test(s)) return { type: 'expense', recognized: true };
+  return { type: 'expense', recognized: false };
 }
 
 const norm = (k: string) => k.toLowerCase().trim().replace(/\s+/g, '_');
@@ -46,6 +48,7 @@ export function ImportModal({ open, onClose, onImport }: Props) {
   const [step, setStep] = useState<Step>('upload');
   const [parsed, setParsed] = useState<Omit<Transaction, 'id'>[]>([]);
   const [errors, setErrors] = useState<string[]>([]);
+  const [warnings, setWarnings] = useState<string[]>([]);
   const [dragging, setDragging] = useState(false);
   const fileRef = useRef<HTMLInputElement>(null);
 
@@ -70,7 +73,7 @@ export function ImportModal({ open, onClose, onImport }: Props) {
     return byLabel?.id ?? accounts[0]?.id ?? 'conto_corrente';
   };
 
-  const reset = () => { setStep('upload'); setParsed([]); setErrors([]); };
+  const reset = () => { setStep('upload'); setParsed([]); setErrors([]); setWarnings([]); };
   const close = () => { reset(); onClose(); };
 
   const process = async (file: File) => {
@@ -79,6 +82,7 @@ export function ImportModal({ open, onClose, onImport }: Props) {
     const rows = XLSX.utils.sheet_to_json<Record<string, unknown>>(wb.Sheets[wb.SheetNames[0]], { defval: '' });
     const txs: Omit<Transaction, 'id'>[] = [];
     const errs: string[] = [];
+    const warns: string[] = [];
     rows.forEach((row, i) => {
       const dateV = col(row, 'data', 'date');
       const descV = col(row, 'descrizione', 'description', 'causale', 'memo');
@@ -88,7 +92,9 @@ export function ImportModal({ open, onClose, onImport }: Props) {
       }
       const amount = parseAmount(amtV);
       if (!amount || isNaN(amount)) { errs.push(`Riga ${i + 2}: importo non valido`); return; }
-      const type = parseType(col(row, 'tipo', 'type'));
+      const rawType = col(row, 'tipo', 'type');
+      const { type, recognized } = parseType(rawType);
+      if (!recognized) warns.push(`Riga ${i + 2}: tipo "${rawType}" non riconosciuto → importato come Uscita`);
       txs.push({
         date: parseDate(dateV), description: String(descV).trim(), amount, type,
         category: type === 'transfer' ? 'trasferimento' : matchCategory(col(row, 'categoria', 'category'), type),
@@ -97,7 +103,7 @@ export function ImportModal({ open, onClose, onImport }: Props) {
         notes: col(row, 'note', 'notes') ? String(col(row, 'note', 'notes')).trim() : undefined,
       });
     });
-    setParsed(txs); setErrors(errs); setStep('preview');
+    setParsed(txs); setErrors(errs); setWarnings(warns); setStep('preview');
   };
 
   const template = async () => {
@@ -166,11 +172,19 @@ export function ImportModal({ open, onClose, onImport }: Props) {
           {step === 'preview' && (
             <div className="space-y-3">
               <p className="text-sm font-medium text-primary">
-                {parsed.length} transazioni pronte{errors.length > 0 && `, ${errors.length} ignorate`}
+                {parsed.length} transazioni pronte
+                {errors.length > 0 && `, ${errors.length} ignorate`}
+                {warnings.length > 0 && `, ${warnings.length} con tipo stimato`}
               </p>
               {errors.length > 0 && (
-                <div className="bg-[#E08B8B]/10 rounded-2xl p-3 max-h-28 overflow-y-auto space-y-1">
-                  {errors.map((e, i) => <p key={i} className="text-xs text-[#E08B8B]">{e}</p>)}
+                <div className="bg-[#C0605A]/10 rounded-2xl p-3 max-h-24 overflow-y-auto space-y-1">
+                  {errors.map((e, i) => <p key={i} className="text-xs text-[#C0605A]">{e}</p>)}
+                </div>
+              )}
+              {warnings.length > 0 && (
+                <div className="bg-[#E6B95C]/10 rounded-2xl p-3 max-h-24 overflow-y-auto space-y-1">
+                  <p className="text-xs font-medium text-gold mb-1">Tipi non riconosciuti — importati come Uscita:</p>
+                  {warnings.map((w, i) => <p key={i} className="text-xs text-[#E6B95C]/80">{w}</p>)}
                 </div>
               )}
               {parsed.length > 0 && (
@@ -179,7 +193,11 @@ export function ImportModal({ open, onClose, onImport }: Props) {
                     <div key={i} className="flex items-center gap-3 p-3 text-sm">
                       <span className="text-secondary text-xs w-12 flex-shrink-0">{formatDate(tx.date)}</span>
                       <span className="flex-1 truncate text-primary">{tx.description}</span>
-                      <span className="font-medium balance-num">{formatCurrency(tx.amount)}</span>
+                      <span className="label-caps px-2 py-0.5 rounded-md"
+                        style={{ backgroundColor: TYPE_META[tx.type].color + '22', color: TYPE_META[tx.type].color }}>
+                        {TYPE_META[tx.type].label}
+                      </span>
+                      <span className="font-medium balance-num text-xs">{formatCurrency(tx.amount)}</span>
                     </div>
                   ))}
                 </div>
