@@ -30,6 +30,8 @@ export function TransactionModal({ open, editing, onClose, onSave, onDelete }: P
   const [recurringFreq, setRecurringFreq] = useState<RecurrenceRule['freq']>('monthly');
   const [recurringUntil, setRecurringUntil] = useState('');
 
+  const [amountError, setAmountError] = useState(false);
+
   useEffect(() => {
     if (!open) return;
     if (editing) {
@@ -50,6 +52,7 @@ export function TransactionModal({ open, editing, onClose, onSave, onDelete }: P
       setIsShared(false); setYourPart('');
       setIsRecurring(false); setRecurringFreq('monthly'); setRecurringUntil('');
     }
+    setAmountError(false);
   }, [open, editing]);
 
   const typeCats = categories.filter(c => c.kind === type);
@@ -61,7 +64,9 @@ export function TransactionModal({ open, editing, onClose, onSave, onDelete }: P
   const submit = (e: React.FormEvent) => {
     e.preventDefault();
     const value = parseFloat(amount.replace(',', '.'));
-    if (!value || value <= 0 || !description.trim()) return;
+    if (!value || value <= 0) { setAmountError(true); return; }
+    setAmountError(false);
+    if (!description.trim()) return;
     const mine = parseFloat(yourPart.replace(',', '.'));
     const shared = type === 'expense' && isShared && mine > 0 && mine < value ? value - mine : undefined;
     const recurring: RecurrenceRule | undefined = isRecurring
@@ -108,14 +113,18 @@ export function TransactionModal({ open, editing, onClose, onSave, onDelete }: P
           {/* Amount */}
           <div className="text-center py-2">
             <div className="flex items-center justify-center gap-1">
-              <span className="text-3xl font-semibold text-secondary">€</span>
+              <span className="text-3xl font-semibold" style={{ color: amountError ? '#C0605A' : undefined }}>€</span>
               <input
                 type="text" inputMode="decimal" placeholder="0" value={amount}
-                onChange={e => setAmount(e.target.value.replace(/[^\d.,]/g, ''))}
+                onChange={e => { setAmount(e.target.value.replace(/[^\d.,]/g, '')); setAmountError(false); }}
                 autoFocus={!editing}
-                className="bg-transparent text-5xl font-bold text-primary text-center w-44 outline-none balance-num placeholder:text-divider"
+                className="bg-transparent text-5xl font-bold text-center w-44 outline-none balance-num placeholder:text-divider transition-colors"
+                style={{ color: amountError ? '#C0605A' : undefined }}
               />
             </div>
+            {amountError && (
+              <p className="text-xs mt-1 transition-opacity" style={{ color: '#C0605A' }}>Inserisci un importo valido</p>
+            )}
           </div>
 
           {/* Description */}
