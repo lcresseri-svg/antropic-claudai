@@ -1,10 +1,14 @@
+import { User } from 'firebase/auth';
+
 interface Props {
   view: 'dashboard' | 'transactions';
   onViewChange: (v: 'dashboard' | 'transactions') => void;
   onAdd: () => void;
+  user: User;
+  onLogOut: () => void;
 }
 
-export function Header({ view, onViewChange, onAdd }: Props) {
+export function Header({ view, onViewChange, onAdd, user, onLogOut }: Props) {
   return (
     <header className="sticky top-0 z-30 bg-cream border-b border-black/5">
       <div className="max-w-2xl mx-auto px-4 py-3 flex items-center justify-between">
@@ -36,13 +40,28 @@ export function Header({ view, onViewChange, onAdd }: Props) {
           </button>
         </nav>
 
-        <button
-          onClick={onAdd}
-          className="w-9 h-9 rounded-xl bg-dark text-cream flex items-center justify-center text-xl leading-none hover:bg-dark/80 transition-colors shadow-sm"
-          aria-label="Aggiungi transazione"
-        >
-          +
-        </button>
+        <div className="flex items-center gap-2">
+          <button
+            onClick={onAdd}
+            className="w-9 h-9 rounded-xl bg-dark text-cream flex items-center justify-center text-xl leading-none hover:bg-dark/80 transition-colors"
+            aria-label="Aggiungi transazione"
+          >
+            +
+          </button>
+          <button
+            onClick={onLogOut}
+            title={`Esci (${user.displayName})`}
+            className="w-8 h-8 rounded-full overflow-hidden border-2 border-transparent hover:border-gold transition-colors flex-shrink-0"
+          >
+            {user.photoURL ? (
+              <img src={user.photoURL} alt={user.displayName ?? ''} className="w-full h-full object-cover" />
+            ) : (
+              <div className="w-full h-full bg-sage flex items-center justify-center text-white text-xs font-bold">
+                {(user.displayName ?? 'U')[0]}
+              </div>
+            )}
+          </button>
+        </div>
       </div>
     </header>
   );

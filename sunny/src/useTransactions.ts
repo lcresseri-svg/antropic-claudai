@@ -1,36 +1,63 @@
 import { useState, useEffect, useCallback } from 'react';
+import {
+  collection, query, orderBy, onSnapshot,
+  addDoc, deleteDoc, doc, writeBatch,
+} from 'firebase/firestore';
+import { User } from 'firebase/auth';
 import { Transaction, Category } from './types';
 import { demoTransactions } from './demoData';
+import { db } from './firebase';
 
-const STORAGE_KEY = 'sunny_transactions_v1';
-
-function loadFromStorage(): Transaction[] {
-  try {
-    const raw = localStorage.getItem(STORAGE_KEY);
-    return raw ? JSON.parse(raw) : demoTransactions;
-  } catch {
-    return demoTransactions;
-  }
-}
-
-export function useTransactions() {
-  const [transactions, setTransactions] = useState<Transaction[]>(loadFromStorage);
+export function useTransactions(user: User | null) {
+  const [transactions, setTransactions] = useState<Transaction[]>([]);
+  const [loading, setLoading] = useState(true);
 
   useEffect(() => {
-    try {
-      localStorage.setItem(STORAGE_KEY, JSON.stringify(transactions));
-    } catch {
-      // storage full — silent fail
+    if (!user) {
+      setTransactions(demoTransactions);
+      setLoading(false);
+      return;
     }
-  }, [transactions]);
 
-  const addTransaction = useCallback((tx: Omit<Transaction, 'id'>) => {
-    setTransactions(prev => [{ ...tx, id: `t_${Date.now()}` }, ...prev]);
-  }, []);
+    const col = collection(db, 'users', user.uid, 'transactions');
+    const q = query(col, orderBy('date', 'desc'));
+    let seeded = false;
 
-  const deleteTransaction = useCallback((id: string) => {
-    setTransactions(prev => prev.filter(t => t.id !== id));
-  }, []);
+    const unsub = onSnapshot(q, async snapshot => {
+      if (snapshot.empty && !seeded) {
+        seeded = true;
+        const batch = writeBatch(db);
+        demoTransactions.forEach(({ id: _id, ...data }) => {
+          batch.set(doc(col), data);
+        });
+        await batch.commit();
+        return;
+      }
+
+      setTransactions(
+        snapshot.docs.map(d => ({ id: d.id, ...(d.data() as Omit<Transaction, 'id'>) })),
+      );
+      setLoading(false);
+    });
+
+    return unsub;
+  }, [user]);
+
+  const addTransaction = useCallback(
+    (tx: Omit<Transaction, 'id'>) => {
+      if (!user) return;
+      addDoc(collection(db, 'users', user.uid, 'transactions'), tx);
+    },
+    [user],
+  );
+
+  const deleteTransaction = useCallback(
+    (id: string) => {
+      if (!user) return;
+      deleteDoc(doc(db, 'users', user.uid, 'transactions', id));
+    },
+    [user],
+  );
 
   const now = new Date();
   const cm = now.getMonth();
@@ -42,7 +69,7 @@ export function useTransactions() {
   });
 
   const totalBalance = transactions.reduce(
-    (sum, tx) => (tx.type === 'income' ? sum + tx.amount : sum - tx.amount),
+    (s, tx) => (tx.type === 'income' ? s + tx.amount : s - tx.amount),
     0,
   );
 
@@ -74,6 +101,6 @@ export function useTransactions() {
     monthlyIncome,
     monthlyExpenses,
     categoryTotals,
-    currentMonthTx,
+    loading,
   };
 }
