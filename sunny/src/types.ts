@@ -37,6 +37,7 @@ export interface Transaction {
   toAccount?: string;    // AccountDef.id — transfers only
   notes?: string;
   shared?: number;       // others' part of a shared expense; counted as movement, not spending
+  groupId?: string;      // links a split expense with its reimbursement transfers
   recurring?: RecurrenceRule;
 }
 

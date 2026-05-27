@@ -49,10 +49,12 @@ function Main({ user, onLogOut }: { user: import('firebase/auth').User; onLogOut
   const openAdd  = () => { setEditing(null); setModalOpen(true); };
   const openEdit = (t: Transaction) => { setEditing(t); setModalOpen(true); };
 
-  const handleSave = (data: Omit<Transaction, 'id'>) => {
-    if (editing) tx.updateTransaction(editing.id, data);
-    else         tx.addTransaction(data);
-  };
+  const groupTransfers = (editing?.type === 'expense' && editing.groupId)
+    ? tx.transactions.filter(t => t.groupId === editing.groupId && t.id !== editing.id)
+    : [];
+
+  const handleSave = (deleteIds: string[], create: Omit<Transaction, 'id'>[]) =>
+    tx.replaceGroup(deleteIds, create);
 
   const pageTitle: Record<Exclude<View, 'home'>, string> = {
     transactions: 'Movimenti',
@@ -137,9 +139,9 @@ function Main({ user, onLogOut }: { user: import('firebase/auth').User; onLogOut
       <BottomNav view={view} onView={setView} onAdd={openAdd} />
 
       <TransactionModal
-        open={modalOpen} editing={editing}
+        open={modalOpen} editing={editing} groupTransfers={groupTransfers}
         onClose={() => setModalOpen(false)}
-        onSave={handleSave} onDelete={tx.deleteTransaction}
+        onSave={handleSave}
       />
       <ImportModal open={importOpen} onClose={() => setImportOpen(false)} onImport={tx.addTransactions} />
     </div>

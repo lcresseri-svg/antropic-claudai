@@ -6,15 +6,17 @@ import { useSettings } from '../settings';
 interface Props {
   open: boolean;
   editing?: Transaction | null;
+  groupTransfers?: Transaction[];
   onClose: () => void;
-  onSave: (tx: Omit<Transaction, 'id'>) => void;
-  onDelete?: (id: string) => void;
+  onSave: (deleteIds: string[], create: Omit<Transaction, 'id'>[]) => void;
 }
+
+interface Reimb { amount: string; account: string }
 
 const today = () => new Date().toISOString().slice(0, 10);
 const yesterday = () => { const d = new Date(); d.setDate(d.getDate() - 1); return d.toISOString().slice(0, 10); };
 
-export function TransactionModal({ open, editing, onClose, onSave, onDelete }: Props) {
+export function TransactionModal({ open, editing, groupTransfers = [], onClose, onSave }: Props) {
   const { categories, accounts } = useSettings();
   const [type, setType] = useState<TransactionType>('expense');
   const [description, setDescription] = useState('');
@@ -25,7 +27,7 @@ export function TransactionModal({ open, editing, onClose, onSave, onDelete }: P
   const [toAccount, setToAccount] = useState('');
   const [notes, setNotes] = useState('');
   const [isShared, setIsShared] = useState(false);
-  const [yourPart, setYourPart] = useState('');
+  const [reimbursements, setReimbursements] = useState<Reimb[]>([]);
   const [isRecurring, setIsRecurring] = useState(false);
   const [recurringFreq, setRecurringFreq] = useState<RecurrenceRule['freq']>('monthly');
   const [recurringUntil, setRecurringUntil] = useState('');
@@ -35,13 +37,18 @@ export function TransactionModal({ open, editing, onClose, onSave, onDelete }: P
   useEffect(() => {
     if (!open) return;
     if (editing) {
+      const hasGroup = editing.type === 'expense' && !!editing.groupId && groupTransfers.length > 0;
+      const transfersSum = groupTransfers.reduce((s, t) => s + t.amount, 0);
       setType(editing.type); setDescription(editing.description);
-      setAmount(String(editing.amount)); setDate(editing.date);
+      setAmount(String(hasGroup ? editing.amount + transfersSum : editing.amount));
+      setDate(editing.date);
       setCategory(editing.category); setAccount(editing.account);
       setToAccount(editing.toAccount ?? accounts[1]?.id ?? '');
       setNotes(editing.notes ?? '');
-      setIsShared(!!editing.shared);
-      setYourPart(editing.shared ? String(editing.amount - editing.shared) : '');
+      setIsShared(hasGroup || !!editing.shared);
+      setReimbursements(hasGroup
+        ? groupTransfers.map(t => ({ amount: String(t.amount), account: t.toAccount ?? '' }))
+        : []);
       setIsRecurring(!!editing.recurring);
       setRecurringFreq(editing.recurring?.freq ?? 'monthly');
       setRecurringUntil(editing.recurring?.until ?? '');
@@ -49,7 +56,7 @@ export function TransactionModal({ open, editing, onClose, onSave, onDelete }: P
       setType('expense'); setDescription(''); setAmount(''); setDate(today());
       setCategory(''); setAccount(accounts[0]?.id ?? '');
       setToAccount(accounts[1]?.id ?? ''); setNotes('');
-      setIsShared(false); setYourPart('');
+      setIsShared(false); setReimbursements([]);
       setIsRecurring(false); setRecurringFreq('monthly'); setRecurringUntil('');
     }
     setAmountError(false);
@@ -68,25 +75,66 @@ export function TransactionModal({ open, editing, onClose, onSave, onDelete }: P
     if (!typeCats.some(c => c.id === category)) setCategory(typeCats[0]?.id ?? '');
   }, [type, categories]);
 
+  const addReimb = () => {
+    const def = accounts.find(a => a.id !== account)?.id ?? accounts[0]?.id ?? '';
+    setReimbursements(rs => [...rs, { amount: '', account: def }]);
+  };
+  const updateReimb = (i: number, patch: Partial<Reimb>) =>
+    setReimbursements(rs => rs.map((r, j) => (j === i ? { ...r, ...patch } : r)));
+  const removeReimb = (i: number) =>
+    setReimbursements(rs => rs.filter((_, j) => j !== i));
+
   const submit = (e: React.FormEvent) => {
     e.preventDefault();
     const value = parseFloat(amount.replace(',', '.'));
     if (!value || value <= 0) { setAmountError(true); return; }
     setAmountError(false);
     if (!description.trim()) return;
-    const mine = parseFloat(yourPart.replace(',', '.'));
-    const shared = type === 'expense' && isShared && mine > 0 && mine < value ? value - mine : undefined;
+
     const recurring: RecurrenceRule | undefined = isRecurring
       ? { freq: recurringFreq, until: recurringUntil || undefined }
       : undefined;
-    onSave({
-      type, description: description.trim(), amount: value, date,
+    const desc = description.trim();
+    const deleteIds = editing ? [editing.id, ...groupTransfers.map(t => t.id)] : [];
+
+    const storni = (type === 'expense' && isShared)
+      ? reimbursements
+          .map(r => ({ amount: parseFloat(r.amount.replace(',', '.')), account: r.account }))
+          .filter(r => r.amount > 0 && r.account)
+      : [];
+    const sum = storni.reduce((s, r) => s + r.amount, 0);
+
+    if (storni.length > 0) {
+      if (sum > value) return; // gli storni superano il totale — bloccato (messaggio inline)
+      const net = value - sum;
+      const groupId = editing?.groupId ?? crypto.randomUUID();
+      const create: Omit<Transaction, 'id'>[] = [];
+      for (const r of storni) {
+        if (r.account === account) continue; // storno sullo stesso conto: coperto dal netto
+        create.push({
+          type: 'transfer', description: `Storno · ${desc}`, amount: r.amount, date,
+          category: 'trasferimento', account, toAccount: r.account, groupId,
+        });
+      }
+      if (net > 0) {
+        create.push({
+          type: 'expense', description: desc, amount: net, date,
+          category, account, notes: notes.trim() || undefined, groupId, recurring,
+        });
+      }
+      onSave(deleteIds, create);
+      onClose();
+      return;
+    }
+
+    onSave(deleteIds, [{
+      type, description: desc, amount: value, date,
       category: type === 'transfer' ? 'trasferimento' : category,
       account,
       toAccount: type === 'transfer' ? toAccount : undefined,
       notes: notes.trim() || undefined,
-      shared, recurring,
-    });
+      recurring,
+    }]);
     onClose();
   };
 
@@ -159,30 +207,51 @@ export function TransactionModal({ open, editing, onClose, onSave, onDelete }: P
             </Field>
           )}
 
-          {/* Shared expense */}
+          {/* Shared expense — storni / rimborsi */}
           {type === 'expense' && (
             <ToggleBlock
               title="Spesa condivisa"
-              subtitle="Hai pagato per altri — conta solo la tua parte"
+              subtitle="Registra gli storni ricevuti — diventano trasferimenti, il resto resta spesa"
               on={isShared}
-              onToggle={() => { setIsShared(s => !s); setYourPart(''); }}>
+              onToggle={() => {
+                const next = !isShared;
+                setIsShared(next);
+                if (!next) setReimbursements([]);
+                else if (reimbursements.length === 0) addReimb();
+              }}>
               {(() => {
                 const total = parseFloat(amount.replace(',', '.')) || 0;
-                const mine = parseFloat(yourPart.replace(',', '.')) || 0;
-                const others = total > 0 && mine > 0 && mine < total ? total - mine : null;
+                const sum = reimbursements.reduce((s, r) => s + (parseFloat(r.amount.replace(',', '.')) || 0), 0);
+                const over = total > 0 && sum > total;
+                const net = total - sum;
                 return (
-                  <div className="space-y-3">
-                    <div>
-                      <label className="text-xs font-medium text-secondary mb-2 block">La tua parte (€)</label>
-                      <input type="text" inputMode="decimal" placeholder="es. 25"
-                        value={yourPart} onChange={e => setYourPart(e.target.value.replace(/[^\d.,]/g, ''))}
-                        className="w-full bg-white/[0.04] rounded-xl px-4 py-3 text-primary placeholder:text-secondary/40 outline-none focus:ring-1 focus:ring-gold/40 text-lg font-semibold balance-num" />
-                    </div>
-                    {others !== null && (
-                      <>
-                        <Row label="Parte degli altri (movimento)" value={formatCurrency(others)} muted />
-                        <Row label="Tua spesa effettiva" value={formatCurrency(mine)} />
-                      </>
+                  <div className="space-y-2.5">
+                    {reimbursements.map((r, i) => (
+                      <div key={i} className="flex items-center gap-2">
+                        <div className="relative w-24 flex-shrink-0">
+                          <span className="absolute left-2.5 top-1/2 -translate-y-1/2 text-secondary text-sm">€</span>
+                          <input type="text" inputMode="decimal" placeholder="0" value={r.amount}
+                            onChange={e => updateReimb(i, { amount: e.target.value.replace(/[^\d.,]/g, '') })}
+                            className="w-full bg-white/[0.04] rounded-xl pl-6 pr-2 py-2.5 text-primary text-sm outline-none focus:ring-1 focus:ring-gold/40 balance-num" />
+                        </div>
+                        <select value={r.account} onChange={e => updateReimb(i, { account: e.target.value })}
+                          className="flex-1 min-w-0 bg-white/[0.04] rounded-xl px-3 py-2.5 text-primary text-sm outline-none focus:ring-1 focus:ring-gold/40 appearance-none">
+                          {accounts.map(a => <option key={a.id} value={a.id} className="bg-elevated">{a.icon} {a.label}</option>)}
+                        </select>
+                        <button type="button" onClick={() => removeReimb(i)}
+                          className="w-8 h-8 rounded-full bg-white/[0.05] flex items-center justify-center text-secondary flex-shrink-0">✕</button>
+                      </div>
+                    ))}
+                    <button type="button" onClick={addReimb}
+                      className="w-full py-2.5 rounded-xl bg-white/[0.05] text-gold text-sm font-medium">
+                      + Aggiungi storno
+                    </button>
+                    {reimbursements.length > 0 && (
+                      <div className="space-y-1.5 pt-1">
+                        <Row label="Totale stornato" value={formatCurrency(sum)} muted />
+                        <Row label="La tua spesa effettiva" value={formatCurrency(net < 0 ? 0 : net)} />
+                        {over && <p className="text-xs" style={{ color: '#C0605A' }}>Gli storni superano il totale</p>}
+                      </div>
                     )}
                   </div>
                 );
@@ -211,7 +280,7 @@ export function TransactionModal({ open, editing, onClose, onSave, onDelete }: P
               <div>
                 <label className="text-xs font-medium text-secondary mb-2 block">Termina il (opzionale)</label>
                 <input type="date" value={recurringUntil} onChange={e => setRecurringUntil(e.target.value)}
-                  className="w-full bg-white/[0.04] rounded-xl px-3 py-2 text-primary text-sm outline-none focus:ring-1 focus:ring-gold/40" />
+                  className="block w-full min-w-0 box-border appearance-none bg-white/[0.04] rounded-xl px-3 py-2 text-primary text-sm outline-none focus:ring-1 focus:ring-gold/40" />
               </div>
             </div>
           </ToggleBlock>
@@ -251,8 +320,9 @@ export function TransactionModal({ open, editing, onClose, onSave, onDelete }: P
             {editing ? 'Salva modifiche' : `Aggiungi ${TYPE_META[type].label.toLowerCase()}`}
           </button>
 
-          {editing && onDelete && (
-            <button type="button" onClick={() => { onDelete(editing.id); onClose(); }}
+          {editing && (
+            <button type="button"
+              onClick={() => { onSave([editing.id, ...groupTransfers.map(t => t.id)], []); onClose(); }}
               className="w-full py-3 rounded-2xl font-medium text-[#E08B8B] text-sm">
               Elimina transazione
             </button>

@@ -49,6 +49,14 @@ export function useTransactions(user: User | null) {
     batch.commit();
   }, [user, colRef]);
 
+  const replaceGroup = useCallback((deleteIds: string[], create: Omit<Transaction, 'id'>[]) => {
+    if (!user) return;
+    const batch = writeBatch(db);
+    deleteIds.forEach(id => batch.delete(doc(db, 'users', user.uid, 'transactions', id)));
+    create.forEach(tx => batch.set(doc(colRef()), stripUndefined(tx)));
+    batch.commit();
+  }, [user, colRef]);
+
   const updateTransaction = useCallback((id: string, patch: Partial<Omit<Transaction, 'id'>>) => {
     if (!user) return;
     updateDoc(doc(db, 'users', user.uid, 'transactions', id), stripUndefined(patch));
@@ -155,7 +163,7 @@ export function useTransactions(user: User | null) {
 
   return {
     transactions, loading,
-    addTransaction, addTransactions,
+    addTransaction, addTransactions, replaceGroup,
     updateTransaction, updateTransactions,
     deleteTransaction, deleteTransactions, deleteAll,
     ...derived,
