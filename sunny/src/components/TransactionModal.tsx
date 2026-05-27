@@ -92,18 +92,18 @@ export function TransactionModal({ open, editing, onClose, onSave, onDelete }: P
       onClick={e => { if (e.target === e.currentTarget) onClose(); }}>
       <div className="absolute inset-0 bg-black/60 backdrop-blur-sm animate-fade-in-fast" />
 
-      <div className="relative w-full max-w-md glass-elevated rounded-3xl shadow-float max-h-[92vh] overflow-y-auto scrollbar-hide animate-sheet-up">
-        <div className="sticky top-0 bg-[rgba(20,20,20,0.85)] backdrop-blur-xl z-10 px-6 pt-6 pb-3 flex items-center justify-between">
-          <h2 className="text-lg font-semibold text-primary">{editing ? 'Modifica' : 'Nuova transazione'}</h2>
+      <div className="relative w-full max-w-sm glass-elevated rounded-3xl shadow-float max-h-[88vh] overflow-y-auto scrollbar-hide animate-sheet-up">
+        <div className="sticky top-0 bg-[rgba(20,20,20,0.85)] backdrop-blur-xl z-10 px-5 pt-5 pb-3 flex items-center justify-between">
+          <h2 className="text-base font-semibold text-primary">{editing ? 'Modifica' : 'Nuova transazione'}</h2>
           <button onClick={onClose} className="w-8 h-8 rounded-full bg-white/[0.05] flex items-center justify-center text-secondary">✕</button>
         </div>
 
-        <form onSubmit={submit} className="px-6 pb-6 space-y-5">
+        <form onSubmit={submit} className="px-5 pb-5 space-y-4">
           {/* Type segmented */}
           <div className="grid grid-cols-4 gap-1.5 bg-white/[0.05] rounded-2xl p-1.5">
             {TYPE_ORDER.map(t => (
               <button key={t} type="button" onClick={() => setType(t)}
-                className="py-2.5 rounded-xl text-[11px] font-semibold transition-all"
+                className="py-2 rounded-xl text-[11px] font-semibold transition-all"
                 style={type === t ? { backgroundColor: TYPE_META[t].color, color: '#0D0D0D' } : { color: '#8B8B8B' }}>
                 {TYPE_META[t].label}
               </button>
@@ -111,14 +111,14 @@ export function TransactionModal({ open, editing, onClose, onSave, onDelete }: P
           </div>
 
           {/* Amount */}
-          <div className="text-center py-2">
+          <div className="text-center py-1">
             <div className="flex items-center justify-center gap-1">
-              <span className="text-3xl font-semibold" style={{ color: amountError ? '#C0605A' : undefined }}>€</span>
+              <span className="text-2xl font-semibold" style={{ color: amountError ? '#C0605A' : undefined }}>€</span>
               <input
                 type="text" inputMode="decimal" placeholder="0" value={amount}
                 onChange={e => { setAmount(e.target.value.replace(/[^\d.,]/g, '')); setAmountError(false); }}
                 autoFocus={!editing}
-                className="bg-transparent text-5xl font-bold text-center w-44 outline-none balance-num placeholder:text-divider transition-colors"
+                className="bg-transparent text-4xl font-bold text-center w-40 outline-none balance-num placeholder:text-divider transition-colors"
                 style={{ color: amountError ? '#C0605A' : undefined }}
               />
             </div>
@@ -131,7 +131,7 @@ export function TransactionModal({ open, editing, onClose, onSave, onDelete }: P
           <Field label="Descrizione">
             <input type="text" placeholder="es. Supermercato" value={description} maxLength={80}
               onChange={e => setDescription(e.target.value)} required
-              className="w-full bg-white/[0.05] rounded-2xl px-4 py-3.5 text-primary placeholder:text-secondary/50 outline-none focus:ring-1 focus:ring-gold/40" />
+              className="w-full bg-white/[0.05] rounded-2xl px-4 py-3 text-primary placeholder:text-secondary/50 outline-none focus:ring-1 focus:ring-gold/40" />
           </Field>
 
           {/* Category */}
@@ -239,7 +239,7 @@ export function TransactionModal({ open, editing, onClose, onSave, onDelete }: P
           </Field>
 
           <button type="submit"
-            className="w-full py-4 rounded-2xl font-semibold text-bg transition-transform active:scale-[0.98]"
+            className="w-full py-3.5 rounded-2xl font-semibold text-bg transition-transform active:scale-[0.98]"
             style={{ backgroundColor: TYPE_META[type].color }}>
             {editing ? 'Salva modifiche' : `Aggiungi ${TYPE_META[type].label.toLowerCase()}`}
           </button>
@@ -298,7 +298,7 @@ function Field({ label, children }: { label: string; children: React.ReactNode }
 function Select({ value, onChange, options }: { value: string; onChange: (v: string) => void; options: { value: string; label: string }[] }) {
   return (
     <select value={value} onChange={e => onChange(e.target.value)}
-      className="w-full bg-white/[0.05] rounded-2xl px-4 py-3.5 text-primary text-sm outline-none focus:ring-1 focus:ring-gold/40 appearance-none">
+      className="w-full bg-white/[0.05] rounded-2xl px-4 py-3 text-primary text-sm outline-none focus:ring-1 focus:ring-gold/40 appearance-none">
       {options.map(o => <option key={o.value} value={o.value} className="bg-elevated">{o.label}</option>)}
     </select>
   );

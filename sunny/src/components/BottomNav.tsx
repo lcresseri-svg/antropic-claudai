@@ -15,12 +15,12 @@ export function BottomNav({ view, onView, onAdd }: Props) {
   return (
     <nav className="fixed bottom-0 inset-x-0 z-30 safe-bottom pointer-events-none">
       <div className="max-w-2xl mx-auto px-4 pb-4 flex justify-center">
-        <div className="pointer-events-auto flex items-center gap-0.5 glass-nav rounded-full px-1 py-1">
+        <div className="pointer-events-auto flex items-center gap-2 glass-nav rounded-full px-2.5 py-1.5">
           {items.slice(0, 1).map(it =>
             <NavBtn key={it.id} {...it} active={view === it.id} onClick={() => onView(it.id)} />
           )}
           <button onClick={onAdd}
-            className="w-11 h-11 rounded-full glass-cta-gold flex items-center justify-center mx-1 transition-transform active:scale-90">
+            className="w-12 h-12 rounded-full glass-cta-gold flex items-center justify-center mx-1.5 transition-transform active:scale-90">
             <svg width="13" height="13" viewBox="0 0 13 13" fill="none">
               <path d="M6.5 1v11M1 6.5h11" stroke="#0D0D0D" strokeWidth="1.75" strokeLinecap="round"/>
             </svg>
