@@ -40,8 +40,8 @@ export function TransactionRow({ tx, selectable, selected, onToggle, onClick }: 
         </span>
       )}
 
-      <div className="w-10 h-10 rounded-full flex items-center justify-center text-base flex-shrink-0"
-        style={{ backgroundColor: cat.color + '22' }}>
+      <div className="w-10 h-10 rounded-xl flex items-center justify-center text-base flex-shrink-0"
+        style={{ backgroundColor: cat.color + '18' }}>
         {cat.icon}
       </div>
 

@@ -26,15 +26,16 @@ function arc(cx: number, cy: number, oR: number, iR: number, start: number, end:
   return `M ${o1.x.toFixed(2)} ${o1.y.toFixed(2)} A ${oR} ${oR} 0 ${large} 1 ${o2.x.toFixed(2)} ${o2.y.toFixed(2)} L ${i1.x.toFixed(2)} ${i1.y.toFixed(2)} A ${iR} ${iR} 0 ${large} 0 ${i2.x.toFixed(2)} ${i2.y.toFixed(2)} Z`;
 }
 
-export function Donut({ segments, centerLabel, size = 150 }: Props) {
+export function Donut({ segments, centerLabel, size = 140 }: Props) {
   const total = segments.reduce((s, x) => s + x.value, 0);
-  const cx = 100, cy = 100, oR = 86, iR = 60, GAP = 0.03;
+  // Thin ring: oR=90 iR=74 → 16px wide (premium minimal)
+  const cx = 100, cy = 100, oR = 90, iR = 74, GAP = 0.025;
   let angle = -Math.PI / 2;
 
   const paths = segments.filter(s => s.value > 0).map(s => {
     const span = (s.value / total) * 2 * Math.PI;
     const start = angle + GAP / 2;
-    const end = angle + span - GAP / 2;
+    const end   = angle + span - GAP / 2;
     angle += span;
     return { ...s, d: arc(cx, cy, oR, iR, start, Math.max(start, end)) };
   });
@@ -43,13 +44,13 @@ export function Donut({ segments, centerLabel, size = 150 }: Props) {
     <div className="relative flex-shrink-0" style={{ width: size, height: size }}>
       <svg viewBox="0 0 200 200" width={size} height={size}>
         {paths.length === 0 && (
-          <circle cx={cx} cy={cy} r={(oR + iR) / 2} fill="none" stroke="#232323" strokeWidth={oR - iR} />
+          <circle cx={cx} cy={cy} r={(oR + iR) / 2} fill="none" stroke="#1C1C1C" strokeWidth={oR - iR} />
         )}
         {paths.map((p, i) => <path key={i} d={p.d} fill={p.color} />)}
       </svg>
       <div className="absolute inset-0 flex flex-col items-center justify-center pointer-events-none">
-        <span className="text-[10px] text-secondary uppercase tracking-wider">{centerLabel ?? 'Totale'}</span>
-        <span className="text-sm font-semibold text-primary balance-num">{formatCurrency(total)}</span>
+        <span className="label-caps text-secondary">{centerLabel ?? 'Totale'}</span>
+        <span className="text-[13px] font-semibold text-primary balance-num mt-0.5">{formatCurrency(total)}</span>
       </div>
     </div>
   );

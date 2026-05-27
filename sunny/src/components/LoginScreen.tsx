@@ -1,3 +1,5 @@
+import { ArcLogo } from '../App';
+
 interface Props {
   onSignIn: () => void;
   error: string | null;
@@ -6,49 +8,66 @@ interface Props {
 export function LoginScreen({ onSignIn, error }: Props) {
   return (
     <div className="min-h-screen bg-bg flex flex-col items-center justify-center px-8 animate-fade-in">
+
+      {/* Hero */}
       <div className="flex-1 flex flex-col items-center justify-center text-center">
-        <SunMark />
-        <h1 className="text-5xl font-bold text-primary tracking-tight mt-8">Sunny</h1>
-        <p className="text-secondary mt-3 text-base max-w-[16rem] leading-relaxed">
-          La tua finanza personale, semplice e chiara.
+        <ArcMark />
+        <h1 className="text-[40px] font-bold text-primary tracking-[-0.04em] mt-10 leading-none">
+          Sunny
+        </h1>
+        <p className="text-secondary mt-4 text-[15px] max-w-[200px] leading-relaxed">
+          Finanza personale,{' '}senza compromessi.
         </p>
       </div>
 
-      <div className="w-full max-w-xs pb-12 space-y-4">
+      {/* CTA */}
+      <div className="w-full max-w-[300px] pb-14 space-y-3">
         <button onClick={onSignIn}
-          className="w-full bg-primary text-bg py-4 rounded-2xl font-semibold flex items-center justify-center gap-3 transition-transform active:scale-[0.98]">
-          <GoogleIcon /> Continua con Google
+          className="w-full bg-primary text-bg py-4 rounded-2xl font-semibold flex items-center justify-center gap-3 transition-all active:scale-[0.98] active:opacity-90">
+          <GoogleIcon />
+          Continua con Google
         </button>
-        {error && <p className="text-xs text-[#E08B8B] text-center">{error}</p>}
-        <p className="text-[11px] text-secondary/60 text-center leading-relaxed">
-          I tuoi dati sono sincronizzati e salvati in modo sicuro
+        {error && (
+          <p className="text-xs text-[#C0605A] text-center leading-relaxed">{error}</p>
+        )}
+        <p className="text-center pt-1 text-secondary/50 leading-relaxed"
+          style={{ fontSize: '10px', letterSpacing: '0.08em', textTransform: 'uppercase' }}>
+          Dati sincronizzati e protetti
         </p>
       </div>
     </div>
   );
 }
 
-function SunMark() {
+function ArcMark() {
   return (
-    <svg width="80" height="80" viewBox="0 0 200 200" className="animate-scale-in">
-      <circle cx="100" cy="100" r="34" fill="#E6B95C" />
-      <g stroke="#E6B95C" strokeWidth="9" strokeLinecap="round">
-        <line x1="100" y1="34" x2="100" y2="50" />
-        <line x1="100" y1="150" x2="100" y2="166" />
-        <line x1="34" y1="100" x2="50" y2="100" />
-        <line x1="150" y1="100" x2="166" y2="100" />
-        <line x1="53" y1="53" x2="64" y2="64" />
-        <line x1="136" y1="136" x2="147" y2="147" />
-        <line x1="147" y1="53" x2="136" y2="64" />
-        <line x1="64" y1="136" x2="53" y2="147" />
-      </g>
+    <svg width="88" height="88" viewBox="0 0 80 80" fill="none" aria-hidden className="animate-scale-in">
+      <defs>
+        <filter id="am" x="-60%" y="-60%" width="220%" height="220%">
+          <feGaussianBlur in="SourceGraphic" stdDeviation="2.5" result="b"/>
+          <feMerge><feMergeNode in="b"/><feMergeNode in="SourceGraphic"/></feMerge>
+        </filter>
+      </defs>
+      <circle cx="40" cy="40" r="32"
+        stroke="#E6B95C" strokeWidth="1.8" strokeLinecap="round"
+        strokeDasharray="167.5 33.5"
+        transform="rotate(-108 40 40)"
+        filter="url(#am)"
+      />
+      <circle cx="40" cy="40" r="21"
+        stroke="#E6B95C" strokeWidth="1.1" strokeLinecap="round"
+        strokeDasharray="95.3 36.6"
+        transform="rotate(-55 40 40)"
+        opacity="0.32"
+      />
+      <circle cx="40" cy="40" r="2.5" fill="#E6B95C" opacity="0.75"/>
     </svg>
   );
 }
 
 function GoogleIcon() {
   return (
-    <svg width="18" height="18" viewBox="0 0 18 18" aria-hidden="true">
+    <svg width="18" height="18" viewBox="0 0 18 18" aria-hidden>
       <path fill="#4285F4" d="M17.64 9.2c0-.637-.057-1.251-.164-1.84H9v3.481h4.844c-.209 1.125-.843 2.078-1.796 2.717v2.258h2.908C16.658 14.013 17.64 11.705 17.64 9.2z"/>
       <path fill="#34A853" d="M9 18c2.43 0 4.467-.806 5.956-2.18l-2.908-2.259c-.806.54-1.837.86-3.048.86-2.344 0-4.328-1.584-5.036-3.711H.957v2.332A8.997 8.997 0 0 0 9 18z"/>
       <path fill="#FBBC05" d="M3.964 10.71A5.41 5.41 0 0 1 3.682 9c0-.593.102-1.17.282-1.71V4.958H.957A8.996 8.996 0 0 0 0 9c0 1.452.348 2.827.957 4.042l3.007-2.332z"/>

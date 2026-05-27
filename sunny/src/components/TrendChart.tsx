@@ -13,7 +13,7 @@ export function TrendChart({ data }: Props) {
   return (
     <div className="bg-card rounded-2xl p-5">
       <div className="flex items-center justify-between mb-5">
-        <h3 className="text-sm font-semibold text-primary">Andamento 6 mesi</h3>
+        <p className="label-caps text-secondary">Andamento 6 mesi</p>
         <div className="flex items-center gap-3 text-[11px] text-secondary">
           <span className="flex items-center gap-1.5">
             <span className="w-2 h-2 rounded-full inline-block" style={{ backgroundColor: '#8A9270' }} /> Entrate

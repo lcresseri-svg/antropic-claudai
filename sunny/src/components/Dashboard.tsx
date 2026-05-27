@@ -28,60 +28,66 @@ interface Props {
 
 export function Dashboard(p: Props) {
   const [accMode, setAccMode] = useState<'balance' | 'spending'>('balance');
-  const saved = p.monthlyIncome - p.monthlyExpenses - p.monthlyInvestments;
+  const saved       = p.monthlyIncome - p.monthlyExpenses - p.monthlyInvestments;
   const monthlyDelta = p.monthlyIncome - p.monthlyExpenses;
 
   return (
-    <div className="space-y-4 pb-28">
+    <div className="space-y-3 pb-32 animate-fade-in">
+
       {/* Greeting */}
-      <div className="flex items-center justify-between pt-1 animate-fade-in">
+      <div className="flex items-center justify-between pt-3">
         <div>
-          <p className="text-sm text-secondary">{greeting()},</p>
-          <p className="text-lg font-semibold text-primary">{p.user.displayName?.split(' ')[0] ?? 'utente'}</p>
+          <p className="text-[13px] text-secondary">{greeting()}</p>
+          <p className="text-lg font-semibold text-primary tracking-[-0.02em] leading-tight mt-0.5">
+            {p.user.displayName?.split(' ')[0] ?? 'utente'}
+          </p>
         </div>
-        {p.user.photoURL && <img src={p.user.photoURL} alt="" className="w-9 h-9 rounded-full" />}
+        {p.user.photoURL && (
+          <img src={p.user.photoURL} alt="" className="w-9 h-9 rounded-full opacity-90" />
+        )}
       </div>
 
-      {/* Hero net worth */}
-      <div className="bg-card rounded-3xl p-6 animate-scale-in">
-        <p className="text-xs text-secondary uppercase tracking-wider mb-2">Patrimonio netto</p>
-        <p className="text-[44px] leading-none font-bold text-primary balance-num">{formatCurrency(p.netWorth)}</p>
+      {/* Hero — net worth floats on dark surface */}
+      <div className="pt-6 pb-7 animate-scale-in">
+        <p className="label-caps text-secondary mb-3">Patrimonio netto</p>
+        <p className="text-[52px] leading-none font-bold text-primary balance-num">
+          {formatCurrency(p.netWorth)}
+        </p>
         {monthlyDelta !== 0 && (
-          <p className="text-sm mt-2 balance-num" style={{ color: monthlyDelta >= 0 ? '#8A9270' : '#E08B8B' }}>
-            {monthlyDelta >= 0 ? '+' : ''}{formatCurrency(monthlyDelta)} questo mese
+          <p className="text-[13px] mt-2.5 balance-num"
+            style={{ color: monthlyDelta >= 0 ? '#7A9E6E' : '#C0605A' }}>
+            {monthlyDelta >= 0 ? '+' : ''}{formatCurrency(monthlyDelta)}&ensp;questo mese
           </p>
         )}
-        <div className="flex gap-6 mt-4">
+        <div className="flex gap-8 mt-7 pt-6 border-t border-divider">
           <div>
-            <p className="text-xs text-secondary mb-1">Liquidità</p>
+            <p className="label-caps text-secondary mb-2">Liquidità</p>
             <p className="text-sm font-semibold text-primary balance-num">{formatCurrency(p.liquidity)}</p>
           </div>
-          <div className="w-px bg-divider" />
           <div>
-            <p className="text-xs text-secondary mb-1">Investito</p>
-            <p className="text-sm font-semibold balance-num" style={{ color: '#E6B95C' }}>{formatCurrency(p.investmentTotal)}</p>
+            <p className="label-caps text-secondary mb-2">Investito</p>
+            <p className="text-sm font-semibold balance-num" style={{ color: '#E6B95C' }}>
+              {formatCurrency(p.investmentTotal)}
+            </p>
           </div>
         </div>
       </div>
 
-      {/* Month stats */}
-      <div className="grid grid-cols-3 gap-3">
-        <Stat label="Entrate" value={formatCurrency(p.monthlyIncome)} color="#8A9270" />
-        <Stat label="Uscite" value={formatCurrency(p.monthlyExpenses)} color="#8B8B8B" />
-        <Stat label="Risparmio" value={formatCurrency(saved)} color={saved >= 0 ? '#E6B95C' : '#E08B8B'} />
+      {/* Monthly stats */}
+      <div className="grid grid-cols-3 gap-2.5">
+        <Stat label="Entrate"  value={formatCurrency(p.monthlyIncome)}   color="#7A9E6E" />
+        <Stat label="Uscite"   value={formatCurrency(p.monthlyExpenses)}  color="#666666" />
+        <Stat label="Risparmio" value={formatCurrency(saved)} color={saved >= 0 ? '#E6B95C' : '#C0605A'} />
       </div>
 
       <TrendChart data={p.trend} />
-
       <CategoryCard categoryTotals={p.categoryTotals} />
-
       <AccountsCard
         accountBalances={p.accountBalances}
         expenseByAccount={p.expenseByAccount}
         mode={accMode}
         onToggle={() => setAccMode(m => m === 'balance' ? 'spending' : 'balance')}
       />
-
       <Insights
         transactions={p.transactions}
         monthlyIncome={p.monthlyIncome}
@@ -89,27 +95,35 @@ export function Dashboard(p: Props) {
         monthlyInvestments={p.monthlyInvestments}
       />
 
-      {/* Recent */}
-      <div className="bg-card rounded-2xl p-5">
-        <div className="flex items-center justify-between mb-1">
-          <h3 className="text-sm font-semibold text-primary">Ultime transazioni</h3>
-          <button onClick={p.onSeeAll} className="text-xs font-medium text-gold">Vedi tutte</button>
+      {/* Recent transactions */}
+      <section>
+        <div className="flex items-center justify-between mb-3">
+          <h3 className="text-[13px] font-semibold text-primary">Recenti</h3>
+          <button onClick={p.onSeeAll}
+            className="label-caps text-gold" style={{ letterSpacing: '0.06em' }}>
+            Vedi tutte
+          </button>
         </div>
-        <div className="divide-y divide-divider">
-          {p.recentTransactions.slice(0, 6).map(tx => (
-            <TransactionRow key={tx.id} tx={tx} onClick={p.onEditTransaction} />
-          ))}
+        <div className="bg-card rounded-2xl overflow-hidden">
+          <div className="divide-y divide-divider px-4">
+            {p.recentTransactions.slice(0, 6).map(tx => (
+              <TransactionRow key={tx.id} tx={tx} onClick={p.onEditTransaction} />
+            ))}
+            {p.recentTransactions.length === 0 && (
+              <p className="text-[13px] text-secondary py-8 text-center">Nessuna transazione</p>
+            )}
+          </div>
         </div>
-      </div>
+      </section>
     </div>
   );
 }
 
 function Stat({ label, value, color }: { label: string; value: string; color: string }) {
   return (
-    <div className="bg-card rounded-2xl p-4">
-      <p className="text-[11px] text-secondary mb-1.5">{label}</p>
-      <p className="text-[15px] font-semibold balance-num truncate" style={{ color }}>{value}</p>
+    <div className="bg-card rounded-2xl px-4 py-4">
+      <p className="label-caps text-secondary mb-2">{label}</p>
+      <p className="text-[14px] font-semibold balance-num truncate" style={{ color }}>{value}</p>
     </div>
   );
 }

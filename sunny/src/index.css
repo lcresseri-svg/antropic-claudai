@@ -9,11 +9,12 @@
   }
   body {
     background-color: #0D0D0D;
-    color: #F5F5F5;
-    font-family: 'Inter', -apple-system, BlinkMacSystemFont, system-ui, sans-serif;
+    color: #F0F0F0;
+    font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'SF Pro Display', system-ui, sans-serif;
     -webkit-font-smoothing: antialiased;
     -moz-osx-font-smoothing: grayscale;
-    letter-spacing: -0.01em;
+    letter-spacing: -0.015em;
+    font-feature-settings: 'cv11', 'ss01';
   }
 }
 
@@ -24,18 +25,24 @@
   }
   .scrollbar-hide::-webkit-scrollbar { display: none; }
 
-  .tabular { font-variant-numeric: tabular-nums; }
-
   .safe-bottom { padding-bottom: env(safe-area-inset-bottom); }
-  .safe-top { padding-top: env(safe-area-inset-top); }
+  .safe-top    { padding-top:    env(safe-area-inset-top);    }
 
-  /* number ticker / large balances */
+  /* Financial numbers — tabular, tight tracking */
   .balance-num {
     font-variant-numeric: tabular-nums;
-    letter-spacing: -0.03em;
+    letter-spacing: -0.035em;
+  }
+
+  /* Micro label — uppercase with generous tracking */
+  .label-caps {
+    font-size: 0.625rem;   /* 10px */
+    font-weight: 500;
+    letter-spacing: 0.1em;
+    text-transform: uppercase;
   }
 }
 
-/* Smooth dark date input */
+/* System date/select use dark color-scheme */
 input[type="date"] { color-scheme: dark; }
-select { color-scheme: dark; }
+select             { color-scheme: dark; }

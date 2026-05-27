@@ -30,7 +30,7 @@ export function AccountsCard({ accountBalances, expenseByAccount, mode, onToggle
   return (
     <div className="bg-card rounded-2xl p-5">
       <div className="flex items-center justify-between mb-4">
-        <h3 className="text-sm font-semibold text-primary">{mode === 'balance' ? 'Saldo per conto' : 'Spese per conto'}</h3>
+        <p className="label-caps text-secondary">{mode === 'balance' ? 'Saldo per conto' : 'Spese per conto'}</p>
         <button onClick={onToggle} className="text-xs font-medium text-gold">
           {mode === 'balance' ? 'Vedi spese' : 'Vedi saldi'}
         </button>
@@ -39,7 +39,7 @@ export function AccountsCard({ accountBalances, expenseByAccount, mode, onToggle
         {entries.map(({ acc, value }) => (
           <li key={acc.id}>
             <div className="flex items-center gap-2.5 mb-1.5">
-              <span className="w-7 h-7 rounded-full flex items-center justify-center text-sm flex-shrink-0" style={{ backgroundColor: acc.color + '22' }}>{acc.icon}</span>
+              <span className="w-7 h-7 rounded-xl flex items-center justify-center text-sm flex-shrink-0" style={{ backgroundColor: acc.color + '18' }}>{acc.icon}</span>
               <span className="text-[13px] text-primary flex-1 truncate">{acc.label}</span>
               <span className="text-[13px] font-semibold balance-num" style={{ color: value < 0 && mode === 'balance' ? '#E08B8B' : '#F5F5F5' }}>
                 {formatCurrency(value)}
