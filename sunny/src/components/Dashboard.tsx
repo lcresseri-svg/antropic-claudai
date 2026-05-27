@@ -1,7 +1,7 @@
 import { useState } from 'react';
 import { User } from 'firebase/auth';
 import { Transaction } from '../types';
-import { formatCurrency, currentMonthLabel, greeting, capitalize } from '../utils';
+import { formatCurrency, greeting } from '../utils';
 import { CategoryCard } from './CategoryCard';
 import { AccountsCard } from './AccountsCard';
 import { TrendChart } from './TrendChart';
@@ -70,7 +70,6 @@ export function Dashboard(p: Props) {
         <Stat label="Uscite" value={formatCurrency(p.monthlyExpenses)} color="#8B8B8B" />
         <Stat label="Risparmio" value={formatCurrency(saved)} color={saved >= 0 ? '#E6B95C' : '#E08B8B'} />
       </div>
-      <p className="text-[11px] text-secondary text-center -mt-1">{capitalize(currentMonthLabel())}</p>
 
       <TrendChart data={p.trend} />
 

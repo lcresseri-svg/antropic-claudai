@@ -37,6 +37,12 @@ export interface Transaction {
   toAccount?: string;    // AccountDef.id — transfers only
   notes?: string;
   shared?: number;       // others' part of a shared expense; counted as movement, not spending
+  recurring?: RecurrenceRule;
+}
+
+export interface RecurrenceRule {
+  freq: 'weekly' | 'monthly' | 'yearly';
+  until?: string; // YYYY-MM-DD
 }
 
 /** The portion of an expense that is actually yours (excludes the shared part). */

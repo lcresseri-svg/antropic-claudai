@@ -50,6 +50,7 @@ export function TransactionRow({ tx, selectable, selected, onToggle, onClick }: 
         <p className="text-xs text-secondary mt-0.5 truncate">
           {formatDate(tx.date)} · {acc.label}
           {isTransfer && tx.toAccount && ` → ${getAcc(tx.toAccount).label}`}
+          {tx.recurring && ' · 🔁'}
         </p>
       </div>
 

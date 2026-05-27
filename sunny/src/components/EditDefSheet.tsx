@@ -91,6 +91,10 @@ export function EditDefSheet({ open, draft, withKind, canDelete, onSave, onDelet
               Elimina
             </button>
           )}
+          <button onClick={onClose}
+            className="px-4 py-3.5 rounded-2xl font-medium text-secondary bg-card text-sm">
+            Annulla
+          </button>
           <button onClick={save} className="flex-1 py-3.5 rounded-2xl font-semibold bg-gold text-bg">Salva</button>
         </div>
       </div>

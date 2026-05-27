@@ -1,5 +1,5 @@
 import { useState, useEffect } from 'react';
-import { Transaction, TransactionType, TYPE_META, TYPE_ORDER } from '../types';
+import { Transaction, TransactionType, TYPE_META, TYPE_ORDER, RecurrenceRule } from '../types';
 import { formatCurrency } from '../utils';
 import { useSettings } from '../settings';
 
@@ -12,6 +12,7 @@ interface Props {
 }
 
 const today = () => new Date().toISOString().slice(0, 10);
+const yesterday = () => { const d = new Date(); d.setDate(d.getDate() - 1); return d.toISOString().slice(0, 10); };
 
 export function TransactionModal({ open, editing, onClose, onSave, onDelete }: Props) {
   const { categories, accounts } = useSettings();
@@ -25,6 +26,9 @@ export function TransactionModal({ open, editing, onClose, onSave, onDelete }: P
   const [notes, setNotes] = useState('');
   const [isShared, setIsShared] = useState(false);
   const [yourPart, setYourPart] = useState('');
+  const [isRecurring, setIsRecurring] = useState(false);
+  const [recurringFreq, setRecurringFreq] = useState<RecurrenceRule['freq']>('monthly');
+  const [recurringUntil, setRecurringUntil] = useState('');
 
   useEffect(() => {
     if (!open) return;
@@ -36,11 +40,15 @@ export function TransactionModal({ open, editing, onClose, onSave, onDelete }: P
       setNotes(editing.notes ?? '');
       setIsShared(!!editing.shared);
       setYourPart(editing.shared ? String(editing.amount - editing.shared) : '');
+      setIsRecurring(!!editing.recurring);
+      setRecurringFreq(editing.recurring?.freq ?? 'monthly');
+      setRecurringUntil(editing.recurring?.until ?? '');
     } else {
       setType('expense'); setDescription(''); setAmount(''); setDate(today());
       setCategory(''); setAccount(accounts[0]?.id ?? '');
       setToAccount(accounts[1]?.id ?? ''); setNotes('');
       setIsShared(false); setYourPart('');
+      setIsRecurring(false); setRecurringFreq('monthly'); setRecurringUntil('');
     }
   }, [open, editing]);
 
@@ -55,8 +63,9 @@ export function TransactionModal({ open, editing, onClose, onSave, onDelete }: P
     const value = parseFloat(amount.replace(',', '.'));
     if (!value || value <= 0 || !description.trim()) return;
     const mine = parseFloat(yourPart.replace(',', '.'));
-    const shared = type === 'expense' && isShared && mine > 0 && mine < value
-      ? value - mine
+    const shared = type === 'expense' && isShared && mine > 0 && mine < value ? value - mine : undefined;
+    const recurring: RecurrenceRule | undefined = isRecurring
+      ? { freq: recurringFreq, until: recurringUntil || undefined }
       : undefined;
     onSave({
       type, description: description.trim(), amount: value, date,
@@ -64,12 +73,14 @@ export function TransactionModal({ open, editing, onClose, onSave, onDelete }: P
       account,
       toAccount: type === 'transfer' ? toAccount : undefined,
       notes: notes.trim() || undefined,
-      shared,
+      shared, recurring,
     });
     onClose();
   };
 
   if (!open) return null;
+
+  const td = today(), yd = yesterday();
 
   return (
     <div className="fixed inset-0 z-50 flex items-end sm:items-center justify-center p-3"
@@ -134,48 +145,60 @@ export function TransactionModal({ open, editing, onClose, onSave, onDelete }: P
 
           {/* Shared expense */}
           {type === 'expense' && (
-            <div className="bg-card rounded-2xl overflow-hidden">
-              <button type="button"
-                onClick={() => { setIsShared(s => !s); setYourPart(''); }}
-                className="w-full flex items-center justify-between px-4 py-3.5 text-left">
-                <div>
-                  <p className="text-sm font-medium text-primary">Spesa condivisa</p>
-                  <p className="text-xs text-secondary mt-0.5">Hai pagato per altri — conta solo la tua parte</p>
-                </div>
-                <div className={`w-11 h-6 rounded-full transition-colors relative flex-shrink-0 ${isShared ? 'bg-gold' : 'bg-divider'}`}>
-                  <span className={`absolute top-0.5 w-5 h-5 bg-white rounded-full shadow transition-transform ${isShared ? 'translate-x-5' : 'translate-x-0.5'}`} />
-                </div>
-              </button>
-              {isShared && (() => {
+            <ToggleBlock
+              title="Spesa condivisa"
+              subtitle="Hai pagato per altri — conta solo la tua parte"
+              on={isShared}
+              onToggle={() => { setIsShared(s => !s); setYourPart(''); }}>
+              {(() => {
                 const total = parseFloat(amount.replace(',', '.')) || 0;
                 const mine = parseFloat(yourPart.replace(',', '.')) || 0;
                 const others = total > 0 && mine > 0 && mine < total ? total - mine : null;
                 return (
-                  <div className="border-t border-divider px-4 pb-4 pt-3 space-y-3">
+                  <div className="space-y-3">
                     <div>
                       <label className="text-xs font-medium text-secondary mb-2 block">La tua parte (€)</label>
                       <input type="text" inputMode="decimal" placeholder="es. 25"
-                        value={yourPart}
-                        onChange={e => setYourPart(e.target.value.replace(/[^\d.,]/g, ''))}
+                        value={yourPart} onChange={e => setYourPart(e.target.value.replace(/[^\d.,]/g, ''))}
                         className="w-full bg-elevated rounded-xl px-4 py-3 text-primary placeholder:text-secondary/40 outline-none focus:ring-1 focus:ring-gold/40 text-lg font-semibold balance-num" />
                     </div>
                     {others !== null && (
-                      <div className="flex items-center justify-between text-xs">
-                        <span className="text-secondary">Parte degli altri (movimento)</span>
-                        <span className="font-semibold text-secondary balance-num">{formatCurrency(others)}</span>
-                      </div>
-                    )}
-                    {others !== null && (
-                      <div className="flex items-center justify-between text-xs">
-                        <span className="text-secondary">Tua spesa effettiva</span>
-                        <span className="font-semibold text-primary balance-num">{formatCurrency(mine)}</span>
-                      </div>
+                      <>
+                        <Row label="Parte degli altri (movimento)" value={formatCurrency(others)} muted />
+                        <Row label="Tua spesa effettiva" value={formatCurrency(mine)} />
+                      </>
                     )}
                   </div>
                 );
               })()}
-            </div>
+            </ToggleBlock>
           )}
+
+          {/* Recurring */}
+          <ToggleBlock
+            title="Ricorrente"
+            subtitle="Si ripete nel tempo — ti avvisa prima della scadenza"
+            on={isRecurring}
+            onToggle={() => setIsRecurring(r => !r)}>
+            <div className="space-y-3">
+              <div>
+                <label className="text-xs font-medium text-secondary mb-2 block">Frequenza</label>
+                <div className="flex gap-2">
+                  {(['weekly', 'monthly', 'yearly'] as const).map(f => (
+                    <button key={f} type="button" onClick={() => setRecurringFreq(f)}
+                      className={`flex-1 py-2 rounded-xl text-xs font-semibold transition-colors ${recurringFreq === f ? 'bg-gold text-bg' : 'bg-elevated text-secondary'}`}>
+                      {f === 'weekly' ? 'Settimanale' : f === 'monthly' ? 'Mensile' : 'Annuale'}
+                    </button>
+                  ))}
+                </div>
+              </div>
+              <div>
+                <label className="text-xs font-medium text-secondary mb-2 block">Termina il (opzionale)</label>
+                <input type="date" value={recurringUntil} onChange={e => setRecurringUntil(e.target.value)}
+                  className="w-full bg-elevated rounded-xl px-3 py-2 text-primary text-sm outline-none focus:ring-1 focus:ring-gold/40" />
+              </div>
+            </div>
+          </ToggleBlock>
 
           {/* Accounts */}
           <div className={`grid gap-3 ${type === 'transfer' ? 'grid-cols-2' : 'grid-cols-1'}`}>
@@ -190,10 +213,20 @@ export function TransactionModal({ open, editing, onClose, onSave, onDelete }: P
             )}
           </div>
 
-          {/* Date */}
+          {/* Date — compact quick buttons */}
           <Field label="Data">
-            <input type="date" value={date} onChange={e => setDate(e.target.value)} required
-              className="w-full bg-card rounded-2xl px-4 py-3.5 text-primary outline-none focus:ring-1 focus:ring-gold/40" />
+            <div className="flex gap-2">
+              <button type="button" onClick={() => setDate(td)}
+                className={`px-3.5 py-2 rounded-xl text-xs font-semibold transition-colors flex-shrink-0 ${date === td ? 'bg-gold text-bg' : 'bg-card text-secondary'}`}>
+                Oggi
+              </button>
+              <button type="button" onClick={() => setDate(yd)}
+                className={`px-3.5 py-2 rounded-xl text-xs font-semibold transition-colors flex-shrink-0 ${date === yd ? 'bg-gold text-bg' : 'bg-card text-secondary'}`}>
+                Ieri
+              </button>
+              <input type="date" value={date} onChange={e => setDate(e.target.value)}
+                className="flex-1 min-w-0 bg-card rounded-xl px-3 py-2 text-primary text-xs outline-none focus:ring-1 focus:ring-gold/40" />
+            </div>
           </Field>
 
           <button type="submit"
@@ -210,6 +243,36 @@ export function TransactionModal({ open, editing, onClose, onSave, onDelete }: P
           )}
         </form>
       </div>
+    </div>
+  );
+}
+
+function ToggleBlock({ title, subtitle, on, onToggle, children }: {
+  title: string; subtitle: string; on: boolean;
+  onToggle: () => void; children: React.ReactNode;
+}) {
+  return (
+    <div className="bg-card rounded-2xl overflow-hidden">
+      <button type="button" onClick={onToggle}
+        className="w-full flex items-center justify-between px-4 py-3.5 text-left">
+        <div>
+          <p className="text-sm font-medium text-primary">{title}</p>
+          <p className="text-xs text-secondary mt-0.5">{subtitle}</p>
+        </div>
+        <div className={`w-11 h-6 rounded-full transition-colors relative flex-shrink-0 ml-3 ${on ? 'bg-gold' : 'bg-divider'}`}>
+          <span className={`absolute top-0.5 w-5 h-5 bg-white rounded-full shadow transition-transform ${on ? 'translate-x-5' : 'translate-x-0.5'}`} />
+        </div>
+      </button>
+      {on && <div className="border-t border-divider px-4 pb-4 pt-3">{children}</div>}
+    </div>
+  );
+}
+
+function Row({ label, value, muted }: { label: string; value: string; muted?: boolean }) {
+  return (
+    <div className="flex items-center justify-between text-xs">
+      <span className="text-secondary">{label}</span>
+      <span className={`font-semibold balance-num ${muted ? 'text-secondary' : 'text-primary'}`}>{value}</span>
     </div>
   );
 }
