@@ -5,31 +5,44 @@ interface Props {
 
 export function LoginScreen({ onSignIn, error }: Props) {
   return (
-    <div className="min-h-screen bg-cream flex flex-col items-center justify-center p-6">
-      <div className="text-center mb-12">
-        <div className="text-6xl mb-5">☀️</div>
-        <h1 className="text-4xl font-bold text-dark tracking-tight">Sunny</h1>
-        <p className="text-dark/40 mt-2 text-base">La tua finanza personale</p>
+    <div className="min-h-screen bg-bg flex flex-col items-center justify-center px-8 animate-fade-in">
+      <div className="flex-1 flex flex-col items-center justify-center text-center">
+        <SunMark />
+        <h1 className="text-5xl font-bold text-primary tracking-tight mt-8">Sunny</h1>
+        <p className="text-secondary mt-3 text-base max-w-[16rem] leading-relaxed">
+          La tua finanza personale, semplice e chiara.
+        </p>
       </div>
 
-      <div className="w-full max-w-xs space-y-4">
-        <button
-          onClick={onSignIn}
-          className="w-full bg-dark text-cream py-4 rounded-2xl font-medium text-sm flex items-center justify-center gap-3 hover:bg-dark/85 active:scale-95 transition-all shadow-sm"
-        >
-          <GoogleIcon />
-          Continua con Google
+      <div className="w-full max-w-xs pb-12 space-y-4">
+        <button onClick={onSignIn}
+          className="w-full bg-primary text-bg py-4 rounded-2xl font-semibold flex items-center justify-center gap-3 transition-transform active:scale-[0.98]">
+          <GoogleIcon /> Continua con Google
         </button>
-
-        {error && (
-          <p className="text-xs text-red-500 text-center">{error}</p>
-        )}
-
-        <p className="text-xs text-dark/30 text-center pt-2">
+        {error && <p className="text-xs text-[#E08B8B] text-center">{error}</p>}
+        <p className="text-[11px] text-secondary/60 text-center leading-relaxed">
           I tuoi dati sono sincronizzati e salvati in modo sicuro
         </p>
       </div>
     </div>
+  );
+}
+
+function SunMark() {
+  return (
+    <svg width="80" height="80" viewBox="0 0 200 200" className="animate-scale-in">
+      <circle cx="100" cy="100" r="34" fill="#E6B95C" />
+      <g stroke="#E6B95C" strokeWidth="9" strokeLinecap="round">
+        <line x1="100" y1="34" x2="100" y2="50" />
+        <line x1="100" y1="150" x2="100" y2="166" />
+        <line x1="34" y1="100" x2="50" y2="100" />
+        <line x1="150" y1="100" x2="166" y2="100" />
+        <line x1="53" y1="53" x2="64" y2="64" />
+        <line x1="136" y1="136" x2="147" y2="147" />
+        <line x1="147" y1="53" x2="136" y2="64" />
+        <line x1="64" y1="136" x2="53" y2="147" />
+      </g>
+    </svg>
   );
 }
 

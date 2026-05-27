@@ -1,11 +1,11 @@
 {
-  "name": "Sunny — Finanza Personale",
+  "name": "Sunny",
   "short_name": "Sunny",
   "description": "La tua finanza personale",
   "start_url": ".",
   "display": "standalone",
-  "background_color": "#F8F7F4",
-  "theme_color": "#1C1C1E",
+  "background_color": "#0D0D0D",
+  "theme_color": "#0D0D0D",
   "orientation": "portrait",
   "icons": [
     {

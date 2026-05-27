@@ -1,17 +1,21 @@
+@import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap');
+
 @tailwind base;
 @tailwind components;
 @tailwind utilities;
 
 @layer base {
+  html {
+    background-color: #0D0D0D;
+    -webkit-text-size-adjust: 100%;
+  }
   body {
-    background-color: #F8F7F4;
-    color: #1C1C1E;
+    background-color: #0D0D0D;
+    color: #F5F5F5;
+    font-family: 'Inter', -apple-system, BlinkMacSystemFont, system-ui, sans-serif;
     -webkit-font-smoothing: antialiased;
     -moz-osx-font-smoothing: grayscale;
-  }
-
-  * {
-    font-family: -apple-system, BlinkMacSystemFont, 'SF Pro Display', 'Segoe UI', system-ui, sans-serif;
+    letter-spacing: -0.01em;
   }
 }
 
@@ -20,7 +24,20 @@
     -ms-overflow-style: none;
     scrollbar-width: none;
   }
-  .scrollbar-hide::-webkit-scrollbar {
-    display: none;
+  .scrollbar-hide::-webkit-scrollbar { display: none; }
+
+  .tabular { font-variant-numeric: tabular-nums; }
+
+  .safe-bottom { padding-bottom: env(safe-area-inset-bottom); }
+  .safe-top { padding-top: env(safe-area-inset-top); }
+
+  /* number ticker / large balances */
+  .balance-num {
+    font-variant-numeric: tabular-nums;
+    letter-spacing: -0.03em;
   }
 }
+
+/* Smooth dark date input */
+input[type="date"] { color-scheme: dark; }
+select { color-scheme: dark; }

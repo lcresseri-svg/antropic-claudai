@@ -1,110 +1,100 @@
-import { Transaction, Category } from '../types';
-import { formatCurrency, currentMonthLabel } from '../utils';
-import { CategoryChart } from './CategoryChart';
+import { useState } from 'react';
+import { User } from 'firebase/auth';
+import { Transaction } from '../types';
+import { formatCurrency, currentMonthLabel, greeting, capitalize } from '../utils';
+import { CategoryCard } from './CategoryCard';
+import { AccountsCard } from './AccountsCard';
+import { TrendChart } from './TrendChart';
 import { Insights } from './Insights';
-import { TransactionItem } from './TransactionItem';
+import { TransactionRow } from './TransactionRow';
 
 interface Props {
-  totalBalance: number;
+  user: User;
+  netWorth: number;
+  liquidity: number;
   investmentTotal: number;
   monthlyIncome: number;
   monthlyExpenses: number;
   monthlyInvestments: number;
-  categoryTotals: Partial<Record<Category, number>>;
+  categoryTotals: Record<string, number>;
+  accountBalances: Record<string, number>;
+  expenseByAccount: Record<string, number>;
+  trend: { key: string; income: number; expense: number }[];
+  transactions: Transaction[];
   recentTransactions: Transaction[];
-  onAdd: () => void;
-  onDeleteTransaction: (id: string) => void;
+  onSeeAll: () => void;
+  onEditTransaction: (tx: Transaction) => void;
 }
 
-export function Dashboard({
-  totalBalance, investmentTotal,
-  monthlyIncome, monthlyExpenses, monthlyInvestments,
-  categoryTotals, recentTransactions, onAdd, onDeleteTransaction,
-}: Props) {
-  const netWorth = totalBalance + investmentTotal;
-  const savingsRate = monthlyIncome > 0
-    ? Math.round(((monthlyIncome - monthlyExpenses - monthlyInvestments) / monthlyIncome) * 100)
-    : 0;
+export function Dashboard(p: Props) {
+  const [accMode, setAccMode] = useState<'balance' | 'spending'>('balance');
+  const saved = p.monthlyIncome - p.monthlyExpenses - p.monthlyInvestments;
 
   return (
-    <div className="space-y-4">
-      {/* ── Net worth card ── */}
-      <div
-        className="rounded-2xl p-6 relative overflow-hidden"
-        style={{ background: 'linear-gradient(135deg, #1C1C1E 0%, #2C2C2E 100%)' }}
-      >
-        <div className="absolute top-0 right-0 w-48 h-48 rounded-full opacity-10 pointer-events-none"
-          style={{ background: '#E6B95C', transform: 'translate(30%,-30%)' }} />
-        <div className="absolute bottom-0 left-0 w-32 h-32 rounded-full opacity-5 pointer-events-none"
-          style={{ background: '#8A9270', transform: 'translate(-20%,40%)' }} />
+    <div className="space-y-4 pb-28">
+      {/* Greeting */}
+      <div className="flex items-center justify-between pt-1 animate-fade-in">
+        <div>
+          <p className="text-sm text-secondary">{greeting()},</p>
+          <p className="text-lg font-semibold text-primary">{p.user.displayName?.split(' ')[0] ?? 'utente'}</p>
+        </div>
+        {p.user.photoURL && <img src={p.user.photoURL} alt="" className="w-9 h-9 rounded-full" />}
+      </div>
 
-        <p className="text-xs font-semibold text-white/40 uppercase tracking-widest mb-1">Patrimonio netto</p>
-        <p className="text-4xl font-bold text-white tracking-tight mb-4">{formatCurrency(netWorth)}</p>
-
-        <div className="flex flex-wrap gap-x-4 gap-y-2">
-          <Stat label="Liquidità" value={formatCurrency(totalBalance)} color="#8A9270" />
-          <div className="w-px bg-white/10 self-stretch" />
-          <Stat label="Investito" value={formatCurrency(investmentTotal)} color="#E6B95C" />
-          <div className="w-px bg-white/10 self-stretch" />
-          <Stat label={`Entrate ${currentMonthLabel()}`} value={`+${formatCurrency(monthlyIncome)}`} color="#7B9E87" />
-          <div className="w-px bg-white/10 self-stretch" />
-          <Stat label="Uscite" value={`-${formatCurrency(monthlyExpenses)}`} color="rgba(255,255,255,0.7)" />
-          {monthlyIncome > 0 && (
-            <>
-              <div className="w-px bg-white/10 self-stretch" />
-              <Stat label="Risparmio" value={`${savingsRate}%`} color={savingsRate >= 0 ? '#E6B95C' : '#F28B82'} />
-            </>
-          )}
+      {/* Hero net worth */}
+      <div className="bg-card rounded-3xl p-6 animate-scale-in">
+        <p className="text-xs text-secondary uppercase tracking-wider mb-2">Patrimonio netto</p>
+        <p className="text-[44px] leading-none font-bold text-primary balance-num">{formatCurrency(p.netWorth)}</p>
+        <div className="flex gap-6 mt-5">
+          <div>
+            <p className="text-xs text-secondary mb-1">Liquidità</p>
+            <p className="text-sm font-semibold text-primary balance-num">{formatCurrency(p.liquidity)}</p>
+          </div>
+          <div className="w-px bg-divider" />
+          <div>
+            <p className="text-xs text-secondary mb-1">Investito</p>
+            <p className="text-sm font-semibold balance-num" style={{ color: '#E6B95C' }}>{formatCurrency(p.investmentTotal)}</p>
+          </div>
         </div>
       </div>
 
-      {/* ── Monthly investment summary ── */}
-      {monthlyInvestments > 0 && (
-        <div className="bg-white rounded-2xl p-4 shadow-sm flex items-center gap-4 border-l-4" style={{ borderColor: '#E6B95C' }}>
-          <span className="text-2xl">📈</span>
-          <div className="flex-1">
-            <p className="text-sm font-semibold text-dark">Investito questo mese</p>
-            <p className="text-xs text-dark/50">{currentMonthLabel()}</p>
-          </div>
-          <p className="text-lg font-bold" style={{ color: '#E6B95C' }}>
-            {formatCurrency(monthlyInvestments)}
-          </p>
-        </div>
-      )}
+      {/* Month stats */}
+      <div className="grid grid-cols-3 gap-3">
+        <Stat label="Entrate" value={formatCurrency(p.monthlyIncome)} color="#8A9270" />
+        <Stat label="Uscite" value={formatCurrency(p.monthlyExpenses)} color="#F5F5F5" />
+        <Stat label="Risparmio" value={formatCurrency(saved)} color={saved >= 0 ? '#E6B95C' : '#E08B8B'} />
+      </div>
+      <p className="text-[11px] text-secondary text-center -mt-1">{capitalize(currentMonthLabel())}</p>
 
-      {/* ── Category chart ── */}
-      {Object.keys(categoryTotals).length > 0 && (
-        <CategoryChart categoryTotals={categoryTotals} />
-      )}
+      <TrendChart data={p.trend} />
 
-      {/* ── Insights ── */}
-      <Insights
-        monthlyIncome={monthlyIncome}
-        monthlyExpenses={monthlyExpenses}
-        monthlyInvestments={monthlyInvestments}
-        categoryTotals={categoryTotals}
+      <CategoryCard categoryTotals={p.categoryTotals} />
+
+      <AccountsCard
+        accountBalances={p.accountBalances}
+        expenseByAccount={p.expenseByAccount}
+        mode={accMode}
+        onToggle={() => setAccMode(m => m === 'balance' ? 'spending' : 'balance')}
       />
 
-      {/* ── Recent transactions ── */}
-      <div className="bg-white rounded-2xl p-5 shadow-sm">
-        <div className="flex items-center justify-between mb-1">
-          <h3 className="text-xs font-semibold text-dark/40 uppercase tracking-widest">
-            Ultime transazioni
-          </h3>
-          <button onClick={onAdd} className="text-xs font-medium text-sage hover:text-sage/70 transition-colors">
-            + Aggiungi
-          </button>
-        </div>
+      <Insights
+        transactions={p.transactions}
+        monthlyIncome={p.monthlyIncome}
+        monthlyExpenses={p.monthlyExpenses}
+        monthlyInvestments={p.monthlyInvestments}
+      />
 
-        {recentTransactions.length === 0 ? (
-          <p className="text-sm text-dark/40 py-4 text-center">Inizia aggiungendo una transazione!</p>
-        ) : (
-          <div className="divide-y divide-black/5">
-            {recentTransactions.slice(0, 8).map(tx => (
-              <TransactionItem key={tx.id} tx={tx} onDelete={onDeleteTransaction} />
-            ))}
-          </div>
-        )}
+      {/* Recent */}
+      <div className="bg-card rounded-2xl p-5">
+        <div className="flex items-center justify-between mb-1">
+          <h3 className="text-sm font-semibold text-primary">Ultime transazioni</h3>
+          <button onClick={p.onSeeAll} className="text-xs font-medium text-gold">Vedi tutte</button>
+        </div>
+        <div className="divide-y divide-divider">
+          {p.recentTransactions.slice(0, 6).map(tx => (
+            <TransactionRow key={tx.id} tx={tx} onClick={p.onEditTransaction} />
+          ))}
+        </div>
       </div>
     </div>
   );
@@ -112,9 +102,9 @@ export function Dashboard({
 
 function Stat({ label, value, color }: { label: string; value: string; color: string }) {
   return (
-    <div>
-      <p className="text-xs text-white/40 mb-0.5">{label}</p>
-      <p className="text-sm font-semibold" style={{ color }}>{value}</p>
+    <div className="bg-card rounded-2xl p-4">
+      <p className="text-[11px] text-secondary mb-1.5">{label}</p>
+      <p className="text-[15px] font-semibold balance-num truncate" style={{ color }}>{value}</p>
     </div>
   );
 }

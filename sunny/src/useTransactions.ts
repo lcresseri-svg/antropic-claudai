@@ -1,12 +1,16 @@
-import { useState, useEffect, useCallback } from 'react';
+import { useState, useEffect, useCallback, useMemo } from 'react';
 import {
   collection, query, orderBy, onSnapshot,
-  addDoc, deleteDoc, doc, writeBatch,
+  addDoc, deleteDoc, doc, updateDoc, writeBatch,
 } from 'firebase/firestore';
 import { User } from 'firebase/auth';
-import { Transaction, Category } from './types';
+import { Transaction, TransactionPatch } from './types';
 import { demoTransactions } from './demoData';
 import { db } from './firebase';
+
+function stripUndefined<T extends object>(obj: T): T {
+  return Object.fromEntries(Object.entries(obj).filter(([, v]) => v !== undefined)) as T;
+}
 
 export function useTransactions(user: User | null) {
   const [transactions, setTransactions] = useState<Transaction[]>([]);
@@ -18,113 +22,134 @@ export function useTransactions(user: User | null) {
       setLoading(false);
       return;
     }
-
     const col = collection(db, 'users', user.uid, 'transactions');
     const q = query(col, orderBy('date', 'desc'));
     let seeded = false;
-
-    const unsub = onSnapshot(q, async snapshot => {
-      if (snapshot.empty && !seeded) {
+    return onSnapshot(q, async snap => {
+      if (snap.empty && !seeded) {
         seeded = true;
         const batch = writeBatch(db);
-        demoTransactions.forEach(({ id: _id, ...data }) => {
-          batch.set(doc(col), data);
-        });
+        demoTransactions.forEach(({ id: _id, ...data }) => batch.set(doc(col), stripUndefined(data)));
         await batch.commit();
         return;
       }
-      setTransactions(
-        snapshot.docs.map(d => ({ id: d.id, ...(d.data() as Omit<Transaction, 'id'>) })),
-      );
+      setTransactions(snap.docs.map(d => ({ id: d.id, ...(d.data() as Omit<Transaction, 'id'>) })));
       setLoading(false);
     });
-
-    return unsub;
   }, [user]);
 
-  const addTransaction = useCallback(
-    (tx: Omit<Transaction, 'id'>) => {
-      if (!user) return;
-      addDoc(collection(db, 'users', user.uid, 'transactions'), tx);
-    },
-    [user],
-  );
+  const colRef = useCallback(() => collection(db, 'users', user!.uid, 'transactions'), [user]);
 
-  const addTransactions = useCallback(
-    (txs: Omit<Transaction, 'id'>[]) => {
-      if (!user) return;
-      const col = collection(db, 'users', user.uid, 'transactions');
-      const batch = writeBatch(db);
-      txs.forEach(tx => batch.set(doc(col), tx));
-      batch.commit();
-    },
-    [user],
-  );
+  const addTransaction = useCallback((tx: Omit<Transaction, 'id'>) => {
+    if (!user) return;
+    addDoc(colRef(), stripUndefined(tx));
+  }, [user, colRef]);
 
-  const deleteTransaction = useCallback(
-    (id: string) => {
-      if (!user) return;
-      deleteDoc(doc(db, 'users', user.uid, 'transactions', id));
-    },
-    [user],
-  );
+  const addTransactions = useCallback((txs: Omit<Transaction, 'id'>[]) => {
+    if (!user) return;
+    const batch = writeBatch(db);
+    txs.forEach(tx => batch.set(doc(colRef()), stripUndefined(tx)));
+    batch.commit();
+  }, [user, colRef]);
 
-  // ── Derived values ────────────────────────────────────────────────────────
-  const now = new Date();
-  const cm = now.getMonth();
-  const cy = now.getFullYear();
+  const updateTransaction = useCallback((id: string, patch: TransactionPatch) => {
+    if (!user) return;
+    updateDoc(doc(db, 'users', user.uid, 'transactions', id), stripUndefined(patch));
+  }, [user]);
 
-  const currentMonthTx = transactions.filter(tx => {
-    const d = new Date(tx.date);
-    return d.getMonth() === cm && d.getFullYear() === cy;
-  });
+  const updateTransactions = useCallback((ids: string[], patch: TransactionPatch) => {
+    if (!user) return;
+    const batch = writeBatch(db);
+    const clean = stripUndefined(patch);
+    ids.forEach(id => batch.update(doc(db, 'users', user.uid, 'transactions', id), clean));
+    batch.commit();
+  }, [user]);
 
-  const totalBalance = transactions.reduce((s, tx) => {
-    if (tx.type === 'income') return s + tx.amount;
-    if (tx.type === 'expense') return s - tx.amount;
-    if (tx.type === 'investment') return s - tx.amount;
-    return s; // transfer: neutral
-  }, 0);
+  const deleteTransaction = useCallback((id: string) => {
+    if (!user) return;
+    deleteDoc(doc(db, 'users', user.uid, 'transactions', id));
+  }, [user]);
 
-  const investmentTotal = transactions
-    .filter(tx => tx.type === 'investment')
-    .reduce((s, tx) => s + tx.amount, 0);
+  const deleteTransactions = useCallback((ids: string[]) => {
+    if (!user) return;
+    const batch = writeBatch(db);
+    ids.forEach(id => batch.delete(doc(db, 'users', user.uid, 'transactions', id)));
+    batch.commit();
+  }, [user]);
 
-  const monthlyIncome = currentMonthTx
-    .filter(tx => tx.type === 'income')
-    .reduce((s, tx) => s + tx.amount, 0);
+  // ── Derived ────────────────────────────────────────────────────────────────
+  const derived = useMemo(() => {
+    const now = new Date();
+    const cm = now.getMonth(), cy = now.getFullYear();
+    const inCurrentMonth = (d: string) => {
+      const x = new Date(d);
+      return x.getMonth() === cm && x.getFullYear() === cy;
+    };
 
-  const monthlyExpenses = currentMonthTx
-    .filter(tx => tx.type === 'expense')
-    .reduce((s, tx) => s + tx.amount, 0);
+    const monthTx = transactions.filter(t => inCurrentMonth(t.date));
 
-  const monthlyInvestments = currentMonthTx
-    .filter(tx => tx.type === 'investment')
-    .reduce((s, tx) => s + tx.amount, 0);
+    const monthlyIncome = monthTx.filter(t => t.type === 'income').reduce((s, t) => s + t.amount, 0);
+    const monthlyExpenses = monthTx.filter(t => t.type === 'expense').reduce((s, t) => s + t.amount, 0);
+    const monthlyInvestments = monthTx.filter(t => t.type === 'investment').reduce((s, t) => s + t.amount, 0);
 
-  const categoryTotals = currentMonthTx
-    .filter(tx => tx.type === 'expense')
-    .reduce<Partial<Record<Category, number>>>((acc, tx) => {
-      acc[tx.category] = (acc[tx.category] ?? 0) + tx.amount;
-      return acc;
-    }, {});
+    const investmentTotal = transactions.filter(t => t.type === 'investment').reduce((s, t) => s + t.amount, 0);
 
-  const recentTransactions = [...transactions]
-    .sort((a, b) => new Date(b.date).getTime() - new Date(a.date).getTime())
-    .slice(0, 20);
+    // Per-account balance (cash flow through the account)
+    const accountBalances: Record<string, number> = {};
+    for (const t of transactions) {
+      const bal = (id: string, delta: number) => { accountBalances[id] = (accountBalances[id] ?? 0) + delta; };
+      if (t.type === 'income') bal(t.account, t.amount);
+      else if (t.type === 'expense' || t.type === 'investment') bal(t.account, -t.amount);
+      else if (t.type === 'transfer') { bal(t.account, -t.amount); if (t.toAccount) bal(t.toAccount, t.amount); }
+    }
+    const liquidity = Object.values(accountBalances).reduce((s, v) => s + v, 0);
+    const netWorth = liquidity + investmentTotal;
+
+    // Spending by category (current month, expenses)
+    const categoryTotals: Record<string, number> = {};
+    for (const t of monthTx) {
+      if (t.type !== 'expense') continue;
+      categoryTotals[t.category] = (categoryTotals[t.category] ?? 0) + t.amount;
+    }
+
+    // Spending by account (current month, expenses)
+    const expenseByAccount: Record<string, number> = {};
+    for (const t of monthTx) {
+      if (t.type !== 'expense') continue;
+      expenseByAccount[t.account] = (expenseByAccount[t.account] ?? 0) + t.amount;
+    }
+
+    // 6-month trend
+    const trend: { key: string; income: number; expense: number }[] = [];
+    for (let i = 5; i >= 0; i--) {
+      const d = new Date(cy, cm - i, 1);
+      const key = `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}`;
+      trend.push({ key, income: 0, expense: 0 });
+    }
+    for (const t of transactions) {
+      const key = t.date.slice(0, 7);
+      const slot = trend.find(s => s.key === key);
+      if (!slot) continue;
+      if (t.type === 'income') slot.income += t.amount;
+      else if (t.type === 'expense') slot.expense += t.amount;
+    }
+
+    const recent = [...transactions]
+      .sort((a, b) => new Date(b.date).getTime() - new Date(a.date).getTime())
+      .slice(0, 20);
+
+    return {
+      monthlyIncome, monthlyExpenses, monthlyInvestments, investmentTotal,
+      accountBalances, liquidity, netWorth, categoryTotals, expenseByAccount, trend,
+      recentTransactions: recent, monthTx,
+    };
+  }, [transactions]);
 
   return {
-    transactions,
-    recentTransactions,
-    addTransaction,
-    addTransactions,
-    deleteTransaction,
-    totalBalance,
-    investmentTotal,
-    monthlyIncome,
-    monthlyExpenses,
-    monthlyInvestments,
-    categoryTotals,
-    loading,
+    transactions, loading,
+    addTransaction, addTransactions,
+    updateTransaction, updateTransactions,
+    deleteTransaction, deleteTransactions,
+    ...derived,
   };
 }

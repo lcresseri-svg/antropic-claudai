@@ -1,4 +1,14 @@
 <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512">
-  <rect width="512" height="512" rx="112" fill="#1C1C1E"/>
-  <text x="256" y="330" font-size="260" text-anchor="middle" font-family="serif">☀️</text>
+  <rect width="512" height="512" rx="112" fill="#0D0D0D"/>
+  <circle cx="256" cy="256" r="86" fill="#E6B95C"/>
+  <g stroke="#E6B95C" stroke-width="22" stroke-linecap="round">
+    <line x1="256" y1="92"  x2="256" y2="132"/>
+    <line x1="256" y1="380" x2="256" y2="420"/>
+    <line x1="92"  y1="256" x2="132" y2="256"/>
+    <line x1="380" y1="256" x2="420" y2="256"/>
+    <line x1="140" y1="140" x2="168" y2="168"/>
+    <line x1="344" y1="344" x2="372" y2="372"/>
+    <line x1="372" y1="140" x2="344" y2="168"/>
+    <line x1="168" y1="344" x2="140" y2="372"/>
+  </g>
 </svg>
