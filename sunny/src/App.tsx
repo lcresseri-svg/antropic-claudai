@@ -14,7 +14,9 @@ import { BottomNav, View } from './components/BottomNav';
 function Loader() {
   return (
     <div className="min-h-screen bg-bg flex items-center justify-center">
-      <ArcLogo size={28} />
+      <div className="animate-spin" style={{ animationDuration: '1.2s' }}>
+        <ArcLogo size={28} />
+      </div>
     </div>
   );
 }
