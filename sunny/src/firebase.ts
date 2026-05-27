@@ -4,10 +4,7 @@ import { getAuth, GoogleAuthProvider } from 'firebase/auth';
 
 const firebaseConfig = {
   apiKey: "AIzaSyAB6kObmbX9yrgkq8Hnr8D1CFvE0w4UScY",
-  // Use the hosting domain as authDomain so the OAuth handler runs same-origin
-  // as the app. This avoids the iOS/Safari "missing initial state" error caused
-  // by storage partitioning when redirecting to the *.firebaseapp.com domain.
-  authDomain: "sunny-a2a98.web.app",
+  authDomain: "sunny-a2a98.firebaseapp.com",
   projectId: "sunny-a2a98",
   storageBucket: "sunny-a2a98.firebasestorage.app",
   messagingSenderId: "1059291331006",
