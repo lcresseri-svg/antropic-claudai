@@ -55,6 +55,13 @@ export function TransactionModal({ open, editing, onClose, onSave, onDelete }: P
     setAmountError(false);
   }, [open, editing]);
 
+  useEffect(() => {
+    if (!open) return;
+    const prev = document.body.style.overflow;
+    document.body.style.overflow = 'hidden';
+    return () => { document.body.style.overflow = prev; };
+  }, [open]);
+
   const typeCats = categories.filter(c => c.kind === type);
   useEffect(() => {
     if (type === 'transfer') return;
@@ -98,9 +105,9 @@ export function TransactionModal({ open, editing, onClose, onSave, onDelete }: P
           <button onClick={onClose} className="w-8 h-8 rounded-full bg-white/[0.05] flex items-center justify-center text-secondary">✕</button>
         </div>
 
-        <form onSubmit={submit} className="px-5 pb-5 space-y-4">
+        <form onSubmit={submit} className="px-5 pb-5 space-y-3">
           {/* Type segmented */}
-          <div className="grid grid-cols-4 gap-1.5 bg-white/[0.05] rounded-2xl p-1.5">
+          <div className="grid grid-cols-4 gap-1.5 bg-white/[0.05] rounded-2xl p-1">
             {TYPE_ORDER.map(t => (
               <button key={t} type="button" onClick={() => setType(t)}
                 className="py-2 rounded-xl text-[11px] font-semibold transition-all"
@@ -111,7 +118,7 @@ export function TransactionModal({ open, editing, onClose, onSave, onDelete }: P
           </div>
 
           {/* Amount */}
-          <div className="text-center py-1">
+          <div className="text-center">
             <div className="flex items-center justify-center gap-1">
               <span className="text-2xl font-semibold" style={{ color: amountError ? '#C0605A' : undefined }}>€</span>
               <input
@@ -239,7 +246,7 @@ export function TransactionModal({ open, editing, onClose, onSave, onDelete }: P
           </Field>
 
           <button type="submit"
-            className="w-full py-3.5 rounded-2xl font-semibold text-bg transition-transform active:scale-[0.98]"
+            className="w-full py-3 rounded-2xl font-semibold text-bg transition-transform active:scale-[0.98]"
             style={{ backgroundColor: TYPE_META[type].color }}>
             {editing ? 'Salva modifiche' : `Aggiungi ${TYPE_META[type].label.toLowerCase()}`}
           </button>
@@ -263,7 +270,7 @@ function ToggleBlock({ title, subtitle, on, onToggle, children }: {
   return (
     <div className="glass-card rounded-2xl overflow-hidden">
       <button type="button" onClick={onToggle}
-        className="w-full flex items-center justify-between px-4 py-3.5 text-left">
+        className="w-full flex items-center justify-between px-4 py-3 text-left">
         <div>
           <p className="text-sm font-medium text-primary">{title}</p>
           <p className="text-xs text-secondary mt-0.5">{subtitle}</p>
