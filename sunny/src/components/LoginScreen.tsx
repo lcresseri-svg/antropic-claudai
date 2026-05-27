@@ -40,27 +40,14 @@ export function LoginScreen({ onSignIn, error }: Props) {
 }
 
 function ArcMark() {
+  // r=30, circ≈188.5 | 320°=167.6 | 40°gap=20.9 | gap centred at top
   return (
     <svg width="88" height="88" viewBox="0 0 80 80" fill="none" aria-hidden className="animate-scale-in">
-      <defs>
-        <filter id="am" x="-60%" y="-60%" width="220%" height="220%">
-          <feGaussianBlur in="SourceGraphic" stdDeviation="2.5" result="b"/>
-          <feMerge><feMergeNode in="b"/><feMergeNode in="SourceGraphic"/></feMerge>
-        </filter>
-      </defs>
-      <circle cx="40" cy="40" r="32"
-        stroke="#E6B95C" strokeWidth="1.8" strokeLinecap="round"
-        strokeDasharray="167.5 33.5"
-        transform="rotate(-108 40 40)"
-        filter="url(#am)"
+      <circle cx="40" cy="40" r="30"
+        stroke="#E6B95C" strokeWidth="8" strokeLinecap="round"
+        strokeDasharray="167.6 20.9"
+        transform="rotate(-70 40 40)"
       />
-      <circle cx="40" cy="40" r="21"
-        stroke="#E6B95C" strokeWidth="1.1" strokeLinecap="round"
-        strokeDasharray="95.3 36.6"
-        transform="rotate(-55 40 40)"
-        opacity="0.32"
-      />
-      <circle cx="40" cy="40" r="2.5" fill="#E6B95C" opacity="0.75"/>
     </svg>
   );
 }

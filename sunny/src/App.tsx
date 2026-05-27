@@ -116,28 +116,13 @@ function Main({ user, onLogOut }: { user: import('firebase/auth').User; onLogOut
 // ── Brand mark — thin golden arc ────────────────────────────────────────────
 
 export function ArcLogo({ size = 22 }: { size?: number }) {
-  const id = `al${size}`;
-  // r=9.5 circumference≈59.69 | 300°=49.7 | 60°gap=9.95
-  // r=5.5 circumference≈34.56 | 240°=23.0 | 120°gap=11.5
+  // r=9, circ≈56.55 | 320°=50.27 | 40°gap=6.28 | gap centred at top
   return (
     <svg width={size} height={size} viewBox="0 0 24 24" fill="none" aria-hidden>
-      <defs>
-        <filter id={id} x="-40%" y="-40%" width="180%" height="180%">
-          <feGaussianBlur in="SourceGraphic" stdDeviation="1" result="b"/>
-          <feMerge><feMergeNode in="b"/><feMergeNode in="SourceGraphic"/></feMerge>
-        </filter>
-      </defs>
-      <circle cx="12" cy="12" r="9.5"
-        stroke="#E6B95C" strokeWidth="1.3" strokeLinecap="round"
-        strokeDasharray="49.7 9.95"
-        transform="rotate(-108 12 12)"
-        filter={`url(#${id})`}
-      />
-      <circle cx="12" cy="12" r="5.5"
-        stroke="#E6B95C" strokeWidth="0.8" strokeLinecap="round"
-        strokeDasharray="23.0 11.5"
-        transform="rotate(-50 12 12)"
-        opacity="0.38"
+      <circle cx="12" cy="12" r="9"
+        stroke="#E6B95C" strokeWidth="2.5" strokeLinecap="round"
+        strokeDasharray="50.27 6.28"
+        transform="rotate(-70 12 12)"
       />
     </svg>
   );

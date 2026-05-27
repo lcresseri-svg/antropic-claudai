@@ -1,23 +1,8 @@
 <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512">
-  <rect width="512" height="512" rx="108" fill="#0D0D0D"/>
-  <defs>
-    <filter id="g" x="-40%" y="-40%" width="180%" height="180%">
-      <feGaussianBlur in="SourceGraphic" stdDeviation="8" result="blur"/>
-      <feMerge><feMergeNode in="blur"/><feMergeNode in="SourceGraphic"/></feMerge>
-    </filter>
-  </defs>
-  <!-- Outer arc 300° -->
-  <circle cx="256" cy="256" r="168"
-    fill="none" stroke="#E6B95C" stroke-width="10" stroke-linecap="round"
-    stroke-dasharray="879 176"
-    transform="rotate(-108 256 256)"
-    filter="url(#g)"/>
-  <!-- Middle arc 260° -->
-  <circle cx="256" cy="256" r="116"
-    fill="none" stroke="#E6B95C" stroke-width="6" stroke-linecap="round"
-    stroke-dasharray="527 181"
-    transform="rotate(-60 256 256)"
-    opacity="0.35"/>
-  <!-- Center mark -->
-  <circle cx="256" cy="256" r="14" fill="#E6B95C" opacity="0.85"/>
+  <rect width="512" height="512" rx="112" fill="#0D0D0D"/>
+  <!-- r=176, circ≈1105.8 | 320°=982.5 | 40°gap=123.3 | gap centred at top -->
+  <circle cx="256" cy="256" r="176"
+    fill="none" stroke="#E6B95C" stroke-width="48" stroke-linecap="round"
+    stroke-dasharray="982.5 123.3"
+    transform="rotate(-70 256 256)"/>
 </svg>
