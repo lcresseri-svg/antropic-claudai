@@ -29,6 +29,7 @@ interface Props {
 export function Dashboard(p: Props) {
   const [accMode, setAccMode] = useState<'balance' | 'spending'>('balance');
   const saved = p.monthlyIncome - p.monthlyExpenses - p.monthlyInvestments;
+  const monthlyDelta = p.monthlyIncome - p.monthlyExpenses;
 
   return (
     <div className="space-y-4 pb-28">
@@ -45,7 +46,12 @@ export function Dashboard(p: Props) {
       <div className="bg-card rounded-3xl p-6 animate-scale-in">
         <p className="text-xs text-secondary uppercase tracking-wider mb-2">Patrimonio netto</p>
         <p className="text-[44px] leading-none font-bold text-primary balance-num">{formatCurrency(p.netWorth)}</p>
-        <div className="flex gap-6 mt-5">
+        {monthlyDelta !== 0 && (
+          <p className="text-sm mt-2 balance-num" style={{ color: monthlyDelta >= 0 ? '#8A9270' : '#E08B8B' }}>
+            {monthlyDelta >= 0 ? '+' : ''}{formatCurrency(monthlyDelta)} questo mese
+          </p>
+        )}
+        <div className="flex gap-6 mt-4">
           <div>
             <p className="text-xs text-secondary mb-1">Liquidità</p>
             <p className="text-sm font-semibold text-primary balance-num">{formatCurrency(p.liquidity)}</p>
@@ -61,7 +67,7 @@ export function Dashboard(p: Props) {
       {/* Month stats */}
       <div className="grid grid-cols-3 gap-3">
         <Stat label="Entrate" value={formatCurrency(p.monthlyIncome)} color="#8A9270" />
-        <Stat label="Uscite" value={formatCurrency(p.monthlyExpenses)} color="#F5F5F5" />
+        <Stat label="Uscite" value={formatCurrency(p.monthlyExpenses)} color="#8B8B8B" />
         <Stat label="Risparmio" value={formatCurrency(saved)} color={saved >= 0 ? '#E6B95C' : '#E08B8B'} />
       </div>
       <p className="text-[11px] text-secondary text-center -mt-1">{capitalize(currentMonthLabel())}</p>

@@ -46,8 +46,7 @@ function Main({ user, onLogOut }: { user: import('firebase/auth').User; onLogOut
 
   const handleSave = (data: Omit<Transaction, 'id'>) => {
     if (editing) {
-      tx.deleteTransaction(editing.id);
-      tx.addTransaction(data);
+      tx.updateTransaction(editing.id, data);
     } else {
       tx.addTransaction(data);
     }

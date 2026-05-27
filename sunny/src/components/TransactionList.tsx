@@ -23,6 +23,7 @@ export function TransactionList({ transactions, onEdit, onDelete, onBulkUpdate, 
   const [selectMode, setSelectMode] = useState(false);
   const [selected, setSelected] = useState<Set<string>>(new Set());
   const [picker, setPicker] = useState<'category' | 'account' | null>(null);
+  const [confirmDelete, setConfirmDelete] = useState(false);
 
   const filtered = useMemo(() => {
     return [...transactions]
@@ -53,7 +54,7 @@ export function TransactionList({ transactions, onEdit, onDelete, onBulkUpdate, 
     });
   };
 
-  const exitSelect = () => { setSelectMode(false); setSelected(new Set()); };
+  const exitSelect = () => { setSelectMode(false); setSelected(new Set()); setConfirmDelete(false); };
 
   const usedTypes = TYPE_ORDER.filter(t => transactions.some(tx => tx.type === t));
   const ids = [...selected];
@@ -133,7 +134,10 @@ export function TransactionList({ transactions, onEdit, onDelete, onBulkUpdate, 
             <div className="flex-1 flex gap-2 justify-end">
               <BarBtn onClick={() => setPicker('category')}>Categoria</BarBtn>
               <BarBtn onClick={() => setPicker('account')}>Conto</BarBtn>
-              <BarBtn danger onClick={() => { onBulkDelete(ids); exitSelect(); }}>Elimina</BarBtn>
+              {confirmDelete
+                ? <BarBtn danger onClick={() => { onBulkDelete(ids); exitSelect(); }}>Conferma ({selected.size})</BarBtn>
+                : <BarBtn danger onClick={() => setConfirmDelete(true)}>Elimina</BarBtn>
+              }
             </div>
           </div>
         </div>

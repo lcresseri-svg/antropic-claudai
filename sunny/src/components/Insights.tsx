@@ -53,7 +53,7 @@ export function Insights({ transactions, monthlyIncome, monthlyExpenses, monthly
       icon: c.icon,
       title: `${up ? '+' : '−'}${Math.abs(Math.round(bestDelta * 100))}% in ${c.label}`,
       detail: `${up ? 'Hai speso più' : 'Hai speso meno'} rispetto al mese scorso`,
-      accent: up ? '#E6B95C' : '#8A9270',
+      accent: up ? '#E08B8B' : '#8A9270',
     });
   }
 

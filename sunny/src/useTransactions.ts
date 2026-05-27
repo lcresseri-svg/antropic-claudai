@@ -52,7 +52,7 @@ export function useTransactions(user: User | null) {
     batch.commit();
   }, [user, colRef]);
 
-  const updateTransaction = useCallback((id: string, patch: TransactionPatch) => {
+  const updateTransaction = useCallback((id: string, patch: Partial<Omit<Transaction, 'id'>>) => {
     if (!user) return;
     updateDoc(doc(db, 'users', user.uid, 'transactions', id), stripUndefined(patch));
   }, [user]);
