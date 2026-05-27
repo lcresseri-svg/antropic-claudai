@@ -20,6 +20,10 @@ export function formatMonth(dateStr: string): string {
   }).format(new Date(dateStr));
 }
 
+export function capitalize(s: string): string {
+  return s.charAt(0).toUpperCase() + s.slice(1);
+}
+
 export function currentMonthLabel(): string {
   return new Intl.DateTimeFormat('it-IT', {
     month: 'long',
