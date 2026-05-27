@@ -45,8 +45,6 @@ function Main({ user, onLogOut }: { user: import('firebase/auth').User; onLogOut
   const [modalOpen, setModalOpen] = useState(false);
   const [importOpen, setImportOpen] = useState(false);
 
-  if (tx.loading) return <Loader phase="Sincronizzazione" />;
-
   const openAdd  = () => { setEditing(null); setModalOpen(true); };
   const openEdit = (t: Transaction) => { setEditing(t); setModalOpen(true); };
 
@@ -68,6 +66,9 @@ function Main({ user, onLogOut }: { user: import('firebase/auth').User; onLogOut
           <div className="flex items-center gap-2.5">
             <ArcLogo size={28} />
             <span className="font-semibold text-primary tracking-[-0.02em]">Sunny</span>
+            {tx.loading && (
+              <span className="w-1.5 h-1.5 rounded-full bg-gold animate-pulse" />
+            )}
           </div>
           <button onClick={() => setImportOpen(true)}
             className="label-caps text-secondary hover:text-primary transition-colors py-2 px-1">
