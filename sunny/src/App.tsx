@@ -79,7 +79,12 @@ function Main({ user, onLogOut }: { user: import('firebase/auth').User; onLogOut
             {settingsOpen && (
               <>
                 <div className="fixed inset-0 z-40" onClick={() => setSettingsOpen(false)} />
-                <div className="absolute right-0 top-10 z-50 glass-elevated rounded-2xl py-1 w-44 animate-fade-in-fast">
+                <div className="absolute right-0 top-10 z-50 rounded-2xl py-1 w-44 animate-fade-in-fast border border-white/[0.11] shadow-float"
+                  style={{
+                    background: 'rgba(22,22,22,0.94)',
+                    backdropFilter: 'blur(40px) saturate(200%)',
+                    WebkitBackdropFilter: 'blur(40px) saturate(200%)',
+                  }}>
                   <button onClick={() => { setView('settings'); setSettingsOpen(false); }}
                     className="w-full flex items-center gap-3 px-4 py-2.5 text-sm text-primary hover:bg-white/[0.04] transition-colors text-left rounded-t-2xl">
                     <HeaderGearIcon /> Impostazioni
