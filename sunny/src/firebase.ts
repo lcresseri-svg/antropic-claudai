@@ -1,5 +1,5 @@
 import { initializeApp } from 'firebase/app';
-import { getFirestore } from 'firebase/firestore';
+import { initializeFirestore } from 'firebase/firestore';
 import { getAuth, GoogleAuthProvider } from 'firebase/auth';
 
 const firebaseConfig = {
@@ -15,7 +15,13 @@ const firebaseConfig = {
 };
 
 const app = initializeApp(firebaseConfig);
-export const db = getFirestore(app);
+
+// Auto-detect long-polling: when the WebChannel streaming transport is blocked
+// (some mobile networks, proxies, Safari/ITP), the SDK otherwise hangs ~30s
+// before falling back. Auto-detect switches transports immediately.
+export const db = initializeFirestore(app, {
+  experimentalAutoDetectLongPolling: true,
+});
 export const auth = getAuth(app);
 
 export const googleProvider = new GoogleAuthProvider();
