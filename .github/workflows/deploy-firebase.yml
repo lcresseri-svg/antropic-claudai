@@ -3,7 +3,7 @@ name: Deploy Sunny to Firebase Hosting
 on:
   push:
     branches: [main, claude/sunny-finance-mvp-HRtWy]
-    paths: ['sunny/**']
+    paths: ['sunny/**', 'firebase.json', '.github/workflows/deploy-firebase.yml']
   workflow_dispatch:
 
 jobs:
