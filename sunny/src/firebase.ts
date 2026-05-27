@@ -1,5 +1,9 @@
 import { initializeApp } from 'firebase/app';
-import { initializeFirestore } from 'firebase/firestore';
+import {
+  initializeFirestore,
+  persistentLocalCache,
+  persistentMultipleTabManager,
+} from 'firebase/firestore';
 import { getAuth, GoogleAuthProvider } from 'firebase/auth';
 
 const firebaseConfig = {
@@ -16,10 +20,12 @@ const firebaseConfig = {
 
 const app = initializeApp(firebaseConfig);
 
-// Force long-polling: the WebChannel streaming transport hangs ~30s before
-// falling back when blocked (mobile networks, proxies, Safari/ITP). Auto-detect
-// is the v12 default and still hung, so force long-polling unconditionally.
+// Persistent IndexedDB cache: after the first sync, every reopen serves data
+// instantly from local cache while the network refresh runs in the background —
+// the slow first snapshot no longer blocks the screen. Force long-polling keeps
+// that background sync working where WebChannel streaming is blocked.
 export const db = initializeFirestore(app, {
+  localCache: persistentLocalCache({ tabManager: persistentMultipleTabManager() }),
   experimentalForceLongPolling: true,
 });
 export const auth = getAuth(app);

@@ -23,10 +23,16 @@ export function useTransactions(user: User | null) {
     }
     const col = collection(db, 'users', user.uid, 'transactions');
     const q = query(col, orderBy('date', 'desc'));
-    return onSnapshot(q, snap => {
-      setTransactions(snap.docs.map(d => ({ id: d.id, ...(d.data() as Omit<Transaction, 'id'>) })));
-      setLoading(false);
-    });
+    return onSnapshot(q,
+      snap => {
+        setTransactions(snap.docs.map(d => ({ id: d.id, ...(d.data() as Omit<Transaction, 'id'>) })));
+        setLoading(false);
+      },
+      err => {
+        console.error('Firestore listen error:', err.code, err.message);
+        setLoading(false);
+      },
+    );
   }, [user]);
 
   const colRef = useCallback(() => collection(db, 'users', user!.uid, 'transactions'), [user]);
