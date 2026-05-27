@@ -1,6 +1,6 @@
 import { useState, useEffect } from 'react';
 import { Transaction, TransactionType, TYPE_META, TYPE_ORDER, RecurrenceRule } from '../types';
-import { formatCurrency } from '../utils';
+import { formatCurrency, guessCategory } from '../utils';
 import { useSettings } from '../settings';
 
 interface Props {
@@ -33,6 +33,7 @@ export function TransactionModal({ open, editing, groupTransfers = [], onClose, 
   const [recurringUntil, setRecurringUntil] = useState('');
 
   const [amountError, setAmountError] = useState(false);
+  const [categoryTouched, setCategoryTouched] = useState(false);
 
   useEffect(() => {
     if (!open) return;
@@ -60,6 +61,7 @@ export function TransactionModal({ open, editing, groupTransfers = [], onClose, 
       setIsRecurring(false); setRecurringFreq('monthly'); setRecurringUntil('');
     }
     setAmountError(false);
+    setCategoryTouched(!!editing);
   }, [open, editing]);
 
   useEffect(() => {
@@ -184,7 +186,14 @@ export function TransactionModal({ open, editing, groupTransfers = [], onClose, 
           {/* Description */}
           <Field label="Descrizione">
             <input type="text" placeholder="es. Supermercato" value={description} maxLength={80}
-              onChange={e => setDescription(e.target.value)} required
+              onChange={e => {
+                const v = e.target.value;
+                setDescription(v);
+                if (!categoryTouched && type !== 'transfer') {
+                  const g = guessCategory(v, typeCats);
+                  if (g) setCategory(g);
+                }
+              }} required
               className="w-full bg-white/[0.05] rounded-2xl px-4 py-3 text-primary placeholder:text-secondary/50 outline-none focus:ring-1 focus:ring-gold/40" />
           </Field>
 
@@ -195,7 +204,7 @@ export function TransactionModal({ open, editing, groupTransfers = [], onClose, 
                 {typeCats.map(c => {
                   const sel = category === c.id;
                   return (
-                    <button key={c.id} type="button" onClick={() => setCategory(c.id)}
+                    <button key={c.id} type="button" onClick={() => { setCategory(c.id); setCategoryTouched(true); }}
                       className="px-3 py-2 rounded-full text-xs font-medium transition-all flex items-center gap-1.5"
                       style={sel ? { backgroundColor: c.color, color: '#0D0D0D' } : { backgroundColor: '#161616', color: '#8B8B8B' }}>
                       <span>{c.icon}</span>{c.label}

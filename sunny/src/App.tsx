@@ -15,10 +15,12 @@ function Loader({ phase }: { phase: string }) {
   const [secs, setSecs] = useState(0);
   useEffect(() => {
     const t = setInterval(() => setSecs(s => s + 1), 1000);
-    return () => clearInterval(t);
+    const prev = document.body.style.overflow;
+    document.body.style.overflow = 'hidden';
+    return () => { clearInterval(t); document.body.style.overflow = prev; };
   }, []);
   return (
-    <div className="min-h-screen bg-bg flex flex-col items-center justify-center gap-4">
+    <div className="fixed inset-0 bg-bg flex flex-col items-center justify-center gap-4 overflow-hidden overscroll-none">
       <div className="animate-spin" style={{ animationDuration: '1.2s' }}>
         <ArcLogo size={28} />
       </div>
