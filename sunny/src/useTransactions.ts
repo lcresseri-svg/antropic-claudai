@@ -33,7 +33,6 @@ export function useTransactions(user: User | null) {
         await batch.commit();
         return;
       }
-
       setTransactions(
         snapshot.docs.map(d => ({ id: d.id, ...(d.data() as Omit<Transaction, 'id'>) })),
       );
@@ -51,6 +50,17 @@ export function useTransactions(user: User | null) {
     [user],
   );
 
+  const addTransactions = useCallback(
+    (txs: Omit<Transaction, 'id'>[]) => {
+      if (!user) return;
+      const col = collection(db, 'users', user.uid, 'transactions');
+      const batch = writeBatch(db);
+      txs.forEach(tx => batch.set(doc(col), tx));
+      batch.commit();
+    },
+    [user],
+  );
+
   const deleteTransaction = useCallback(
     (id: string) => {
       if (!user) return;
@@ -59,6 +69,7 @@ export function useTransactions(user: User | null) {
     [user],
   );
 
+  // ── Derived values ────────────────────────────────────────────────────────
   const now = new Date();
   const cm = now.getMonth();
   const cy = now.getFullYear();
@@ -68,10 +79,16 @@ export function useTransactions(user: User | null) {
     return d.getMonth() === cm && d.getFullYear() === cy;
   });
 
-  const totalBalance = transactions.reduce(
-    (s, tx) => (tx.type === 'income' ? s + tx.amount : s - tx.amount),
-    0,
-  );
+  const totalBalance = transactions.reduce((s, tx) => {
+    if (tx.type === 'income') return s + tx.amount;
+    if (tx.type === 'expense') return s - tx.amount;
+    if (tx.type === 'investment') return s - tx.amount;
+    return s; // transfer: neutral
+  }, 0);
+
+  const investmentTotal = transactions
+    .filter(tx => tx.type === 'investment')
+    .reduce((s, tx) => s + tx.amount, 0);
 
   const monthlyIncome = currentMonthTx
     .filter(tx => tx.type === 'income')
@@ -79,6 +96,10 @@ export function useTransactions(user: User | null) {
 
   const monthlyExpenses = currentMonthTx
     .filter(tx => tx.type === 'expense')
+    .reduce((s, tx) => s + tx.amount, 0);
+
+  const monthlyInvestments = currentMonthTx
+    .filter(tx => tx.type === 'investment')
     .reduce((s, tx) => s + tx.amount, 0);
 
   const categoryTotals = currentMonthTx
@@ -96,10 +117,13 @@ export function useTransactions(user: User | null) {
     transactions,
     recentTransactions,
     addTransaction,
+    addTransactions,
     deleteTransaction,
     totalBalance,
+    investmentTotal,
     monthlyIncome,
     monthlyExpenses,
+    monthlyInvestments,
     categoryTotals,
     loading,
   };
