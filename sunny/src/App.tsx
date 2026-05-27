@@ -70,6 +70,7 @@ function Main({ user, onLogOut }: { user: import('firebase/auth').User; onLogOut
               <span className="w-1.5 h-1.5 rounded-full bg-gold animate-pulse" />
             )}
           </div>
+          {view !== 'settings' && (
           <div className="relative">
             <button onClick={() => setSettingsOpen(s => !s)}
               className="w-9 h-9 flex items-center justify-center text-secondary hover:text-primary transition-colors rounded-full">
@@ -97,6 +98,7 @@ function Main({ user, onLogOut }: { user: import('firebase/auth').User; onLogOut
               </>
             )}
           </div>
+          )}
         </div>
       </header>
 

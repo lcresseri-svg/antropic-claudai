@@ -34,6 +34,7 @@ export function TransactionModal({ open, editing, groupTransfers = [], onClose, 
 
   const [amountError, setAmountError] = useState(false);
   const [categoryTouched, setCategoryTouched] = useState(false);
+  const [showMore, setShowMore] = useState(false);
 
   useEffect(() => {
     if (!open) return;
@@ -62,6 +63,8 @@ export function TransactionModal({ open, editing, groupTransfers = [], onClose, 
     }
     setAmountError(false);
     setCategoryTouched(!!editing);
+    const hasGroup = !!editing && editing.type === 'expense' && !!editing.groupId && groupTransfers.length > 0;
+    setShowMore(!!editing && (!!editing.recurring || hasGroup || !!editing.shared));
   }, [open, editing]);
 
   useEffect(() => {
@@ -215,6 +218,48 @@ export function TransactionModal({ open, editing, groupTransfers = [], onClose, 
             </Field>
           )}
 
+          {/* Accounts */}
+          <div className={`grid gap-3 ${type === 'transfer' ? 'grid-cols-2' : 'grid-cols-1'}`}>
+            <Field label={type === 'transfer' ? 'Da conto' : 'Conto'}>
+              <Select value={account} onChange={setAccount} options={accounts.map(a => ({ value: a.id, label: `${a.icon} ${a.label}` }))} />
+            </Field>
+            {type === 'transfer' && (
+              <Field label="A conto">
+                <Select value={toAccount} onChange={setToAccount}
+                  options={accounts.filter(a => a.id !== account).map(a => ({ value: a.id, label: `${a.icon} ${a.label}` }))} />
+              </Field>
+            )}
+          </div>
+
+          {/* Date — compact quick buttons */}
+          <Field label="Data">
+            <div className="flex gap-2">
+              <button type="button" onClick={() => setDate(td)}
+                className={`px-3.5 py-2 rounded-xl text-xs font-semibold transition-colors flex-shrink-0 ${date === td ? 'bg-gold text-bg' : 'bg-white/[0.05] text-secondary'}`}>
+                Oggi
+              </button>
+              <button type="button" onClick={() => setDate(yd)}
+                className={`px-3.5 py-2 rounded-xl text-xs font-semibold transition-colors flex-shrink-0 ${date === yd ? 'bg-gold text-bg' : 'bg-white/[0.05] text-secondary'}`}>
+                Ieri
+              </button>
+              <input type="date" value={date} onChange={e => setDate(e.target.value)}
+                className="flex-1 min-w-0 bg-white/[0.05] rounded-xl px-3 py-2 text-primary text-xs outline-none focus:ring-1 focus:ring-gold/40" />
+            </div>
+          </Field>
+
+          {/* Vedi altro — opzioni avanzate */}
+          <button type="button" onClick={() => setShowMore(s => !s)}
+            className="w-full flex items-center justify-center gap-1.5 py-2 text-sm font-medium text-secondary">
+            {showMore ? 'Vedi meno' : 'Vedi altro'}
+            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor"
+              strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round"
+              className={`transition-transform ${showMore ? 'rotate-180' : ''}`}>
+              <path d="M6 9l6 6 6-6" />
+            </svg>
+          </button>
+
+          {showMore && (
+            <>
           {/* Shared expense — storni / rimborsi */}
           {type === 'expense' && (
             <ToggleBlock
@@ -292,35 +337,8 @@ export function TransactionModal({ open, editing, groupTransfers = [], onClose, 
               </div>
             </div>
           </ToggleBlock>
-
-          {/* Accounts */}
-          <div className={`grid gap-3 ${type === 'transfer' ? 'grid-cols-2' : 'grid-cols-1'}`}>
-            <Field label={type === 'transfer' ? 'Da conto' : 'Conto'}>
-              <Select value={account} onChange={setAccount} options={accounts.map(a => ({ value: a.id, label: `${a.icon} ${a.label}` }))} />
-            </Field>
-            {type === 'transfer' && (
-              <Field label="A conto">
-                <Select value={toAccount} onChange={setToAccount}
-                  options={accounts.filter(a => a.id !== account).map(a => ({ value: a.id, label: `${a.icon} ${a.label}` }))} />
-              </Field>
-            )}
-          </div>
-
-          {/* Date — compact quick buttons */}
-          <Field label="Data">
-            <div className="flex gap-2">
-              <button type="button" onClick={() => setDate(td)}
-                className={`px-3.5 py-2 rounded-xl text-xs font-semibold transition-colors flex-shrink-0 ${date === td ? 'bg-gold text-bg' : 'bg-white/[0.05] text-secondary'}`}>
-                Oggi
-              </button>
-              <button type="button" onClick={() => setDate(yd)}
-                className={`px-3.5 py-2 rounded-xl text-xs font-semibold transition-colors flex-shrink-0 ${date === yd ? 'bg-gold text-bg' : 'bg-white/[0.05] text-secondary'}`}>
-                Ieri
-              </button>
-              <input type="date" value={date} onChange={e => setDate(e.target.value)}
-                className="flex-1 min-w-0 bg-white/[0.05] rounded-xl px-3 py-2 text-primary text-xs outline-none focus:ring-1 focus:ring-gold/40" />
-            </div>
-          </Field>
+            </>
+          )}
 
           <button type="submit"
             className="w-full py-3 rounded-2xl font-semibold text-bg transition-transform active:scale-[0.98]"
