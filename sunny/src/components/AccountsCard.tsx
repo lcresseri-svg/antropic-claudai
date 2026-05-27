@@ -28,7 +28,7 @@ export function AccountsCard({ accountBalances, expenseByAccount, mode, onToggle
   const max = Math.max(...entries.map(e => Math.abs(e.value)));
 
   return (
-    <div className="bg-card rounded-2xl p-5">
+    <div className="glass-card rounded-2xl p-5">
       <div className="flex items-center justify-between mb-4">
         <p className="label-caps text-secondary">{mode === 'balance' ? 'Saldo per conto' : 'Spese per conto'}</p>
         <button onClick={onToggle} className="text-xs font-medium text-gold">
@@ -45,7 +45,7 @@ export function AccountsCard({ accountBalances, expenseByAccount, mode, onToggle
                 {formatCurrency(value)}
               </span>
             </div>
-            <div className="h-1.5 rounded-full bg-divider overflow-hidden">
+            <div className="h-1.5 rounded-full bg-white/[0.06] overflow-hidden">
               <div className="h-full rounded-full transition-all duration-500"
                 style={{ width: `${(Math.abs(value) / max) * 100}%`, backgroundColor: acc.color }} />
             </div>

@@ -59,7 +59,7 @@ export function Dashboard(p: Props) {
             {monthlyDelta >= 0 ? '+' : ''}{formatCurrency(monthlyDelta)}&ensp;questo mese
           </p>
         )}
-        <div className="flex gap-8 mt-7 pt-6 border-t border-divider">
+        <div className="flex gap-8 mt-7 pt-6 border-t border-white/[0.06]">
           <div>
             <p className="label-caps text-secondary mb-2">Liquidità</p>
             <p className="text-sm font-semibold text-primary balance-num">{formatCurrency(p.liquidity)}</p>
@@ -104,8 +104,8 @@ export function Dashboard(p: Props) {
             Vedi tutte
           </button>
         </div>
-        <div className="bg-card rounded-2xl overflow-hidden">
-          <div className="divide-y divide-divider px-4">
+        <div className="glass-card rounded-2xl overflow-hidden">
+          <div className="divide-y divide-white/[0.06] px-4">
             {p.recentTransactions.slice(0, 6).map(tx => (
               <TransactionRow key={tx.id} tx={tx} onClick={p.onEditTransaction} />
             ))}
@@ -121,7 +121,7 @@ export function Dashboard(p: Props) {
 
 function Stat({ label, value, color }: { label: string; value: string; color: string }) {
   return (
-    <div className="bg-card rounded-2xl px-4 py-4">
+    <div className="glass-card rounded-2xl px-4 py-4">
       <p className="label-caps text-secondary mb-2">{label}</p>
       <p className="text-[14px] font-semibold balance-num truncate" style={{ color }}>{value}</p>
     </div>

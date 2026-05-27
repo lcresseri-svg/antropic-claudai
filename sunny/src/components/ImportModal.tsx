@@ -128,13 +128,13 @@ export function ImportModal({ open, onClose, onImport }: Props) {
     <div className="fixed inset-0 z-50 flex items-end sm:items-center justify-center p-3"
       onClick={e => { if (e.target === e.currentTarget) close(); }}>
       <div className="absolute inset-0 bg-black/60 backdrop-blur-sm animate-fade-in-fast" />
-      <div className="relative w-full max-w-xl bg-elevated rounded-3xl shadow-float max-h-[90vh] flex flex-col animate-sheet-up">
+      <div className="relative w-full max-w-xl glass-elevated rounded-3xl shadow-float max-h-[90vh] flex flex-col animate-sheet-up">
         <div className="flex items-center justify-between p-6 pb-4">
           <div>
             <h2 className="text-lg font-semibold text-primary">Importa</h2>
             <p className="text-xs text-secondary mt-0.5">Excel o CSV · .xlsx .xls .csv</p>
           </div>
-          <button onClick={close} className="w-8 h-8 rounded-full bg-card flex items-center justify-center text-secondary">✕</button>
+          <button onClick={close} className="w-8 h-8 rounded-full bg-white/[0.05] flex items-center justify-center text-secondary">✕</button>
         </div>
 
         <div className="flex-1 overflow-y-auto scrollbar-hide px-6">
@@ -145,7 +145,7 @@ export function ImportModal({ open, onClose, onImport }: Props) {
                 onDragLeave={() => setDragging(false)}
                 onDrop={e => { e.preventDefault(); setDragging(false); const f = e.dataTransfer.files[0]; if (f) process(f); }}
                 onClick={() => fileRef.current?.click()}
-                className={`border-2 border-dashed rounded-2xl p-10 text-center cursor-pointer transition-all ${dragging ? 'border-gold bg-gold/5' : 'border-divider hover:border-secondary/40'}`}>
+                className={`border-2 border-dashed rounded-2xl p-10 text-center cursor-pointer transition-all ${dragging ? 'border-gold bg-gold/5' : 'border-white/[0.10] hover:border-white/[0.20]'}`}>
                 <p className="text-3xl mb-3">📂</p>
                 <p className="text-sm font-medium text-primary">Trascina il file qui</p>
                 <p className="text-xs text-secondary mt-1">oppure tocca per selezionare</p>
@@ -153,7 +153,7 @@ export function ImportModal({ open, onClose, onImport }: Props) {
                   onChange={e => { const f = e.target.files?.[0]; if (f) process(f); }} />
               </div>
 
-              <button onClick={template} className="w-full bg-card rounded-2xl p-4 flex items-center gap-3 text-left active:bg-card-hover transition-colors">
+              <button onClick={template} className="w-full glass-card rounded-2xl p-4 flex items-center gap-3 text-left active:bg-white/[0.08] transition-colors">
                 <span className="text-2xl">📋</span>
                 <div className="flex-1">
                   <p className="text-sm font-medium text-primary">Scarica il template</p>
@@ -162,7 +162,7 @@ export function ImportModal({ open, onClose, onImport }: Props) {
                 <span className="text-gold text-xs font-semibold">Scarica</span>
               </button>
 
-              <div className="bg-card rounded-2xl p-4 text-xs text-secondary leading-relaxed">
+              <div className="glass-card rounded-2xl p-4 text-xs text-secondary leading-relaxed">
                 Colonne riconosciute: <b className="text-primary">Data, Descrizione, Importo, Tipo, Categoria, Conto, Conto Destinazione, Note</b>.
                 Tipo: entrata / uscita / investimento / trasferimento.
               </div>
@@ -188,7 +188,7 @@ export function ImportModal({ open, onClose, onImport }: Props) {
                 </div>
               )}
               {parsed.length > 0 && (
-                <div className="bg-card rounded-2xl divide-y divide-divider max-h-72 overflow-y-auto scrollbar-hide">
+                <div className="glass-card rounded-2xl divide-y divide-white/[0.06] max-h-72 overflow-y-auto scrollbar-hide">
                   {parsed.slice(0, 60).map((tx, i) => (
                     <div key={i} className="flex items-center gap-3 p-3 text-sm">
                       <span className="text-secondary text-xs w-12 flex-shrink-0">{formatDate(tx.date)}</span>
@@ -215,10 +215,10 @@ export function ImportModal({ open, onClose, onImport }: Props) {
         </div>
 
         <div className="p-6 pt-4 flex gap-2">
-          {step === 'upload' && <button onClick={close} className="flex-1 py-3.5 rounded-2xl bg-card text-secondary font-medium">Annulla</button>}
+          {step === 'upload' && <button onClick={close} className="flex-1 py-3.5 rounded-2xl bg-white/[0.05] text-secondary font-medium">Annulla</button>}
           {step === 'preview' && (
             <>
-              <button onClick={reset} className="px-5 py-3.5 rounded-2xl bg-card text-secondary font-medium">Indietro</button>
+              <button onClick={reset} className="px-5 py-3.5 rounded-2xl bg-white/[0.05] text-secondary font-medium">Indietro</button>
               <button onClick={() => { onImport(parsed); setStep('done'); }} disabled={parsed.length === 0}
                 className="flex-1 py-3.5 rounded-2xl bg-gold text-bg font-semibold disabled:opacity-40">
                 Importa {parsed.length}

@@ -44,6 +44,7 @@ function Main({ user, onLogOut }: { user: import('firebase/auth').User; onLogOut
   const [editing, setEditing] = useState<Transaction | null>(null);
   const [modalOpen, setModalOpen] = useState(false);
   const [importOpen, setImportOpen] = useState(false);
+  const [settingsOpen, setSettingsOpen] = useState(false);
 
   const openAdd  = () => { setEditing(null); setModalOpen(true); };
   const openEdit = (t: Transaction) => { setEditing(t); setModalOpen(true); };
@@ -59,9 +60,9 @@ function Main({ user, onLogOut }: { user: import('firebase/auth').User; onLogOut
   };
 
   return (
-    <div className="min-h-screen bg-bg">
+    <div className="min-h-screen">
       {/* Header */}
-      <header className="sticky top-0 z-20 bg-bg/85 backdrop-blur-2xl">
+      <header className="sticky top-0 z-20 glass-header">
         <div className="max-w-2xl mx-auto px-5 h-14 flex items-center justify-between">
           <div className="flex items-center gap-2.5">
             <ArcLogo size={28} />
@@ -70,10 +71,28 @@ function Main({ user, onLogOut }: { user: import('firebase/auth').User; onLogOut
               <span className="w-1.5 h-1.5 rounded-full bg-gold animate-pulse" />
             )}
           </div>
-          <button onClick={() => setImportOpen(true)}
-            className="label-caps text-secondary hover:text-primary transition-colors py-2 px-1">
-            Importa
-          </button>
+          <div className="relative">
+            <button onClick={() => setSettingsOpen(s => !s)}
+              className="w-9 h-9 flex items-center justify-center text-secondary hover:text-primary transition-colors rounded-full">
+              <HeaderGearIcon />
+            </button>
+            {settingsOpen && (
+              <>
+                <div className="fixed inset-0 z-40" onClick={() => setSettingsOpen(false)} />
+                <div className="absolute right-0 top-10 z-50 glass-elevated rounded-2xl py-1 w-44 animate-fade-in-fast">
+                  <button onClick={() => { setView('settings'); setSettingsOpen(false); }}
+                    className="w-full flex items-center gap-3 px-4 py-2.5 text-sm text-primary hover:bg-white/[0.04] transition-colors text-left rounded-t-2xl">
+                    <HeaderGearIcon /> Impostazioni
+                  </button>
+                  <div className="h-px bg-white/[0.06] mx-3" />
+                  <button onClick={() => { setImportOpen(true); setSettingsOpen(false); }}
+                    className="w-full flex items-center gap-3 px-4 py-2.5 text-sm text-primary hover:bg-white/[0.04] transition-colors text-left rounded-b-2xl">
+                    <FolderIcon /> Importa
+                  </button>
+                </div>
+              </>
+            )}
+          </div>
         </div>
       </header>
 
@@ -119,6 +138,25 @@ function Main({ user, onLogOut }: { user: import('firebase/auth').User; onLogOut
       />
       <ImportModal open={importOpen} onClose={() => setImportOpen(false)} onImport={tx.addTransactions} />
     </div>
+  );
+}
+
+// ── Header icons ────────────────────────────────────────────────────────────
+
+function HeaderGearIcon() {
+  return (
+    <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.75" strokeLinecap="round" strokeLinejoin="round">
+      <circle cx="12" cy="12" r="3"/>
+      <path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 1 1-2.83 2.83l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-4 0v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 1 1-2.83-2.83l.06.06a1.65 1.65 0 0 0 .33-1.82 1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1 0-4h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 1 1 2.83-2.83l.06.06a1.65 1.65 0 0 0 1.82.33H9a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 4 0v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 1 1 2.83 2.83l-.06.06a1.65 1.65 0 0 0-.33 1.82V9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 0 4h-.09a1.65 1.65 0 0 0-1.51 1z"/>
+    </svg>
+  );
+}
+
+function FolderIcon() {
+  return (
+    <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.75" strokeLinecap="round" strokeLinejoin="round">
+      <path d="M22 19a2 2 0 0 1-2 2H4a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h5l2 3h9a2 2 0 0 1 2 2z"/>
+    </svg>
   );
 }
 

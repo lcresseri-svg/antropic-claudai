@@ -7,26 +7,25 @@ interface Props {
 }
 
 const items: { id: View; label: string; icon: React.ReactNode }[] = [
-  { id: 'home',         label: 'Home',         icon: <HomeIcon /> },
-  { id: 'transactions', label: 'Movimenti',    icon: <ListIcon /> },
-  { id: 'settings',     label: 'Impostazioni', icon: <GearIcon /> },
+  { id: 'home',         label: 'Home',      icon: <HomeIcon /> },
+  { id: 'transactions', label: 'Movimenti', icon: <ListIcon /> },
 ];
 
 export function BottomNav({ view, onView, onAdd }: Props) {
   return (
     <nav className="fixed bottom-0 inset-x-0 z-30 safe-bottom pointer-events-none">
       <div className="max-w-2xl mx-auto px-4 pb-4 flex justify-center">
-        <div className="pointer-events-auto flex items-center gap-0.5 bg-elevated/95 backdrop-blur-2xl rounded-full px-1 py-1 shadow-float border border-white/[0.04]">
-          {items.slice(0, 2).map(it =>
+        <div className="pointer-events-auto flex items-center gap-0.5 glass-nav rounded-full px-1 py-1">
+          {items.slice(0, 1).map(it =>
             <NavBtn key={it.id} {...it} active={view === it.id} onClick={() => onView(it.id)} />
           )}
           <button onClick={onAdd}
-            className="w-11 h-11 rounded-full bg-gold flex items-center justify-center mx-1 transition-transform active:scale-90">
+            className="w-11 h-11 rounded-full glass-cta-gold flex items-center justify-center mx-1 transition-transform active:scale-90">
             <svg width="13" height="13" viewBox="0 0 13 13" fill="none">
               <path d="M6.5 1v11M1 6.5h11" stroke="#0D0D0D" strokeWidth="1.75" strokeLinecap="round"/>
             </svg>
           </button>
-          {items.slice(2).map(it =>
+          {items.slice(1).map(it =>
             <NavBtn key={it.id} {...it} active={view === it.id} onClick={() => onView(it.id)} />
           )}
         </div>
@@ -40,8 +39,8 @@ function NavBtn({ label, icon, active, onClick }: {
 }) {
   return (
     <button onClick={onClick} aria-label={label}
-      className={`w-11 h-11 rounded-full flex items-center justify-center transition-colors ${
-        active ? 'text-gold' : 'text-secondary'
+      className={`w-11 h-11 rounded-full flex items-center justify-center transition-all duration-200 ${
+        active ? 'glass-active-pill text-gold' : 'text-secondary'
       }`}>
       {icon}
     </button>

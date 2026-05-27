@@ -143,7 +143,7 @@ export function Insights({ transactions, monthlyIncome, monthlyExpenses, monthly
       <p className="label-caps text-secondary mb-3 px-1">Insight</p>
       <div className="space-y-2.5">
         {sorted.map((ins, i) => (
-          <div key={i} className="bg-card rounded-2xl p-4 flex items-start gap-3.5 animate-fade-in"
+          <div key={i} className="glass-card rounded-2xl p-4 flex items-start gap-3.5 animate-fade-in"
             style={{ animationDelay: `${i * 50}ms`, ...(ins.urgent ? { outline: `1px solid ${ins.accent}33` } : {}) }}>
             <div className="w-9 h-9 rounded-xl flex items-center justify-center text-base flex-shrink-0"
               style={{ backgroundColor: ins.accent + '18' }}>

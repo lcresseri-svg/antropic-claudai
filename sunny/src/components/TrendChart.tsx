@@ -52,7 +52,7 @@ export function TrendChart({ data }: Props) {
   const expPts = toPoints(data.map(d => d.expense), max);
 
   return (
-    <div className="bg-card rounded-2xl p-5">
+    <div className="glass-card rounded-2xl p-5">
       <div className="flex items-center justify-between mb-5">
         <p className="label-caps text-secondary">Andamento 6 mesi</p>
         <div className="flex items-center gap-3 text-[11px] text-secondary">
@@ -88,7 +88,7 @@ export function TrendChart({ data }: Props) {
               <line key={t}
                 x1={PAD_X} y1={PAD_Y + t * (H - PAD_Y * 2)}
                 x2={W - PAD_X} y2={PAD_Y + t * (H - PAD_Y * 2)}
-                stroke="#1C1C1C" strokeWidth="1" />
+                stroke="rgba(255,255,255,0.06)" strokeWidth="1" />
             ))}
 
             {/* Area fills */}

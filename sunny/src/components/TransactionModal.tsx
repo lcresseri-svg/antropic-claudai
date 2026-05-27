@@ -92,15 +92,15 @@ export function TransactionModal({ open, editing, onClose, onSave, onDelete }: P
       onClick={e => { if (e.target === e.currentTarget) onClose(); }}>
       <div className="absolute inset-0 bg-black/60 backdrop-blur-sm animate-fade-in-fast" />
 
-      <div className="relative w-full max-w-md bg-elevated rounded-3xl shadow-float max-h-[92vh] overflow-y-auto scrollbar-hide animate-sheet-up">
-        <div className="sticky top-0 bg-elevated z-10 px-6 pt-6 pb-3 flex items-center justify-between">
+      <div className="relative w-full max-w-md glass-elevated rounded-3xl shadow-float max-h-[92vh] overflow-y-auto scrollbar-hide animate-sheet-up">
+        <div className="sticky top-0 bg-[rgba(20,20,20,0.85)] backdrop-blur-xl z-10 px-6 pt-6 pb-3 flex items-center justify-between">
           <h2 className="text-lg font-semibold text-primary">{editing ? 'Modifica' : 'Nuova transazione'}</h2>
-          <button onClick={onClose} className="w-8 h-8 rounded-full bg-card flex items-center justify-center text-secondary">✕</button>
+          <button onClick={onClose} className="w-8 h-8 rounded-full bg-white/[0.05] flex items-center justify-center text-secondary">✕</button>
         </div>
 
         <form onSubmit={submit} className="px-6 pb-6 space-y-5">
           {/* Type segmented */}
-          <div className="grid grid-cols-4 gap-1.5 bg-card rounded-2xl p-1.5">
+          <div className="grid grid-cols-4 gap-1.5 bg-white/[0.05] rounded-2xl p-1.5">
             {TYPE_ORDER.map(t => (
               <button key={t} type="button" onClick={() => setType(t)}
                 className="py-2.5 rounded-xl text-[11px] font-semibold transition-all"
@@ -131,7 +131,7 @@ export function TransactionModal({ open, editing, onClose, onSave, onDelete }: P
           <Field label="Descrizione">
             <input type="text" placeholder="es. Supermercato" value={description} maxLength={80}
               onChange={e => setDescription(e.target.value)} required
-              className="w-full bg-card rounded-2xl px-4 py-3.5 text-primary placeholder:text-secondary/50 outline-none focus:ring-1 focus:ring-gold/40" />
+              className="w-full bg-white/[0.05] rounded-2xl px-4 py-3.5 text-primary placeholder:text-secondary/50 outline-none focus:ring-1 focus:ring-gold/40" />
           </Field>
 
           {/* Category */}
@@ -169,7 +169,7 @@ export function TransactionModal({ open, editing, onClose, onSave, onDelete }: P
                       <label className="text-xs font-medium text-secondary mb-2 block">La tua parte (€)</label>
                       <input type="text" inputMode="decimal" placeholder="es. 25"
                         value={yourPart} onChange={e => setYourPart(e.target.value.replace(/[^\d.,]/g, ''))}
-                        className="w-full bg-elevated rounded-xl px-4 py-3 text-primary placeholder:text-secondary/40 outline-none focus:ring-1 focus:ring-gold/40 text-lg font-semibold balance-num" />
+                        className="w-full bg-white/[0.04] rounded-xl px-4 py-3 text-primary placeholder:text-secondary/40 outline-none focus:ring-1 focus:ring-gold/40 text-lg font-semibold balance-num" />
                     </div>
                     {others !== null && (
                       <>
@@ -195,7 +195,7 @@ export function TransactionModal({ open, editing, onClose, onSave, onDelete }: P
                 <div className="flex gap-2">
                   {(['weekly', 'monthly', 'yearly'] as const).map(f => (
                     <button key={f} type="button" onClick={() => setRecurringFreq(f)}
-                      className={`flex-1 py-2 rounded-xl text-xs font-semibold transition-colors ${recurringFreq === f ? 'bg-gold text-bg' : 'bg-elevated text-secondary'}`}>
+                      className={`flex-1 py-2 rounded-xl text-xs font-semibold transition-colors ${recurringFreq === f ? 'bg-gold text-bg' : 'bg-white/[0.04] text-secondary'}`}>
                       {f === 'weekly' ? 'Settimanale' : f === 'monthly' ? 'Mensile' : 'Annuale'}
                     </button>
                   ))}
@@ -204,7 +204,7 @@ export function TransactionModal({ open, editing, onClose, onSave, onDelete }: P
               <div>
                 <label className="text-xs font-medium text-secondary mb-2 block">Termina il (opzionale)</label>
                 <input type="date" value={recurringUntil} onChange={e => setRecurringUntil(e.target.value)}
-                  className="w-full bg-elevated rounded-xl px-3 py-2 text-primary text-sm outline-none focus:ring-1 focus:ring-gold/40" />
+                  className="w-full bg-white/[0.04] rounded-xl px-3 py-2 text-primary text-sm outline-none focus:ring-1 focus:ring-gold/40" />
               </div>
             </div>
           </ToggleBlock>
@@ -226,15 +226,15 @@ export function TransactionModal({ open, editing, onClose, onSave, onDelete }: P
           <Field label="Data">
             <div className="flex gap-2">
               <button type="button" onClick={() => setDate(td)}
-                className={`px-3.5 py-2 rounded-xl text-xs font-semibold transition-colors flex-shrink-0 ${date === td ? 'bg-gold text-bg' : 'bg-card text-secondary'}`}>
+                className={`px-3.5 py-2 rounded-xl text-xs font-semibold transition-colors flex-shrink-0 ${date === td ? 'bg-gold text-bg' : 'bg-white/[0.05] text-secondary'}`}>
                 Oggi
               </button>
               <button type="button" onClick={() => setDate(yd)}
-                className={`px-3.5 py-2 rounded-xl text-xs font-semibold transition-colors flex-shrink-0 ${date === yd ? 'bg-gold text-bg' : 'bg-card text-secondary'}`}>
+                className={`px-3.5 py-2 rounded-xl text-xs font-semibold transition-colors flex-shrink-0 ${date === yd ? 'bg-gold text-bg' : 'bg-white/[0.05] text-secondary'}`}>
                 Ieri
               </button>
               <input type="date" value={date} onChange={e => setDate(e.target.value)}
-                className="flex-1 min-w-0 bg-card rounded-xl px-3 py-2 text-primary text-xs outline-none focus:ring-1 focus:ring-gold/40" />
+                className="flex-1 min-w-0 bg-white/[0.05] rounded-xl px-3 py-2 text-primary text-xs outline-none focus:ring-1 focus:ring-gold/40" />
             </div>
           </Field>
 
@@ -261,18 +261,18 @@ function ToggleBlock({ title, subtitle, on, onToggle, children }: {
   onToggle: () => void; children: React.ReactNode;
 }) {
   return (
-    <div className="bg-card rounded-2xl overflow-hidden">
+    <div className="glass-card rounded-2xl overflow-hidden">
       <button type="button" onClick={onToggle}
         className="w-full flex items-center justify-between px-4 py-3.5 text-left">
         <div>
           <p className="text-sm font-medium text-primary">{title}</p>
           <p className="text-xs text-secondary mt-0.5">{subtitle}</p>
         </div>
-        <div className={`w-11 h-6 rounded-full transition-colors relative flex-shrink-0 ml-3 ${on ? 'bg-gold' : 'bg-divider'}`}>
+        <div className={`w-11 h-6 rounded-full transition-colors relative flex-shrink-0 ml-3 ${on ? 'bg-gold' : 'bg-white/[0.10]'}`}>
           <span className={`absolute top-0.5 w-5 h-5 bg-white rounded-full shadow transition-transform ${on ? 'translate-x-5' : 'translate-x-0.5'}`} />
         </div>
       </button>
-      {on && <div className="border-t border-divider px-4 pb-4 pt-3">{children}</div>}
+      {on && <div className="border-t border-white/[0.06] px-4 pb-4 pt-3">{children}</div>}
     </div>
   );
 }
@@ -298,7 +298,7 @@ function Field({ label, children }: { label: string; children: React.ReactNode }
 function Select({ value, onChange, options }: { value: string; onChange: (v: string) => void; options: { value: string; label: string }[] }) {
   return (
     <select value={value} onChange={e => onChange(e.target.value)}
-      className="w-full bg-card rounded-2xl px-4 py-3.5 text-primary text-sm outline-none focus:ring-1 focus:ring-gold/40 appearance-none">
+      className="w-full bg-white/[0.05] rounded-2xl px-4 py-3.5 text-primary text-sm outline-none focus:ring-1 focus:ring-gold/40 appearance-none">
       {options.map(o => <option key={o.value} value={o.value} className="bg-elevated">{o.label}</option>)}
     </select>
   );

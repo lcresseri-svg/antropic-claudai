@@ -9,6 +9,10 @@
   }
   body {
     background-color: #0D0D0D;
+    background-image:
+      radial-gradient(ellipse 80% 40% at 50% 0%, rgba(230,185,92,0.07) 0%, transparent 60%),
+      radial-gradient(ellipse 60% 30% at 80% 100%, rgba(122,158,110,0.04) 0%, transparent 50%);
+    background-attachment: fixed;
     color: #F0F0F0;
     font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'SF Pro Display', system-ui, sans-serif;
     -webkit-font-smoothing: antialiased;
@@ -40,6 +44,43 @@
     font-weight: 500;
     letter-spacing: 0.1em;
     text-transform: uppercase;
+  }
+
+  .glass-card {
+    background: rgba(255,255,255,0.04);
+    backdrop-filter: blur(24px) saturate(180%);
+    -webkit-backdrop-filter: blur(24px) saturate(180%);
+    border: 0.5px solid rgba(255,255,255,0.08);
+    box-shadow: inset 0 1px 0 rgba(255,255,255,0.12), 0 4px 16px rgba(0,0,0,0.30);
+  }
+  .glass-elevated {
+    background: rgba(255,255,255,0.065);
+    backdrop-filter: blur(40px) saturate(200%);
+    -webkit-backdrop-filter: blur(40px) saturate(200%);
+    border: 0.5px solid rgba(255,255,255,0.11);
+    box-shadow: inset 0 1px 0 rgba(255,255,255,0.18), 0 8px 32px rgba(0,0,0,0.45), 0 24px 64px rgba(0,0,0,0.35);
+  }
+  .glass-nav {
+    background: rgba(255,255,255,0.07);
+    backdrop-filter: blur(32px) saturate(180%) brightness(1.05);
+    -webkit-backdrop-filter: blur(32px) saturate(180%) brightness(1.05);
+    border: 0.5px solid rgba(255,255,255,0.10);
+    box-shadow: inset 0 1px 0 rgba(255,255,255,0.14), inset 0 -0.5px 0 rgba(0,0,0,0.20), 0 8px 32px rgba(0,0,0,0.50);
+  }
+  .glass-header {
+    background: rgba(13,13,13,0.70);
+    backdrop-filter: blur(28px) saturate(160%);
+    -webkit-backdrop-filter: blur(28px) saturate(160%);
+    border-bottom: 0.5px solid rgba(255,255,255,0.06);
+  }
+  .glass-active-pill {
+    background: rgba(255,255,255,0.10);
+    border: 0.5px solid rgba(255,255,255,0.14);
+    box-shadow: inset 0 1px 0 rgba(255,255,255,0.18), 0 2px 8px rgba(0,0,0,0.25);
+  }
+  .glass-cta-gold {
+    background: linear-gradient(160deg, #F5C842 0%, #E6B95C 40%, #C9922A 100%);
+    box-shadow: inset 0 1px 0 rgba(255,255,255,0.35), inset 0 -1px 0 rgba(0,0,0,0.20), 0 4px 12px rgba(230,185,92,0.35);
   }
 }
 

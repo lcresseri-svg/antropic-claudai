@@ -18,7 +18,7 @@ export function CategoryCard({ categoryTotals }: Props) {
   });
 
   return (
-    <div className="bg-card rounded-2xl p-5">
+    <div className="glass-card rounded-2xl p-5">
       <p className="label-caps text-secondary mb-4">Spese per categoria</p>
       <div className="flex items-center gap-5">
         <Donut segments={segments} centerLabel="Spese" size={132} />
