@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { useAuth } from './useAuth';
 import { useTransactions } from './useTransactions';
 import { SettingsProvider } from './settings';
@@ -11,19 +11,25 @@ import { TransactionModal } from './components/TransactionModal';
 import { ImportModal } from './components/ImportModal';
 import { BottomNav, View } from './components/BottomNav';
 
-function Loader() {
+function Loader({ phase }: { phase: string }) {
+  const [secs, setSecs] = useState(0);
+  useEffect(() => {
+    const t = setInterval(() => setSecs(s => s + 1), 1000);
+    return () => clearInterval(t);
+  }, []);
   return (
-    <div className="min-h-screen bg-bg flex items-center justify-center">
+    <div className="min-h-screen bg-bg flex flex-col items-center justify-center gap-4">
       <div className="animate-spin" style={{ animationDuration: '1.2s' }}>
         <ArcLogo size={28} />
       </div>
+      {secs >= 3 && <p className="text-xs text-secondary">{phase} · {secs}s</p>}
     </div>
   );
 }
 
 export default function App() {
   const { user, loading: authLoading, error: authError, signIn, logOut } = useAuth();
-  if (authLoading) return <Loader />;
+  if (authLoading) return <Loader phase="Accesso" />;
   if (!user) return <LoginScreen onSignIn={signIn} error={authError} />;
   return (
     <SettingsProvider user={user}>
@@ -39,7 +45,7 @@ function Main({ user, onLogOut }: { user: import('firebase/auth').User; onLogOut
   const [modalOpen, setModalOpen] = useState(false);
   const [importOpen, setImportOpen] = useState(false);
 
-  if (tx.loading) return <Loader />;
+  if (tx.loading) return <Loader phase="Sincronizzazione" />;
 
   const openAdd  = () => { setEditing(null); setModalOpen(true); };
   const openEdit = (t: Transaction) => { setEditing(t); setModalOpen(true); };

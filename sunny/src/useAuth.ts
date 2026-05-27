@@ -1,7 +1,6 @@
 import { useState, useEffect } from 'react';
 import {
-  User, onAuthStateChanged, signInWithPopup,
-  getRedirectResult, signOut,
+  User, onAuthStateChanged, signInWithPopup, signOut,
 } from 'firebase/auth';
 import { auth, googleProvider } from './firebase';
 
@@ -23,7 +22,6 @@ export function useAuth() {
   const [error, setError] = useState<string | null>(null);
 
   useEffect(() => {
-    getRedirectResult(auth).catch(() => {});
     return onAuthStateChanged(auth, u => {
       setUser(u);
       setLoading(false);

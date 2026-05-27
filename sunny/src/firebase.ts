@@ -16,11 +16,11 @@ const firebaseConfig = {
 
 const app = initializeApp(firebaseConfig);
 
-// Auto-detect long-polling: when the WebChannel streaming transport is blocked
-// (some mobile networks, proxies, Safari/ITP), the SDK otherwise hangs ~30s
-// before falling back. Auto-detect switches transports immediately.
+// Force long-polling: the WebChannel streaming transport hangs ~30s before
+// falling back when blocked (mobile networks, proxies, Safari/ITP). Auto-detect
+// is the v12 default and still hung, so force long-polling unconditionally.
 export const db = initializeFirestore(app, {
-  experimentalAutoDetectLongPolling: true,
+  experimentalForceLongPolling: true,
 });
 export const auth = getAuth(app);
 
