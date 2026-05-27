@@ -60,7 +60,7 @@ function Main({ user, onLogOut }: { user: import('firebase/auth').User; onLogOut
       <header className="sticky top-0 z-20 bg-bg/85 backdrop-blur-2xl">
         <div className="max-w-2xl mx-auto px-5 h-14 flex items-center justify-between">
           <div className="flex items-center gap-2.5">
-            <ArcLogo size={22} />
+            <ArcLogo size={28} />
             <span className="font-semibold text-primary tracking-[-0.02em]">Sunny</span>
           </div>
           <button onClick={() => setImportOpen(true)}
@@ -117,14 +117,26 @@ function Main({ user, onLogOut }: { user: import('firebase/auth').User; onLogOut
 
 // ── Brand mark — thin golden arc ────────────────────────────────────────────
 
-export function ArcLogo({ size = 22 }: { size?: number }) {
-  // r=9, circ≈56.55 | 320°=50.27 | 40°gap=6.28 | gap centred at top
+export function ArcLogo({ size = 28 }: { size?: number }) {
+  const id = `al${size}`;
+  // 270° arc, gap at bottom — r=8.5, circ≈53.41 | 270°=40.06 | 90°gap=13.35
   return (
     <svg width={size} height={size} viewBox="0 0 24 24" fill="none" aria-hidden>
-      <circle cx="12" cy="12" r="9"
-        stroke="#E6B95C" strokeWidth="2.5" strokeLinecap="round"
-        strokeDasharray="50.27 6.28"
-        transform="rotate(-70 12 12)"
+      <defs>
+        <linearGradient id={`${id}g`} x1="12" y1="3" x2="12" y2="21" gradientUnits="userSpaceOnUse">
+          <stop offset="0%" stopColor="#F5C842" />
+          <stop offset="100%" stopColor="#B8720C" />
+        </linearGradient>
+        <filter id={id} x="-60%" y="-60%" width="220%" height="220%">
+          <feGaussianBlur in="SourceGraphic" stdDeviation="1.4" result="b"/>
+          <feMerge><feMergeNode in="b"/><feMergeNode in="SourceGraphic"/></feMerge>
+        </filter>
+      </defs>
+      <circle cx="12" cy="12" r="8.5"
+        stroke={`url(#${id}g)`} strokeWidth="3.2" strokeLinecap="round"
+        strokeDasharray="40.06 13.35"
+        transform="rotate(135 12 12)"
+        filter={`url(#${id})`}
       />
     </svg>
   );

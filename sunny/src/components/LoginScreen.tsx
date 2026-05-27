@@ -40,13 +40,24 @@ export function LoginScreen({ onSignIn, error }: Props) {
 }
 
 function ArcMark() {
-  // r=30, circ≈188.5 | 320°=167.6 | 40°gap=20.9 | gap centred at top
+  // 270° arc, gap at bottom — r=28, circ≈175.93 | 270°=131.95 | 90°gap=43.98
   return (
-    <svg width="88" height="88" viewBox="0 0 80 80" fill="none" aria-hidden className="animate-scale-in">
-      <circle cx="40" cy="40" r="30"
-        stroke="#E6B95C" strokeWidth="8" strokeLinecap="round"
-        strokeDasharray="167.6 20.9"
-        transform="rotate(-70 40 40)"
+    <svg width="200" height="200" viewBox="0 0 80 80" fill="none" aria-hidden className="animate-scale-in">
+      <defs>
+        <linearGradient id="amg" x1="40" y1="10" x2="40" y2="70" gradientUnits="userSpaceOnUse">
+          <stop offset="0%" stopColor="#F5C842" />
+          <stop offset="100%" stopColor="#B8720C" />
+        </linearGradient>
+        <filter id="amf" x="-60%" y="-60%" width="220%" height="220%">
+          <feGaussianBlur in="SourceGraphic" stdDeviation="3.5" result="b"/>
+          <feMerge><feMergeNode in="b"/><feMergeNode in="SourceGraphic"/></feMerge>
+        </filter>
+      </defs>
+      <circle cx="40" cy="40" r="28"
+        stroke="url(#amg)" strokeWidth="10.5" strokeLinecap="round"
+        strokeDasharray="131.95 43.98"
+        transform="rotate(135 40 40)"
+        filter="url(#amf)"
       />
     </svg>
   );
