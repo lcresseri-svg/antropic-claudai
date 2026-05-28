@@ -152,17 +152,11 @@ export function SettingsScreen({ user, onLogOut, onDeleteAll }: Props) {
                     <p className="text-[11px] font-semibold uppercase tracking-wider flex-1" style={{ color: TYPE_META[k].color }}>
                       {TYPE_META[k].label}
                     </p>
-                    {editMode && (
-                      <>
-                        <button onClick={() => deleteKindSelected(k)} disabled={groupSelectedCount === 0}
-                          className="text-[11px] font-semibold text-[#E08B8B] uppercase tracking-wider disabled:opacity-30">
-                          Elimina{groupSelectedCount > 0 ? ` (${groupSelectedCount})` : ''}
-                        </button>
-                        <button onClick={() => openCategory(undefined, k)}
-                          className="text-[11px] font-semibold text-gold uppercase tracking-wider">
-                          + Aggiungi
-                        </button>
-                      </>
+                    {editMode && groupSelectedCount > 0 && (
+                      <button onClick={() => deleteKindSelected(k)}
+                        className="text-[11px] font-semibold text-[#E08B8B] uppercase tracking-wider">
+                        Elimina ({groupSelectedCount})
+                      </button>
                     )}
                   </div>
                   {items.length > 0 && (
@@ -173,6 +167,12 @@ export function SettingsScreen({ user, onLogOut, onDeleteAll }: Props) {
                           onClick={() => editMode ? toggleSel(c.id) : openCategory(c)} />
                       ))}
                     </div>
+                  )}
+                  {editMode && (
+                    <button onClick={() => openCategory(undefined, k)}
+                      className="w-full mt-2 py-3 rounded-2xl bg-card text-gold text-sm font-semibold active:bg-card-hover">
+                      + Aggiungi
+                    </button>
                   )}
                 </div>
               );
