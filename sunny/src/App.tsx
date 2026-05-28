@@ -24,7 +24,7 @@ function Loader({ phase }: { phase: string }) {
       <div className="animate-spin" style={{ animationDuration: '1.2s' }}>
         <ArcLogo size={28} />
       </div>
-      {secs >= 3 && <p className="text-xs text-secondary">{phase} · {secs}s</p>}
+      <p className={`text-xs text-secondary transition-opacity duration-300 ${secs >= 3 ? 'opacity-100' : 'opacity-0'}`}>{phase} · {secs}s</p>
     </div>
   );
 }

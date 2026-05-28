@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useRef } from 'react';
 import { User } from 'firebase/auth';
 import { CategoryDef, AccountDef, TransactionType, TYPE_META, TYPE_ORDER } from '../types';
 import { useSettings } from '../settings';
@@ -14,6 +14,20 @@ interface Props {
 const newId = () => `x_${Date.now().toString(36)}`;
 type Sub = 'menu' | 'accounts' | 'categories';
 
+type DragState = {
+  list: 'accounts' | TransactionType;
+  fromIdx: number;
+  overIdx: number;
+  startY: number;
+};
+
+function reorder<T>(arr: T[], from: number, to: number): T[] {
+  const next = [...arr];
+  const [item] = next.splice(from, 1);
+  next.splice(to, 0, item);
+  return next;
+}
+
 export function SettingsScreen({ user, onLogOut, onDeleteAll, onBack }: Props) {
   const { categories, accounts, saveCategories, saveAccounts } = useSettings();
   const [sub, setSub] = useState<Sub>('menu');
@@ -21,6 +35,49 @@ export function SettingsScreen({ user, onLogOut, onDeleteAll, onBack }: Props) {
   const [confirmReset, setConfirmReset] = useState(false);
   const [editMode, setEditMode] = useState(false);
   const [selected, setSelected] = useState<Set<string>>(new Set());
+  const [drag, setDrag] = useState<DragState | null>(null);
+
+  // Keep a ref for stable event handlers that always see latest state
+  const ref = useRef({ drag, accounts, categories, saveAccounts, saveCategories });
+  ref.current = { drag, accounts, categories, saveAccounts, saveCategories };
+
+  useEffect(() => {
+    if (!drag) return;
+    const onMove = (e: PointerEvent) => {
+      const { drag: d, accounts: accs, categories: cats } = ref.current;
+      if (!d) return;
+      const listLen = d.list === 'accounts'
+        ? accs.length
+        : cats.filter(c => c.kind === d.list).length;
+      const delta = e.clientY - d.startY;
+      const newOver = Math.max(0, Math.min(listLen - 1, d.fromIdx + Math.round(delta / 56)));
+      setDrag(prev => prev && newOver !== prev.overIdx ? { ...prev, overIdx: newOver } : prev);
+    };
+    const onEnd = () => {
+      const { drag: d, accounts: accs, categories: cats, saveAccounts: sA, saveCategories: sC } = ref.current;
+      if (!d) { setDrag(null); return; }
+      if (d.fromIdx !== d.overIdx) {
+        if (d.list === 'accounts') {
+          sA(reorder(accs, d.fromIdx, d.overIdx));
+        } else {
+          const kind = d.list as TransactionType;
+          const kindItems = cats.filter(c => c.kind === kind);
+          const newKind = reorder(kindItems, d.fromIdx, d.overIdx);
+          let ki = 0;
+          sC(cats.map(c => c.kind === kind ? newKind[ki++] : c));
+        }
+      }
+      setDrag(null);
+    };
+    document.addEventListener('pointermove', onMove);
+    document.addEventListener('pointerup', onEnd);
+    document.addEventListener('pointercancel', onEnd);
+    return () => {
+      document.removeEventListener('pointermove', onMove);
+      document.removeEventListener('pointerup', onEnd);
+      document.removeEventListener('pointercancel', onEnd);
+    };
+  }, [!!drag]); // eslint-disable-line react-hooks/exhaustive-deps
 
   const openCategory = (c?: CategoryDef, forKind?: TransactionType) => setEditing({
     kind: 'category', isNew: !c,
@@ -53,15 +110,31 @@ export function SettingsScreen({ user, onLogOut, onDeleteAll, onBack }: Props) {
 
   const enterSub = (s: Sub) => { setSub(s); setEditMode(false); setSelected(new Set()); };
   const exitToMenu = () => { setSub('menu'); setEditMode(false); setSelected(new Set()); };
-  const toggleEditMode = () => { setEditMode(m => !m); setSelected(new Set()); };
+  const toggleEditMode = () => { setEditMode(m => !m); setSelected(new Set()); setDrag(null); };
   const toggleSel = (id: string) => setSelected(s => {
     const n = new Set(s);
     n.has(id) ? n.delete(id) : n.add(id);
     return n;
   });
   const bulkDeleteAccounts = () => { saveAccounts(accounts.filter(a => !selected.has(a.id))); setSelected(new Set()); };
-  const bulkDeleteCategories = () => { saveCategories(categories.filter(c => !selected.has(c.id))); setSelected(new Set()); };
   const catsByKind = (k: TransactionType) => categories.filter(c => c.kind === k);
+
+  // Live-preview helpers during drag
+  const liveAccounts = drag?.list === 'accounts'
+    ? reorder(accounts, drag.fromIdx, drag.overIdx)
+    : accounts;
+  const liveCats = (k: TransactionType) => {
+    const base = catsByKind(k);
+    return drag?.list === k ? reorder(base, drag.fromIdx, drag.overIdx) : base;
+  };
+  const draggingId = drag
+    ? (drag.list === 'accounts'
+      ? accounts[drag.fromIdx]?.id
+      : catsByKind(drag.list as TransactionType)[drag.fromIdx]?.id)
+    : null;
+
+  const startDrag = (list: 'accounts' | TransactionType, idx: number, startY: number) =>
+    setDrag({ list, fromIdx: idx, overIdx: idx, startY });
 
   return (
     <div className="space-y-6 pb-28 animate-fade-in">
@@ -70,9 +143,7 @@ export function SettingsScreen({ user, onLogOut, onDeleteAll, onBack }: Props) {
           <div className="flex items-center gap-2">
             <button onClick={onBack} aria-label="Indietro"
               className="w-9 h-9 -ml-2 flex items-center justify-center text-secondary active:text-primary">
-              <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-                <path d="M15 18l-6-6 6-6" />
-              </svg>
+              <ChevronLeft />
             </button>
             <h1 className="text-2xl font-bold text-primary tracking-[-0.03em] flex-1">Impostazioni</h1>
           </div>
@@ -127,10 +198,14 @@ export function SettingsScreen({ user, onLogOut, onDeleteAll, onBack }: Props) {
             deleteCount={selected.size} onDelete={bulkDeleteAccounts} />
           <div className="space-y-3">
             <div className="bg-card rounded-2xl divide-y divide-divider">
-              {accounts.map(a => (
+              {liveAccounts.map((a, idx) => (
                 <ManageRow key={a.id} icon={a.icon} color={a.color} label={a.label}
                   editMode={editMode} selected={selected.has(a.id)}
-                  onClick={() => editMode ? toggleSel(a.id) : openAccount(a)} />
+                  showHandle={editMode}
+                  isDragging={a.id === draggingId}
+                  onClick={() => editMode ? toggleSel(a.id) : openAccount(a)}
+                  onHandlePointerDown={editMode ? (y) => startDrag('accounts', accounts.indexOf(a), y) : undefined}
+                />
               ))}
             </div>
             {editMode && (
@@ -148,7 +223,8 @@ export function SettingsScreen({ user, onLogOut, onDeleteAll, onBack }: Props) {
           <ManageHeader title="Categorie" editMode={editMode} onBack={exitToMenu} onToggleEdit={toggleEditMode} />
           <div className="space-y-4">
             {TYPE_ORDER.filter(k => k !== 'transfer').map(k => {
-              const items = catsByKind(k);
+              const items = liveCats(k);
+              const baseItems = catsByKind(k);
               return (
                 <div key={k}>
                   <div className="flex items-center mb-2 px-1 gap-2">
@@ -158,10 +234,14 @@ export function SettingsScreen({ user, onLogOut, onDeleteAll, onBack }: Props) {
                   </div>
                   {items.length > 0 && (
                     <div className="bg-card rounded-2xl divide-y divide-divider">
-                      {items.map(c => (
+                      {items.map((c, idx) => (
                         <ManageRow key={c.id} icon={c.icon} color={c.color} label={c.label}
                           editMode={false} selected={false}
-                          onClick={editMode ? () => openCategory(c) : undefined} />
+                          showHandle={editMode}
+                          isDragging={c.id === draggingId}
+                          onClick={editMode ? () => openCategory(c) : undefined}
+                          onHandlePointerDown={editMode ? (y) => startDrag(k, baseItems.indexOf(c), y) : undefined}
+                        />
                       ))}
                     </div>
                   )}
@@ -202,9 +282,7 @@ function ManageHeader({ title, editMode, onBack, onToggleEdit, deleteCount, onDe
     <div className="flex items-center gap-2">
       <button onClick={onBack} aria-label="Indietro"
         className="w-9 h-9 -ml-2 flex items-center justify-center text-secondary active:text-primary">
-        <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-          <path d="M15 18l-6-6 6-6" />
-        </svg>
+        <ChevronLeft />
       </button>
       <h1 className="text-2xl font-bold text-primary tracking-[-0.03em] flex-1">{title}</h1>
       {editMode && onDelete && (deleteCount ?? 0) > 0 && (
@@ -225,13 +303,30 @@ function ManageHeader({ title, editMode, onBack, onToggleEdit, deleteCount, onDe
   );
 }
 
-
-function ManageRow({ icon, color, label, editMode, selected, onClick }: {
-  icon: string; color: string; label: string; editMode: boolean; selected: boolean; onClick?: () => void;
+function ManageRow({ icon, color, label, editMode, selected, onClick, showHandle, isDragging, onHandlePointerDown }: {
+  icon: string; color: string; label: string;
+  editMode: boolean; selected: boolean;
+  onClick?: () => void;
+  showHandle?: boolean;
+  isDragging?: boolean;
+  onHandlePointerDown?: (clientY: number) => void;
 }) {
   return (
-    <button onClick={onClick} disabled={!onClick}
-      className="w-full flex items-center gap-3.5 p-3.5 text-left transition-colors first:rounded-t-2xl last:rounded-b-2xl disabled:cursor-default enabled:active:bg-card-hover">
+    <div
+      onClick={onClick}
+      className={`w-full flex items-center gap-3.5 p-3.5 text-left transition-all first:rounded-t-2xl last:rounded-b-2xl select-none
+        ${onClick ? 'cursor-pointer active:bg-card-hover' : 'cursor-default'}
+        ${isDragging ? 'opacity-40' : ''}`}
+    >
+      {showHandle && (
+        <span
+          className="w-7 h-7 flex items-center justify-center text-secondary/50 flex-shrink-0 cursor-grab active:cursor-grabbing"
+          style={{ touchAction: 'none' }}
+          onPointerDown={e => { e.preventDefault(); onHandlePointerDown?.(e.clientY); }}
+        >
+          <GripIcon />
+        </span>
+      )}
       {editMode && (
         <span className={`w-5 h-5 rounded-full border-2 flex items-center justify-center flex-shrink-0 transition-colors ${selected ? 'bg-gold border-gold' : 'border-divider'}`}>
           {selected && <span className="text-bg text-xs font-bold">✓</span>}
@@ -239,8 +334,8 @@ function ManageRow({ icon, color, label, editMode, selected, onClick }: {
       )}
       <span className="w-9 h-9 rounded-full flex items-center justify-center text-base flex-shrink-0" style={{ backgroundColor: color + '22' }}>{icon}</span>
       <span className="flex-1 text-[15px] font-medium text-primary">{label}</span>
-      {!editMode && !!onClick && <span className="text-secondary text-sm">›</span>}
-    </button>
+      {!editMode && !showHandle && !!onClick && <span className="text-secondary text-sm">›</span>}
+    </div>
   );
 }
 
@@ -251,5 +346,26 @@ function Row({ icon, color, label, onClick }: { icon: string; color: string; lab
       <span className="flex-1 text-[15px] font-medium text-primary">{label}</span>
       <span className="text-secondary text-sm">›</span>
     </button>
+  );
+}
+
+function ChevronLeft() {
+  return (
+    <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+      <path d="M15 18l-6-6 6-6" />
+    </svg>
+  );
+}
+
+function GripIcon() {
+  return (
+    <svg width="14" height="16" viewBox="0 0 14 16" fill="currentColor">
+      <circle cx="4" cy="3" r="1.5"/>
+      <circle cx="10" cy="3" r="1.5"/>
+      <circle cx="4" cy="8" r="1.5"/>
+      <circle cx="10" cy="8" r="1.5"/>
+      <circle cx="4" cy="13" r="1.5"/>
+      <circle cx="10" cy="13" r="1.5"/>
+    </svg>
   );
 }
