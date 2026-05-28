@@ -25,11 +25,13 @@ export function EditDefSheet({ open, draft, withKind, canDelete, onSave, onDelet
   const [icon, setIcon] = useState('•');
   const [color, setColor] = useState(COLOR_CHOICES[0]);
   const [kind, setKind] = useState<TransactionType>('expense');
+  const [confirmingDelete, setConfirmingDelete] = useState(false);
 
   useEffect(() => {
     if (!open || !draft) return;
     setLabel(draft.label); setIcon(draft.icon); setColor(draft.color);
     setKind(draft.kind ?? 'expense');
+    setConfirmingDelete(false);
   }, [open, draft]);
 
   if (!open || !draft) return null;
@@ -86,12 +88,17 @@ export function EditDefSheet({ open, draft, withKind, canDelete, onSave, onDelet
 
         <div className="flex gap-2">
           {canDelete && onDelete && (
-            <button onClick={() => onDelete(draft.id)}
-              className="px-4 py-3.5 rounded-2xl font-medium text-[#E08B8B] bg-[#E08B8B]/10 text-sm">
-              Elimina
-            </button>
+            confirmingDelete
+              ? <button onClick={() => onDelete(draft.id)}
+                  className="px-4 py-3.5 rounded-2xl font-semibold text-[#E08B8B] bg-[#E08B8B]/20 text-sm">
+                  Conferma
+                </button>
+              : <button onClick={() => setConfirmingDelete(true)}
+                  className="px-4 py-3.5 rounded-2xl font-medium text-[#E08B8B] bg-[#E08B8B]/10 text-sm">
+                  Elimina
+                </button>
           )}
-          <button onClick={onClose}
+          <button onClick={() => { onClose(); setConfirmingDelete(false); }}
             className="px-4 py-3.5 rounded-2xl font-medium text-secondary bg-white/[0.05] text-sm">
             Annulla
           </button>

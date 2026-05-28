@@ -35,6 +35,7 @@ export function TransactionModal({ open, editing, groupTransfers = [], onClose, 
   const [amountError, setAmountError] = useState(false);
   const [categoryTouched, setCategoryTouched] = useState(false);
   const [showMore, setShowMore] = useState(false);
+  const [confirmDelete, setConfirmDelete] = useState(false);
 
   useEffect(() => {
     if (!open) return;
@@ -63,6 +64,7 @@ export function TransactionModal({ open, editing, groupTransfers = [], onClose, 
     }
     setAmountError(false);
     setCategoryTouched(!!editing);
+    setConfirmDelete(false);
     const hasGroup = !!editing && editing.type === 'expense' && !!editing.groupId && groupTransfers.length > 0;
     setShowMore(!!editing && (!!editing.recurring || hasGroup || !!editing.shared));
   }, [open, editing, groupTransfers.length]);
@@ -346,11 +348,16 @@ export function TransactionModal({ open, editing, groupTransfers = [], onClose, 
           </button>
 
           {editing && (
-            <button type="button"
-              onClick={() => { onSave([editing.id, ...groupTransfers.map(t => t.id)], []); onClose(); }}
-              className="w-full py-3 rounded-2xl font-medium text-[#E08B8B] text-sm">
-              Elimina transazione
-            </button>
+            confirmDelete
+              ? <button type="button"
+                  onClick={() => { onSave([editing.id, ...groupTransfers.map(t => t.id)], []); onClose(); }}
+                  className="w-full py-3 rounded-2xl font-semibold text-[#E08B8B] text-sm bg-[#E08B8B]/15">
+                  Conferma eliminazione
+                </button>
+              : <button type="button" onClick={() => setConfirmDelete(true)}
+                  className="w-full py-3 rounded-2xl font-medium text-[#E08B8B] text-sm">
+                  Elimina transazione
+                </button>
           )}
         </form>
       </div>

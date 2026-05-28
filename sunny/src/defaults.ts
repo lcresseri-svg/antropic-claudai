@@ -45,7 +45,7 @@ export const FALLBACK_ACCOUNT = (id: string): AccountDef => ({
 export const EMOJI_CHOICES = [
   '🛒','🏠','🍽️','🚗','🛍️','🩺','🔁','💼','💻','💹','↩️','📈','₿','🏛️','🏦',
   '💰','💳','💵','📊','✈️','🎬','🎮','📚','🐶','👶','🎁','⚡','💡','📱','☕',
-  '🍺','💪','✂️','🧾','🌍','❤️','⭐','🚬','•',
+  '🍺','💪','✂️','🧾','🌍','❤️','⭐','🚬','⛽','👗','🅿️','•',
 ];
 
 /** Color palette offered when creating categories/accounts. */

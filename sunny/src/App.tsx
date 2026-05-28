@@ -43,6 +43,7 @@ export default function App() {
 function Main({ user, onLogOut }: { user: import('firebase/auth').User; onLogOut: () => void }) {
   const tx = useTransactions(user);
   const [view, setView] = useState<View>('home');
+  const [prevView, setPrevView] = useState<View>('home');
   const [editing, setEditing] = useState<Transaction | null>(null);
   const [modalOpen, setModalOpen] = useState(false);
   const [importOpen, setImportOpen] = useState(false);
@@ -85,7 +86,7 @@ function Main({ user, onLogOut }: { user: import('firebase/auth').User; onLogOut
                     backdropFilter: 'blur(40px) saturate(200%)',
                     WebkitBackdropFilter: 'blur(40px) saturate(200%)',
                   }}>
-                  <button onClick={() => { setView('settings'); setSettingsOpen(false); }}
+                  <button onClick={() => { setPrevView(view); setView('settings'); setSettingsOpen(false); }}
                     className="w-full flex items-center gap-3 px-4 py-2.5 text-sm text-primary hover:bg-white/[0.04] transition-colors text-left rounded-t-2xl">
                     <HeaderGearIcon /> Impostazioni
                   </button>
@@ -129,13 +130,13 @@ function Main({ user, onLogOut }: { user: import('firebase/auth').User; onLogOut
               </>
             )}
             {view === 'settings' && (
-              <SettingsScreen user={user} onLogOut={onLogOut} onDeleteAll={tx.deleteAll} />
+              <SettingsScreen user={user} onLogOut={onLogOut} onDeleteAll={tx.deleteAll} onBack={() => setView(prevView)} />
             )}
           </div>
         )}
       </main>
 
-      <BottomNav view={view} onView={setView} onAdd={openAdd} />
+      {view !== 'settings' && <BottomNav view={view} onView={setView} onAdd={openAdd} />}
 
       <TransactionModal
         open={modalOpen} editing={editing} groupTransfers={groupTransfers}

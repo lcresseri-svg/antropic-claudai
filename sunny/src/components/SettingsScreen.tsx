@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { User } from 'firebase/auth';
 import { CategoryDef, AccountDef, TransactionType, TYPE_META, TYPE_ORDER } from '../types';
 import { useSettings } from '../settings';
@@ -8,12 +8,13 @@ interface Props {
   user: User;
   onLogOut: () => void;
   onDeleteAll: () => Promise<void>;
+  onBack: () => void;
 }
 
 const newId = () => `x_${Date.now().toString(36)}`;
 type Sub = 'menu' | 'accounts' | 'categories';
 
-export function SettingsScreen({ user, onLogOut, onDeleteAll }: Props) {
+export function SettingsScreen({ user, onLogOut, onDeleteAll, onBack }: Props) {
   const { categories, accounts, saveCategories, saveAccounts } = useSettings();
   const [sub, setSub] = useState<Sub>('menu');
   const [editing, setEditing] = useState<{ kind: 'category' | 'account'; draft: DefDraft; isNew: boolean; withKind?: boolean } | null>(null);
@@ -66,7 +67,15 @@ export function SettingsScreen({ user, onLogOut, onDeleteAll }: Props) {
     <div className="space-y-6 pb-28 animate-fade-in">
       {sub === 'menu' && (
         <>
-          <h1 className="text-2xl font-bold text-primary tracking-[-0.03em]">Impostazioni</h1>
+          <div className="flex items-center gap-2">
+            <button onClick={onBack} aria-label="Indietro"
+              className="w-9 h-9 -ml-2 flex items-center justify-center text-secondary active:text-primary">
+              <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                <path d="M15 18l-6-6 6-6" />
+              </svg>
+            </button>
+            <h1 className="text-2xl font-bold text-primary tracking-[-0.03em] flex-1">Impostazioni</h1>
+          </div>
 
           {/* Profile */}
           <div className="bg-card rounded-2xl p-5 flex items-center gap-4">
@@ -186,6 +195,9 @@ function ManageHeader({ title, editMode, onBack, onToggleEdit, deleteCount, onDe
   title: string; editMode: boolean; onBack: () => void; onToggleEdit: () => void;
   deleteCount?: number; onDelete?: () => void;
 }) {
+  const [confirming, setConfirming] = useState(false);
+  useEffect(() => { if (!editMode || (deleteCount ?? 0) === 0) setConfirming(false); }, [editMode, deleteCount]);
+
   return (
     <div className="flex items-center gap-2">
       <button onClick={onBack} aria-label="Indietro"
@@ -195,11 +207,16 @@ function ManageHeader({ title, editMode, onBack, onToggleEdit, deleteCount, onDe
         </svg>
       </button>
       <h1 className="text-2xl font-bold text-primary tracking-[-0.03em] flex-1">{title}</h1>
-      {editMode && onDelete && (
-        <button onClick={onDelete} disabled={(deleteCount ?? 0) === 0}
-          className="text-sm font-medium text-[#E08B8B] px-2 py-1 disabled:opacity-40">
-          Elimina{(deleteCount ?? 0) > 0 ? ` (${deleteCount})` : ''}
-        </button>
+      {editMode && onDelete && (deleteCount ?? 0) > 0 && (
+        confirming
+          ? <button onClick={() => { onDelete(); setConfirming(false); }}
+              className="text-sm font-semibold text-[#E08B8B] px-2.5 py-1 rounded-xl bg-[#E08B8B]/10">
+              Conferma ({deleteCount})
+            </button>
+          : <button onClick={() => setConfirming(true)}
+              className="text-sm font-medium text-[#E08B8B] px-2 py-1">
+              Elimina ({deleteCount})
+            </button>
       )}
       <button onClick={onToggleEdit} className="text-sm font-medium text-gold px-1">
         {editMode ? 'Fine' : 'Modifica'}
