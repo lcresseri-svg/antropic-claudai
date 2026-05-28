@@ -60,11 +60,6 @@ export function SettingsScreen({ user, onLogOut, onDeleteAll }: Props) {
   });
   const bulkDeleteAccounts = () => { saveAccounts(accounts.filter(a => !selected.has(a.id))); setSelected(new Set()); };
   const bulkDeleteCategories = () => { saveCategories(categories.filter(c => !selected.has(c.id))); setSelected(new Set()); };
-  const deleteKindSelected = (k: TransactionType) => {
-    saveCategories(categories.filter(c => !(c.kind === k && selected.has(c.id))));
-    setSelected(s => { const n = new Set(s); catsByKind(k).forEach(c => n.delete(c.id)); return n; });
-  };
-
   const catsByKind = (k: TransactionType) => categories.filter(c => c.kind === k);
 
   return (
@@ -145,26 +140,19 @@ export function SettingsScreen({ user, onLogOut, onDeleteAll }: Props) {
           <div className="space-y-4">
             {TYPE_ORDER.filter(k => k !== 'transfer').map(k => {
               const items = catsByKind(k);
-              const groupSelectedCount = items.filter(c => selected.has(c.id)).length;
               return (
                 <div key={k}>
                   <div className="flex items-center mb-2 px-1 gap-2">
                     <p className="text-[11px] font-semibold uppercase tracking-wider flex-1" style={{ color: TYPE_META[k].color }}>
                       {TYPE_META[k].label}
                     </p>
-                    {editMode && groupSelectedCount > 0 && (
-                      <button onClick={() => deleteKindSelected(k)}
-                        className="text-[11px] font-semibold text-[#E08B8B] uppercase tracking-wider">
-                        Elimina ({groupSelectedCount})
-                      </button>
-                    )}
                   </div>
                   {items.length > 0 && (
                     <div className="bg-card rounded-2xl divide-y divide-divider">
                       {items.map(c => (
                         <ManageRow key={c.id} icon={c.icon} color={c.color} label={c.label}
-                          editMode={editMode} selected={selected.has(c.id)}
-                          onClick={() => editMode ? toggleSel(c.id) : openCategory(c)} />
+                          editMode={false} selected={false}
+                          onClick={editMode ? () => openCategory(c) : undefined} />
                       ))}
                     </div>
                   )}
@@ -222,11 +210,11 @@ function ManageHeader({ title, editMode, onBack, onToggleEdit, deleteCount, onDe
 
 
 function ManageRow({ icon, color, label, editMode, selected, onClick }: {
-  icon: string; color: string; label: string; editMode: boolean; selected: boolean; onClick: () => void;
+  icon: string; color: string; label: string; editMode: boolean; selected: boolean; onClick?: () => void;
 }) {
   return (
-    <button onClick={onClick}
-      className="w-full flex items-center gap-3.5 p-3.5 text-left active:bg-card-hover transition-colors first:rounded-t-2xl last:rounded-b-2xl">
+    <button onClick={onClick} disabled={!onClick}
+      className="w-full flex items-center gap-3.5 p-3.5 text-left transition-colors first:rounded-t-2xl last:rounded-b-2xl disabled:cursor-default enabled:active:bg-card-hover">
       {editMode && (
         <span className={`w-5 h-5 rounded-full border-2 flex items-center justify-center flex-shrink-0 transition-colors ${selected ? 'bg-gold border-gold' : 'border-divider'}`}>
           {selected && <span className="text-bg text-xs font-bold">✓</span>}
@@ -234,7 +222,7 @@ function ManageRow({ icon, color, label, editMode, selected, onClick }: {
       )}
       <span className="w-9 h-9 rounded-full flex items-center justify-center text-base flex-shrink-0" style={{ backgroundColor: color + '22' }}>{icon}</span>
       <span className="flex-1 text-[15px] font-medium text-primary">{label}</span>
-      {!editMode && <span className="text-secondary text-sm">›</span>}
+      {!editMode && !!onClick && <span className="text-secondary text-sm">›</span>}
     </button>
   );
 }
