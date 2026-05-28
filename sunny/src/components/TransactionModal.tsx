@@ -2,7 +2,6 @@ import { useState, useEffect } from 'react';
 import { Transaction, TransactionType, TYPE_META, TYPE_ORDER, RecurrenceRule } from '../types';
 import { formatCurrency, guessCategory } from '../utils';
 import { useSettings } from '../settings';
-import { classifyCategory } from '../aiCategory';
 
 interface Props {
   open: boolean;
@@ -18,7 +17,7 @@ const today = () => new Date().toISOString().slice(0, 10);
 const yesterday = () => { const d = new Date(); d.setDate(d.getDate() - 1); return d.toISOString().slice(0, 10); };
 
 export function TransactionModal({ open, editing, groupTransfers = [], onClose, onSave }: Props) {
-  const { categories, accounts, anthropicApiKey } = useSettings();
+  const { categories, accounts } = useSettings();
   const [type, setType] = useState<TransactionType>('expense');
   const [description, setDescription] = useState('');
   const [amount, setAmount] = useState('');
@@ -34,8 +33,7 @@ export function TransactionModal({ open, editing, groupTransfers = [], onClose, 
   const [recurringUntil, setRecurringUntil] = useState('');
 
   const [amountError, setAmountError] = useState(false);
-  const [aiLoading, setAiLoading] = useState(false);
-  const [aiSelected, setAiSelected] = useState(false);
+  const [categoryTouched, setCategoryTouched] = useState(false);
   const [showMore, setShowMore] = useState(false);
 
   useEffect(() => {
@@ -64,8 +62,7 @@ export function TransactionModal({ open, editing, groupTransfers = [], onClose, 
       setIsRecurring(false); setRecurringFreq('monthly'); setRecurringUntil('');
     }
     setAmountError(false);
-    setAiSelected(false);
-    setAiLoading(false);
+    setCategoryTouched(!!editing);
     const hasGroup = !!editing && editing.type === 'expense' && !!editing.groupId && groupTransfers.length > 0;
     setShowMore(!!editing && (!!editing.recurring || hasGroup || !!editing.shared));
   }, [open, editing, groupTransfers.length]);
@@ -80,31 +77,8 @@ export function TransactionModal({ open, editing, groupTransfers = [], onClose, 
   const typeCats = categories.filter(c => c.kind === type);
   useEffect(() => {
     if (type === 'transfer') return;
-    // if current category belongs to a different type, clear it (but don't auto-select)
-    if (category && !typeCats.some(c => c.id === category)) {
-      setCategory('');
-      setAiSelected(false);
-    }
+    if (!typeCats.some(c => c.id === category)) setCategory(typeCats[0]?.id ?? '');
   }, [type, categories]);
-
-  // AI / keyword category classification — fires 600ms after description stops changing
-  useEffect(() => {
-    if (!open || type === 'transfer' || category) return;
-    const desc = description.trim();
-    if (!desc) return;
-    const timer = setTimeout(async () => {
-      if (anthropicApiKey) {
-        setAiLoading(true);
-        const result = await classifyCategory(desc, type, categories, anthropicApiKey);
-        setAiLoading(false);
-        if (result && !category) { setCategory(result); setAiSelected(true); }
-      } else {
-        const g = guessCategory(desc, typeCats);
-        if (g) { setCategory(g); setAiSelected(false); }
-      }
-    }, 600);
-    return () => clearTimeout(timer);
-  }, [description, open, type]);
 
   const addReimb = () => {
     const def = accounts.find(a => a.id !== account)?.id ?? accounts[0]?.id ?? '';
@@ -217,29 +191,25 @@ export function TransactionModal({ open, editing, groupTransfers = [], onClose, 
               onChange={e => {
                 const v = e.target.value;
                 setDescription(v);
-                if (!v.trim()) { setCategory(''); setAiSelected(false); }
+                if (!categoryTouched && type !== 'transfer') {
+                  const g = guessCategory(v, typeCats);
+                  if (g) setCategory(g);
+                }
               }} required
               className="w-full bg-white/[0.05] rounded-2xl px-4 py-3 text-primary placeholder:text-secondary/50 outline-none focus:ring-1 focus:ring-gold/40" />
           </Field>
 
           {/* Category */}
           {type !== 'transfer' && (
-            <Field label={
-              <span className="flex items-center gap-1.5">
-                Categoria
-                {aiLoading && <span className="w-3 h-3 rounded-full border-2 border-gold/40 border-t-gold animate-spin inline-block" />}
-              </span>
-            }>
+            <Field label="Categoria">
               <div className="flex flex-wrap gap-2">
                 {typeCats.map(c => {
                   const sel = category === c.id;
                   return (
-                    <button key={c.id} type="button"
-                      onClick={() => { setCategory(c.id); setAiSelected(false); }}
+                    <button key={c.id} type="button" onClick={() => { setCategory(c.id); setCategoryTouched(true); }}
                       className="px-3 py-2 rounded-full text-xs font-medium transition-all flex items-center gap-1.5"
                       style={sel ? { backgroundColor: c.color, color: '#0D0D0D' } : { backgroundColor: '#161616', color: '#8B8B8B' }}>
                       <span>{c.icon}</span>{c.label}
-                      {sel && aiSelected && <span style={{ opacity: 0.7 }}>✦</span>}
                     </button>
                   );
                 })}
@@ -418,10 +388,10 @@ function Row({ label, value, muted }: { label: string; value: string; muted?: bo
   );
 }
 
-function Field({ label, children }: { label: React.ReactNode; children: React.ReactNode }) {
+function Field({ label, children }: { label: string; children: React.ReactNode }) {
   return (
     <div>
-      <div className="block text-xs font-medium text-secondary mb-2 px-1">{label}</div>
+      <label className="block text-xs font-medium text-secondary mb-2 px-1">{label}</label>
       {children}
     </div>
   );
