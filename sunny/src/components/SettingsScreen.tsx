@@ -60,6 +60,10 @@ export function SettingsScreen({ user, onLogOut, onDeleteAll }: Props) {
   });
   const bulkDeleteAccounts = () => { saveAccounts(accounts.filter(a => !selected.has(a.id))); setSelected(new Set()); };
   const bulkDeleteCategories = () => { saveCategories(categories.filter(c => !selected.has(c.id))); setSelected(new Set()); };
+  const deleteKindSelected = (k: TransactionType) => {
+    saveCategories(categories.filter(c => !(c.kind === k && selected.has(c.id))));
+    setSelected(s => { const n = new Set(s); catsByKind(k).forEach(c => n.delete(c.id)); return n; });
+  };
 
   const catsByKind = (k: TransactionType) => categories.filter(c => c.kind === k);
 
@@ -137,21 +141,29 @@ export function SettingsScreen({ user, onLogOut, onDeleteAll }: Props) {
 
       {sub === 'categories' && (
         <>
-          <ManageHeader title="Categorie" editMode={editMode} onBack={exitToMenu} onToggleEdit={toggleEditMode}
-            deleteCount={selected.size} onDelete={bulkDeleteCategories} />
+          <ManageHeader title="Categorie" editMode={editMode} onBack={exitToMenu} onToggleEdit={toggleEditMode} />
           <div className="space-y-4">
             {TYPE_ORDER.filter(k => k !== 'transfer').map(k => {
               const items = catsByKind(k);
+              const groupSelectedCount = items.filter(c => selected.has(c.id)).length;
               return (
                 <div key={k}>
-                  <div className="flex items-center justify-between mb-2 px-1">
-                    <p className="text-[11px] font-semibold uppercase tracking-wider" style={{ color: TYPE_META[k].color }}>
+                  <div className="flex items-center mb-2 px-1 gap-2">
+                    <p className="text-[11px] font-semibold uppercase tracking-wider flex-1" style={{ color: TYPE_META[k].color }}>
                       {TYPE_META[k].label}
                     </p>
-                    <button onClick={() => openCategory(undefined, k)}
-                      className="text-[11px] font-semibold text-gold uppercase tracking-wider">
-                      + Aggiungi
-                    </button>
+                    {editMode && (
+                      <>
+                        <button onClick={() => deleteKindSelected(k)} disabled={groupSelectedCount === 0}
+                          className="text-[11px] font-semibold text-[#E08B8B] uppercase tracking-wider disabled:opacity-30">
+                          Elimina{groupSelectedCount > 0 ? ` (${groupSelectedCount})` : ''}
+                        </button>
+                        <button onClick={() => openCategory(undefined, k)}
+                          className="text-[11px] font-semibold text-gold uppercase tracking-wider">
+                          + Aggiungi
+                        </button>
+                      </>
+                    )}
                   </div>
                   {items.length > 0 && (
                     <div className="bg-card rounded-2xl divide-y divide-divider">
