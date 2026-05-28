@@ -16,14 +16,15 @@ type Sub = 'menu' | 'accounts' | 'categories';
 export function SettingsScreen({ user, onLogOut, onDeleteAll }: Props) {
   const { categories, accounts, saveCategories, saveAccounts } = useSettings();
   const [sub, setSub] = useState<Sub>('menu');
-  const [editing, setEditing] = useState<{ kind: 'category' | 'account'; draft: DefDraft; isNew: boolean } | null>(null);
+  const [editing, setEditing] = useState<{ kind: 'category' | 'account'; draft: DefDraft; isNew: boolean; withKind?: boolean } | null>(null);
   const [confirmReset, setConfirmReset] = useState(false);
   const [editMode, setEditMode] = useState(false);
   const [selected, setSelected] = useState<Set<string>>(new Set());
 
-  const openCategory = (c?: CategoryDef) => setEditing({
+  const openCategory = (c?: CategoryDef, forKind?: TransactionType) => setEditing({
     kind: 'category', isNew: !c,
-    draft: c ? { ...c } : { id: newId(), label: '', icon: '•', color: '#8A9270', kind: 'expense' },
+    withKind: !forKind,
+    draft: c ? { ...c } : { id: newId(), label: '', icon: '•', color: '#8A9270', kind: forKind ?? 'expense' },
   });
   const openAccount = (a?: AccountDef) => setEditing({
     kind: 'account', isNew: !a,
@@ -114,7 +115,8 @@ export function SettingsScreen({ user, onLogOut, onDeleteAll }: Props) {
 
       {sub === 'accounts' && (
         <>
-          <ManageHeader title="Conti" editMode={editMode} onBack={exitToMenu} onToggleEdit={toggleEditMode} />
+          <ManageHeader title="Conti" editMode={editMode} onBack={exitToMenu} onToggleEdit={toggleEditMode}
+            deleteCount={selected.size} onDelete={bulkDeleteAccounts} />
           <div className="space-y-3">
             <div className="bg-card rounded-2xl divide-y divide-divider">
               {accounts.map(a => (
@@ -124,7 +126,10 @@ export function SettingsScreen({ user, onLogOut, onDeleteAll }: Props) {
               ))}
             </div>
             {editMode && (
-              <EditActions count={selected.size} onAdd={() => openAccount()} onDelete={bulkDeleteAccounts} />
+              <button onClick={() => openAccount()}
+                className="w-full py-3 rounded-2xl bg-card text-gold text-sm font-semibold active:bg-card-hover">
+                + Aggiungi conto
+              </button>
             )}
           </div>
         </>
@@ -132,29 +137,34 @@ export function SettingsScreen({ user, onLogOut, onDeleteAll }: Props) {
 
       {sub === 'categories' && (
         <>
-          <ManageHeader title="Categorie" editMode={editMode} onBack={exitToMenu} onToggleEdit={toggleEditMode} />
+          <ManageHeader title="Categorie" editMode={editMode} onBack={exitToMenu} onToggleEdit={toggleEditMode}
+            deleteCount={selected.size} onDelete={bulkDeleteCategories} />
           <div className="space-y-4">
             {TYPE_ORDER.filter(k => k !== 'transfer').map(k => {
               const items = catsByKind(k);
-              if (items.length === 0) return null;
               return (
                 <div key={k}>
-                  <p className="text-[11px] font-semibold uppercase tracking-wider mb-2 px-1" style={{ color: TYPE_META[k].color }}>
-                    {TYPE_META[k].label}
-                  </p>
-                  <div className="bg-card rounded-2xl divide-y divide-divider">
-                    {items.map(c => (
-                      <ManageRow key={c.id} icon={c.icon} color={c.color} label={c.label}
-                        editMode={editMode} selected={selected.has(c.id)}
-                        onClick={() => editMode ? toggleSel(c.id) : openCategory(c)} />
-                    ))}
+                  <div className="flex items-center justify-between mb-2 px-1">
+                    <p className="text-[11px] font-semibold uppercase tracking-wider" style={{ color: TYPE_META[k].color }}>
+                      {TYPE_META[k].label}
+                    </p>
+                    <button onClick={() => openCategory(undefined, k)}
+                      className="text-[11px] font-semibold text-gold uppercase tracking-wider">
+                      + Aggiungi
+                    </button>
                   </div>
+                  {items.length > 0 && (
+                    <div className="bg-card rounded-2xl divide-y divide-divider">
+                      {items.map(c => (
+                        <ManageRow key={c.id} icon={c.icon} color={c.color} label={c.label}
+                          editMode={editMode} selected={selected.has(c.id)}
+                          onClick={() => editMode ? toggleSel(c.id) : openCategory(c)} />
+                      ))}
+                    </div>
+                  )}
                 </div>
               );
             })}
-            {editMode && (
-              <EditActions count={selected.size} onAdd={() => openCategory()} onDelete={bulkDeleteCategories} />
-            )}
           </div>
         </>
       )}
@@ -162,7 +172,7 @@ export function SettingsScreen({ user, onLogOut, onDeleteAll }: Props) {
       <EditDefSheet
         open={!!editing}
         draft={editing?.draft ?? null}
-        withKind={editing?.kind === 'category'}
+        withKind={editing?.kind === 'category' && (editing?.withKind ?? true)}
         canDelete={!editing?.isNew}
         onSave={save}
         onDelete={remove}
@@ -172,8 +182,9 @@ export function SettingsScreen({ user, onLogOut, onDeleteAll }: Props) {
   );
 }
 
-function ManageHeader({ title, editMode, onBack, onToggleEdit }: {
+function ManageHeader({ title, editMode, onBack, onToggleEdit, deleteCount, onDelete }: {
   title: string; editMode: boolean; onBack: () => void; onToggleEdit: () => void;
+  deleteCount?: number; onDelete?: () => void;
 }) {
   return (
     <div className="flex items-center gap-2">
@@ -184,6 +195,12 @@ function ManageHeader({ title, editMode, onBack, onToggleEdit }: {
         </svg>
       </button>
       <h1 className="text-2xl font-bold text-primary tracking-[-0.03em] flex-1">{title}</h1>
+      {editMode && onDelete && (
+        <button onClick={onDelete} disabled={(deleteCount ?? 0) === 0}
+          className="text-sm font-medium text-[#E08B8B] px-2 py-1 disabled:opacity-40">
+          Elimina{(deleteCount ?? 0) > 0 ? ` (${deleteCount})` : ''}
+        </button>
+      )}
       <button onClick={onToggleEdit} className="text-sm font-medium text-gold px-1">
         {editMode ? 'Fine' : 'Modifica'}
       </button>
@@ -191,19 +208,6 @@ function ManageHeader({ title, editMode, onBack, onToggleEdit }: {
   );
 }
 
-function EditActions({ count, onAdd, onDelete }: { count: number; onAdd: () => void; onDelete: () => void }) {
-  return (
-    <div className="flex gap-2">
-      <button onClick={onAdd} className="flex-1 py-3 rounded-2xl bg-card text-gold text-sm font-semibold active:bg-card-hover">
-        + Aggiungi
-      </button>
-      <button onClick={onDelete} disabled={count === 0}
-        className="flex-1 py-3 rounded-2xl bg-[#E08B8B]/15 text-[#E08B8B] text-sm font-semibold disabled:opacity-40">
-        Elimina{count > 0 ? ` (${count})` : ''}
-      </button>
-    </div>
-  );
-}
 
 function ManageRow({ icon, color, label, editMode, selected, onClick }: {
   icon: string; color: string; label: string; editMode: boolean; selected: boolean; onClick: () => void;
