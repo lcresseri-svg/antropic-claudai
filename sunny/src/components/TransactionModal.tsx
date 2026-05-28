@@ -65,7 +65,7 @@ export function TransactionModal({ open, editing, groupTransfers = [], onClose, 
     setCategoryTouched(!!editing);
     const hasGroup = !!editing && editing.type === 'expense' && !!editing.groupId && groupTransfers.length > 0;
     setShowMore(!!editing && (!!editing.recurring || hasGroup || !!editing.shared));
-  }, [open, editing]);
+  }, [open, editing, groupTransfers.length]);
 
   useEffect(() => {
     if (!open) return;
@@ -105,17 +105,16 @@ export function TransactionModal({ open, editing, groupTransfers = [], onClose, 
     const storni = (type === 'expense' && isShared)
       ? reimbursements
           .map(r => ({ amount: parseFloat(r.amount.replace(',', '.')), account: r.account }))
-          .filter(r => r.amount > 0 && r.account)
+          .filter(r => r.amount > 0 && r.account && r.account !== account)
       : [];
     const sum = storni.reduce((s, r) => s + r.amount, 0);
 
     if (storni.length > 0) {
-      if (sum > value) return; // gli storni superano il totale — bloccato (messaggio inline)
+      if (sum > value) return;
       const net = value - sum;
       const groupId = editing?.groupId ?? crypto.randomUUID();
       const create: Omit<Transaction, 'id'>[] = [];
       for (const r of storni) {
-        if (r.account === account) continue; // storno sullo stesso conto: coperto dal netto
         create.push({
           type: 'transfer', description: `Storno · ${desc}`, amount: r.amount, date,
           category: 'trasferimento', account, toAccount: r.account, groupId,
@@ -289,7 +288,7 @@ export function TransactionModal({ open, editing, groupTransfers = [], onClose, 
                         </div>
                         <select value={r.account} onChange={e => updateReimb(i, { account: e.target.value })}
                           className="flex-1 min-w-0 bg-white/[0.04] rounded-xl px-3 py-2.5 text-primary text-sm outline-none focus:ring-1 focus:ring-gold/40 appearance-none">
-                          {accounts.map(a => <option key={a.id} value={a.id} className="bg-elevated">{a.icon} {a.label}</option>)}
+                          {accounts.filter(a => a.id !== account).map(a => <option key={a.id} value={a.id} className="bg-elevated">{a.icon} {a.label}</option>)}
                         </select>
                         <button type="button" onClick={() => removeReimb(i)}
                           className="w-8 h-8 rounded-full bg-white/[0.05] flex items-center justify-center text-secondary flex-shrink-0">✕</button>
