@@ -34,7 +34,6 @@ export function SettingsScreen({ user, onLogOut, onDeleteAll, onBack }: Props) {
   const [editing, setEditing] = useState<{ kind: 'category' | 'account'; draft: DefDraft; isNew: boolean; withKind?: boolean } | null>(null);
   const [confirmReset, setConfirmReset] = useState(false);
   const [editMode, setEditMode] = useState(false);
-  const [selected, setSelected] = useState<Set<string>>(new Set());
   const [drag, setDrag] = useState<DragState | null>(null);
 
   // Keep a ref for stable event handlers that always see latest state
@@ -108,15 +107,9 @@ export function SettingsScreen({ user, onLogOut, onDeleteAll, onBack }: Props) {
     setEditing(null);
   };
 
-  const enterSub = (s: Sub) => { setSub(s); setEditMode(false); setSelected(new Set()); };
-  const exitToMenu = () => { setSub('menu'); setEditMode(false); setSelected(new Set()); };
-  const toggleEditMode = () => { setEditMode(m => !m); setSelected(new Set()); setDrag(null); };
-  const toggleSel = (id: string) => setSelected(s => {
-    const n = new Set(s);
-    n.has(id) ? n.delete(id) : n.add(id);
-    return n;
-  });
-  const bulkDeleteAccounts = () => { saveAccounts(accounts.filter(a => !selected.has(a.id))); setSelected(new Set()); };
+  const enterSub = (s: Sub) => { setSub(s); setEditMode(false); };
+  const exitToMenu = () => { setSub('menu'); setEditMode(false); };
+  const toggleEditMode = () => { setEditMode(m => !m); setDrag(null); };
   const catsByKind = (k: TransactionType) => categories.filter(c => c.kind === k);
 
   // Live-preview helpers during drag
@@ -194,16 +187,15 @@ export function SettingsScreen({ user, onLogOut, onDeleteAll, onBack }: Props) {
 
       {sub === 'accounts' && (
         <>
-          <ManageHeader title="Conti" editMode={editMode} onBack={exitToMenu} onToggleEdit={toggleEditMode}
-            deleteCount={selected.size} onDelete={bulkDeleteAccounts} />
+          <ManageHeader title="Conti" editMode={editMode} onBack={exitToMenu} onToggleEdit={toggleEditMode} />
           <div className="space-y-3">
             <div className="bg-card rounded-2xl divide-y divide-divider">
-              {liveAccounts.map((a, idx) => (
+              {liveAccounts.map((a) => (
                 <ManageRow key={a.id} icon={a.icon} color={a.color} label={a.label}
-                  editMode={editMode} selected={selected.has(a.id)}
+                  editMode={false} selected={false}
                   showHandle={editMode}
                   isDragging={a.id === draggingId}
-                  onClick={() => editMode ? toggleSel(a.id) : openAccount(a)}
+                  onClick={editMode ? () => openAccount(a) : undefined}
                   onHandlePointerDown={editMode ? (y) => startDrag('accounts', accounts.indexOf(a), y) : undefined}
                 />
               ))}
@@ -334,7 +326,7 @@ function ManageRow({ icon, color, label, editMode, selected, onClick, showHandle
       )}
       <span className="w-9 h-9 rounded-full flex items-center justify-center text-base flex-shrink-0" style={{ backgroundColor: color + '22' }}>{icon}</span>
       <span className="flex-1 text-[15px] font-medium text-primary">{label}</span>
-      {!editMode && !showHandle && !!onClick && <span className="text-secondary text-sm">›</span>}
+      {!!onClick && !showHandle && <ChevronRight />}
     </div>
   );
 }
@@ -344,7 +336,7 @@ function Row({ icon, color, label, onClick }: { icon: string; color: string; lab
     <button onClick={onClick} className="w-full flex items-center gap-3.5 p-3.5 text-left active:bg-card-hover transition-colors first:rounded-t-2xl last:rounded-b-2xl">
       <span className="w-9 h-9 rounded-full flex items-center justify-center text-base flex-shrink-0" style={{ backgroundColor: color + '22' }}>{icon}</span>
       <span className="flex-1 text-[15px] font-medium text-primary">{label}</span>
-      <span className="text-secondary text-sm">›</span>
+      <ChevronRight />
     </button>
   );
 }
@@ -353,6 +345,14 @@ function ChevronLeft() {
   return (
     <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
       <path d="M15 18l-6-6 6-6" />
+    </svg>
+  );
+}
+
+function ChevronRight() {
+  return (
+    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="text-secondary flex-shrink-0">
+      <path d="M9 18l6-6-6-6" />
     </svg>
   );
 }
