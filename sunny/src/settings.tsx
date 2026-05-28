@@ -10,10 +10,12 @@ import {
 interface SettingsValue {
   categories: CategoryDef[];
   accounts: AccountDef[];
+  anthropicApiKey: string;
   getCat: (id: string) => CategoryDef;
   getAcc: (id: string) => AccountDef;
   saveCategories: (c: CategoryDef[]) => void;
   saveAccounts: (a: AccountDef[]) => void;
+  saveApiKey: (key: string) => void;
 }
 
 const SettingsContext = createContext<SettingsValue | null>(null);
@@ -21,11 +23,13 @@ const SettingsContext = createContext<SettingsValue | null>(null);
 export function SettingsProvider({ user, children }: { user: User | null; children: ReactNode }) {
   const [categories, setCategories] = useState<CategoryDef[]>(DEFAULT_CATEGORIES);
   const [accounts, setAccounts] = useState<AccountDef[]>(DEFAULT_ACCOUNTS);
+  const [anthropicApiKey, setAnthropicApiKey] = useState('');
 
   useEffect(() => {
     if (!user) {
       setCategories(DEFAULT_CATEGORIES);
       setAccounts(DEFAULT_ACCOUNTS);
+      setAnthropicApiKey('');
       return;
     }
     const ref = doc(db, 'users', user.uid, 'meta', 'settings');
@@ -37,25 +41,31 @@ export function SettingsProvider({ user, children }: { user: User | null; childr
       const d = snap.data();
       setCategories((d.categories as CategoryDef[]) ?? DEFAULT_CATEGORIES);
       setAccounts((d.accounts as AccountDef[]) ?? DEFAULT_ACCOUNTS);
+      setAnthropicApiKey((d.anthropicApiKey as string) ?? '');
     });
   }, [user]);
 
   const persist = useCallback(
-    (cats: CategoryDef[], accs: AccountDef[]) => {
-      if (user) setDoc(doc(db, 'users', user.uid, 'meta', 'settings'), { categories: cats, accounts: accs });
+    (cats: CategoryDef[], accs: AccountDef[], apiKey: string) => {
+      if (user) setDoc(doc(db, 'users', user.uid, 'meta', 'settings'), { categories: cats, accounts: accs, anthropicApiKey: apiKey });
     },
     [user],
   );
 
   const saveCategories = useCallback((c: CategoryDef[]) => {
     setCategories(c);
-    persist(c, accounts);
-  }, [accounts, persist]);
+    persist(c, accounts, anthropicApiKey);
+  }, [accounts, anthropicApiKey, persist]);
 
   const saveAccounts = useCallback((a: AccountDef[]) => {
     setAccounts(a);
-    persist(categories, a);
-  }, [categories, persist]);
+    persist(categories, a, anthropicApiKey);
+  }, [categories, anthropicApiKey, persist]);
+
+  const saveApiKey = useCallback((key: string) => {
+    setAnthropicApiKey(key);
+    persist(categories, accounts, key);
+  }, [categories, accounts, persist]);
 
   const getCat = useCallback(
     (id: string) => categories.find(c => c.id === id) ?? FALLBACK_CATEGORY(id),
@@ -67,7 +77,7 @@ export function SettingsProvider({ user, children }: { user: User | null; childr
   );
 
   return (
-    <SettingsContext.Provider value={{ categories, accounts, getCat, getAcc, saveCategories, saveAccounts }}>
+    <SettingsContext.Provider value={{ categories, accounts, anthropicApiKey, getCat, getAcc, saveCategories, saveAccounts, saveApiKey }}>
       {children}
     </SettingsContext.Provider>
   );

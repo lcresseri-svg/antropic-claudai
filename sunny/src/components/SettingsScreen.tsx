@@ -3,6 +3,7 @@ import { User } from 'firebase/auth';
 import { CategoryDef, AccountDef, TransactionType, TYPE_META, TYPE_ORDER } from '../types';
 import { useSettings } from '../settings';
 import { EditDefSheet, DefDraft } from './EditDefSheet';
+import { AiKeyIcon } from './AiKeyIcon';
 
 interface Props {
   user: User;
@@ -14,12 +15,15 @@ const newId = () => `x_${Date.now().toString(36)}`;
 type Sub = 'menu' | 'accounts' | 'categories';
 
 export function SettingsScreen({ user, onLogOut, onDeleteAll }: Props) {
-  const { categories, accounts, saveCategories, saveAccounts } = useSettings();
+  const { categories, accounts, anthropicApiKey, saveCategories, saveAccounts, saveApiKey } = useSettings();
   const [sub, setSub] = useState<Sub>('menu');
   const [editing, setEditing] = useState<{ kind: 'category' | 'account'; draft: DefDraft; isNew: boolean; withKind?: boolean } | null>(null);
   const [confirmReset, setConfirmReset] = useState(false);
   const [editMode, setEditMode] = useState(false);
   const [selected, setSelected] = useState<Set<string>>(new Set());
+  const [apiKeyDraft, setApiKeyDraft] = useState(anthropicApiKey);
+  const [showKey, setShowKey] = useState(false);
+  const [keySaved, setKeySaved] = useState(false);
 
   const openCategory = (c?: CategoryDef, forKind?: TransactionType) => setEditing({
     kind: 'category', isNew: !c,
@@ -83,6 +87,34 @@ export function SettingsScreen({ user, onLogOut, onDeleteAll }: Props) {
               <p className="text-xs text-secondary truncate">{user.email}</p>
             </div>
             <button onClick={onLogOut} className="text-xs font-medium text-secondary px-3 py-2 rounded-xl bg-elevated">Esci</button>
+          </div>
+
+          {/* API Key */}
+          <div className="bg-card rounded-2xl p-5 space-y-3">
+            <div className="flex items-center gap-2">
+              <AiKeyIcon />
+              <p className="text-sm font-semibold text-primary">Chiave API Anthropic</p>
+            </div>
+            <p className="text-xs text-secondary">Usata per riconoscere automaticamente la categoria. Salvata in modo privato nel tuo account.</p>
+            <div className="flex gap-2">
+              <input
+                type={showKey ? 'text' : 'password'}
+                value={apiKeyDraft}
+                onChange={e => { setApiKeyDraft(e.target.value); setKeySaved(false); }}
+                placeholder="sk-ant-..."
+                className="flex-1 min-w-0 bg-elevated rounded-xl px-3 py-2.5 text-primary text-sm outline-none focus:ring-1 focus:ring-gold/40 font-mono"
+              />
+              <button onClick={() => setShowKey(k => !k)}
+                className="px-3 py-2 rounded-xl bg-elevated text-secondary text-xs font-medium flex-shrink-0">
+                {showKey ? 'Nascondi' : 'Mostra'}
+              </button>
+            </div>
+            <button
+              onClick={() => { saveApiKey(apiKeyDraft); setKeySaved(true); }}
+              className="w-full py-2.5 rounded-xl text-sm font-semibold transition-colors"
+              style={{ backgroundColor: keySaved ? '#8A9270' : 'rgba(245,200,66,0.15)', color: keySaved ? '#0D0D0D' : '#F5C842' }}>
+              {keySaved ? '✓ Salvata' : 'Salva chiave'}
+            </button>
           </div>
 
           {/* Management entries */}
