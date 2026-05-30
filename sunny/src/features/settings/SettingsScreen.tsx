@@ -181,20 +181,20 @@ export function SettingsScreen({ user, transactions, onLogOut, onDeleteAll, onDe
             <p className="label-caps text-secondary px-1 mb-2">Aspetto</p>
             <div className="bg-card rounded-2xl p-4">
               <div className="flex items-center gap-3.5">
-                <span className="text-2xl">{theme === 'light' ? '☀️' : '🌙'}</span>
+                <span className="text-2xl">🌙</span>
                 <div className="flex-1">
-                  <p className="text-sm font-medium text-primary">Tema {theme === 'light' ? 'chiaro' : 'scuro'}</p>
-                  <p className="text-xs text-secondary">Tocca per cambiare</p>
+                  <p className="text-sm font-medium text-primary">Tema scuro</p>
+                  <p className="text-xs text-secondary">{theme === 'dark' ? 'Attivo' : 'Non attivo'}</p>
                 </div>
                 <button
                   onClick={() => saveTheme(theme === 'dark' ? 'light' : 'dark')}
                   className={`relative flex-shrink-0 w-[46px] h-[26px] rounded-full transition-colors duration-200 ${
-                    theme === 'light' ? 'bg-gold' : 'bg-secondary/25'
+                    theme === 'dark' ? 'bg-gold' : 'bg-secondary/25'
                   }`}
                   aria-label="Cambia tema"
                 >
                   <span className={`absolute top-[3px] w-5 h-5 rounded-full bg-white shadow-sm transition-transform duration-200 ${
-                    theme === 'light' ? 'translate-x-[23px]' : 'translate-x-[3px]'
+                    theme === 'dark' ? 'translate-x-[23px]' : 'translate-x-[3px]'
                   }`} />
                 </button>
               </div>
