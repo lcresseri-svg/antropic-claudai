@@ -1,5 +1,5 @@
-import { formatCurrency } from '../utils';
-import { useSettings } from '../settings';
+import { formatCurrency } from '../../utils';
+import { useSettings } from '../../shared/providers/settings';
 
 interface Props {
   accountBalances: Record<string, number>;

@@ -1,7 +1,7 @@
 import { useState, useEffect } from 'react';
-import { Transaction, TransactionType, TYPE_META, TYPE_ORDER, RecurrenceRule } from '../types';
-import { formatCurrency, guessCategory } from '../utils';
-import { useSettings } from '../settings';
+import { Transaction, TransactionType, TYPE_META, TYPE_ORDER, RecurrenceRule } from '../../types';
+import { formatCurrency, guessCategory } from '../../utils';
+import { useSettings } from '../../shared/providers/settings';
 
 interface Props {
   open: boolean;

@@ -1,12 +1,12 @@
 import { useState } from 'react';
 import { User } from 'firebase/auth';
-import { Transaction } from '../types';
-import { formatCurrency, greeting } from '../utils';
+import { Transaction } from '../../types';
+import { formatCurrency, greeting } from '../../utils';
 import { CategoryCard } from './CategoryCard';
 import { AccountsCard } from './AccountsCard';
 import { TrendChart } from './TrendChart';
 import { Insights } from './Insights';
-import { TransactionRow } from './TransactionRow';
+import { TransactionRow } from '../transactions/TransactionRow';
 
 interface Props {
   user: User;

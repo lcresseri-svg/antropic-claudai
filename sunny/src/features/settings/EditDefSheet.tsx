@@ -1,6 +1,6 @@
 import { useState, useEffect } from 'react';
-import { TransactionType, TYPE_META, TYPE_ORDER } from '../types';
-import { EMOJI_CHOICES, COLOR_CHOICES } from '../defaults';
+import { TransactionType, TYPE_META, TYPE_ORDER } from '../../types';
+import { EMOJI_CHOICES, COLOR_CHOICES } from '../../defaults';
 
 export interface DefDraft {
   id: string;

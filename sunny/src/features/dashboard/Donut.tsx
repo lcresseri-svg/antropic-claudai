@@ -1,4 +1,4 @@
-import { formatCurrency } from '../utils';
+import { formatCurrency } from '../../utils';
 
 export interface Segment {
   label: string;

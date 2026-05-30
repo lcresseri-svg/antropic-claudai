@@ -2,7 +2,7 @@ import { useState, useEffect } from 'react';
 import {
   User, onAuthStateChanged, signInWithPopup, signOut,
 } from 'firebase/auth';
-import { auth, googleProvider } from './firebase';
+import { auth, googleProvider } from '../../lib/firebase';
 
 function friendlyError(code: string): string {
   if (code.includes('popup-blocked') || code.includes('operation-not-supported') || code.includes('popup-closed-by-user')) {

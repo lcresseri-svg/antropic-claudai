@@ -1,14 +1,14 @@
 import { useState, useEffect, useRef } from 'react';
+import { useNavigate } from 'react-router-dom';
 import { User } from 'firebase/auth';
-import { CategoryDef, AccountDef, TransactionType, TYPE_META, TYPE_ORDER } from '../types';
-import { useSettings } from '../settings';
+import { CategoryDef, AccountDef, TransactionType, TYPE_META, TYPE_ORDER } from '../../types';
+import { useSettings } from '../../shared/providers/settings';
 import { EditDefSheet, DefDraft } from './EditDefSheet';
 
 interface Props {
   user: User;
   onLogOut: () => void;
   onDeleteAll: () => Promise<void>;
-  onBack: () => void;
 }
 
 const newId = () => `x_${Date.now().toString(36)}`;
@@ -28,7 +28,8 @@ function reorder<T>(arr: T[], from: number, to: number): T[] {
   return next;
 }
 
-export function SettingsScreen({ user, onLogOut, onDeleteAll, onBack }: Props) {
+export function SettingsScreen({ user, onLogOut, onDeleteAll }: Props) {
+  const navigate = useNavigate();
   const { categories, accounts, saveCategories, saveAccounts } = useSettings();
   const [sub, setSub] = useState<Sub>('menu');
   const [editing, setEditing] = useState<{ kind: 'category' | 'account'; draft: DefDraft; isNew: boolean; withKind?: boolean } | null>(null);
@@ -134,7 +135,7 @@ export function SettingsScreen({ user, onLogOut, onDeleteAll, onBack }: Props) {
       {sub === 'menu' && (
         <>
           <div className="flex items-center gap-2">
-            <button onClick={onBack} aria-label="Indietro"
+            <button onClick={() => navigate(-1 as any)} aria-label="Indietro"
               className="w-9 h-9 -ml-2 flex items-center justify-center text-secondary active:text-primary">
               <ChevronLeft />
             </button>

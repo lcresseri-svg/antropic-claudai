@@ -1,6 +1,6 @@
 import { Donut } from './Donut';
-import { formatCurrency } from '../utils';
-import { useSettings } from '../settings';
+import { formatCurrency } from '../../utils';
+import { useSettings } from '../../shared/providers/settings';
 
 interface Props {
   categoryTotals: Record<string, number>;

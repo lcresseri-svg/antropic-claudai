@@ -1,6 +1,6 @@
-import { Transaction, TYPE_META, ownShare } from '../types';
-import { formatCurrency, formatDate } from '../utils';
-import { useSettings } from '../settings';
+import { Transaction, TYPE_META, ownShare } from '../../types';
+import { formatCurrency, formatDate } from '../../utils';
+import { useSettings } from '../../shared/providers/settings';
 
 interface Props {
   tx: Transaction;

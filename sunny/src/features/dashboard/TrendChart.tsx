@@ -1,4 +1,4 @@
-import { formatMonthShort, formatCurrency, capitalize } from '../utils';
+import { formatMonthShort, formatCurrency, capitalize } from '../../utils';
 
 interface Props {
   data: { key: string; income: number; expense: number }[];

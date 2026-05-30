@@ -1,6 +1,6 @@
-import { Transaction, RecurrenceRule, ownShare } from '../types';
-import { formatCurrency } from '../utils';
-import { useSettings } from '../settings';
+import { Transaction, RecurrenceRule, ownShare } from '../../types';
+import { formatCurrency } from '../../utils';
+import { useSettings } from '../../shared/providers/settings';
 
 interface Props {
   transactions: Transaction[];

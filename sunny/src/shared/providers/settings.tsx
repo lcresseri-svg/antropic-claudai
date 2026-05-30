@@ -1,11 +1,11 @@
 import { createContext, useContext, useEffect, useState, useCallback, ReactNode } from 'react';
 import { doc, onSnapshot, setDoc } from 'firebase/firestore';
 import { User } from 'firebase/auth';
-import { db } from './firebase';
-import { CategoryDef, AccountDef } from './types';
+import { db } from '../../lib/firebase';
+import { CategoryDef, AccountDef } from '../../types';
 import {
   DEFAULT_CATEGORIES, DEFAULT_ACCOUNTS, FALLBACK_CATEGORY, FALLBACK_ACCOUNT,
-} from './defaults';
+} from '../../defaults';
 
 interface SettingsValue {
   categories: CategoryDef[];

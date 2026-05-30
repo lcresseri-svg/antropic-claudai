@@ -4,8 +4,8 @@ import {
   addDoc, deleteDoc, doc, updateDoc, writeBatch,
 } from 'firebase/firestore';
 import { User } from 'firebase/auth';
-import { Transaction, TransactionPatch, ownShare } from './types';
-import { db } from './firebase';
+import { Transaction, TransactionPatch, ownShare } from '../../types';
+import { db } from '../../lib/firebase';
 
 function stripUndefined<T extends object>(obj: T): T {
   return Object.fromEntries(Object.entries(obj).filter(([, v]) => v !== undefined)) as T;

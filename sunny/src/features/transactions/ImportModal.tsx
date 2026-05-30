@@ -1,7 +1,7 @@
 import { useState, useRef } from 'react';
-import { Transaction, TransactionType, TYPE_META } from '../types';
-import { formatCurrency, formatDate } from '../utils';
-import { useSettings } from '../settings';
+import { Transaction, TransactionType, TYPE_META } from '../../types';
+import { formatCurrency, formatDate } from '../../utils';
+import { useSettings } from '../../shared/providers/settings';
 
 interface Props {
   open: boolean;

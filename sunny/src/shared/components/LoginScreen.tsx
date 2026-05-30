@@ -1,4 +1,4 @@
-import { ArcLogo } from '../App';
+import { ArcLogo } from '../../App';
 
 interface Props {
   onSignIn: () => void;

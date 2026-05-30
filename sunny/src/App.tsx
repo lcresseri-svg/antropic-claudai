@@ -1,15 +1,16 @@
 import { useState, useEffect } from 'react';
-import { useAuth } from './useAuth';
-import { useTransactions } from './useTransactions';
-import { SettingsProvider } from './settings';
+import { Routes, Route, Navigate, useNavigate, useLocation } from 'react-router-dom';
+import { useAuth } from './shared/hooks/useAuth';
+import { useTransactions } from './shared/hooks/useTransactions';
+import { SettingsProvider } from './shared/providers/settings';
 import { Transaction } from './types';
-import { LoginScreen } from './components/LoginScreen';
-import { Dashboard } from './components/Dashboard';
-import { TransactionList } from './components/TransactionList';
-import { SettingsScreen } from './components/SettingsScreen';
-import { TransactionModal } from './components/TransactionModal';
-import { ImportModal } from './components/ImportModal';
-import { BottomNav, View } from './components/BottomNav';
+import { LoginScreen } from './shared/components/LoginScreen';
+import { Dashboard } from './features/dashboard/Dashboard';
+import { TransactionList } from './features/transactions/TransactionList';
+import { SettingsScreen } from './features/settings/SettingsScreen';
+import { TransactionModal } from './features/transactions/TransactionModal';
+import { ImportModal } from './features/transactions/ImportModal';
+import { BottomNav } from './shared/components/BottomNav';
 
 function Loader({ phase }: { phase: string }) {
   const [secs, setSecs] = useState(0);
@@ -41,13 +42,15 @@ export default function App() {
 }
 
 function Main({ user, onLogOut }: { user: import('firebase/auth').User; onLogOut: () => void }) {
+  const navigate = useNavigate();
+  const location = useLocation();
   const tx = useTransactions(user);
-  const [view, setView] = useState<View>('home');
-  const [prevView, setPrevView] = useState<View>('home');
   const [editing, setEditing] = useState<Transaction | null>(null);
   const [modalOpen, setModalOpen] = useState(false);
   const [importOpen, setImportOpen] = useState(false);
   const [settingsOpen, setSettingsOpen] = useState(false);
+
+  const isSettings = location.pathname.startsWith('/settings');
 
   const openAdd  = () => { setEditing(null); setModalOpen(true); };
   const openEdit = (t: Transaction) => { setEditing(t); setModalOpen(true); };
@@ -71,72 +74,73 @@ function Main({ user, onLogOut }: { user: import('firebase/auth').User; onLogOut
               <span className="w-1.5 h-1.5 rounded-full bg-gold animate-pulse" />
             )}
           </div>
-          {view !== 'settings' && (
-          <div className="relative">
-            <button onClick={() => setSettingsOpen(s => !s)}
-              className="w-9 h-9 flex items-center justify-center text-secondary hover:text-primary transition-colors rounded-full">
-              <HeaderGearIcon />
-            </button>
-            {settingsOpen && (
-              <>
-                <div className="fixed inset-0 z-40" onClick={() => setSettingsOpen(false)} />
-                <div className="absolute right-0 top-10 z-50 rounded-2xl py-1 w-44 animate-fade-in-fast border border-white/[0.11] shadow-float"
-                  style={{
-                    background: 'rgba(22,22,22,0.94)',
-                    backdropFilter: 'blur(40px) saturate(200%)',
-                    WebkitBackdropFilter: 'blur(40px) saturate(200%)',
-                  }}>
-                  <button onClick={() => { setPrevView(view); setView('settings'); setSettingsOpen(false); }}
-                    className="w-full flex items-center gap-3 px-4 py-2.5 text-sm text-primary hover:bg-white/[0.04] transition-colors text-left rounded-t-2xl">
-                    <HeaderGearIcon /> Impostazioni
-                  </button>
-                  <div className="h-px bg-white/[0.06] mx-3" />
-                  <button onClick={() => { setImportOpen(true); setSettingsOpen(false); }}
-                    className="w-full flex items-center gap-3 px-4 py-2.5 text-sm text-primary hover:bg-white/[0.04] transition-colors text-left rounded-b-2xl">
-                    <FolderIcon /> Importa
-                  </button>
-                </div>
-              </>
-            )}
-          </div>
+          {!isSettings && (
+            <div className="relative">
+              <button onClick={() => setSettingsOpen(s => !s)}
+                className="w-9 h-9 flex items-center justify-center text-secondary hover:text-primary transition-colors rounded-full">
+                <HeaderGearIcon />
+              </button>
+              {settingsOpen && (
+                <>
+                  <div className="fixed inset-0 z-40" onClick={() => setSettingsOpen(false)} />
+                  <div className="absolute right-0 top-10 z-50 rounded-2xl py-1 w-44 animate-fade-in-fast border border-white/[0.11] shadow-float"
+                    style={{
+                      background: 'rgba(22,22,22,0.94)',
+                      backdropFilter: 'blur(40px) saturate(200%)',
+                      WebkitBackdropFilter: 'blur(40px) saturate(200%)',
+                    }}>
+                    <button onClick={() => { navigate('/settings'); setSettingsOpen(false); }}
+                      className="w-full flex items-center gap-3 px-4 py-2.5 text-sm text-primary hover:bg-white/[0.04] transition-colors text-left rounded-t-2xl">
+                      <HeaderGearIcon /> Impostazioni
+                    </button>
+                    <div className="h-px bg-white/[0.06] mx-3" />
+                    <button onClick={() => { setImportOpen(true); setSettingsOpen(false); }}
+                      className="w-full flex items-center gap-3 px-4 py-2.5 text-sm text-primary hover:bg-white/[0.04] transition-colors text-left rounded-b-2xl">
+                      <FolderIcon /> Importa
+                    </button>
+                  </div>
+                </>
+              )}
+            </div>
           )}
         </div>
       </header>
 
       <main className="max-w-2xl mx-auto px-5 pt-2">
-        {view === 'home' && (
-          <Dashboard
-            user={user}
-            netWorth={tx.netWorth} liquidity={tx.liquidity} investmentTotal={tx.investmentTotal}
-            monthlyIncome={tx.monthlyIncome} monthlyExpenses={tx.monthlyExpenses}
-            monthlyInvestments={tx.monthlyInvestments}
-            categoryTotals={tx.categoryTotals} accountBalances={tx.accountBalances}
-            expenseByAccount={tx.expenseByAccount}
-            trend={tx.trend} transactions={tx.transactions} recentTransactions={tx.recentTransactions}
-            onSeeAll={() => setView('transactions')} onEditTransaction={openEdit}
-          />
-        )}
-        {view !== 'home' && (
-          <div className="pt-4">
-            {view === 'transactions' && (
-              <>
-                <h1 className="text-2xl font-bold text-primary tracking-[-0.03em] mb-6">Movimenti</h1>
-                <TransactionList
-                  transactions={tx.transactions}
-                  onEdit={openEdit} onDelete={tx.deleteTransaction}
-                  onBulkUpdate={tx.updateTransactions} onBulkDelete={tx.deleteTransactions}
-                  onAdd={openAdd}
-                />
-              </>
-            )}
-            {view === 'settings' && (
-              <SettingsScreen user={user} onLogOut={onLogOut} onDeleteAll={tx.deleteAll} onBack={() => setView(prevView)} />
-            )}
-          </div>
-        )}
+        <Routes>
+          <Route path="/" element={
+            <Dashboard
+              user={user}
+              netWorth={tx.netWorth} liquidity={tx.liquidity} investmentTotal={tx.investmentTotal}
+              monthlyIncome={tx.monthlyIncome} monthlyExpenses={tx.monthlyExpenses}
+              monthlyInvestments={tx.monthlyInvestments}
+              categoryTotals={tx.categoryTotals} accountBalances={tx.accountBalances}
+              expenseByAccount={tx.expenseByAccount}
+              trend={tx.trend} transactions={tx.transactions} recentTransactions={tx.recentTransactions}
+              onSeeAll={() => navigate('/transactions')} onEditTransaction={openEdit}
+            />
+          } />
+          <Route path="/transactions" element={
+            <div className="pt-4">
+              <h1 className="text-2xl font-bold text-primary tracking-[-0.03em] mb-6">Movimenti</h1>
+              <TransactionList
+                transactions={tx.transactions}
+                onEdit={openEdit} onDelete={tx.deleteTransaction}
+                onBulkUpdate={tx.updateTransactions} onBulkDelete={tx.deleteTransactions}
+                onAdd={openAdd}
+              />
+            </div>
+          } />
+          <Route path="/settings/*" element={
+            <div className="pt-4">
+              <SettingsScreen user={user} onLogOut={onLogOut} onDeleteAll={tx.deleteAll} />
+            </div>
+          } />
+          <Route path="*" element={<Navigate to="/" replace />} />
+        </Routes>
       </main>
 
-      {view !== 'settings' && <BottomNav view={view} onView={setView} onAdd={openAdd} />}
+      {!isSettings && <BottomNav onAdd={openAdd} />}
 
       <TransactionModal
         open={modalOpen} editing={editing} groupTransfers={groupTransfers}
@@ -167,11 +171,10 @@ function FolderIcon() {
   );
 }
 
-// ── Brand mark — thin golden arc ────────────────────────────────────────────
+// ── Brand mark ───────────────────────────────────────────────────────────────
 
 export function ArcLogo({ size = 28 }: { size?: number }) {
   const id = `al${size}`;
-  // 270° arc, gap at bottom — r=8.5, circ≈53.41 | 270°=40.06 | 90°gap=13.35
   return (
     <svg width={size} height={size} viewBox="0 0 24 24" fill="none" aria-hidden>
       <defs>
