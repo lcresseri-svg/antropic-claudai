@@ -8,6 +8,7 @@ export interface DefDraft {
   icon: string;
   color: string;
   kind?: TransactionType;
+  initialBalance?: number;
 }
 
 interface Props {
@@ -25,12 +26,14 @@ export function EditDefSheet({ open, draft, withKind, canDelete, onSave, onDelet
   const [icon, setIcon] = useState('•');
   const [color, setColor] = useState(COLOR_CHOICES[0]);
   const [kind, setKind] = useState<TransactionType>('expense');
+  const [initialBalance, setInitialBalance] = useState('');
   const [confirmingDelete, setConfirmingDelete] = useState(false);
 
   useEffect(() => {
     if (!open || !draft) return;
     setLabel(draft.label); setIcon(draft.icon); setColor(draft.color);
     setKind(draft.kind ?? 'expense');
+    setInitialBalance(draft.initialBalance !== undefined ? String(draft.initialBalance) : '');
     setConfirmingDelete(false);
   }, [open, draft]);
 
@@ -38,7 +41,12 @@ export function EditDefSheet({ open, draft, withKind, canDelete, onSave, onDelet
 
   const save = () => {
     if (!label.trim()) return;
-    onSave({ id: draft.id, label: label.trim(), icon, color, kind: withKind ? kind : undefined });
+    const parsedBalance = initialBalance !== '' ? parseFloat(initialBalance) : undefined;
+    onSave({
+      id: draft.id, label: label.trim(), icon, color,
+      kind: withKind ? kind : undefined,
+      initialBalance: !withKind && parsedBalance !== undefined && !isNaN(parsedBalance) ? parsedBalance : undefined,
+    });
   };
 
   return (
@@ -85,6 +93,24 @@ export function EditDefSheet({ open, draft, withKind, canDelete, onSave, onDelet
               style={{ backgroundColor: c }} />
           ))}
         </div>
+
+        {!withKind && (
+          <div className="mb-6">
+            <p className="text-xs font-medium text-secondary mb-2 px-1">Saldo iniziale</p>
+            <div className="relative">
+              <span className="absolute left-3.5 top-1/2 -translate-y-1/2 text-secondary text-sm">€</span>
+              <input
+                type="number"
+                inputMode="decimal"
+                value={initialBalance}
+                onChange={e => setInitialBalance(e.target.value)}
+                placeholder="0"
+                className="w-full bg-elevated rounded-2xl pl-8 pr-4 py-3 text-primary placeholder:text-secondary/50 outline-none focus:ring-1 focus:ring-gold/40"
+              />
+            </div>
+            <p className="text-[11px] text-secondary/70 px-1 mt-1.5">Saldo del conto quando hai iniziato a usare Sunny</p>
+          </div>
+        )}
 
         <div className="flex gap-2">
           {canDelete && onDelete && (

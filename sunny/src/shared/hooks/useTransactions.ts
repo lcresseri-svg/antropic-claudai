@@ -4,14 +4,14 @@ import {
   addDoc, deleteDoc, doc, updateDoc, writeBatch,
 } from 'firebase/firestore';
 import { User } from 'firebase/auth';
-import { Transaction, TransactionPatch, ownShare } from '../../types';
+import { AccountDef, Transaction, TransactionPatch, ownShare } from '../../types';
 import { db } from '../../lib/firebase';
 
 function stripUndefined<T extends object>(obj: T): T {
   return Object.fromEntries(Object.entries(obj).filter(([, v]) => v !== undefined)) as T;
 }
 
-export function useTransactions(user: User | null) {
+export function useTransactions(user: User | null, accounts: AccountDef[] = []) {
   const [transactions, setTransactions] = useState<Transaction[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
@@ -116,8 +116,11 @@ export function useTransactions(user: User | null) {
 
     const investmentTotal = transactions.filter(t => t.type === 'investment').reduce((s, t) => s + t.amount, 0);
 
-    // Per-account balance (cash flow through the account)
+    // Per-account balance (initial balance + cash flow through the account)
     const accountBalances: Record<string, number> = {};
+    for (const a of accounts) {
+      if (a.initialBalance) accountBalances[a.id] = a.initialBalance;
+    }
     for (const t of transactions) {
       const bal = (id: string, delta: number) => { accountBalances[id] = (accountBalances[id] ?? 0) + delta; };
       if (t.type === 'income') bal(t.account, t.amount);
@@ -166,7 +169,7 @@ export function useTransactions(user: User | null) {
       accountBalances, liquidity, netWorth, categoryTotals, expenseByAccount, trend,
       recentTransactions: recent, monthTx,
     };
-  }, [transactions]);
+  }, [transactions, accounts]);
 
   return {
     transactions, loading, error,

@@ -2,7 +2,7 @@ import { useState, useEffect } from 'react';
 import { Routes, Route, Navigate, useNavigate, useLocation } from 'react-router-dom';
 import { useAuth } from './shared/hooks/useAuth';
 import { useTransactions } from './shared/hooks/useTransactions';
-import { SettingsProvider } from './shared/providers/settings';
+import { SettingsProvider, useSettings } from './shared/providers/settings';
 import { Transaction } from './types';
 import { LoginScreen } from './shared/components/LoginScreen';
 import { Dashboard } from './features/dashboard/Dashboard';
@@ -48,7 +48,8 @@ function Main({ user, onLogOut, onDeleteAccount }: {
 }) {
   const navigate = useNavigate();
   const location = useLocation();
-  const tx = useTransactions(user);
+  const { accounts } = useSettings();
+  const tx = useTransactions(user, accounts);
   const [editing, setEditing] = useState<Transaction | null>(null);
   const [modalOpen, setModalOpen] = useState(false);
   const [importOpen, setImportOpen] = useState(false);

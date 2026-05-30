@@ -24,6 +24,7 @@ export interface AccountDef {
   label: string;
   icon: string;
   color: string;
+  initialBalance?: number;
 }
 
 export interface Transaction {

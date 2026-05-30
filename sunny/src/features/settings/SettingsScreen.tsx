@@ -117,7 +117,8 @@ export function SettingsScreen({ user, transactions, onLogOut, onDeleteAll, onDe
       const def: CategoryDef = { id: d.id, label: d.label, icon: d.icon, color: d.color, kind: d.kind ?? 'expense' };
       saveCategories(editing.isNew ? [...categories, def] : categories.map(c => c.id === d.id ? def : c));
     } else {
-      const def: AccountDef = { id: d.id, label: d.label, icon: d.icon, color: d.color };
+      const def: AccountDef = { id: d.id, label: d.label, icon: d.icon, color: d.color,
+        ...(d.initialBalance !== undefined ? { initialBalance: d.initialBalance } : {}) };
       saveAccounts(editing.isNew ? [...accounts, def] : accounts.map(a => a.id === d.id ? def : a));
     }
     setEditing(null);
@@ -176,9 +177,9 @@ export function SettingsScreen({ user, transactions, onLogOut, onDeleteAll, onDe
             <button onClick={onLogOut} className="text-xs font-medium text-secondary px-3 py-2 rounded-xl bg-elevated">Esci</button>
           </div>
 
-          {/* Appearance */}
+          {/* Generali */}
           <div>
-            <p className="label-caps text-secondary px-1 mb-2">Aspetto</p>
+            <p className="label-caps text-secondary px-1 mb-2">Generali</p>
             <div className="bg-card rounded-2xl p-4">
               <div className="flex items-center gap-3.5">
                 <span className="text-2xl">🌙</span>
@@ -201,89 +202,89 @@ export function SettingsScreen({ user, transactions, onLogOut, onDeleteAll, onDe
             </div>
           </div>
 
-          {/* Management entries */}
-          <div className="bg-card rounded-2xl divide-y divide-divider">
-            <Row icon="🏦" color="#6FA8DC" label="Gestisci conti" onClick={() => enterSub('accounts')} />
-            <Row icon="🏷️" color="#8A9270" label="Gestisci categorie" onClick={() => enterSub('categories')} />
+          {/* Gestione */}
+          <div>
+            <p className="label-caps text-secondary px-1 mb-2">Gestione</p>
+            <div className="bg-card rounded-2xl divide-y divide-divider">
+              <Row icon="🏦" color="#6FA8DC" label="Gestisci conti" onClick={() => enterSub('accounts')} />
+              <Row icon="🏷️" color="#8A9270" label="Gestisci categorie" onClick={() => enterSub('categories')} />
+            </div>
           </div>
 
-          {/* Data export — GDPR portability */}
+          {/* Dati */}
           <div>
-            <p className="label-caps text-secondary px-1 mb-2">I tuoi dati</p>
+            <p className="label-caps text-secondary px-1 mb-2">Dati</p>
             <div className="bg-card rounded-2xl divide-y divide-divider">
               <button onClick={exportJson}
                 className="w-full flex items-center gap-3.5 p-4 text-left active:bg-card-hover first:rounded-t-2xl">
-                <span>📦</span>
+                <span className="w-9 h-9 rounded-full flex items-center justify-center text-base flex-shrink-0" style={{ backgroundColor: '#6FA8DC22' }}>📦</span>
                 <div className="flex-1">
-                  <p className="text-sm font-medium text-primary">Scarica tutti i dati (JSON)</p>
+                  <p className="text-sm font-medium text-primary">Esporta JSON</p>
                   <p className="text-xs text-secondary">Transazioni, categorie e conti</p>
                 </div>
                 <span className="text-secondary text-sm">↓</span>
               </button>
               <button onClick={exportCsv}
-                className="w-full flex items-center gap-3.5 p-4 text-left active:bg-card-hover last:rounded-b-2xl">
-                <span>📄</span>
+                className="w-full flex items-center gap-3.5 p-4 text-left active:bg-card-hover">
+                <span className="w-9 h-9 rounded-full flex items-center justify-center text-base flex-shrink-0" style={{ backgroundColor: '#8A927022' }}>📄</span>
                 <div className="flex-1">
-                  <p className="text-sm font-medium text-primary">Esporta transazioni (CSV)</p>
+                  <p className="text-sm font-medium text-primary">Esporta CSV</p>
                   <p className="text-xs text-secondary">Apribile in Excel o Fogli Google</p>
                 </div>
                 <span className="text-secondary text-sm">↓</span>
               </button>
-            </div>
-          </div>
 
-          {/* Danger zone */}
-          <div>
-            <p className="label-caps text-secondary px-1 mb-2">Zona pericolosa</p>
-            <div className="space-y-3">
-              <div className="bg-card rounded-2xl overflow-hidden">
-                {confirmReset ? (
-                  <div className="p-4 space-y-3">
-                    <p className="text-sm font-medium text-primary">Eliminare tutte le transazioni?</p>
-                    <p className="text-xs text-secondary">Categorie e conti restano. Questa azione è irreversibile.</p>
-                    <div className="flex gap-2">
-                      <button onClick={() => setConfirmReset(false)}
-                        className="flex-1 py-2.5 rounded-xl bg-elevated text-secondary text-sm font-medium">Annulla</button>
-                      <button onClick={async () => { await onDeleteAll(); setConfirmReset(false); }}
-                        className="flex-1 py-2.5 rounded-xl bg-[#E08B8B]/15 text-[#E08B8B] text-sm font-semibold">Elimina tutto</button>
-                    </div>
+              {/* Delete all transactions */}
+              {confirmReset ? (
+                <div className="p-4 space-y-3">
+                  <p className="text-sm font-medium text-primary">Eliminare tutte le transazioni?</p>
+                  <p className="text-xs text-secondary">Categorie e conti restano. Questa azione è irreversibile.</p>
+                  <div className="flex gap-2">
+                    <button onClick={() => setConfirmReset(false)}
+                      className="flex-1 py-2.5 rounded-xl bg-elevated text-secondary text-sm font-medium">Annulla</button>
+                    <button onClick={async () => { await onDeleteAll(); setConfirmReset(false); }}
+                      className="flex-1 py-2.5 rounded-xl bg-red/15 text-red text-sm font-semibold">Elimina tutto</button>
                   </div>
-                ) : (
-                  <button onClick={() => setConfirmReset(true)}
-                    className="w-full flex items-center gap-3.5 p-4 text-left active:bg-card-hover">
-                    <span className="text-[#E08B8B]">🗑</span>
-                    <span className="text-sm font-medium text-[#E08B8B]">Elimina tutte le transazioni</span>
-                  </button>
-                )}
-              </div>
+                </div>
+              ) : (
+                <button onClick={() => setConfirmReset(true)}
+                  className="w-full flex items-center gap-3.5 p-4 text-left active:bg-card-hover">
+                  <span className="w-9 h-9 rounded-full flex items-center justify-center text-base flex-shrink-0 bg-red/10">🗑</span>
+                  <div className="flex-1">
+                    <p className="text-sm font-medium text-red">Elimina transazioni</p>
+                    <p className="text-xs text-secondary">Categorie e conti restano</p>
+                  </div>
+                </button>
+              )}
 
-              <div className="bg-card rounded-2xl overflow-hidden">
-                {confirmDeleteAccount ? (
-                  <div className="p-4 space-y-3">
-                    <p className="text-sm font-medium text-primary">Eliminare definitivamente l'account?</p>
-                    <p className="text-xs text-secondary">
-                      Verranno cancellati tutti i tuoi dati (transazioni, categorie, conti) e il tuo accesso.
-                      L'operazione è irreversibile. Ti consigliamo di scaricare prima i tuoi dati.
-                    </p>
-                    <div className="flex gap-2">
-                      <button onClick={() => setConfirmDeleteAccount(false)} disabled={deletingAccount}
-                        className="flex-1 py-2.5 rounded-xl bg-elevated text-secondary text-sm font-medium disabled:opacity-40">Annulla</button>
-                      <button onClick={handleDeleteAccount} disabled={deletingAccount}
-                        className="flex-1 py-2.5 rounded-xl bg-[#E08B8B]/15 text-[#E08B8B] text-sm font-semibold disabled:opacity-50">
-                        {deletingAccount ? 'Eliminazione…' : 'Elimina account'}
-                      </button>
-                    </div>
+              {/* Delete account */}
+              {confirmDeleteAccount ? (
+                <div className="p-4 space-y-3">
+                  <p className="text-sm font-medium text-primary">Eliminare definitivamente l'account?</p>
+                  <p className="text-xs text-secondary">
+                    Verranno cancellati tutti i tuoi dati e il tuo accesso. Irreversibile.
+                  </p>
+                  <div className="flex gap-2">
+                    <button onClick={() => setConfirmDeleteAccount(false)} disabled={deletingAccount}
+                      className="flex-1 py-2.5 rounded-xl bg-elevated text-secondary text-sm font-medium disabled:opacity-40">Annulla</button>
+                    <button onClick={handleDeleteAccount} disabled={deletingAccount}
+                      className="flex-1 py-2.5 rounded-xl bg-red/15 text-red text-sm font-semibold disabled:opacity-50">
+                      {deletingAccount ? 'Eliminazione…' : 'Elimina account'}
+                    </button>
                   </div>
-                ) : (
-                  <button onClick={() => { setConfirmDeleteAccount(true); setDeleteError(null); }}
-                    className="w-full flex items-center gap-3.5 p-4 text-left active:bg-card-hover">
-                    <span className="text-[#E08B8B]">⚠️</span>
-                    <span className="text-sm font-medium text-[#E08B8B]">Elimina account e tutti i dati</span>
-                  </button>
-                )}
-              </div>
-              {deleteError && <p className="text-xs text-[#E08B8B] px-1">{deleteError}</p>}
+                </div>
+              ) : (
+                <button onClick={() => { setConfirmDeleteAccount(true); setDeleteError(null); }}
+                  className="w-full flex items-center gap-3.5 p-4 text-left active:bg-card-hover last:rounded-b-2xl">
+                  <span className="w-9 h-9 rounded-full flex items-center justify-center text-base flex-shrink-0 bg-red/10">⚠️</span>
+                  <div className="flex-1">
+                    <p className="text-sm font-medium text-red">Elimina account</p>
+                    <p className="text-xs text-secondary">Tutti i dati verranno rimossi</p>
+                  </div>
+                </button>
+              )}
             </div>
+            {deleteError && <p className="text-xs text-red px-1 mt-2">{deleteError}</p>}
           </div>
 
           <p className="text-center text-xs text-secondary/60 pt-2">Sunny · finanza personale</p>
