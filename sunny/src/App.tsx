@@ -11,6 +11,7 @@ import { SettingsScreen } from './features/settings/SettingsScreen';
 import { TransactionModal } from './features/transactions/TransactionModal';
 import { ImportModal } from './features/transactions/ImportModal';
 import { BottomNav } from './shared/components/BottomNav';
+import { SideNav } from './shared/components/SideNav';
 
 function Loader({ phase }: { phase: string }) {
   const [secs, setSecs] = useState(0);
@@ -68,89 +69,95 @@ function Main({ user, onLogOut, onDeleteAccount }: {
     tx.replaceGroup(deleteIds, create);
 
   return (
-    <div className="min-h-screen">
-      {/* Header */}
-      <header className="sticky top-0 z-20 glass-header">
-        <div className="max-w-2xl mx-auto px-5 h-14 flex items-center justify-between">
-          <div className="flex items-center gap-2.5">
-            <ArcLogo size={28} />
-            <span className="font-semibold text-primary tracking-[-0.02em]">Sunny</span>
-            {tx.loading && (
-              <span className="w-1.5 h-1.5 rounded-full bg-gold animate-pulse" />
+    <div className="min-h-screen md:flex">
+      {/* Desktop sidebar */}
+      <SideNav loading={tx.loading} onAdd={openAdd} onImport={() => setImportOpen(true)} />
+
+      {/* Content (shifted right by sidebar on desktop) */}
+      <div className="flex-1 md:ml-[220px] min-w-0">
+
+        {/* Mobile-only header */}
+        <header className="sticky top-0 z-20 glass-header md:hidden">
+          <div className="max-w-2xl mx-auto px-5 h-14 flex items-center justify-between">
+            <div className="flex items-center gap-2.5">
+              <ArcLogo size={28} />
+              <span className="font-semibold text-primary tracking-[-0.02em]">Sunny</span>
+              {tx.loading && <span className="w-1.5 h-1.5 rounded-full bg-gold animate-pulse" />}
+            </div>
+            {!isSettings && (
+              <div className="relative">
+                <button onClick={() => setSettingsOpen(s => !s)}
+                  className="w-9 h-9 flex items-center justify-center text-secondary hover:text-primary transition-colors rounded-full">
+                  <HeaderGearIcon />
+                </button>
+                {settingsOpen && (
+                  <>
+                    <div className="fixed inset-0 z-40" onClick={() => setSettingsOpen(false)} />
+                    <div className="absolute right-0 top-10 z-50 rounded-2xl py-1 w-44 animate-fade-in-fast border border-divider shadow-float glass-elevated">
+                      <button onClick={() => { navigate('/settings'); setSettingsOpen(false); }}
+                        className="w-full flex items-center gap-3 px-4 py-2.5 text-sm text-primary hover:bg-card-hover transition-colors text-left rounded-t-2xl">
+                        <HeaderGearIcon /> Impostazioni
+                      </button>
+                      <div className="h-px bg-divider mx-3" />
+                      <button onClick={() => { setImportOpen(true); setSettingsOpen(false); }}
+                        className="w-full flex items-center gap-3 px-4 py-2.5 text-sm text-primary hover:bg-card-hover transition-colors text-left rounded-b-2xl">
+                        <FolderIcon /> Importa
+                      </button>
+                    </div>
+                  </>
+                )}
+              </div>
             )}
           </div>
-          {!isSettings && (
-            <div className="relative">
-              <button onClick={() => setSettingsOpen(s => !s)}
-                className="w-9 h-9 flex items-center justify-center text-secondary hover:text-primary transition-colors rounded-full">
-                <HeaderGearIcon />
-              </button>
-              {settingsOpen && (
-                <>
-                  <div className="fixed inset-0 z-40" onClick={() => setSettingsOpen(false)} />
-                  <div className="absolute right-0 top-10 z-50 rounded-2xl py-1 w-44 animate-fade-in-fast border border-divider shadow-float glass-elevated">
-                    <button onClick={() => { navigate('/settings'); setSettingsOpen(false); }}
-                      className="w-full flex items-center gap-3 px-4 py-2.5 text-sm text-primary hover:bg-card-hover transition-colors text-left rounded-t-2xl">
-                      <HeaderGearIcon /> Impostazioni
-                    </button>
-                    <div className="h-px bg-divider mx-3" />
-                    <button onClick={() => { setImportOpen(true); setSettingsOpen(false); }}
-                      className="w-full flex items-center gap-3 px-4 py-2.5 text-sm text-primary hover:bg-card-hover transition-colors text-left rounded-b-2xl">
-                      <FolderIcon /> Importa
-                    </button>
-                  </div>
-                </>
-              )}
-            </div>
-          )}
-        </div>
-      </header>
+        </header>
 
-      {tx.error && (
-        <div className="max-w-2xl mx-auto px-5 pt-2">
-          <div className="bg-[#E08B8B]/12 border border-[#E08B8B]/25 rounded-xl px-3.5 py-2.5 flex items-center gap-2.5">
-            <span className="text-[#E08B8B] text-sm">⚠</span>
-            <p className="text-xs text-[#E08B8B] flex-1">{tx.error}</p>
+        {tx.error && (
+          <div className="max-w-2xl mx-auto md:max-w-none px-5 md:px-8 pt-2">
+            <div className="bg-[#E08B8B]/12 border border-[#E08B8B]/25 rounded-xl px-3.5 py-2.5 flex items-center gap-2.5">
+              <span className="text-[#E08B8B] text-sm">⚠</span>
+              <p className="text-xs text-[#E08B8B] flex-1">{tx.error}</p>
+            </div>
           </div>
-        </div>
-      )}
+        )}
 
-      <main className="max-w-2xl mx-auto px-5 pt-2">
-        <Routes>
-          <Route path="/" element={
-            <Dashboard
-              user={user}
-              netWorth={tx.netWorth} liquidity={tx.liquidity} investmentTotal={tx.investmentTotal}
-              monthlyIncome={tx.monthlyIncome} monthlyExpenses={tx.monthlyExpenses}
-              monthlyInvestments={tx.monthlyInvestments}
-              categoryTotals={tx.categoryTotals} accountBalances={tx.accountBalances}
-              expenseByAccount={tx.expenseByAccount}
-              trend={tx.trend} transactions={tx.transactions} recentTransactions={tx.recentTransactions}
-              onSeeAll={() => navigate('/transactions')} onEditTransaction={openEdit}
-            />
-          } />
-          <Route path="/transactions" element={
-            <div className="pt-4">
-              <h1 className="text-2xl font-bold text-primary tracking-[-0.03em] mb-6">Movimenti</h1>
-              <TransactionList
-                transactions={tx.transactions}
-                onEdit={openEdit} onDelete={tx.deleteTransaction}
-                onBulkUpdate={tx.updateTransactions} onBulkDelete={tx.deleteTransactions}
-                onAdd={openAdd}
+        <main className="max-w-2xl mx-auto md:max-w-none px-5 md:px-8 pt-2">
+          <Routes>
+            <Route path="/" element={
+              <Dashboard
+                user={user}
+                netWorth={tx.netWorth} liquidity={tx.liquidity} investmentTotal={tx.investmentTotal}
+                monthlyIncome={tx.monthlyIncome} monthlyExpenses={tx.monthlyExpenses}
+                monthlyInvestments={tx.monthlyInvestments}
+                categoryTotals={tx.categoryTotals} accountBalances={tx.accountBalances}
+                expenseByAccount={tx.expenseByAccount}
+                trend={tx.trend} transactions={tx.transactions} recentTransactions={tx.recentTransactions}
+                onSeeAll={() => navigate('/transactions')} onEditTransaction={openEdit}
               />
-            </div>
-          } />
-          <Route path="/settings/*" element={
-            <div className="pt-4">
-              <SettingsScreen user={user} transactions={tx.transactions}
-                onLogOut={onLogOut} onDeleteAll={tx.deleteAll} onDeleteAccount={onDeleteAccount} />
-            </div>
-          } />
-          <Route path="*" element={<Navigate to="/" replace />} />
-        </Routes>
-      </main>
+            } />
+            <Route path="/transactions" element={
+              <div className="pt-4 md:pt-6">
+                <h1 className="text-2xl font-bold text-primary tracking-[-0.03em] mb-6">Movimenti</h1>
+                <TransactionList
+                  transactions={tx.transactions}
+                  onEdit={openEdit} onDelete={tx.deleteTransaction}
+                  onBulkUpdate={tx.updateTransactions} onBulkDelete={tx.deleteTransactions}
+                  onAdd={openAdd}
+                />
+              </div>
+            } />
+            <Route path="/settings/*" element={
+              <div className="pt-4 md:pt-6 md:max-w-xl">
+                <SettingsScreen user={user} transactions={tx.transactions}
+                  onLogOut={onLogOut} onDeleteAll={tx.deleteAll} onDeleteAccount={onDeleteAccount} />
+              </div>
+            } />
+            <Route path="*" element={<Navigate to="/" replace />} />
+          </Routes>
+        </main>
 
-      {!isSettings && <BottomNav onAdd={openAdd} />}
+        {/* Mobile-only bottom nav */}
+        {!isSettings && <BottomNav onAdd={openAdd} />}
+      </div>
 
       <TransactionModal
         open={modalOpen} editing={editing} groupTransfers={groupTransfers}
@@ -206,3 +213,4 @@ export function ArcLogo({ size = 28 }: { size?: number }) {
     </svg>
   );
 }
+

@@ -6,7 +6,7 @@ interface Props {
 
 export function BottomNav({ onAdd }: Props) {
   return (
-    <nav className="fixed bottom-0 inset-x-0 z-30 safe-bottom pointer-events-none">
+    <nav className="fixed bottom-0 inset-x-0 z-30 safe-bottom pointer-events-none md:hidden">
       <div className="max-w-2xl mx-auto px-4 pb-4 flex justify-center">
         <div className="pointer-events-auto flex items-center gap-2 glass-nav rounded-full px-2.5 py-1.5">
           <NavBtn to="/" label="Home" icon={<HomeIcon />} />

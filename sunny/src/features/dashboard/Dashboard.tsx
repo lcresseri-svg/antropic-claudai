@@ -89,105 +89,113 @@ export function Dashboard(p: Props) {
   const periodDelta = periodIncome - periodExpenses;
 
   return (
-    <div className="space-y-3 pb-32 animate-fade-in">
+    <div className="pb-32 animate-fade-in">
 
-      {/* Greeting */}
-      <div className="flex items-center justify-between pt-3">
-        <div>
-          <p className="text-[13px] text-secondary">{greeting()}</p>
-          <p className="text-lg font-semibold text-primary tracking-[-0.02em] leading-tight mt-0.5">
-            {p.user.displayName?.split(' ')[0] ?? 'utente'}
-          </p>
-        </div>
-        {p.user.photoURL && (
-          <img src={p.user.photoURL} alt="" className="w-9 h-9 rounded-full opacity-90" />
-        )}
-      </div>
-
-      {/* Hero — net worth floats on dark surface */}
-      <div className="pt-6 pb-7 animate-scale-in">
-        <p className="label-caps text-secondary mb-3">Patrimonio netto</p>
-        <p className="text-[52px] leading-none font-bold text-primary balance-num">
-          {formatCurrency(p.netWorth)}
-        </p>
-        {periodDelta !== 0 && (
-          <p className={`text-[13px] mt-2.5 balance-num ${periodDelta >= 0 ? 'text-green' : 'text-red'}`}>
-            {periodDelta >= 0 ? '+' : ''}{formatCurrency(periodDelta)}&ensp;{periodOpt.desc}
-          </p>
-        )}
-        <div className="flex gap-8 mt-7 pt-6 border-t border-white/[0.06]">
+      {/* Top section — full width on all sizes */}
+      <div className="space-y-3">
+        {/* Greeting */}
+        <div className="flex items-center justify-between pt-3">
           <div>
-            <p className="label-caps text-secondary mb-2">Liquidità</p>
-            <p className="text-sm font-semibold text-primary balance-num">{formatCurrency(p.liquidity)}</p>
-          </div>
-          <div>
-            <p className="label-caps text-secondary mb-2">Investito</p>
-            <p className="text-sm font-semibold balance-num text-gold">
-              {formatCurrency(p.investmentTotal)}
+            <p className="text-[13px] text-secondary">{greeting()}</p>
+            <p className="text-lg font-semibold text-primary tracking-[-0.02em] leading-tight mt-0.5">
+              {p.user.displayName?.split(' ')[0] ?? 'utente'}
             </p>
           </div>
+          {p.user.photoURL && (
+            <img src={p.user.photoURL} alt="" className="w-9 h-9 rounded-full opacity-90" />
+          )}
         </div>
-      </div>
 
-      {/* Period selector */}
-      <div className="flex items-center gap-1.5">
-        {PERIOD_OPTS.map(opt => (
-          <button
-            key={opt.value}
-            onClick={() => setPeriod(opt.value)}
-            className={`px-3.5 py-1.5 rounded-full text-xs font-semibold transition-all ${
-              period === opt.value
-                ? 'bg-gold/20 text-gold'
-                : 'text-secondary hover:text-primary'
-            }`}
-          >
-            {opt.label}
-          </button>
-        ))}
-      </div>
-
-      {/* Period stats */}
-      <div className="grid grid-cols-3 gap-2.5">
-        <Stat label="Entrate"   value={formatCurrency(periodIncome)}   colorClass="text-green" />
-        <Stat label="Uscite"    value={formatCurrency(periodExpenses)}  colorClass="text-secondary" />
-        <Stat label="Risparmio" value={formatCurrency(saved)} colorClass={saved >= 0 ? 'text-gold' : 'text-red'} />
-      </div>
-
-      <TrendChart data={p.trend} />
-      <CategoryCard categoryTotals={periodCategoryTotals} />
-      <AccountsCard
-        accountBalances={p.accountBalances}
-        expenseByAccount={periodExpenseByAccount}
-        mode={accMode}
-        onToggle={() => setAccMode(m => m === 'balance' ? 'spending' : 'balance')}
-      />
-      <Insights
-        transactions={p.transactions}
-        monthlyIncome={p.monthlyIncome}
-        monthlyExpenses={p.monthlyExpenses}
-        monthlyInvestments={p.monthlyInvestments}
-      />
-
-      {/* Recent transactions */}
-      <section>
-        <div className="flex items-center justify-between mb-3">
-          <h3 className="text-[13px] font-semibold text-primary">Recenti</h3>
-          <button onClick={p.onSeeAll}
-            className="label-caps text-gold" style={{ letterSpacing: '0.06em' }}>
-            Vedi tutte
-          </button>
-        </div>
-        <div className="glass-card rounded-2xl overflow-hidden">
-          <div className="divide-y divide-white/[0.06] px-4">
-            {p.recentTransactions.slice(0, 6).map(tx => (
-              <TransactionRow key={tx.id} tx={tx} onClick={p.onEditTransaction} />
-            ))}
-            {p.recentTransactions.length === 0 && (
-              <p className="text-[13px] text-secondary py-8 text-center">Nessuna transazione</p>
-            )}
+        {/* Hero */}
+        <div className="pt-6 pb-7 animate-scale-in">
+          <p className="label-caps text-secondary mb-3">Patrimonio netto</p>
+          <p className="text-[52px] leading-none font-bold text-primary balance-num">
+            {formatCurrency(p.netWorth)}
+          </p>
+          {periodDelta !== 0 && (
+            <p className={`text-[13px] mt-2.5 balance-num ${periodDelta >= 0 ? 'text-green' : 'text-red'}`}>
+              {periodDelta >= 0 ? '+' : ''}{formatCurrency(periodDelta)}&ensp;{periodOpt.desc}
+            </p>
+          )}
+          <div className="flex gap-8 mt-7 pt-6 border-t border-white/[0.06]">
+            <div>
+              <p className="label-caps text-secondary mb-2">Liquidità</p>
+              <p className="text-sm font-semibold text-primary balance-num">{formatCurrency(p.liquidity)}</p>
+            </div>
+            <div>
+              <p className="label-caps text-secondary mb-2">Investito</p>
+              <p className="text-sm font-semibold balance-num text-gold">
+                {formatCurrency(p.investmentTotal)}
+              </p>
+            </div>
           </div>
         </div>
-      </section>
+
+        {/* Period selector */}
+        <div className="flex items-center gap-1.5">
+          {PERIOD_OPTS.map(opt => (
+            <button key={opt.value} onClick={() => setPeriod(opt.value)}
+              className={`px-3.5 py-1.5 rounded-full text-xs font-semibold transition-all ${
+                period === opt.value ? 'bg-gold/20 text-gold' : 'text-secondary hover:text-primary'
+              }`}>
+              {opt.label}
+            </button>
+          ))}
+        </div>
+
+        {/* Period stats */}
+        <div className="grid grid-cols-3 gap-2.5">
+          <Stat label="Entrate"   value={formatCurrency(periodIncome)}   colorClass="text-green" />
+          <Stat label="Uscite"    value={formatCurrency(periodExpenses)}  colorClass="text-secondary" />
+          <Stat label="Risparmio" value={formatCurrency(saved)} colorClass={saved >= 0 ? 'text-gold' : 'text-red'} />
+        </div>
+      </div>
+
+      {/* Cards grid — 1 col mobile, 2 col desktop */}
+      <div className="mt-3 md:grid md:grid-cols-2 md:gap-5 md:items-start space-y-3 md:space-y-0">
+
+        {/* Left column */}
+        <div className="space-y-3">
+          <TrendChart data={p.trend} />
+
+          {/* Recent transactions */}
+          <section>
+            <div className="flex items-center justify-between mb-3">
+              <h3 className="text-[13px] font-semibold text-primary">Recenti</h3>
+              <button onClick={p.onSeeAll} className="label-caps text-gold" style={{ letterSpacing: '0.06em' }}>
+                Vedi tutte
+              </button>
+            </div>
+            <div className="glass-card rounded-2xl overflow-hidden">
+              <div className="divide-y divide-white/[0.06] px-4">
+                {p.recentTransactions.slice(0, 8).map(tx => (
+                  <TransactionRow key={tx.id} tx={tx} onClick={p.onEditTransaction} />
+                ))}
+                {p.recentTransactions.length === 0 && (
+                  <p className="text-[13px] text-secondary py-8 text-center">Nessuna transazione</p>
+                )}
+              </div>
+            </div>
+          </section>
+        </div>
+
+        {/* Right column */}
+        <div className="space-y-3">
+          <CategoryCard categoryTotals={periodCategoryTotals} />
+          <AccountsCard
+            accountBalances={p.accountBalances}
+            expenseByAccount={periodExpenseByAccount}
+            mode={accMode}
+            onToggle={() => setAccMode(m => m === 'balance' ? 'spending' : 'balance')}
+          />
+          <Insights
+            transactions={p.transactions}
+            monthlyIncome={p.monthlyIncome}
+            monthlyExpenses={p.monthlyExpenses}
+            monthlyInvestments={p.monthlyInvestments}
+          />
+        </div>
+      </div>
     </div>
   );
 }
