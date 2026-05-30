@@ -193,7 +193,7 @@ export function SettingsScreen({ user, transactions, onLogOut, onDeleteAll, onDe
                   }`}
                   aria-label="Cambia tema"
                 >
-                  <span className={`absolute top-[3px] w-5 h-5 rounded-full bg-white shadow-sm transition-transform duration-200 ${
+                  <span className={`absolute left-0 top-[3px] w-5 h-5 rounded-full bg-white shadow-sm transition-transform duration-200 ${
                     theme === 'dark' ? 'translate-x-[23px]' : 'translate-x-[3px]'
                   }`} />
                 </button>

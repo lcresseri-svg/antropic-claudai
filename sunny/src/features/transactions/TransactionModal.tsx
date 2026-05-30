@@ -377,7 +377,7 @@ function ToggleBlock({ title, subtitle, on, onToggle, children }: {
           <p className="text-xs text-secondary mt-0.5">{subtitle}</p>
         </div>
         <div className={`w-11 h-6 rounded-full transition-colors relative flex-shrink-0 ml-3 ${on ? 'bg-gold' : 'bg-secondary/20'}`}>
-          <span className={`absolute top-0.5 w-5 h-5 bg-white rounded-full shadow transition-transform ${on ? 'translate-x-5' : 'translate-x-0.5'}`} />
+          <span className={`absolute left-0 top-0.5 w-5 h-5 bg-white rounded-full shadow transition-transform ${on ? 'translate-x-5' : 'translate-x-0.5'}`} />
         </div>
       </button>
       {on && <div className="border-t border-white/[0.06] px-4 pb-4 pt-3">{children}</div>}
