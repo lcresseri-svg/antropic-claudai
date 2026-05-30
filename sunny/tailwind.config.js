@@ -4,17 +4,19 @@ export default {
   theme: {
     extend: {
       colors: {
-        bg:           '#0D0D0D',
-        surface:      '#101010',
-        card:         '#141414',
-        'card-hover': '#1A1A1A',
-        elevated:     '#1A1A1A',
-        primary:      '#F0F0F0',
-        secondary:    '#666666',
-        gold:         '#E6B95C',
-        green:        '#7A9E6E',
-        red:          '#C0605A',
-        divider:      '#1C1C1C',
+        // All tokens resolve via CSS custom properties so dark/light just swaps the vars.
+        // The `<alpha-value>` placeholder lets Tailwind's opacity modifiers work (e.g. bg-gold/20).
+        bg:           'rgb(var(--c-bg) / <alpha-value>)',
+        surface:      'rgb(var(--c-surface) / <alpha-value>)',
+        card:         'rgb(var(--c-card) / <alpha-value>)',
+        'card-hover': 'rgb(var(--c-card-hover) / <alpha-value>)',
+        elevated:     'rgb(var(--c-elevated) / <alpha-value>)',
+        primary:      'rgb(var(--c-primary) / <alpha-value>)',
+        secondary:    'rgb(var(--c-secondary) / <alpha-value>)',
+        gold:         'rgb(var(--c-gold) / <alpha-value>)',
+        green:        'rgb(var(--c-green) / <alpha-value>)',
+        red:          'rgb(var(--c-red) / <alpha-value>)',
+        divider:      'rgb(var(--c-divider) / <alpha-value>)',
       },
       fontFamily: {
         sans: ['Inter', '-apple-system', 'BlinkMacSystemFont', 'SF Pro Display', 'system-ui', 'sans-serif'],

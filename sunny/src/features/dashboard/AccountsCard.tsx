@@ -41,11 +41,11 @@ export function AccountsCard({ accountBalances, expenseByAccount, mode, onToggle
             <div className="flex items-center gap-2.5 mb-1.5">
               <span className="w-7 h-7 rounded-xl flex items-center justify-center text-sm flex-shrink-0" style={{ backgroundColor: acc.color + '18' }}>{acc.icon}</span>
               <span className="text-[13px] text-primary flex-1 truncate">{acc.label}</span>
-              <span className="text-[13px] font-semibold balance-num" style={{ color: value < 0 && mode === 'balance' ? '#E08B8B' : '#F5F5F5' }}>
+              <span className={`text-[13px] font-semibold balance-num ${value < 0 && mode === 'balance' ? 'text-[#E08B8B]' : 'text-primary'}`}>
                 {formatCurrency(value)}
               </span>
             </div>
-            <div className="h-1.5 rounded-full bg-white/[0.06] overflow-hidden">
+            <div className="h-1.5 rounded-full progress-track overflow-hidden">
               <div className="h-full rounded-full transition-all duration-500"
                 style={{ width: `${(Math.abs(value) / max) * 100}%`, backgroundColor: acc.color }} />
             </div>

@@ -33,7 +33,7 @@ function reorder<T>(arr: T[], from: number, to: number): T[] {
 
 export function SettingsScreen({ user, transactions, onLogOut, onDeleteAll, onDeleteAccount }: Props) {
   const navigate = useNavigate();
-  const { categories, accounts, saveCategories, saveAccounts } = useSettings();
+  const { categories, accounts, theme, saveCategories, saveAccounts, saveTheme } = useSettings();
   const [sub, setSub] = useState<Sub>('menu');
   const [editing, setEditing] = useState<{ kind: 'category' | 'account'; draft: DefDraft; isNew: boolean; withKind?: boolean } | null>(null);
   const [confirmReset, setConfirmReset] = useState(false);
@@ -174,6 +174,31 @@ export function SettingsScreen({ user, transactions, onLogOut, onDeleteAll, onDe
               <p className="text-xs text-secondary truncate">{user.email}</p>
             </div>
             <button onClick={onLogOut} className="text-xs font-medium text-secondary px-3 py-2 rounded-xl bg-elevated">Esci</button>
+          </div>
+
+          {/* Appearance */}
+          <div>
+            <p className="label-caps text-secondary px-1 mb-2">Aspetto</p>
+            <div className="bg-card rounded-2xl p-4">
+              <div className="flex items-center gap-3.5">
+                <span className="text-2xl">{theme === 'light' ? '☀️' : '🌙'}</span>
+                <div className="flex-1">
+                  <p className="text-sm font-medium text-primary">Tema {theme === 'light' ? 'chiaro' : 'scuro'}</p>
+                  <p className="text-xs text-secondary">Tocca per cambiare</p>
+                </div>
+                <button
+                  onClick={() => saveTheme(theme === 'dark' ? 'light' : 'dark')}
+                  className={`relative flex-shrink-0 w-[46px] h-[26px] rounded-full transition-colors duration-200 ${
+                    theme === 'light' ? 'bg-gold' : 'bg-secondary/25'
+                  }`}
+                  aria-label="Cambia tema"
+                >
+                  <span className={`absolute top-[3px] w-5 h-5 rounded-full bg-white shadow-sm transition-transform duration-200 ${
+                    theme === 'light' ? 'translate-x-[23px]' : 'translate-x-[3px]'
+                  }`} />
+                </button>
+              </div>
+            </div>
           </div>
 
           {/* Management entries */}

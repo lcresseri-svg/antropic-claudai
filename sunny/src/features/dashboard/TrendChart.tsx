@@ -57,10 +57,10 @@ export function TrendChart({ data }: Props) {
         <p className="label-caps text-secondary">Andamento 6 mesi</p>
         <div className="flex items-center gap-3 text-[11px] text-secondary">
           <span className="flex items-center gap-1.5">
-            <span className="w-5 h-px inline-block" style={{ backgroundColor: '#7A9E6E' }} /> Entrate
+            <span className="w-5 h-px inline-block" style={{ backgroundColor: 'var(--accent-green)' }} /> Entrate
           </span>
           <span className="flex items-center gap-1.5">
-            <span className="w-5 h-px inline-block" style={{ backgroundColor: '#E6B95C' }} /> Uscite
+            <span className="w-5 h-px inline-block" style={{ backgroundColor: 'var(--accent-gold)' }} /> Uscite
           </span>
         </div>
       </div>
@@ -74,12 +74,12 @@ export function TrendChart({ data }: Props) {
           <svg viewBox={`0 0 ${W} ${H}`} className="w-full overflow-visible" style={{ height: H }}>
             <defs>
               <linearGradient id="incGrad" x1="0" y1="0" x2="0" y2="1">
-                <stop offset="0%" stopColor="#7A9E6E" stopOpacity="0.18" />
-                <stop offset="100%" stopColor="#7A9E6E" stopOpacity="0" />
+                <stop offset="0%" style={{ stopColor: 'var(--accent-green)', stopOpacity: 0.18 }} />
+                <stop offset="100%" style={{ stopColor: 'var(--accent-green)', stopOpacity: 0 }} />
               </linearGradient>
               <linearGradient id="expGrad" x1="0" y1="0" x2="0" y2="1">
-                <stop offset="0%" stopColor="#E6B95C" stopOpacity="0.14" />
-                <stop offset="100%" stopColor="#E6B95C" stopOpacity="0" />
+                <stop offset="0%" style={{ stopColor: 'var(--accent-gold)', stopOpacity: 0.14 }} />
+                <stop offset="100%" style={{ stopColor: 'var(--accent-gold)', stopOpacity: 0 }} />
               </linearGradient>
             </defs>
 
@@ -88,7 +88,7 @@ export function TrendChart({ data }: Props) {
               <line key={t}
                 x1={PAD_X} y1={PAD_Y + t * (H - PAD_Y * 2)}
                 x2={W - PAD_X} y2={PAD_Y + t * (H - PAD_Y * 2)}
-                stroke="rgba(255,255,255,0.06)" strokeWidth="1" />
+                style={{ stroke: 'var(--progress-track)' }} strokeWidth="1" />
             ))}
 
             {/* Area fills */}
@@ -97,15 +97,15 @@ export function TrendChart({ data }: Props) {
 
             {/* Lines */}
             <path d={smoothPath(incPts)} fill="none"
-              stroke="#7A9E6E" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" />
+              style={{ stroke: 'var(--accent-green)' }} strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" />
             <path d={smoothPath(expPts)} fill="none"
-              stroke="#E6B95C" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" />
+              style={{ stroke: 'var(--accent-gold)' }} strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" />
 
             {/* Dots at last point */}
             <circle cx={incPts[incPts.length - 1].x} cy={incPts[incPts.length - 1].y}
-              r="2.5" fill="#7A9E6E" />
+              r="2.5" style={{ fill: 'var(--accent-green)' }} />
             <circle cx={expPts[expPts.length - 1].x} cy={expPts[expPts.length - 1].y}
-              r="2.5" fill="#E6B95C" />
+              r="2.5" style={{ fill: 'var(--accent-gold)' }} />
           </svg>
 
           {/* Month labels */}

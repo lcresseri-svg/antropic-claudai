@@ -111,7 +111,7 @@ export function TransactionList({ transactions, onEdit, onDelete, onBulkUpdate, 
           <div key={key} className="bg-card rounded-2xl p-4">
             <div className="flex items-center justify-between mb-1 px-1">
               <h4 className="label-caps text-secondary">{groupTitle(key)}</h4>
-              <span className="text-xs font-medium balance-num" style={{ color: groupSum(txs) >= 0 ? '#8A9270' : '#8B8B8B' }}>
+              <span className={`text-xs font-medium balance-num ${groupSum(txs) >= 0 ? 'text-green' : 'text-secondary'}`}>
                 {formatCurrency(groupSum(txs), { sign: true })}
               </span>
             </div>

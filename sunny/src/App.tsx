@@ -87,19 +87,14 @@ function Main({ user, onLogOut, onDeleteAccount }: {
               {settingsOpen && (
                 <>
                   <div className="fixed inset-0 z-40" onClick={() => setSettingsOpen(false)} />
-                  <div className="absolute right-0 top-10 z-50 rounded-2xl py-1 w-44 animate-fade-in-fast border border-white/[0.11] shadow-float"
-                    style={{
-                      background: 'rgba(22,22,22,0.94)',
-                      backdropFilter: 'blur(40px) saturate(200%)',
-                      WebkitBackdropFilter: 'blur(40px) saturate(200%)',
-                    }}>
+                  <div className="absolute right-0 top-10 z-50 rounded-2xl py-1 w-44 animate-fade-in-fast border border-divider shadow-float glass-elevated">
                     <button onClick={() => { navigate('/settings'); setSettingsOpen(false); }}
-                      className="w-full flex items-center gap-3 px-4 py-2.5 text-sm text-primary hover:bg-white/[0.04] transition-colors text-left rounded-t-2xl">
+                      className="w-full flex items-center gap-3 px-4 py-2.5 text-sm text-primary hover:bg-card-hover transition-colors text-left rounded-t-2xl">
                       <HeaderGearIcon /> Impostazioni
                     </button>
-                    <div className="h-px bg-white/[0.06] mx-3" />
+                    <div className="h-px bg-divider mx-3" />
                     <button onClick={() => { setImportOpen(true); setSettingsOpen(false); }}
-                      className="w-full flex items-center gap-3 px-4 py-2.5 text-sm text-primary hover:bg-white/[0.04] transition-colors text-left rounded-b-2xl">
+                      className="w-full flex items-center gap-3 px-4 py-2.5 text-sm text-primary hover:bg-card-hover transition-colors text-left rounded-b-2xl">
                       <FolderIcon /> Importa
                     </button>
                   </div>

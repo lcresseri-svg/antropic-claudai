@@ -112,7 +112,7 @@ export function ImportModal({ open, onClose, onImport }: Props) {
             <h2 className="text-lg font-semibold text-primary">Importa</h2>
             <p className="text-xs text-secondary mt-0.5">Excel o CSV · .xlsx .xls .csv</p>
           </div>
-          <button onClick={close} className="w-8 h-8 rounded-full bg-white/[0.05] flex items-center justify-center text-secondary">✕</button>
+          <button onClick={close} className="w-8 h-8 rounded-full bg-elevated flex items-center justify-center text-secondary">✕</button>
         </div>
 
         <div className="flex-1 overflow-y-auto scrollbar-hide px-6">
@@ -131,7 +131,7 @@ export function ImportModal({ open, onClose, onImport }: Props) {
                   onChange={e => { const f = e.target.files?.[0]; if (f) process(f); }} />
               </div>
 
-              <button onClick={template} className="w-full glass-card rounded-2xl p-4 flex items-center gap-3 text-left active:bg-white/[0.08] transition-colors">
+              <button onClick={template} className="w-full glass-card rounded-2xl p-4 flex items-center gap-3 text-left active:bg-card-hover transition-colors">
                 <span className="text-2xl">📋</span>
                 <div className="flex-1">
                   <p className="text-sm font-medium text-primary">Scarica il template</p>
@@ -193,10 +193,10 @@ export function ImportModal({ open, onClose, onImport }: Props) {
         </div>
 
         <div className="p-6 pt-4 flex gap-2">
-          {step === 'upload' && <button onClick={close} className="flex-1 py-3.5 rounded-2xl bg-white/[0.05] text-secondary font-medium">Annulla</button>}
+          {step === 'upload' && <button onClick={close} className="flex-1 py-3.5 rounded-2xl bg-elevated text-secondary font-medium">Annulla</button>}
           {step === 'preview' && (
             <>
-              <button onClick={reset} className="px-5 py-3.5 rounded-2xl bg-white/[0.05] text-secondary font-medium">Indietro</button>
+              <button onClick={reset} className="px-5 py-3.5 rounded-2xl bg-elevated text-secondary font-medium">Indietro</button>
               <button onClick={() => { onImport(parsed); setStep('done'); }} disabled={parsed.length === 0}
                 className="flex-1 py-3.5 rounded-2xl bg-gold text-bg font-semibold disabled:opacity-40">
                 Importa {parsed.length}

@@ -111,8 +111,7 @@ export function Dashboard(p: Props) {
           {formatCurrency(p.netWorth)}
         </p>
         {periodDelta !== 0 && (
-          <p className="text-[13px] mt-2.5 balance-num"
-            style={{ color: periodDelta >= 0 ? '#7A9E6E' : '#C0605A' }}>
+          <p className={`text-[13px] mt-2.5 balance-num ${periodDelta >= 0 ? 'text-green' : 'text-red'}`}>
             {periodDelta >= 0 ? '+' : ''}{formatCurrency(periodDelta)}&ensp;{periodOpt.desc}
           </p>
         )}
@@ -123,7 +122,7 @@ export function Dashboard(p: Props) {
           </div>
           <div>
             <p className="label-caps text-secondary mb-2">Investito</p>
-            <p className="text-sm font-semibold balance-num" style={{ color: '#E6B95C' }}>
+            <p className="text-sm font-semibold balance-num text-gold">
               {formatCurrency(p.investmentTotal)}
             </p>
           </div>
@@ -149,9 +148,9 @@ export function Dashboard(p: Props) {
 
       {/* Period stats */}
       <div className="grid grid-cols-3 gap-2.5">
-        <Stat label="Entrate"   value={formatCurrency(periodIncome)}    color="#7A9E6E" />
-        <Stat label="Uscite"    value={formatCurrency(periodExpenses)}   color="#666666" />
-        <Stat label="Risparmio" value={formatCurrency(saved)} color={saved >= 0 ? '#E6B95C' : '#C0605A'} />
+        <Stat label="Entrate"   value={formatCurrency(periodIncome)}   colorClass="text-green" />
+        <Stat label="Uscite"    value={formatCurrency(periodExpenses)}  colorClass="text-secondary" />
+        <Stat label="Risparmio" value={formatCurrency(saved)} colorClass={saved >= 0 ? 'text-gold' : 'text-red'} />
       </div>
 
       <TrendChart data={p.trend} />
@@ -193,11 +192,11 @@ export function Dashboard(p: Props) {
   );
 }
 
-function Stat({ label, value, color }: { label: string; value: string; color: string }) {
+function Stat({ label, value, colorClass }: { label: string; value: string; colorClass: string }) {
   return (
     <div className="glass-card rounded-2xl px-4 py-4">
       <p className="label-caps text-secondary mb-2">{label}</p>
-      <p className="text-[14px] font-semibold balance-num truncate" style={{ color }}>{value}</p>
+      <p className={`text-[14px] font-semibold balance-num truncate ${colorClass}`}>{value}</p>
     </div>
   );
 }

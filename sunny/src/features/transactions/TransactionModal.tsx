@@ -154,14 +154,14 @@ export function TransactionModal({ open, editing, groupTransfers = [], onClose, 
       <div className="absolute inset-0 bg-black/60 backdrop-blur-sm animate-fade-in-fast" />
 
       <div className="relative w-full max-w-sm glass-elevated rounded-3xl shadow-float max-h-[88vh] overflow-y-auto scrollbar-hide animate-sheet-up">
-        <div className="sticky top-0 bg-[rgba(20,20,20,0.85)] backdrop-blur-xl z-10 px-5 pt-5 pb-3 flex items-center justify-between">
+        <div className="sticky top-0 bg-[var(--modal-hdr-bg)] backdrop-blur-xl z-10 px-5 pt-5 pb-3 flex items-center justify-between">
           <h2 className="text-base font-semibold text-primary">{editing ? 'Modifica' : 'Nuova transazione'}</h2>
-          <button onClick={onClose} className="w-8 h-8 rounded-full bg-white/[0.05] flex items-center justify-center text-secondary">✕</button>
+          <button onClick={onClose} className="w-8 h-8 rounded-full bg-elevated flex items-center justify-center text-secondary">✕</button>
         </div>
 
         <form onSubmit={submit} className="px-5 pb-5 space-y-3">
           {/* Type segmented */}
-          <div className="grid grid-cols-4 gap-1.5 bg-white/[0.05] rounded-2xl p-1">
+          <div className="grid grid-cols-4 gap-1.5 bg-elevated rounded-2xl p-1">
             {TYPE_ORDER.map(t => (
               <button key={t} type="button" onClick={() => setType(t)}
                 className="py-2 rounded-xl text-[11px] font-semibold transition-all"
@@ -174,16 +174,15 @@ export function TransactionModal({ open, editing, groupTransfers = [], onClose, 
           {/* Amount */}
           <div className="text-center">
             <div className="flex items-center justify-center gap-1">
-              <span className="text-2xl font-semibold" style={{ color: amountError ? '#C0605A' : undefined }}>€</span>
+              <span className={`text-2xl font-semibold ${amountError ? 'text-red' : 'text-primary'}`}>€</span>
               <input
                 type="text" inputMode="decimal" placeholder="0" value={amount}
                 onChange={e => { setAmount(e.target.value.replace(/[^\d.,]/g, '')); setAmountError(false); }}
-                className="bg-transparent text-4xl font-bold text-center w-40 outline-none balance-num placeholder:text-divider transition-colors"
-                style={{ color: amountError ? '#C0605A' : undefined }}
+                className={`bg-transparent text-4xl font-bold text-center w-40 outline-none balance-num placeholder:text-divider transition-colors ${amountError ? 'text-red' : 'text-primary'}`}
               />
             </div>
             {amountError && (
-              <p className="text-xs mt-1 transition-opacity" style={{ color: '#C0605A' }}>Inserisci un importo valido</p>
+              <p className="text-xs mt-1 transition-opacity text-red">Inserisci un importo valido</p>
             )}
           </div>
 
@@ -198,7 +197,7 @@ export function TransactionModal({ open, editing, groupTransfers = [], onClose, 
                   if (g) setCategory(g);
                 }
               }} required
-              className="w-full bg-white/[0.05] rounded-2xl px-4 py-3 text-primary placeholder:text-secondary/50 outline-none focus:ring-1 focus:ring-gold/40" />
+              className="w-full bg-elevated rounded-2xl px-4 py-3 text-primary placeholder:text-secondary/50 outline-none focus:ring-1 focus:ring-gold/40" />
           </Field>
 
           {/* Category */}
@@ -236,15 +235,15 @@ export function TransactionModal({ open, editing, groupTransfers = [], onClose, 
           <Field label="Data">
             <div className="flex gap-2">
               <button type="button" onClick={() => setDate(td)}
-                className={`px-3.5 py-2 rounded-xl text-xs font-semibold transition-colors flex-shrink-0 ${date === td ? 'bg-gold text-bg' : 'bg-white/[0.05] text-secondary'}`}>
+                className={`px-3.5 py-2 rounded-xl text-xs font-semibold transition-colors flex-shrink-0 ${date === td ? 'bg-gold text-bg' : 'bg-elevated text-secondary'}`}>
                 Oggi
               </button>
               <button type="button" onClick={() => setDate(yd)}
-                className={`px-3.5 py-2 rounded-xl text-xs font-semibold transition-colors flex-shrink-0 ${date === yd ? 'bg-gold text-bg' : 'bg-white/[0.05] text-secondary'}`}>
+                className={`px-3.5 py-2 rounded-xl text-xs font-semibold transition-colors flex-shrink-0 ${date === yd ? 'bg-gold text-bg' : 'bg-elevated text-secondary'}`}>
                 Ieri
               </button>
               <input type="date" value={date} onChange={e => setDate(e.target.value)}
-                className="flex-1 min-w-0 bg-white/[0.05] rounded-xl px-3 py-2 text-primary text-xs outline-none focus:ring-1 focus:ring-gold/40" />
+                className="flex-1 min-w-0 bg-elevated rounded-xl px-3 py-2 text-primary text-xs outline-none focus:ring-1 focus:ring-gold/40" />
             </div>
           </Field>
 
@@ -286,25 +285,25 @@ export function TransactionModal({ open, editing, groupTransfers = [], onClose, 
                           <span className="absolute left-2.5 top-1/2 -translate-y-1/2 text-secondary text-sm">€</span>
                           <input type="text" inputMode="decimal" placeholder="0" value={r.amount}
                             onChange={e => updateReimb(i, { amount: e.target.value.replace(/[^\d.,]/g, '') })}
-                            className="w-full bg-white/[0.04] rounded-xl pl-6 pr-2 py-2.5 text-primary text-sm outline-none focus:ring-1 focus:ring-gold/40 balance-num" />
+                            className="w-full bg-elevated rounded-xl pl-6 pr-2 py-2.5 text-primary text-sm outline-none focus:ring-1 focus:ring-gold/40 balance-num" />
                         </div>
                         <select value={r.account} onChange={e => updateReimb(i, { account: e.target.value })}
-                          className="flex-1 min-w-0 bg-white/[0.04] rounded-xl px-3 py-2.5 text-primary text-sm outline-none focus:ring-1 focus:ring-gold/40 appearance-none">
+                          className="flex-1 min-w-0 bg-elevated rounded-xl px-3 py-2.5 text-primary text-sm outline-none focus:ring-1 focus:ring-gold/40 appearance-none">
                           {accounts.filter(a => a.id !== account).map(a => <option key={a.id} value={a.id} className="bg-elevated">{a.icon} {a.label}</option>)}
                         </select>
                         <button type="button" onClick={() => removeReimb(i)}
-                          className="w-8 h-8 rounded-full bg-white/[0.05] flex items-center justify-center text-secondary flex-shrink-0">✕</button>
+                          className="w-8 h-8 rounded-full bg-elevated flex items-center justify-center text-secondary flex-shrink-0">✕</button>
                       </div>
                     ))}
                     <button type="button" onClick={addReimb}
-                      className="w-full py-2.5 rounded-xl bg-white/[0.05] text-gold text-sm font-medium">
+                      className="w-full py-2.5 rounded-xl bg-elevated text-gold text-sm font-medium">
                       + Aggiungi storno
                     </button>
                     {reimbursements.length > 0 && (
                       <div className="space-y-1.5 pt-1">
                         <Row label="Totale stornato" value={formatCurrency(sum)} muted />
                         <Row label="La tua spesa effettiva" value={formatCurrency(net < 0 ? 0 : net)} />
-                        {over && <p className="text-xs" style={{ color: '#C0605A' }}>Gli storni superano il totale</p>}
+                        {over && <p className="text-xs text-red">Gli storni superano il totale</p>}
                       </div>
                     )}
                   </div>
@@ -325,7 +324,7 @@ export function TransactionModal({ open, editing, groupTransfers = [], onClose, 
                 <div className="flex gap-2">
                   {(['weekly', 'monthly', 'yearly'] as const).map(f => (
                     <button key={f} type="button" onClick={() => setRecurringFreq(f)}
-                      className={`flex-1 py-2 rounded-xl text-xs font-semibold transition-colors ${recurringFreq === f ? 'bg-gold text-bg' : 'bg-white/[0.04] text-secondary'}`}>
+                      className={`flex-1 py-2 rounded-xl text-xs font-semibold transition-colors ${recurringFreq === f ? 'bg-gold text-bg' : 'bg-elevated text-secondary'}`}>
                       {f === 'weekly' ? 'Settimanale' : f === 'monthly' ? 'Mensile' : 'Annuale'}
                     </button>
                   ))}
@@ -334,7 +333,7 @@ export function TransactionModal({ open, editing, groupTransfers = [], onClose, 
               <div>
                 <label className="text-xs font-medium text-secondary mb-2 block">Termina il (opzionale)</label>
                 <input type="date" value={recurringUntil} onChange={e => setRecurringUntil(e.target.value)}
-                  className="block w-full min-w-0 box-border appearance-none bg-white/[0.04] rounded-xl px-3 py-2 text-primary text-sm outline-none focus:ring-1 focus:ring-gold/40" />
+                  className="block w-full min-w-0 box-border appearance-none bg-elevated rounded-xl px-3 py-2 text-primary text-sm outline-none focus:ring-1 focus:ring-gold/40" />
               </div>
             </div>
           </ToggleBlock>
@@ -377,7 +376,7 @@ function ToggleBlock({ title, subtitle, on, onToggle, children }: {
           <p className="text-sm font-medium text-primary">{title}</p>
           <p className="text-xs text-secondary mt-0.5">{subtitle}</p>
         </div>
-        <div className={`w-11 h-6 rounded-full transition-colors relative flex-shrink-0 ml-3 ${on ? 'bg-gold' : 'bg-white/[0.10]'}`}>
+        <div className={`w-11 h-6 rounded-full transition-colors relative flex-shrink-0 ml-3 ${on ? 'bg-gold' : 'bg-secondary/20'}`}>
           <span className={`absolute top-0.5 w-5 h-5 bg-white rounded-full shadow transition-transform ${on ? 'translate-x-5' : 'translate-x-0.5'}`} />
         </div>
       </button>
@@ -407,7 +406,7 @@ function Field({ label, children }: { label: string; children: React.ReactNode }
 function Select({ value, onChange, options }: { value: string; onChange: (v: string) => void; options: { value: string; label: string }[] }) {
   return (
     <select value={value} onChange={e => onChange(e.target.value)}
-      className="w-full bg-white/[0.05] rounded-2xl px-4 py-3 text-primary text-sm outline-none focus:ring-1 focus:ring-gold/40 appearance-none">
+      className="w-full bg-elevated rounded-2xl px-4 py-3 text-primary text-sm outline-none focus:ring-1 focus:ring-gold/40 appearance-none">
       {options.map(o => <option key={o.value} value={o.value} className="bg-elevated">{o.label}</option>)}
     </select>
   );

@@ -2,23 +2,123 @@
 @tailwind components;
 @tailwind utilities;
 
+/* ─── Design tokens ──────────────────────────────────────────────────────────
+   CSS custom properties use space-separated RGB channels so Tailwind's
+   opacity modifier syntax works: e.g. `bg-gold/20` → rgb(var(--c-gold) / 0.2).
+   ──────────────────────────────────────────────────────────────────────────── */
+
+:root {
+  /* ── Dark theme (default) ── */
+  --c-bg:         13 13 13;
+  --c-surface:    16 16 16;
+  --c-card:       20 20 20;
+  --c-card-hover: 26 26 26;
+  --c-elevated:   26 26 26;
+  --c-primary:    240 240 240;
+  --c-secondary:  102 102 102;
+  --c-gold:       230 185 92;
+  --c-green:      122 158 110;
+  --c-red:        192 96 90;
+  --c-divider:    28 28 28;
+
+  /* Accent colors for SVG / inline styles — full hex for compatibility */
+  --accent-green: #7A9E6E;
+  --accent-gold:  #E6B95C;
+  --accent-red:   #C0605A;
+  --accent-blue:  #88B0C0;
+
+  /* Glass surfaces */
+  --glass-card-bg:      rgba(255,255,255,0.04);
+  --glass-card-border:  rgba(255,255,255,0.08);
+  --glass-card-shadow:  inset 0 1px 0 rgba(255,255,255,0.12), 0 4px 16px rgba(0,0,0,0.30);
+
+  --glass-elev-bg:      rgba(255,255,255,0.065);
+  --glass-elev-border:  rgba(255,255,255,0.11);
+  --glass-elev-shadow:  inset 0 1px 0 rgba(255,255,255,0.18), 0 8px 32px rgba(0,0,0,0.45), 0 24px 64px rgba(0,0,0,0.35);
+
+  --glass-nav-bg:       rgba(255,255,255,0.07);
+  --glass-nav-border:   rgba(255,255,255,0.10);
+  --glass-nav-shadow:   inset 0 1px 0 rgba(255,255,255,0.14), inset 0 -0.5px 0 rgba(0,0,0,0.20), 0 8px 32px rgba(0,0,0,0.50);
+
+  --glass-hdr-bg:       rgba(13,13,13,0.70);
+  --glass-hdr-border:   rgba(255,255,255,0.06);
+
+  --glass-pill-bg:      rgba(255,255,255,0.10);
+  --glass-pill-border:  rgba(255,255,255,0.14);
+  --glass-pill-shadow:  inset 0 1px 0 rgba(255,255,255,0.18), 0 2px 8px rgba(0,0,0,0.25);
+
+  --progress-track:     rgba(255,255,255,0.06);
+
+  --body-grad1: rgba(230,185,92,0.07);
+  --body-grad2: rgba(122,158,110,0.04);
+
+  --modal-hdr-bg: rgba(20,20,20,0.88);
+}
+
+/* ─── Light theme ──────────────────────────────────────────────────────────── */
+html.light {
+  --c-bg:         247 246 242;
+  --c-surface:    238 237 234;
+  --c-card:       255 255 255;
+  --c-card-hover: 250 250 248;
+  --c-elevated:   255 255 255;
+  --c-primary:    26 26 26;
+  --c-secondary:  138 138 138;
+  --c-gold:       184 118 10;
+  --c-green:      61 122 54;
+  --c-red:        176 64 64;
+  --c-divider:    235 235 235;
+
+  --accent-green: #3D7A36;
+  --accent-gold:  #B87408;
+  --accent-red:   #B04040;
+  --accent-blue:  #3A7A9A;
+
+  --glass-card-bg:      rgba(255,255,255,0.78);
+  --glass-card-border:  rgba(0,0,0,0.06);
+  --glass-card-shadow:  0 1px 3px rgba(0,0,0,0.06), 0 4px 16px rgba(0,0,0,0.07);
+
+  --glass-elev-bg:      rgba(255,255,255,0.96);
+  --glass-elev-border:  rgba(0,0,0,0.08);
+  --glass-elev-shadow:  0 8px 32px rgba(0,0,0,0.12), 0 24px 64px rgba(0,0,0,0.07);
+
+  --glass-nav-bg:       rgba(247,246,242,0.90);
+  --glass-nav-border:   rgba(0,0,0,0.07);
+  --glass-nav-shadow:   0 -1px 0 rgba(0,0,0,0.06), 0 -8px 32px rgba(0,0,0,0.04);
+
+  --glass-hdr-bg:       rgba(247,246,242,0.88);
+  --glass-hdr-border:   rgba(0,0,0,0.07);
+
+  --glass-pill-bg:      rgba(0,0,0,0.06);
+  --glass-pill-border:  rgba(0,0,0,0.09);
+  --glass-pill-shadow:  0 1px 3px rgba(0,0,0,0.08);
+
+  --progress-track:     rgba(0,0,0,0.07);
+
+  --body-grad1: rgba(230,185,92,0.12);
+  --body-grad2: rgba(122,158,110,0.07);
+
+  --modal-hdr-bg: rgba(255,255,255,0.92);
+}
+
 @layer base {
   html {
-    background-color: #0D0D0D;
+    background-color: rgb(var(--c-bg));
     -webkit-text-size-adjust: 100%;
   }
   body {
-    background-color: #0D0D0D;
+    background-color: rgb(var(--c-bg));
     background-image:
-      radial-gradient(ellipse 80% 40% at 50% 0%, rgba(230,185,92,0.07) 0%, transparent 60%),
-      radial-gradient(ellipse 60% 30% at 80% 100%, rgba(122,158,110,0.04) 0%, transparent 50%);
+      radial-gradient(ellipse 80% 40% at 50% 0%, var(--body-grad1) 0%, transparent 60%),
+      radial-gradient(ellipse 60% 30% at 80% 100%, var(--body-grad2) 0%, transparent 50%);
     background-attachment: fixed;
-    color: #F0F0F0;
+    color: rgb(var(--c-primary));
     font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'SF Pro Display', system-ui, sans-serif;
     -webkit-font-smoothing: antialiased;
     -moz-osx-font-smoothing: grayscale;
     letter-spacing: -0.015em;
     font-feature-settings: 'cv11', 'ss01';
+    transition: background-color 0.25s ease, color 0.25s ease;
   }
 }
 
@@ -32,58 +132,64 @@
   .safe-bottom { padding-bottom: env(safe-area-inset-bottom); }
   .safe-top    { padding-top:    env(safe-area-inset-top);    }
 
-  /* Financial numbers — tabular, tight tracking */
   .balance-num {
     font-variant-numeric: tabular-nums;
     letter-spacing: -0.035em;
   }
 
-  /* Micro label — uppercase with generous tracking */
   .label-caps {
-    font-size: 0.625rem;   /* 10px */
+    font-size: 0.625rem;
     font-weight: 500;
     letter-spacing: 0.1em;
     text-transform: uppercase;
   }
 
   .glass-card {
-    background: rgba(255,255,255,0.04);
+    background: var(--glass-card-bg);
     backdrop-filter: blur(24px) saturate(180%);
     -webkit-backdrop-filter: blur(24px) saturate(180%);
-    border: 0.5px solid rgba(255,255,255,0.08);
-    box-shadow: inset 0 1px 0 rgba(255,255,255,0.12), 0 4px 16px rgba(0,0,0,0.30);
+    border: 0.5px solid var(--glass-card-border);
+    box-shadow: var(--glass-card-shadow);
   }
   .glass-elevated {
-    background: rgba(255,255,255,0.065);
+    background: var(--glass-elev-bg);
     backdrop-filter: blur(40px) saturate(200%);
     -webkit-backdrop-filter: blur(40px) saturate(200%);
-    border: 0.5px solid rgba(255,255,255,0.11);
-    box-shadow: inset 0 1px 0 rgba(255,255,255,0.18), 0 8px 32px rgba(0,0,0,0.45), 0 24px 64px rgba(0,0,0,0.35);
+    border: 0.5px solid var(--glass-elev-border);
+    box-shadow: var(--glass-elev-shadow);
   }
   .glass-nav {
-    background: rgba(255,255,255,0.07);
+    background: var(--glass-nav-bg);
     backdrop-filter: blur(32px) saturate(180%) brightness(1.05);
     -webkit-backdrop-filter: blur(32px) saturate(180%) brightness(1.05);
-    border: 0.5px solid rgba(255,255,255,0.10);
-    box-shadow: inset 0 1px 0 rgba(255,255,255,0.14), inset 0 -0.5px 0 rgba(0,0,0,0.20), 0 8px 32px rgba(0,0,0,0.50);
+    border: 0.5px solid var(--glass-nav-border);
+    box-shadow: var(--glass-nav-shadow);
   }
   .glass-header {
-    background: rgba(13,13,13,0.70);
+    background: var(--glass-hdr-bg);
     backdrop-filter: blur(28px) saturate(160%);
     -webkit-backdrop-filter: blur(28px) saturate(160%);
-    border-bottom: 0.5px solid rgba(255,255,255,0.06);
+    border-bottom: 0.5px solid var(--glass-hdr-border);
   }
   .glass-active-pill {
-    background: rgba(255,255,255,0.10);
-    border: 0.5px solid rgba(255,255,255,0.14);
-    box-shadow: inset 0 1px 0 rgba(255,255,255,0.18), 0 2px 8px rgba(0,0,0,0.25);
+    background: var(--glass-pill-bg);
+    border: 0.5px solid var(--glass-pill-border);
+    box-shadow: var(--glass-pill-shadow);
   }
   .glass-cta-gold {
     background: linear-gradient(160deg, #F5C842 0%, #E6B95C 40%, #C9922A 100%);
     box-shadow: inset 0 1px 0 rgba(255,255,255,0.35), inset 0 -1px 0 rgba(0,0,0,0.20), 0 4px 12px rgba(230,185,92,0.35);
   }
+  .progress-track {
+    background: var(--progress-track);
+  }
 }
 
-/* System date/select use dark color-scheme */
+/* Form controls follow the current color scheme */
 input[type="date"] { color-scheme: dark; }
 select             { color-scheme: dark; }
+
+html.light input[type="date"],
+html.light select {
+  color-scheme: light;
+}

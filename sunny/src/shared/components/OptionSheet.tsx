@@ -22,13 +22,13 @@ export function OptionSheet({ open, title, options, onPick, onClose, footer }: P
         <div className="flex items-center justify-between px-6 pt-6 pb-4">
           <h3 className="text-base font-semibold text-primary">{title}</h3>
           <button onClick={onClose}
-            className="w-8 h-8 rounded-full bg-white/[0.05] flex items-center justify-center text-secondary text-sm">✕</button>
+            className="w-8 h-8 rounded-full bg-elevated flex items-center justify-center text-secondary text-sm">✕</button>
         </div>
 
         <div className="grid grid-cols-2 gap-2 overflow-y-auto scrollbar-hide px-6 pb-6">
           {options.map(o => (
             <button key={o.id} onClick={() => onPick(o.id)}
-              className="flex items-center gap-3 p-3.5 rounded-2xl bg-white/[0.05] active:bg-white/[0.08] transition-colors text-left">
+              className="flex items-center gap-3 p-3.5 rounded-2xl bg-elevated active:bg-card-hover transition-colors text-left">
               <span className="w-9 h-9 rounded-xl flex items-center justify-center text-base flex-shrink-0"
                 style={{ backgroundColor: o.color + '18' }}>{o.icon}</span>
               <span className="text-sm font-medium text-primary truncate">{o.label}</span>

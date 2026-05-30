@@ -20,7 +20,7 @@ export function TransactionRow({ tx, selectable, selected, onToggle, onClick }: 
   const isInvestment = tx.type === 'investment';
 
   const prefix = isIncome ? '+' : isTransfer ? '' : '−';
-  const amountColor = isIncome ? '#8A9270' : isInvestment ? '#E6B95C' : isTransfer ? '#88B0C0' : '#F5F5F5';
+  const amountClass = isIncome ? 'text-green' : isInvestment ? 'text-gold' : isTransfer ? 'text-[#88B0C0]' : 'text-primary';
 
   const handleClick = () => {
     if (selectable) onToggle?.(tx.id);
@@ -55,7 +55,7 @@ export function TransactionRow({ tx, selectable, selected, onToggle, onClick }: 
       </div>
 
       <div className="text-right flex-shrink-0">
-        <p className="text-[15px] font-semibold balance-num" style={{ color: amountColor }}>
+        <p className={`text-[15px] font-semibold balance-num ${amountClass}`}>
           {prefix}{formatCurrency(tx.amount)}
         </p>
         {tx.shared ? (
