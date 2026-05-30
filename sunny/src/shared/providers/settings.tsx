@@ -22,12 +22,14 @@ interface SettingsValue {
 
 const SettingsContext = createContext<SettingsValue | null>(null);
 
+const MERGE = { merge: true } as const;
+
 export function SettingsProvider({ user, children }: { user: User | null; children: ReactNode }) {
   const [categories, setCategories] = useState<CategoryDef[]>(DEFAULT_CATEGORIES);
   const [accounts, setAccounts] = useState<AccountDef[]>(DEFAULT_ACCOUNTS);
   const [theme, setTheme] = useState<Theme>('dark');
 
-  // Apply theme class to <html> whenever theme changes
+  // Apply theme class to <html> immediately when state changes
   useEffect(() => {
     document.documentElement.classList.toggle('light', theme === 'light');
   }, [theme]);
@@ -52,27 +54,27 @@ export function SettingsProvider({ user, children }: { user: User | null; childr
     });
   }, [user]);
 
-  const persist = useCallback(
-    (cats: CategoryDef[], accs: AccountDef[], t: Theme) => {
-      if (user) setDoc(doc(db, 'users', user.uid, 'meta', 'settings'), { categories: cats, accounts: accs, theme: t });
-    },
+  // Each save function writes only its own field (merge: true) to avoid
+  // stale-closure overwrites and race conditions with onSnapshot.
+  const settingsRef = useCallback(
+    () => doc(db, 'users', user!.uid, 'meta', 'settings'),
     [user],
   );
 
   const saveCategories = useCallback((c: CategoryDef[]) => {
     setCategories(c);
-    persist(c, accounts, theme);
-  }, [accounts, theme, persist]);
+    if (user) setDoc(settingsRef(), { categories: c }, MERGE);
+  }, [user, settingsRef]);
 
   const saveAccounts = useCallback((a: AccountDef[]) => {
     setAccounts(a);
-    persist(categories, a, theme);
-  }, [categories, theme, persist]);
+    if (user) setDoc(settingsRef(), { accounts: a }, MERGE);
+  }, [user, settingsRef]);
 
   const saveTheme = useCallback((t: Theme) => {
     setTheme(t);
-    persist(categories, accounts, t);
-  }, [categories, accounts, persist]);
+    if (user) setDoc(settingsRef(), { theme: t }, MERGE);
+  }, [user, settingsRef]);
 
   const getCat = useCallback(
     (id: string) => categories.find(c => c.id === id) ?? FALLBACK_CATEGORY(id),
