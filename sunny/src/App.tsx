@@ -70,14 +70,19 @@ function Main({ user, onLogOut, onDeleteAccount }: {
 
   return (
     <div className="min-h-screen md:flex">
+      {/* Global backdrop for settings dropdown — outside the header stacking context */}
+      {settingsOpen && !isSettings && (
+        <div className="fixed inset-0 z-[35]" onClick={() => setSettingsOpen(false)} />
+      )}
+
       {/* Desktop sidebar */}
       <SideNav loading={tx.loading} onAdd={openAdd} onImport={() => setImportOpen(true)} />
 
       {/* Content (shifted right by sidebar on desktop) */}
       <div className="flex-1 md:ml-[220px] min-w-0">
 
-        {/* Mobile-only header */}
-        <header className="sticky top-0 z-20 glass-header md:hidden">
+        {/* Mobile-only header — z-[40] so it sits above the z-[35] backdrop */}
+        <header className="sticky top-0 z-[40] glass-header md:hidden">
           <div className="max-w-2xl mx-auto px-5 h-14 flex items-center justify-between">
             <div className="flex items-center gap-2.5">
               <ArcLogo size={28} />
@@ -91,20 +96,17 @@ function Main({ user, onLogOut, onDeleteAccount }: {
                   <HeaderGearIcon />
                 </button>
                 {settingsOpen && (
-                  <>
-                    <div className="fixed inset-0 z-40" onClick={() => setSettingsOpen(false)} />
-                    <div className="absolute right-0 top-10 z-50 rounded-2xl py-1 w-44 animate-fade-in-fast border border-divider shadow-float glass-elevated">
-                      <button onClick={() => { navigate('/settings'); setSettingsOpen(false); }}
-                        className="w-full flex items-center gap-3 px-4 py-2.5 text-sm text-primary hover:bg-card-hover transition-colors text-left rounded-t-2xl">
-                        <HeaderGearIcon /> Impostazioni
-                      </button>
-                      <div className="h-px bg-divider mx-3" />
-                      <button onClick={() => { setImportOpen(true); setSettingsOpen(false); }}
-                        className="w-full flex items-center gap-3 px-4 py-2.5 text-sm text-primary hover:bg-card-hover transition-colors text-left rounded-b-2xl">
-                        <FolderIcon /> Importa
-                      </button>
-                    </div>
-                  </>
+                  <div className="absolute right-0 top-10 z-[50] rounded-2xl py-1 w-44 animate-fade-in-fast border border-divider shadow-float glass-elevated">
+                    <button onClick={() => { navigate('/settings'); setSettingsOpen(false); }}
+                      className="w-full flex items-center gap-3 px-4 py-2.5 text-sm text-primary hover:bg-card-hover transition-colors text-left rounded-t-2xl">
+                      <HeaderGearIcon /> Impostazioni
+                    </button>
+                    <div className="h-px bg-divider mx-3" />
+                    <button onClick={() => { setImportOpen(true); setSettingsOpen(false); }}
+                      className="w-full flex items-center gap-3 px-4 py-2.5 text-sm text-primary hover:bg-card-hover transition-colors text-left rounded-b-2xl">
+                      <FolderIcon /> Importa
+                    </button>
+                  </div>
                 )}
               </div>
             )}
