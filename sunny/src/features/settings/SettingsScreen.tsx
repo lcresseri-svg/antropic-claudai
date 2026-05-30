@@ -1,14 +1,17 @@
 import { useState, useEffect, useRef } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { User } from 'firebase/auth';
-import { CategoryDef, AccountDef, TransactionType, TYPE_META, TYPE_ORDER } from '../../types';
+import { CategoryDef, AccountDef, Transaction, TransactionType, TYPE_META, TYPE_ORDER } from '../../types';
 import { useSettings } from '../../shared/providers/settings';
 import { EditDefSheet, DefDraft } from './EditDefSheet';
+import { buildExportPayload, downloadJson, downloadCsv } from './dataExport';
 
 interface Props {
   user: User;
+  transactions: Transaction[];
   onLogOut: () => void;
   onDeleteAll: () => Promise<void>;
+  onDeleteAccount: () => Promise<void>;
 }
 
 const newId = () => `x_${Date.now().toString(36)}`;
@@ -28,14 +31,33 @@ function reorder<T>(arr: T[], from: number, to: number): T[] {
   return next;
 }
 
-export function SettingsScreen({ user, onLogOut, onDeleteAll }: Props) {
+export function SettingsScreen({ user, transactions, onLogOut, onDeleteAll, onDeleteAccount }: Props) {
   const navigate = useNavigate();
   const { categories, accounts, saveCategories, saveAccounts } = useSettings();
   const [sub, setSub] = useState<Sub>('menu');
   const [editing, setEditing] = useState<{ kind: 'category' | 'account'; draft: DefDraft; isNew: boolean; withKind?: boolean } | null>(null);
   const [confirmReset, setConfirmReset] = useState(false);
+  const [confirmDeleteAccount, setConfirmDeleteAccount] = useState(false);
+  const [deletingAccount, setDeletingAccount] = useState(false);
+  const [deleteError, setDeleteError] = useState<string | null>(null);
   const [editMode, setEditMode] = useState(false);
   const [drag, setDrag] = useState<DragState | null>(null);
+
+  const exportJson = () => downloadJson(buildExportPayload(user, categories, accounts, transactions));
+  const exportCsv = () => downloadCsv(transactions);
+
+  const handleDeleteAccount = async () => {
+    setDeletingAccount(true);
+    setDeleteError(null);
+    try {
+      await onDeleteAccount();
+      // On success onAuthStateChanged fires null and the app returns to login.
+    } catch {
+      setDeleteError('Eliminazione non riuscita. Potrebbe servire un nuovo accesso: riprova.');
+      setDeletingAccount(false);
+      setConfirmDeleteAccount(false);
+    }
+  };
 
   // Keep a ref for stable event handlers that always see latest state
   const ref = useRef({ drag, accounts, categories, saveAccounts, saveCategories });
@@ -160,26 +182,83 @@ export function SettingsScreen({ user, onLogOut, onDeleteAll }: Props) {
             <Row icon="🏷️" color="#8A9270" label="Gestisci categorie" onClick={() => enterSub('categories')} />
           </div>
 
-          {/* Danger zone */}
-          <div className="bg-card rounded-2xl overflow-hidden">
-            {confirmReset ? (
-              <div className="p-4 space-y-3">
-                <p className="text-sm font-medium text-primary">Eliminare tutte le transazioni?</p>
-                <p className="text-xs text-secondary">Questa azione è irreversibile.</p>
-                <div className="flex gap-2">
-                  <button onClick={() => setConfirmReset(false)}
-                    className="flex-1 py-2.5 rounded-xl bg-elevated text-secondary text-sm font-medium">Annulla</button>
-                  <button onClick={async () => { await onDeleteAll(); setConfirmReset(false); }}
-                    className="flex-1 py-2.5 rounded-xl bg-[#E08B8B]/15 text-[#E08B8B] text-sm font-semibold">Elimina tutto</button>
+          {/* Data export — GDPR portability */}
+          <div>
+            <p className="label-caps text-secondary px-1 mb-2">I tuoi dati</p>
+            <div className="bg-card rounded-2xl divide-y divide-divider">
+              <button onClick={exportJson}
+                className="w-full flex items-center gap-3.5 p-4 text-left active:bg-card-hover first:rounded-t-2xl">
+                <span>📦</span>
+                <div className="flex-1">
+                  <p className="text-sm font-medium text-primary">Scarica tutti i dati (JSON)</p>
+                  <p className="text-xs text-secondary">Transazioni, categorie e conti</p>
                 </div>
-              </div>
-            ) : (
-              <button onClick={() => setConfirmReset(true)}
-                className="w-full flex items-center gap-3.5 p-4 text-left active:bg-card-hover">
-                <span className="text-[#E08B8B]">🗑</span>
-                <span className="text-sm font-medium text-[#E08B8B]">Elimina tutte le transazioni</span>
+                <span className="text-secondary text-sm">↓</span>
               </button>
-            )}
+              <button onClick={exportCsv}
+                className="w-full flex items-center gap-3.5 p-4 text-left active:bg-card-hover last:rounded-b-2xl">
+                <span>📄</span>
+                <div className="flex-1">
+                  <p className="text-sm font-medium text-primary">Esporta transazioni (CSV)</p>
+                  <p className="text-xs text-secondary">Apribile in Excel o Fogli Google</p>
+                </div>
+                <span className="text-secondary text-sm">↓</span>
+              </button>
+            </div>
+          </div>
+
+          {/* Danger zone */}
+          <div>
+            <p className="label-caps text-secondary px-1 mb-2">Zona pericolosa</p>
+            <div className="space-y-3">
+              <div className="bg-card rounded-2xl overflow-hidden">
+                {confirmReset ? (
+                  <div className="p-4 space-y-3">
+                    <p className="text-sm font-medium text-primary">Eliminare tutte le transazioni?</p>
+                    <p className="text-xs text-secondary">Categorie e conti restano. Questa azione è irreversibile.</p>
+                    <div className="flex gap-2">
+                      <button onClick={() => setConfirmReset(false)}
+                        className="flex-1 py-2.5 rounded-xl bg-elevated text-secondary text-sm font-medium">Annulla</button>
+                      <button onClick={async () => { await onDeleteAll(); setConfirmReset(false); }}
+                        className="flex-1 py-2.5 rounded-xl bg-[#E08B8B]/15 text-[#E08B8B] text-sm font-semibold">Elimina tutto</button>
+                    </div>
+                  </div>
+                ) : (
+                  <button onClick={() => setConfirmReset(true)}
+                    className="w-full flex items-center gap-3.5 p-4 text-left active:bg-card-hover">
+                    <span className="text-[#E08B8B]">🗑</span>
+                    <span className="text-sm font-medium text-[#E08B8B]">Elimina tutte le transazioni</span>
+                  </button>
+                )}
+              </div>
+
+              <div className="bg-card rounded-2xl overflow-hidden">
+                {confirmDeleteAccount ? (
+                  <div className="p-4 space-y-3">
+                    <p className="text-sm font-medium text-primary">Eliminare definitivamente l'account?</p>
+                    <p className="text-xs text-secondary">
+                      Verranno cancellati tutti i tuoi dati (transazioni, categorie, conti) e il tuo accesso.
+                      L'operazione è irreversibile. Ti consigliamo di scaricare prima i tuoi dati.
+                    </p>
+                    <div className="flex gap-2">
+                      <button onClick={() => setConfirmDeleteAccount(false)} disabled={deletingAccount}
+                        className="flex-1 py-2.5 rounded-xl bg-elevated text-secondary text-sm font-medium disabled:opacity-40">Annulla</button>
+                      <button onClick={handleDeleteAccount} disabled={deletingAccount}
+                        className="flex-1 py-2.5 rounded-xl bg-[#E08B8B]/15 text-[#E08B8B] text-sm font-semibold disabled:opacity-50">
+                        {deletingAccount ? 'Eliminazione…' : 'Elimina account'}
+                      </button>
+                    </div>
+                  </div>
+                ) : (
+                  <button onClick={() => { setConfirmDeleteAccount(true); setDeleteError(null); }}
+                    className="w-full flex items-center gap-3.5 p-4 text-left active:bg-card-hover">
+                    <span className="text-[#E08B8B]">⚠️</span>
+                    <span className="text-sm font-medium text-[#E08B8B]">Elimina account e tutti i dati</span>
+                  </button>
+                )}
+              </div>
+              {deleteError && <p className="text-xs text-[#E08B8B] px-1">{deleteError}</p>}
+            </div>
           </div>
 
           <p className="text-center text-xs text-secondary/60 pt-2">Sunny · finanza personale</p>

@@ -31,17 +31,21 @@ function Loader({ phase }: { phase: string }) {
 }
 
 export default function App() {
-  const { user, loading: authLoading, error: authError, signIn, logOut } = useAuth();
+  const { user, loading: authLoading, error: authError, signIn, logOut, deleteAccount } = useAuth();
   if (authLoading) return <Loader phase="Accesso" />;
   if (!user) return <LoginScreen onSignIn={signIn} error={authError} />;
   return (
     <SettingsProvider user={user}>
-      <Main user={user} onLogOut={logOut} />
+      <Main user={user} onLogOut={logOut} onDeleteAccount={deleteAccount} />
     </SettingsProvider>
   );
 }
 
-function Main({ user, onLogOut }: { user: import('firebase/auth').User; onLogOut: () => void }) {
+function Main({ user, onLogOut, onDeleteAccount }: {
+  user: import('firebase/auth').User;
+  onLogOut: () => void;
+  onDeleteAccount: () => Promise<void>;
+}) {
   const navigate = useNavigate();
   const location = useLocation();
   const tx = useTransactions(user);
@@ -106,6 +110,15 @@ function Main({ user, onLogOut }: { user: import('firebase/auth').User; onLogOut
         </div>
       </header>
 
+      {tx.error && (
+        <div className="max-w-2xl mx-auto px-5 pt-2">
+          <div className="bg-[#E08B8B]/12 border border-[#E08B8B]/25 rounded-xl px-3.5 py-2.5 flex items-center gap-2.5">
+            <span className="text-[#E08B8B] text-sm">⚠</span>
+            <p className="text-xs text-[#E08B8B] flex-1">{tx.error}</p>
+          </div>
+        </div>
+      )}
+
       <main className="max-w-2xl mx-auto px-5 pt-2">
         <Routes>
           <Route path="/" element={
@@ -133,7 +146,8 @@ function Main({ user, onLogOut }: { user: import('firebase/auth').User; onLogOut
           } />
           <Route path="/settings/*" element={
             <div className="pt-4">
-              <SettingsScreen user={user} onLogOut={onLogOut} onDeleteAll={tx.deleteAll} />
+              <SettingsScreen user={user} transactions={tx.transactions}
+                onLogOut={onLogOut} onDeleteAll={tx.deleteAll} onDeleteAccount={onDeleteAccount} />
             </div>
           } />
           <Route path="*" element={<Navigate to="/" replace />} />

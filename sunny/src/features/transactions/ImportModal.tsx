@@ -2,6 +2,7 @@ import { useState, useRef } from 'react';
 import { Transaction, TransactionType, TYPE_META } from '../../types';
 import { formatCurrency, formatDate } from '../../utils';
 import { useSettings } from '../../shared/providers/settings';
+import { parseDate, parseAmount, parseType, col, MAX_IMPORT_ROWS } from './importParsing';
 
 interface Props {
   open: boolean;
@@ -10,38 +11,6 @@ interface Props {
 }
 
 type Step = 'upload' | 'preview' | 'done';
-
-function parseDate(val: unknown): string {
-  if (typeof val === 'number') return new Date(Math.round((val - 25569) * 86400000)).toISOString().slice(0, 10);
-  const s = String(val).trim();
-  const m = s.match(/^(\d{1,2})[\/.\-](\d{1,2})[\/.\-](\d{4})$/);
-  if (m) return `${m[3]}-${m[2].padStart(2, '0')}-${m[1].padStart(2, '0')}`;
-  const d = new Date(s);
-  return isNaN(d.getTime()) ? s : d.toISOString().slice(0, 10);
-}
-
-function parseAmount(val: unknown): number {
-  return Math.abs(parseFloat(String(val ?? '').replace(/[^\d,.\-]/g, '').replace(',', '.')));
-}
-
-function parseType(val: unknown): { type: TransactionType; recognized: boolean } {
-  const s = String(val ?? '').toLowerCase().trim();
-  if (!s) return { type: 'expense', recognized: true };
-  if (/entrat|income|ricav|accredit|stipend|salari|rimborso/.test(s)) return { type: 'income', recognized: true };
-  if (/invest|etf|azion|fond/.test(s)) return { type: 'investment', recognized: true };
-  if (/trasfer|moviment|transfer|bonifico|girocont/.test(s)) return { type: 'transfer', recognized: true };
-  if (/uscit|spesa|pagament|expense|cost|acquist|prelievo/.test(s)) return { type: 'expense', recognized: true };
-  return { type: 'expense', recognized: false };
-}
-
-const norm = (k: string) => k.toLowerCase().trim().replace(/\s+/g, '_');
-function col(row: Record<string, unknown>, ...names: string[]): unknown {
-  for (const n of names) {
-    const k = Object.keys(row).find(x => norm(x) === n);
-    if (k !== undefined) return row[k];
-  }
-  return undefined;
-}
 
 export function ImportModal({ open, onClose, onImport }: Props) {
   const { categories, accounts } = useSettings();
@@ -83,6 +52,13 @@ export function ImportModal({ open, onClose, onImport }: Props) {
     const txs: Omit<Transaction, 'id'>[] = [];
     const errs: string[] = [];
     const warns: string[] = [];
+    if (rows.length > MAX_IMPORT_ROWS) {
+      setParsed([]);
+      setErrors([`Il file contiene ${rows.length} righe: il massimo per importazione è ${MAX_IMPORT_ROWS}. Suddividi il file e riprova.`]);
+      setWarnings([]);
+      setStep('preview');
+      return;
+    }
     rows.forEach((row, i) => {
       const dateV = col(row, 'data', 'date');
       const descV = col(row, 'descrizione', 'description', 'causale', 'memo');
@@ -90,13 +66,15 @@ export function ImportModal({ open, onClose, onImport }: Props) {
       if (!dateV || !descV || amtV === '' || amtV === undefined) {
         errs.push(`Riga ${i + 2}: campi mancanti`); return;
       }
+      const date = parseDate(dateV);
+      if (!date) { errs.push(`Riga ${i + 2}: data "${String(dateV)}" non valida`); return; }
       const amount = parseAmount(amtV);
       if (!amount || isNaN(amount)) { errs.push(`Riga ${i + 2}: importo non valido`); return; }
       const rawType = col(row, 'tipo', 'type');
       const { type, recognized } = parseType(rawType);
       if (!recognized) warns.push(`Riga ${i + 2}: tipo "${rawType}" non riconosciuto → importato come Uscita`);
       txs.push({
-        date: parseDate(dateV), description: String(descV).trim(), amount, type,
+        date, description: String(descV).trim(), amount, type,
         category: type === 'transfer' ? 'trasferimento' : matchCategory(col(row, 'categoria', 'category'), type),
         account: matchAccount(col(row, 'conto', 'account', 'banca')),
         toAccount: type === 'transfer' ? matchAccount(col(row, 'conto_destinazione', 'destinazione', 'to_account')) : undefined,

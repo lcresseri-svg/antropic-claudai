@@ -14,6 +14,7 @@ function stripUndefined<T extends object>(obj: T): T {
 export function useTransactions(user: User | null) {
   const [transactions, setTransactions] = useState<Transaction[]>([]);
   const [loading, setLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
 
   useEffect(() => {
     if (!user) {
@@ -21,15 +22,21 @@ export function useTransactions(user: User | null) {
       setLoading(false);
       return;
     }
+    setError(null);
     const col = collection(db, 'users', user.uid, 'transactions');
     const q = query(col, orderBy('date', 'desc'));
     return onSnapshot(q,
       snap => {
         setTransactions(snap.docs.map(d => ({ id: d.id, ...(d.data() as Omit<Transaction, 'id'>) })));
+        setError(null);
         setLoading(false);
       },
       err => {
         console.error('Firestore listen error:', err.code, err.message);
+        // 'permission-denied' is expected during account deletion — don't alarm the user.
+        if (err.code !== 'permission-denied') {
+          setError('Sincronizzazione non riuscita. I dati mostrati potrebbero non essere aggiornati.');
+        }
         setLoading(false);
       },
     );
@@ -162,7 +169,7 @@ export function useTransactions(user: User | null) {
   }, [transactions]);
 
   return {
-    transactions, loading,
+    transactions, loading, error,
     addTransaction, addTransactions, replaceGroup,
     updateTransaction, updateTransactions,
     deleteTransaction, deleteTransactions, deleteAll,
