@@ -15,7 +15,7 @@ interface Props {
 }
 
 const newId = () => `x_${Date.now().toString(36)}`;
-type Sub = 'menu' | 'accounts' | 'categories';
+type Sub = 'menu' | 'generali' | 'gestione' | 'dati' | 'accounts' | 'categories';
 
 type DragState = {
   list: 'accounts' | TransactionType;
@@ -133,6 +133,7 @@ export function SettingsScreen({ user, transactions, onLogOut, onDeleteAll, onDe
 
   const enterSub = (s: Sub) => { setSub(s); setEditMode(false); };
   const exitToMenu = () => { setSub('menu'); setEditMode(false); };
+  const exitToGestione = () => { setSub('gestione'); setEditMode(false); };
   const toggleEditMode = () => { setEditMode(m => !m); setDrag(null); };
   const catsByKind = (k: TransactionType) => categories.filter(c => c.kind === k);
 
@@ -177,43 +178,57 @@ export function SettingsScreen({ user, transactions, onLogOut, onDeleteAll, onDe
             <button onClick={onLogOut} className="text-xs font-medium text-secondary px-3 py-2 rounded-xl bg-elevated">Esci</button>
           </div>
 
-          {/* Generali */}
-          <div>
-            <p className="label-caps text-secondary px-1 mb-2">Generali</p>
-            <div className="bg-card rounded-2xl p-4">
-              <div className="flex items-center gap-3.5">
-                <span className="text-2xl">🌙</span>
-                <div className="flex-1">
-                  <p className="text-sm font-medium text-primary">Tema scuro</p>
-                  <p className="text-xs text-secondary">{theme === 'dark' ? 'Attivo' : 'Non attivo'}</p>
-                </div>
-                <button
-                  onClick={() => saveTheme(theme === 'dark' ? 'light' : 'dark')}
-                  className={`relative flex-shrink-0 w-[46px] h-[26px] rounded-full transition-colors duration-200 ${
-                    theme === 'dark' ? 'bg-gold' : 'bg-secondary/25'
-                  }`}
-                  aria-label="Cambia tema"
-                >
-                  <span className={`absolute left-0 top-[3px] w-5 h-5 rounded-full bg-white shadow-sm transition-transform duration-200 ${
-                    theme === 'dark' ? 'translate-x-[23px]' : 'translate-x-[3px]'
-                  }`} />
-                </button>
+          {/* 3 main entries */}
+          <div className="bg-card rounded-2xl divide-y divide-divider">
+            <Row icon="⚙️" color="#8B8B8B" label="Generali" onClick={() => enterSub('generali')} />
+            <Row icon="🗂️" color="#6FA8DC" label="Gestione" onClick={() => enterSub('gestione')} />
+            <Row icon="💾" color="#8A9270" label="Dati" onClick={() => enterSub('dati')} />
+          </div>
+
+          <p className="text-center text-xs text-secondary/60 pt-2">Sunny · finanza personale</p>
+        </>
+      )}
+
+      {sub === 'generali' && (
+        <>
+          <ManageHeader title="Generali" editMode={false} onBack={exitToMenu} onToggleEdit={() => {}} hideEdit />
+          <div className="bg-card rounded-2xl p-4">
+            <div className="flex items-center gap-3.5">
+              <span className="text-2xl">🌙</span>
+              <div className="flex-1">
+                <p className="text-sm font-medium text-primary">Tema scuro</p>
+                <p className="text-xs text-secondary">{theme === 'dark' ? 'Attivo' : 'Non attivo'}</p>
               </div>
+              <button
+                onClick={() => saveTheme(theme === 'dark' ? 'light' : 'dark')}
+                className={`relative flex-shrink-0 w-[46px] h-[26px] rounded-full transition-colors duration-200 ${
+                  theme === 'dark' ? 'bg-gold' : 'bg-secondary/25'
+                }`}
+                aria-label="Cambia tema"
+              >
+                <span className={`absolute left-0 top-[3px] w-5 h-5 rounded-full bg-white shadow-sm transition-transform duration-200 ${
+                  theme === 'dark' ? 'translate-x-[23px]' : 'translate-x-[3px]'
+                }`} />
+              </button>
             </div>
           </div>
+        </>
+      )}
 
-          {/* Gestione */}
-          <div>
-            <p className="label-caps text-secondary px-1 mb-2">Gestione</p>
-            <div className="bg-card rounded-2xl divide-y divide-divider">
-              <Row icon="🏦" color="#6FA8DC" label="Gestisci conti" onClick={() => enterSub('accounts')} />
-              <Row icon="🏷️" color="#8A9270" label="Gestisci categorie" onClick={() => enterSub('categories')} />
-            </div>
+      {sub === 'gestione' && (
+        <>
+          <ManageHeader title="Gestione" editMode={false} onBack={exitToMenu} onToggleEdit={() => {}} hideEdit />
+          <div className="bg-card rounded-2xl divide-y divide-divider">
+            <Row icon="🏦" color="#6FA8DC" label="Gestisci conti" onClick={() => enterSub('accounts')} />
+            <Row icon="🏷️" color="#8A9270" label="Gestisci categorie" onClick={() => enterSub('categories')} />
           </div>
+        </>
+      )}
 
-          {/* Dati */}
-          <div>
-            <p className="label-caps text-secondary px-1 mb-2">Dati</p>
+      {sub === 'dati' && (
+        <>
+          <ManageHeader title="Dati" editMode={false} onBack={exitToMenu} onToggleEdit={() => {}} hideEdit />
+          <div className="space-y-4">
             <div className="bg-card rounded-2xl divide-y divide-divider">
               <button onClick={exportJson}
                 className="w-full flex items-center gap-3.5 p-4 text-left active:bg-card-hover first:rounded-t-2xl">
@@ -225,7 +240,7 @@ export function SettingsScreen({ user, transactions, onLogOut, onDeleteAll, onDe
                 <span className="text-secondary text-sm">↓</span>
               </button>
               <button onClick={exportCsv}
-                className="w-full flex items-center gap-3.5 p-4 text-left active:bg-card-hover">
+                className="w-full flex items-center gap-3.5 p-4 text-left active:bg-card-hover last:rounded-b-2xl">
                 <span className="w-9 h-9 rounded-full flex items-center justify-center text-base flex-shrink-0" style={{ backgroundColor: '#8A927022' }}>📄</span>
                 <div className="flex-1">
                   <p className="text-sm font-medium text-primary">Esporta CSV</p>
@@ -233,8 +248,9 @@ export function SettingsScreen({ user, transactions, onLogOut, onDeleteAll, onDe
                 </div>
                 <span className="text-secondary text-sm">↓</span>
               </button>
+            </div>
 
-              {/* Delete all transactions */}
+            <div className="bg-card rounded-2xl divide-y divide-divider">
               {confirmReset ? (
                 <div className="p-4 space-y-3">
                   <p className="text-sm font-medium text-primary">Eliminare tutte le transazioni?</p>
@@ -248,7 +264,7 @@ export function SettingsScreen({ user, transactions, onLogOut, onDeleteAll, onDe
                 </div>
               ) : (
                 <button onClick={() => setConfirmReset(true)}
-                  className="w-full flex items-center gap-3.5 p-4 text-left active:bg-card-hover">
+                  className="w-full flex items-center gap-3.5 p-4 text-left active:bg-card-hover first:rounded-t-2xl">
                   <span className="w-9 h-9 rounded-full flex items-center justify-center text-base flex-shrink-0 bg-red/10">🗑</span>
                   <div className="flex-1">
                     <p className="text-sm font-medium text-red">Elimina transazioni</p>
@@ -257,7 +273,6 @@ export function SettingsScreen({ user, transactions, onLogOut, onDeleteAll, onDe
                 </button>
               )}
 
-              {/* Delete account */}
               {confirmDeleteAccount ? (
                 <div className="p-4 space-y-3">
                   <p className="text-sm font-medium text-primary">Eliminare definitivamente l'account?</p>
@@ -284,16 +299,14 @@ export function SettingsScreen({ user, transactions, onLogOut, onDeleteAll, onDe
                 </button>
               )}
             </div>
-            {deleteError && <p className="text-xs text-red px-1 mt-2">{deleteError}</p>}
+            {deleteError && <p className="text-xs text-red px-1">{deleteError}</p>}
           </div>
-
-          <p className="text-center text-xs text-secondary/60 pt-2">Sunny · finanza personale</p>
         </>
       )}
 
       {sub === 'accounts' && (
         <>
-          <ManageHeader title="Conti" editMode={editMode} onBack={exitToMenu} onToggleEdit={toggleEditMode} />
+          <ManageHeader title="Conti" editMode={editMode} onBack={exitToGestione} onToggleEdit={toggleEditMode} />
           <div className="space-y-3">
             <div className="bg-card rounded-2xl divide-y divide-divider">
               {liveAccounts.map((a) => (
@@ -318,7 +331,7 @@ export function SettingsScreen({ user, transactions, onLogOut, onDeleteAll, onDe
 
       {sub === 'categories' && (
         <>
-          <ManageHeader title="Categorie" editMode={editMode} onBack={exitToMenu} onToggleEdit={toggleEditMode} />
+          <ManageHeader title="Categorie" editMode={editMode} onBack={exitToGestione} onToggleEdit={toggleEditMode} />
           <div className="space-y-4">
             {TYPE_ORDER.filter(k => k !== 'transfer').map(k => {
               const items = liveCats(k);
@@ -369,9 +382,9 @@ export function SettingsScreen({ user, transactions, onLogOut, onDeleteAll, onDe
   );
 }
 
-function ManageHeader({ title, editMode, onBack, onToggleEdit, deleteCount, onDelete }: {
+function ManageHeader({ title, editMode, onBack, onToggleEdit, hideEdit, deleteCount, onDelete }: {
   title: string; editMode: boolean; onBack: () => void; onToggleEdit: () => void;
-  deleteCount?: number; onDelete?: () => void;
+  hideEdit?: boolean; deleteCount?: number; onDelete?: () => void;
 }) {
   const [confirming, setConfirming] = useState(false);
   useEffect(() => { if (!editMode || (deleteCount ?? 0) === 0) setConfirming(false); }, [editMode, deleteCount]);
@@ -383,7 +396,7 @@ function ManageHeader({ title, editMode, onBack, onToggleEdit, deleteCount, onDe
         <ChevronLeft />
       </button>
       <h1 className="text-2xl font-bold text-primary tracking-[-0.03em] flex-1">{title}</h1>
-      {editMode && onDelete && (deleteCount ?? 0) > 0 && (
+      {!hideEdit && editMode && onDelete && (deleteCount ?? 0) > 0 && (
         confirming
           ? <button onClick={() => { onDelete(); setConfirming(false); }}
               className="text-sm font-semibold text-[#E08B8B] px-2.5 py-1 rounded-xl bg-[#E08B8B]/10">
@@ -394,9 +407,11 @@ function ManageHeader({ title, editMode, onBack, onToggleEdit, deleteCount, onDe
               Elimina ({deleteCount})
             </button>
       )}
-      <button onClick={onToggleEdit} className="text-sm font-medium text-gold px-1">
-        {editMode ? 'Fine' : 'Modifica'}
-      </button>
+      {!hideEdit && (
+        <button onClick={onToggleEdit} className="text-sm font-medium text-gold px-1">
+          {editMode ? 'Fine' : 'Modifica'}
+        </button>
+      )}
     </div>
   );
 }
