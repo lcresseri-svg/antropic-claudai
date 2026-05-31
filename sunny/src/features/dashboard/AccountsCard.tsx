@@ -1,5 +1,6 @@
 import { formatCurrency } from '../../utils';
 import { useSettings } from '../../shared/providers/settings';
+import { ProgressBar } from '../../shared/components';
 
 interface Props {
   accountBalances: Record<string, number>;
@@ -45,10 +46,7 @@ export function AccountsCard({ accountBalances, expenseByAccount, mode, onToggle
                 {formatCurrency(value)}
               </span>
             </div>
-            <div className="h-1.5 rounded-full progress-track overflow-hidden">
-              <div className="h-full rounded-full transition-all duration-500"
-                style={{ width: `${(Math.abs(value) / max) * 100}%`, backgroundColor: acc.color }} />
-            </div>
+            <ProgressBar value={Math.abs(value)} max={max} color={acc.color} />
           </li>
         ))}
       </ul>

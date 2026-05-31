@@ -8,10 +8,11 @@ export function BottomNav({ onAdd }: Props) {
   return (
     <nav className="fixed bottom-0 inset-x-0 z-30 safe-bottom pointer-events-none md:hidden">
       <div className="max-w-2xl mx-auto px-4 pb-4 flex justify-center">
-        <div className="pointer-events-auto flex items-center gap-2 glass-nav rounded-full px-2.5 py-1.5">
+        <div className="pointer-events-auto flex items-center gap-1 glass-nav rounded-full px-2.5 py-1.5">
           <NavBtn to="/" label="Home" icon={<HomeIcon />} />
+          <NavBtn to="/budget" label="Budget" icon={<TargetIcon />} />
           <button onClick={onAdd}
-            className="w-12 h-12 rounded-full glass-cta-gold flex items-center justify-center mx-1.5 transition-transform active:scale-90">
+            className="w-12 h-12 rounded-full glass-cta-gold flex items-center justify-center mx-1 transition-transform active:scale-90">
             <svg width="13" height="13" viewBox="0 0 13 13" fill="none">
               <path d="M6.5 1v11M1 6.5h11" stroke="currentColor" strokeWidth="1.75" strokeLinecap="round"/>
             </svg>
@@ -33,6 +34,16 @@ function NavBtn({ to, label, icon }: { to: string; label: string; icon: React.Re
       }>
       {icon}
     </NavLink>
+  );
+}
+
+function TargetIcon() {
+  return (
+    <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.75" strokeLinecap="round" strokeLinejoin="round">
+      <circle cx="12" cy="12" r="9"/>
+      <circle cx="12" cy="12" r="5"/>
+      <circle cx="12" cy="12" r="1.2" fill="currentColor" stroke="none"/>
+    </svg>
   );
 }
 

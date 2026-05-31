@@ -6,6 +6,7 @@ import { SettingsProvider, useSettings } from './shared/providers/settings';
 import { Transaction } from './types';
 import { LoginScreen } from './shared/components/LoginScreen';
 import { Dashboard } from './features/dashboard/Dashboard';
+import { BudgetScreen } from './features/budget/BudgetScreen';
 import { TransactionList } from './features/transactions/TransactionList';
 import { SettingsScreen } from './features/settings/SettingsScreen';
 import { TransactionModal } from './features/transactions/TransactionModal';
@@ -135,6 +136,16 @@ function Main({ user, onLogOut, onDeleteAccount }: {
                 trend={tx.trend} transactions={tx.transactions} recentTransactions={tx.recentTransactions}
                 onSeeAll={() => navigate('/transactions')} onEditTransaction={openEdit}
               />
+            } />
+            <Route path="/budget" element={
+              <div className="pt-4 md:pt-6">
+                <BudgetScreen
+                  user={user}
+                  transactions={tx.transactions}
+                  monthlyIncome={tx.monthlyIncome} monthlyExpenses={tx.monthlyExpenses}
+                  monthlyInvestments={tx.monthlyInvestments} categoryTotals={tx.categoryTotals}
+                />
+              </div>
             } />
             <Route path="/transactions" element={
               <div className="pt-4 md:pt-6">

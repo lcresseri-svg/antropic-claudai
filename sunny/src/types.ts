@@ -54,3 +54,10 @@ export function ownShare(t: Transaction): number {
 
 /** Patch used by bulk edit. */
 export type TransactionPatch = Partial<Pick<Transaction, 'category' | 'account' | 'type'>>;
+
+/** Budget configuration, persisted locally (no backend required). */
+export interface BudgetState {
+  savingsTarget: number;                    // monthly savings goal (€)
+  categoryBudgets: Record<string, number>;  // categoryId -> monthly limit (€)
+  suggestionAccepted: boolean;              // true once the user accepts Sunny's plan
+}
