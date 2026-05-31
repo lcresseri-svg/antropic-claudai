@@ -5,7 +5,7 @@ import { formatCurrency, greeting } from '../../utils';
 import { CategoryCard } from './CategoryCard';
 import { AccountsCard } from './AccountsCard';
 import { TrendChart } from './TrendChart';
-import { Insights } from './Insights';
+import { Insights } from '../insights/Insights';
 import { TransactionRow } from '../transactions/TransactionRow';
 
 type Period = '1m' | '3m' | '6m' | '1y';
@@ -41,6 +41,7 @@ interface Props {
   transactions: Transaction[];
   recentTransactions: Transaction[];
   onSeeAll: () => void;
+  onSeeInsights: () => void;
   onEditTransaction: (tx: Transaction) => void;
 }
 
@@ -193,6 +194,8 @@ export function Dashboard(p: Props) {
             monthlyIncome={p.monthlyIncome}
             monthlyExpenses={p.monthlyExpenses}
             monthlyInvestments={p.monthlyInvestments}
+            limit={3}
+            onSeeAll={p.onSeeInsights}
           />
         </div>
       </div>

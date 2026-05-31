@@ -10,13 +10,14 @@ export function BottomNav({ onAdd }: Props) {
       <div className="max-w-2xl mx-auto px-4 pb-4 flex justify-center">
         <div className="pointer-events-auto flex items-center gap-1 glass-nav rounded-full px-2.5 py-1.5">
           <NavBtn to="/" label="Home" icon={<HomeIcon />} />
-          <NavBtn to="/budget" label="Budget" icon={<TargetIcon />} />
+          <NavBtn to="/insights" label="Insight" icon={<InsightIcon />} />
           <button onClick={onAdd}
             className="w-12 h-12 rounded-full glass-cta-gold flex items-center justify-center mx-1 transition-transform active:scale-90">
             <svg width="13" height="13" viewBox="0 0 13 13" fill="none">
               <path d="M6.5 1v11M1 6.5h11" stroke="currentColor" strokeWidth="1.75" strokeLinecap="round"/>
             </svg>
           </button>
+          <NavBtn to="/budget" label="Budget" icon={<TargetIcon />} />
           <NavBtn to="/transactions" label="Movimenti" icon={<ListIcon />} />
         </div>
       </div>
@@ -34,6 +35,15 @@ function NavBtn({ to, label, icon }: { to: string; label: string; icon: React.Re
       }>
       {icon}
     </NavLink>
+  );
+}
+
+function InsightIcon() {
+  return (
+    <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.75" strokeLinecap="round" strokeLinejoin="round">
+      <path d="M9 18h6"/><path d="M10 21h4"/>
+      <path d="M12 2a7 7 0 0 0-4 12.7c.6.5 1 1.3 1 2.3h6c0-1 .4-1.8 1-2.3A7 7 0 0 0 12 2z"/>
+    </svg>
   );
 }
 

@@ -24,6 +24,7 @@ export function SideNav({ loading, onAdd, onImport }: Props) {
       {/* Nav links */}
       <nav className="flex-1 p-3 space-y-0.5 overflow-y-auto">
         <SideLink to="/" label="Dashboard" icon={<HomeIcon />} />
+        <SideLink to="/insights" label="Insight" icon={<InsightIcon />} />
         <SideLink to="/budget" label="Budget" icon={<TargetIcon />} />
         <SideLink to="/transactions" label="Movimenti" icon={<ListIcon />} />
       </nav>
@@ -78,6 +79,15 @@ function SunnyLogo() {
         strokeDasharray="40.06 13.35"
         transform="rotate(135 12 12)"
       />
+    </svg>
+  );
+}
+
+function InsightIcon() {
+  return (
+    <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.75" strokeLinecap="round" strokeLinejoin="round">
+      <path d="M9 18h6"/><path d="M10 21h4"/>
+      <path d="M12 2a7 7 0 0 0-4 12.7c.6.5 1 1.3 1 2.3h6c0-1 .4-1.8 1-2.3A7 7 0 0 0 12 2z"/>
     </svg>
   );
 }

@@ -7,6 +7,8 @@ interface Props {
   monthlyIncome: number;
   monthlyExpenses: number;
   monthlyInvestments: number;
+  limit?: number;          // max insights shown (default 5)
+  onSeeAll?: () => void;   // when set, shows a "Vedi tutti" link in the header
 }
 
 interface Insight { icon: string; title: string; detail: string; accent: string; urgent?: boolean; }
@@ -32,7 +34,7 @@ function daysUntil(dateStr: string): number {
   return Math.round((target.getTime() - now.getTime()) / 86400000);
 }
 
-export function Insights({ transactions, monthlyIncome, monthlyExpenses, monthlyInvestments }: Props) {
+export function Insights({ transactions, monthlyIncome, monthlyExpenses, monthlyInvestments, limit = 5, onSeeAll }: Props) {
   const { getCat } = useSettings();
   const insights: Insight[] = [];
 
@@ -132,15 +134,20 @@ export function Insights({ transactions, monthlyIncome, monthlyExpenses, monthly
     insights.push({ icon: '📊', title: 'Nessun insight ancora', detail: 'Aggiungi transazioni per analisi personalizzate', accent: '#8B8B8B' });
   }
 
-  // Urgent insights first, then the rest (max 5 shown)
+  // Urgent insights first, then the rest
   const sorted = [
     ...insights.filter(i => i.urgent),
     ...insights.filter(i => !i.urgent),
-  ].slice(0, 5);
+  ].slice(0, limit);
 
   return (
     <section>
-      <p className="label-caps text-secondary mb-3 px-1">Insight</p>
+      <div className="flex items-center justify-between mb-3 px-1">
+        <p className="label-caps text-secondary">Insight</p>
+        {onSeeAll && (
+          <button onClick={onSeeAll} className="text-xs font-medium text-gold">Vedi tutti</button>
+        )}
+      </div>
       <div className="space-y-2.5">
         {sorted.map((ins, i) => (
           <div key={i} className="glass-card rounded-2xl p-4 flex items-start gap-3.5">
