@@ -33,8 +33,9 @@ export function useTransactions(user: User | null, accounts: AccountDef[] = []) 
       },
       err => {
         console.error('Firestore listen error:', err.code, err.message);
-        // 'permission-denied' is expected during account deletion — don't alarm the user.
-        if (err.code !== 'permission-denied') {
+        if (err.code === 'permission-denied') {
+          setError('Accesso negato da Firestore. Controlla le regole di sicurezza nel progetto Firebase.');
+        } else {
           setError('Sincronizzazione non riuscita. I dati mostrati potrebbero non essere aggiornati.');
         }
         setLoading(false);

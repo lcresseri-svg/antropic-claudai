@@ -2,7 +2,6 @@ import { initializeApp } from 'firebase/app';
 import {
   initializeFirestore,
   persistentLocalCache,
-  persistentMultipleTabManager,
 } from 'firebase/firestore';
 import { getAuth, GoogleAuthProvider } from 'firebase/auth';
 
@@ -20,13 +19,12 @@ const firebaseConfig = {
 
 const app = initializeApp(firebaseConfig);
 
-// Persistent IndexedDB cache: after the first sync, every reopen serves data
-// instantly from local cache while the network refresh runs in the background —
-// the slow first snapshot no longer blocks the screen. Force long-polling keeps
-// that background sync working where WebChannel streaming is blocked.
+// Persistent IndexedDB cache: serves data instantly from local cache while
+// the network refresh runs in the background.
+// Single-tab manager avoids cross-tab locking issues that can prevent the
+// listener from establishing on the first tab open.
 export const db = initializeFirestore(app, {
-  localCache: persistentLocalCache({ tabManager: persistentMultipleTabManager() }),
-  experimentalForceLongPolling: true,
+  localCache: persistentLocalCache(),
 });
 export const auth = getAuth(app);
 
