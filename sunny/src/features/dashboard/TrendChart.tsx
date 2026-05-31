@@ -72,17 +72,6 @@ export function TrendChart({ data }: Props) {
       ) : (
         <div>
           <svg viewBox={`0 0 ${W} ${H}`} className="w-full overflow-visible" style={{ height: H }}>
-            <defs>
-              <linearGradient id="incGrad" x1="0" y1="0" x2="0" y2="1">
-                <stop offset="0%" style={{ stopColor: 'var(--accent-green)', stopOpacity: 0.18 }} />
-                <stop offset="100%" style={{ stopColor: 'var(--accent-green)', stopOpacity: 0 }} />
-              </linearGradient>
-              <linearGradient id="expGrad" x1="0" y1="0" x2="0" y2="1">
-                <stop offset="0%" style={{ stopColor: 'var(--accent-gold)', stopOpacity: 0.14 }} />
-                <stop offset="100%" style={{ stopColor: 'var(--accent-gold)', stopOpacity: 0 }} />
-              </linearGradient>
-            </defs>
-
             {/* Grid lines */}
             {[0.25, 0.5, 0.75].map(t => (
               <line key={t}
@@ -92,8 +81,8 @@ export function TrendChart({ data }: Props) {
             ))}
 
             {/* Area fills */}
-            <path d={areaPath(incPts)} fill="url(#incGrad)" />
-            <path d={areaPath(expPts)} fill="url(#expGrad)" />
+            <path d={areaPath(incPts)} fill="rgba(122,158,110,0.06)" />
+            <path d={areaPath(expPts)} fill="rgba(200,160,90,0.06)" />
 
             {/* Lines */}
             <path d={smoothPath(incPts)} fill="none"

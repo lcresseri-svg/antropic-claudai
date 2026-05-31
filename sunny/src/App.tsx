@@ -193,24 +193,14 @@ function FolderIcon() {
 // ── Brand mark ───────────────────────────────────────────────────────────────
 
 export function ArcLogo({ size = 28 }: { size?: number }) {
-  const id = `al${size}`;
   return (
     <svg width={size} height={size} viewBox="0 0 24 24" fill="none" aria-hidden>
-      <defs>
-        <linearGradient id={`${id}g`} x1="12" y1="3" x2="12" y2="21" gradientUnits="userSpaceOnUse">
-          <stop offset="0%" stopColor="#F5C842" />
-          <stop offset="100%" stopColor="#B8720C" />
-        </linearGradient>
-        <filter id={id} x="-60%" y="-60%" width="220%" height="220%">
-          <feGaussianBlur in="SourceGraphic" stdDeviation="1.4" result="b"/>
-          <feMerge><feMergeNode in="b"/><feMergeNode in="SourceGraphic"/></feMerge>
-        </filter>
-      </defs>
       <circle cx="12" cy="12" r="8.5"
-        stroke={`url(#${id}g)`} strokeWidth="3.2" strokeLinecap="round"
+        stroke="rgb(200,160,90)"
+        strokeWidth="2.5"
+        strokeLinecap="round"
         strokeDasharray="40.06 13.35"
         transform="rotate(135 12 12)"
-        filter={`url(#${id})`}
       />
     </svg>
   );

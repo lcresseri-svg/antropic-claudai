@@ -10,17 +10,12 @@ export function SideNav({ loading, onAdd, onImport }: Props) {
   const navigate = useNavigate();
 
   return (
-    <aside className="hidden md:flex flex-col fixed inset-y-0 left-0 w-[220px] z-30"
-      style={{
-        background: 'rgb(var(--c-surface) / 0.97)',
-        backdropFilter: 'blur(32px)',
-        WebkitBackdropFilter: 'blur(32px)',
-        borderRight: '0.5px solid rgb(var(--c-divider))',
-      }}>
+    <aside className="hidden md:flex flex-col fixed inset-y-0 left-0 w-[220px] z-30 glass-nav"
+      style={{ borderRight: '1px solid rgba(255,255,255,0.05)' }}>
 
       {/* Brand */}
       <div className="flex items-center gap-2.5 px-5 h-14 shrink-0"
-        style={{ borderBottom: '0.5px solid rgb(var(--c-divider))' }}>
+        style={{ borderBottom: '1px solid rgba(255,255,255,0.04)' }}>
         <SunnyLogo />
         <span className="font-semibold text-primary tracking-[-0.02em]">Sunny</span>
         {loading && <span className="w-1.5 h-1.5 rounded-full bg-gold animate-pulse ml-auto" />}
@@ -33,7 +28,7 @@ export function SideNav({ loading, onAdd, onImport }: Props) {
       </nav>
 
       {/* Actions */}
-      <div className="p-3 space-y-2" style={{ borderTop: '0.5px solid rgb(var(--c-divider))' }}>
+      <div className="p-3 space-y-2" style={{ borderTop: '1px solid rgba(255,255,255,0.04)' }}>
         <button onClick={onImport}
           className="w-full flex items-center gap-3 px-3.5 py-2.5 rounded-xl text-sm font-medium text-secondary hover:text-primary hover:bg-card-hover transition-colors text-left">
           <FolderIcon />
@@ -45,9 +40,9 @@ export function SideNav({ loading, onAdd, onImport }: Props) {
           Impostazioni
         </button>
         <button onClick={onAdd}
-          className="w-full py-2.5 rounded-xl glass-cta-gold text-bg text-sm font-semibold flex items-center justify-center gap-2">
+          className="w-full py-2.5 rounded-xl glass-cta-gold text-sm font-semibold flex items-center justify-center gap-2">
           <svg width="12" height="12" viewBox="0 0 12 12" fill="none">
-            <path d="M6 1v10M1 6h10" stroke="#0D0D0D" strokeWidth="1.75" strokeLinecap="round"/>
+            <path d="M6 1v10M1 6h10" stroke="currentColor" strokeWidth="1.75" strokeLinecap="round"/>
           </svg>
           Aggiungi
         </button>
@@ -62,7 +57,7 @@ function SideLink({ to, label, icon }: { to: string; label: string; icon: React.
       className={({ isActive }) =>
         `flex items-center gap-3 px-3.5 py-2.5 rounded-xl text-sm font-medium transition-colors ${
           isActive
-            ? 'bg-gold/12 text-gold'
+            ? 'bg-gold/8 text-gold'
             : 'text-secondary hover:text-primary hover:bg-card-hover'
         }`
       }>
@@ -75,21 +70,12 @@ function SideLink({ to, label, icon }: { to: string; label: string; icon: React.
 function SunnyLogo() {
   return (
     <svg width="24" height="24" viewBox="0 0 24 24" fill="none" aria-hidden>
-      <defs>
-        <linearGradient id="slg" x1="12" y1="3" x2="12" y2="21" gradientUnits="userSpaceOnUse">
-          <stop offset="0%" stopColor="#F5C842" />
-          <stop offset="100%" stopColor="#B8720C" />
-        </linearGradient>
-        <filter id="slf" x="-60%" y="-60%" width="220%" height="220%">
-          <feGaussianBlur in="SourceGraphic" stdDeviation="1.4" result="b"/>
-          <feMerge><feMergeNode in="b"/><feMergeNode in="SourceGraphic"/></feMerge>
-        </filter>
-      </defs>
       <circle cx="12" cy="12" r="8.5"
-        stroke="url(#slg)" strokeWidth="3.2" strokeLinecap="round"
+        stroke="rgb(200,160,90)"
+        strokeWidth="2.5"
+        strokeLinecap="round"
         strokeDasharray="40.06 13.35"
         transform="rotate(135 12 12)"
-        filter="url(#slf)"
       />
     </svg>
   );

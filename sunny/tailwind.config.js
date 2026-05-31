@@ -27,14 +27,10 @@ export default {
         '3xl':'1.75rem',
       },
       boxShadow: {
-        card:       '0 1px 4px rgba(0,0,0,0.5)',
-        float:      '0 24px 64px rgba(0,0,0,0.7), 0 0 0 0.5px rgba(255,255,255,0.04)',
-        glow:       '0 0 40px rgba(230,185,92,0.08)',
-        'glass-sm': 'inset 0 1px 0 rgba(255,255,255,0.12), 0 4px 16px rgba(0,0,0,0.30)',
-        'glass-md': 'inset 0 1px 0 rgba(255,255,255,0.15), 0 8px 24px rgba(0,0,0,0.40)',
-        'glass-lg': 'inset 0 1px 0 rgba(255,255,255,0.18), 0 8px 32px rgba(0,0,0,0.45), 0 24px 64px rgba(0,0,0,0.35)',
-        'glass-nav':'inset 0 1px 0 rgba(255,255,255,0.14), inset 0 -0.5px 0 rgba(0,0,0,0.20), 0 8px 32px rgba(0,0,0,0.50)',
-        'gold-glow':'0 4px 12px rgba(230,185,92,0.35)',
+        card:        '0 1px 3px rgba(0,0,0,0.3)',
+        float:       '0 2px 8px rgba(0,0,0,0.5)',
+        glow:        'none',
+        'gold-glow': '0 2px 6px rgba(200,160,90,0.12)',
       },
       keyframes: {
         'fade-in': {

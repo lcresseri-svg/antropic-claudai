@@ -89,7 +89,7 @@ export function Dashboard(p: Props) {
   const periodDelta = periodIncome - periodExpenses;
 
   return (
-    <div className="pb-32 animate-fade-in">
+    <div className="pb-32">
 
       {/* Top section — full width on all sizes */}
       <div className="space-y-3">
@@ -107,7 +107,7 @@ export function Dashboard(p: Props) {
         </div>
 
         {/* Hero */}
-        <div className="pt-6 pb-7 animate-scale-in">
+        <div className="pt-6 pb-7">
           <p className="label-caps text-secondary mb-3">Patrimonio netto</p>
           <p className="text-[52px] leading-none font-bold text-primary balance-num">
             {formatCurrency(p.netWorth)}
@@ -135,8 +135,8 @@ export function Dashboard(p: Props) {
         <div className="flex items-center gap-1.5">
           {PERIOD_OPTS.map(opt => (
             <button key={opt.value} onClick={() => setPeriod(opt.value)}
-              className={`px-3.5 py-1.5 rounded-full text-xs font-semibold transition-all ${
-                period === opt.value ? 'bg-gold/20 text-gold' : 'text-secondary hover:text-primary'
+              className={`px-3.5 py-1.5 rounded-full text-xs font-semibold transition-colors ${
+                period === opt.value ? 'bg-gold/10 text-gold' : 'text-secondary hover:text-primary'
               }`}>
               {opt.label}
             </button>

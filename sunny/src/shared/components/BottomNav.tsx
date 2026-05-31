@@ -13,7 +13,7 @@ export function BottomNav({ onAdd }: Props) {
           <button onClick={onAdd}
             className="w-12 h-12 rounded-full glass-cta-gold flex items-center justify-center mx-1.5 transition-transform active:scale-90">
             <svg width="13" height="13" viewBox="0 0 13 13" fill="none">
-              <path d="M6.5 1v11M1 6.5h11" stroke="#0D0D0D" strokeWidth="1.75" strokeLinecap="round"/>
+              <path d="M6.5 1v11M1 6.5h11" stroke="currentColor" strokeWidth="1.75" strokeLinecap="round"/>
             </svg>
           </button>
           <NavBtn to="/transactions" label="Movimenti" icon={<ListIcon />} />
