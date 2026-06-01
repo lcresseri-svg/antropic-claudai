@@ -7,8 +7,18 @@ import { User } from 'firebase/auth';
 import { AccountDef, Transaction, TransactionPatch, ownShare } from '../../types';
 import { db } from '../../lib/firebase';
 
-function stripUndefined<T extends object>(obj: T): T {
-  return Object.fromEntries(Object.entries(obj).filter(([, v]) => v !== undefined)) as T;
+// Recursively drop `undefined` values — Firestore rejects writes that contain
+// `undefined` anywhere, including nested objects (e.g. recurring.until).
+function stripUndefined<T>(obj: T): T {
+  if (Array.isArray(obj)) return obj.map(v => stripUndefined(v)) as T;
+  if (obj && typeof obj === 'object') {
+    return Object.fromEntries(
+      Object.entries(obj as Record<string, unknown>)
+        .filter(([, v]) => v !== undefined)
+        .map(([k, v]) => [k, stripUndefined(v)]),
+    ) as T;
+  }
+  return obj;
 }
 
 export function useTransactions(user: User | null, accounts: AccountDef[] = []) {
