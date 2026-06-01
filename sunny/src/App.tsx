@@ -7,6 +7,7 @@ import { Transaction } from './types';
 import { greeting } from './utils';
 import { LoginScreen } from './shared/components/LoginScreen';
 import { Dashboard } from './features/dashboard/Dashboard';
+import { InvestmentsScreen } from './features/dashboard/InvestmentsScreen';
 import { InsightsScreen } from './features/insights/InsightsScreen';
 import { BudgetScreen } from './features/budget/BudgetScreen';
 import { TransactionList } from './features/transactions/TransactionList';
@@ -81,7 +82,7 @@ function Main({ user, onLogOut, onDeleteAccount }: {
       )}
 
       {/* Desktop sidebar */}
-      <SideNav loading={tx.loading} brand={brand} onAdd={openAdd} onImport={() => setImportOpen(true)} />
+      <SideNav loading={tx.loading} onAdd={openAdd} onImport={() => setImportOpen(true)} />
 
       {/* Content (shifted right by sidebar on desktop) */}
       <div className="flex-1 md:ml-[220px] min-w-0">
@@ -131,6 +132,7 @@ function Main({ user, onLogOut, onDeleteAccount }: {
           <Routes>
             <Route path="/" element={
               <Dashboard
+                greeting={brand}
                 netWorth={tx.netWorth} liquidity={tx.liquidity} investmentTotal={tx.investmentTotal}
                 monthlyIncome={tx.monthlyIncome} monthlyExpenses={tx.monthlyExpenses}
                 monthlyInvestments={tx.monthlyInvestments}
@@ -138,7 +140,19 @@ function Main({ user, onLogOut, onDeleteAccount }: {
                 accountBalances={tx.accountBalances}
                 trend={tx.trend} transactions={tx.transactions}
                 onSeeInsights={() => navigate('/insights')}
+                onSeeInvestments={() => navigate('/investments')}
               />
+            } />
+            <Route path="/investments" element={
+              <div className="pt-4 md:pt-6">
+                <InvestmentsScreen
+                  investmentByCategory={tx.investmentByCategory}
+                  investmentTotal={tx.investmentTotal}
+                  monthlyInvestments={tx.monthlyInvestments}
+                  trend={tx.trend}
+                  transactions={tx.transactions}
+                />
+              </div>
             } />
             <Route path="/insights" element={
               <div className="pt-4 md:pt-6">
@@ -169,7 +183,7 @@ function Main({ user, onLogOut, onDeleteAccount }: {
               </div>
             } />
             <Route path="/settings/*" element={
-              <div className="pt-4 md:pt-6 md:max-w-xl">
+              <div className="pt-4 md:pt-6 md:max-w-3xl">
                 <SettingsScreen user={user} transactions={tx.transactions}
                   onLogOut={onLogOut} onDeleteAll={tx.deleteAll} onDeleteAccount={onDeleteAccount} />
               </div>

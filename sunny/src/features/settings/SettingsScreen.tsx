@@ -182,10 +182,10 @@ export function SettingsScreen({ user, transactions, onLogOut, onDeleteAll, onDe
           </div>
 
           {/* 3 main entries */}
-          <div className="bg-card rounded-2xl divide-y divide-divider">
-            <Row icon="⚙️" color="#8B8B8B" label="Generali" onClick={() => enterSub('generali')} />
-            <Row icon="🗂️" color="#6FA8DC" label="Gestione" onClick={() => enterSub('gestione')} />
-            <Row icon="💾" color="#8A9270" label="Dati" onClick={() => enterSub('dati')} />
+          <div className="bg-card rounded-2xl divide-y divide-divider md:bg-transparent md:divide-y-0 md:grid md:grid-cols-3 md:gap-3">
+            <Row icon="⚙️" color="#8B8B8B" label="Generali" sub="Tema, patrimonio" onClick={() => enterSub('generali')} />
+            <Row icon="🗂️" color="#6FA8DC" label="Gestione" sub="Conti e categorie" onClick={() => enterSub('gestione')} />
+            <Row icon="💾" color="#8A9270" label="Dati" sub="Esporta, elimina" onClick={() => enterSub('dati')} />
           </div>
 
           <p className="text-center text-xs text-secondary/60 pt-2">Sunny · finanza personale</p>
@@ -195,7 +195,7 @@ export function SettingsScreen({ user, transactions, onLogOut, onDeleteAll, onDe
       {sub === 'generali' && (
         <>
           <ManageHeader title="Generali" editMode={false} onBack={exitToMenu} onToggleEdit={() => {}} hideEdit />
-          <div className="bg-card rounded-2xl divide-y divide-divider">
+          <div className="bg-card rounded-2xl divide-y divide-divider md:max-w-xl">
             <ToggleRow
               icon="🌙" label="Tema scuro"
               sub={theme === 'dark' ? 'Attivo' : 'Non attivo'}
@@ -215,9 +215,9 @@ export function SettingsScreen({ user, transactions, onLogOut, onDeleteAll, onDe
       {sub === 'gestione' && (
         <>
           <ManageHeader title="Gestione" editMode={false} onBack={exitToMenu} onToggleEdit={() => {}} hideEdit />
-          <div className="bg-card rounded-2xl divide-y divide-divider">
-            <Row icon="🏦" color="#6FA8DC" label="Gestisci conti" onClick={() => enterSub('accounts')} />
-            <Row icon="🏷️" color="#8A9270" label="Gestisci categorie" onClick={() => enterSub('categories')} />
+          <div className="bg-card rounded-2xl divide-y divide-divider md:bg-transparent md:divide-y-0 md:grid md:grid-cols-2 md:gap-3">
+            <Row icon="🏦" color="#6FA8DC" label="Gestisci conti" sub="Saldi iniziali, ordine" onClick={() => enterSub('accounts')} />
+            <Row icon="🏷️" color="#8A9270" label="Gestisci categorie" sub="Icone, colori, tipo" onClick={() => enterSub('categories')} />
           </div>
         </>
       )}
@@ -225,7 +225,7 @@ export function SettingsScreen({ user, transactions, onLogOut, onDeleteAll, onDe
       {sub === 'dati' && (
         <>
           <ManageHeader title="Dati" editMode={false} onBack={exitToMenu} onToggleEdit={() => {}} hideEdit />
-          <div className="space-y-4">
+          <div className="space-y-4 md:max-w-xl">
             <div className="bg-card rounded-2xl divide-y divide-divider">
               <button onClick={exportJson}
                 className="w-full flex items-center gap-3.5 p-4 text-left active:bg-card-hover first:rounded-t-2xl">
@@ -304,7 +304,7 @@ export function SettingsScreen({ user, transactions, onLogOut, onDeleteAll, onDe
       {sub === 'accounts' && (
         <>
           <ManageHeader title="Conti" editMode={editMode} onBack={exitToGestione} onToggleEdit={toggleEditMode} />
-          <div className="space-y-3">
+          <div className="space-y-3 md:max-w-xl">
             <div className="bg-card rounded-2xl divide-y divide-divider">
               {liveAccounts.map((a) => (
                 <ManageRow key={a.id} icon={a.icon} color={a.color} label={a.label}
@@ -329,7 +329,7 @@ export function SettingsScreen({ user, transactions, onLogOut, onDeleteAll, onDe
       {sub === 'categories' && (
         <>
           <ManageHeader title="Categorie" editMode={editMode} onBack={exitToGestione} onToggleEdit={toggleEditMode} />
-          <div className="space-y-4">
+          <div className="space-y-4 md:max-w-xl">
             {TYPE_ORDER.filter(k => k !== 'transfer').map(k => {
               const items = liveCats(k);
               const baseItems = catsByKind(k);
@@ -449,12 +449,17 @@ function ManageRow({ icon, color, label, editMode, selected, onClick, showHandle
   );
 }
 
-function Row({ icon, color, label, onClick }: { icon: string; color: string; label: string; onClick: () => void }) {
+function Row({ icon, color, label, sub, onClick }: { icon: string; color: string; label: string; sub?: string; onClick: () => void }) {
   return (
-    <button onClick={onClick} className="w-full flex items-center gap-3.5 p-3.5 text-left active:bg-card-hover transition-colors first:rounded-t-2xl last:rounded-b-2xl">
-      <span className="w-9 h-9 rounded-full flex items-center justify-center text-base flex-shrink-0" style={{ backgroundColor: color + '22' }}>{icon}</span>
-      <span className="flex-1 text-[15px] font-medium text-primary">{label}</span>
-      <ChevronRight />
+    <button onClick={onClick}
+      className="w-full flex items-center gap-3.5 p-3.5 text-left transition-colors active:bg-card-hover first:rounded-t-2xl last:rounded-b-2xl
+        md:flex-col md:items-start md:gap-3 md:p-5 md:rounded-2xl md:bg-card md:border md:border-divider md:hover:bg-card-hover md:h-full">
+      <span className="w-9 h-9 md:w-11 md:h-11 rounded-full flex items-center justify-center text-base md:text-xl flex-shrink-0" style={{ backgroundColor: color + '22' }}>{icon}</span>
+      <span className="flex-1 md:flex-none">
+        <span className="block text-[15px] font-medium text-primary">{label}</span>
+        {sub && <span className="hidden md:block text-xs text-secondary mt-0.5">{sub}</span>}
+      </span>
+      <span className="md:hidden"><ChevronRight /></span>
     </button>
   );
 }

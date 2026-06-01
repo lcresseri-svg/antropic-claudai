@@ -18,6 +18,7 @@ const PERIOD_OPTS: { value: Period; label: string; months: number }[] = [
 ];
 
 interface Props {
+  greeting?: string;
   netWorth: number;
   liquidity: number;
   investmentTotal: number;
@@ -29,6 +30,7 @@ interface Props {
   trend: { key: string; income: number; expense: number; invest: number }[];
   transactions: Transaction[];
   onSeeInsights: () => void;
+  onSeeInvestments: () => void;
 }
 
 export function Dashboard(p: Props) {
@@ -92,6 +94,11 @@ export function Dashboard(p: Props) {
   return (
     <div className="pb-32">
 
+      {/* Desktop-only greeting (mobile shows it in the header) */}
+      {p.greeting && (
+        <p className="hidden md:block text-lg font-semibold text-primary tracking-[-0.02em] pt-2">{p.greeting}</p>
+      )}
+
       {/* Hero — net worth */}
       <div className="space-y-3">
         <div className="pt-6 pb-7">
@@ -104,10 +111,13 @@ export function Dashboard(p: Props) {
               <p className="label-caps text-secondary mb-2">Liquidità</p>
               <p className="text-sm font-semibold text-primary balance-num">{formatCurrency(p.liquidity)}</p>
             </div>
-            <div>
-              <p className="label-caps text-secondary mb-2">Investito</p>
+            <button onClick={p.onSeeInvestments} className="text-left group">
+              <p className="label-caps text-secondary mb-2 flex items-center gap-1">
+                Investito
+                <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round" className="text-secondary group-hover:text-gold transition-colors"><path d="m9 18 6-6-6-6"/></svg>
+              </p>
               <p className="text-sm font-semibold balance-num text-gold">{formatCurrency(p.investmentTotal)}</p>
-            </div>
+            </button>
           </div>
         </div>
 
@@ -165,7 +175,7 @@ export function Dashboard(p: Props) {
         <div className="space-y-3">
           <FlowBar income={periodIncome} expense={periodExpenses} invest={periodInvestments} />
           <TrendChart data={p.trend} />
-          <InvestmentSummaryCard investmentByCategory={p.investmentByCategory} total={p.investmentTotal} />
+          <InvestmentSummaryCard investmentByCategory={p.investmentByCategory} total={p.investmentTotal} onClick={p.onSeeInvestments} />
         </div>
         <div className="space-y-3">
           <CategoryCard categoryTotals={periodCategoryTotals} />

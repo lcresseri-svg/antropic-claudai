@@ -330,18 +330,23 @@ export function buildInsights(input: InsightInput): Insight[] {
     const expInv   = h.avgInvest > 0 ? Math.max(h.avgInvest, monthlyInvestments) : monthlyInvestments;
     const forecast = Math.round(expInc - projExp - expInv);
     const basis    = h.months > 0 ? 'ritmo attuale e storico' : 'ritmo attuale';
+    const pctMonth = Math.round(prog * 100);
+    const howExp = `Uscite previste = uscite registrate finora ÷ frazione di mese trascorsa. Hai speso ${formatCurrency(monthlyExpenses)} nel ${pctMonth}% del mese, quindi stimo ${formatCurrency(monthlyExpenses)} ÷ ${(prog).toFixed(2)} ≈ ${formatCurrency(projExp)} a fine mese.`;
+    const howInc = h.avgIncome > 0
+      ? ` Le entrate previste sono il massimo tra quanto hai già incassato (${formatCurrency(monthlyIncome)}) e la tua media storica (${formatCurrency(h.avgIncome)}).`
+      : ` Le entrate previste sono quelle già incassate (${formatCurrency(monthlyIncome)}).`;
     push(forecast >= 0
       ? { icon: '🔮', category: 'forecast', title: `Fine mese stimato: +${formatCurrency(forecast)}`, detail: `Risparmio proiettato su ${basis}`, accent: ACCENT.good,
           explain: {
             what: 'Stima di quanto ti resterà a fine mese se mantieni questo ritmo.',
-            how: `Le uscite vengono proiettate a tutto il mese (finora ${formatCurrency(monthlyExpenses)} → stimato ${formatCurrency(projExp)} al ${Math.round(prog * 100)}% del mese), poi: entrate previste − uscite proiettate − investimenti previsti.`,
+            how: `${howExp}${howInc} Risparmio stimato = entrate previste − uscite previste − investimenti previsti.`,
             basis: 'Mese corrente + media degli ultimi mesi attivi.',
             chart: { labels: ['Entrate', 'Uscite stim.', 'Investito'], values: [Math.round(expInc), projExp, Math.round(expInv)], format: 'currency', highlightIndex: 0 },
           } }
       : { icon: '🔮', category: 'forecast', title: `Fine mese stimato: −${formatCurrency(-forecast)}`, detail: `Le uscite supererebbero le entrate su ${basis}`, accent: ACCENT.warn,
           explain: {
             what: 'A questo ritmo chiuderesti il mese in negativo.',
-            how: `Uscite proiettate a fine mese (${formatCurrency(projExp)}) confrontate con entrate e investimenti previsti.`,
+            how: `${howExp}${howInc} Saldo stimato = entrate previste − uscite previste − investimenti previsti, che qui risulta negativo.`,
             basis: 'Mese corrente + media degli ultimi mesi attivi.',
             chart: { labels: ['Entrate', 'Uscite stim.', 'Investito'], values: [Math.round(expInc), projExp, Math.round(expInv)], format: 'currency', highlightIndex: 1 },
           } });

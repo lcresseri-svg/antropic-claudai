@@ -2,12 +2,11 @@ import { NavLink, useNavigate } from 'react-router-dom';
 
 interface Props {
   loading?: boolean;
-  brand?: string;
   onAdd: () => void;
   onImport: () => void;
 }
 
-export function SideNav({ loading, brand, onAdd, onImport }: Props) {
+export function SideNav({ loading, onAdd, onImport }: Props) {
   const navigate = useNavigate();
 
   return (
@@ -18,7 +17,7 @@ export function SideNav({ loading, brand, onAdd, onImport }: Props) {
       <div className="flex items-center gap-2.5 px-5 h-14 shrink-0"
         style={{ borderBottom: '1px solid rgba(255,255,255,0.04)' }}>
         <SunnyLogo />
-        <span className="font-semibold text-primary tracking-[-0.02em] truncate">{brand ?? 'Sunny'}</span>
+        <span className="font-semibold text-primary tracking-[-0.02em]">Sunny</span>
         {loading && <span className="w-1.5 h-1.5 rounded-full bg-gold animate-pulse ml-auto flex-shrink-0" />}
       </div>
 
