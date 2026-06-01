@@ -4,11 +4,13 @@ interface Props {
   plannedIncome: number;
   plannedExpenses: number;
   plannedInvestments: number;
+  showInvest?: boolean;
 }
 
 /** Top-of-page snapshot of the month's plan: in, out, invest and what's left. */
-export function BudgetOverview({ plannedIncome, plannedExpenses, plannedInvestments }: Props) {
-  const leftover = plannedIncome - plannedExpenses - plannedInvestments;
+export function BudgetOverview({ plannedIncome, plannedExpenses, plannedInvestments, showInvest = true }: Props) {
+  const effectiveInvest = showInvest ? plannedInvestments : 0;
+  const leftover = plannedIncome - plannedExpenses - effectiveInvest;
   const max = Math.max(plannedIncome, 1);
   const seg = (v: number) => `${Math.min(100, (v / max) * 100)}%`;
 
@@ -21,14 +23,14 @@ export function BudgetOverview({ plannedIncome, plannedExpenses, plannedInvestme
       {/* Stacked plan bar */}
       <div className="h-2.5 rounded-full overflow-hidden flex" style={{ backgroundColor: 'var(--progress-track)' }}>
         <div style={{ width: seg(plannedExpenses), backgroundColor: '#E08B8B' }} />
-        <div style={{ width: seg(plannedInvestments), backgroundColor: 'var(--accent-gold)' }} />
+        {showInvest && <div style={{ width: seg(plannedInvestments), backgroundColor: 'var(--accent-gold)' }} />}
         <div style={{ width: seg(Math.max(0, leftover)), backgroundColor: 'var(--accent-green)' }} />
       </div>
 
       <div className="grid grid-cols-2 gap-x-4 gap-y-3 mt-4">
         <Row color="var(--accent-green)" label="Entrate previste" value={plannedIncome} />
         <Row color="#E08B8B" label="Spese pianificate" value={plannedExpenses} />
-        <Row color="var(--accent-gold)" label="Investimenti" value={plannedInvestments} />
+        {showInvest && <Row color="var(--accent-gold)" label="Investimenti" value={plannedInvestments} />}
         <Row color="var(--accent-green)" label="Resta da risparmiare" value={leftover} strong />
       </div>
     </div>

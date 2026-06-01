@@ -53,8 +53,8 @@ function Main({ user, onLogOut, onDeleteAccount }: {
 }) {
   const navigate = useNavigate();
   const location = useLocation();
-  const { accounts, categories, includeInvestments } = useSettings();
-  const tx = useTransactions(user, accounts, includeInvestments, categories);
+  const { accounts, categories, includeInvestments, enableInvestments } = useSettings();
+  const tx = useTransactions(user, accounts, includeInvestments, categories, enableInvestments);
   const [editing, setEditing] = useState<Transaction | null>(null);
   const [modalOpen, setModalOpen] = useState(false);
   const [importOpen, setImportOpen] = useState(false);
@@ -144,15 +144,17 @@ function Main({ user, onLogOut, onDeleteAccount }: {
               />
             } />
             <Route path="/investments" element={
-              <div className="pt-4 md:pt-6">
-                <InvestmentsScreen
-                  investmentByCategory={tx.investmentByCategory}
-                  investmentTotal={tx.investmentTotal}
-                  monthlyInvestments={tx.monthlyInvestments}
-                  trend={tx.trend}
-                  transactions={tx.transactions}
-                />
-              </div>
+              !enableInvestments ? <Navigate to="/" replace /> : (
+                <div className="pt-4 md:pt-6">
+                  <InvestmentsScreen
+                    investmentByCategory={tx.investmentByCategory}
+                    investmentTotal={tx.investmentTotal}
+                    monthlyInvestments={tx.monthlyInvestments}
+                    trend={tx.trend}
+                    transactions={tx.transactions}
+                  />
+                </div>
+              )
             } />
             <Route path="/insights" element={
               <div className="pt-4 md:pt-6">

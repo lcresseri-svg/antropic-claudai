@@ -4,28 +4,25 @@ interface Props {
   income: number;
   expense: number;
   invest: number;
+  showInvest?: boolean;
 }
 
-const ITEMS = [
+const ALL_ITEMS = [
   { key: 'income'  as const, label: 'Entrate',   color: 'var(--accent-green)' },
   { key: 'expense' as const, label: 'Uscite',    color: '#E08B8B' },
   { key: 'invest'  as const, label: 'Investito', color: 'var(--accent-gold)' },
 ];
 
-/**
- * Compact comparison of income vs expenses vs investments for the selected
- * period. Each row's bar is scaled to the largest of the three, so the
- * relative weight is immediately readable.
- */
-export function FlowBar({ income, expense, invest }: Props) {
+export function FlowBar({ income, expense, invest, showInvest = true }: Props) {
+  const items = showInvest ? ALL_ITEMS : ALL_ITEMS.filter(it => it.key !== 'invest');
   const vals = { income, expense, invest };
-  const max = Math.max(income, expense, invest, 1);
-  if (income === 0 && expense === 0 && invest === 0) return null;
+  const max = Math.max(income, expense, showInvest ? invest : 0, 1);
+  if (income === 0 && expense === 0 && (!showInvest || invest === 0)) return null;
 
   return (
     <div className="glass-card rounded-2xl p-5 space-y-3.5">
-      <p className="label-caps text-secondary">Entrate · Uscite · Investito</p>
-      {ITEMS.map(it => (
+      <p className="label-caps text-secondary">{showInvest ? 'Entrate · Uscite · Investito' : 'Entrate · Uscite'}</p>
+      {items.map(it => (
         <div key={it.key}>
           <div className="flex items-center justify-between mb-1.5">
             <span className="flex items-center gap-2 text-[13px] text-secondary">

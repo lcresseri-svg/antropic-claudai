@@ -7,6 +7,7 @@ import { TrendChart } from './TrendChart';
 import { FlowBar } from './FlowBar';
 import { InvestmentSummaryCard } from './InvestmentSummaryCard';
 import { InsightTicker } from '../insights/InsightTicker';
+import { useSettings } from '../../shared/providers/settings';
 
 type Period = '1m' | '3m' | '6m' | '1y';
 
@@ -34,6 +35,7 @@ interface Props {
 }
 
 export function Dashboard(p: Props) {
+  const { enableInvestments } = useSettings();
   const [accMode, setAccMode] = useState<'balance' | 'spending'>('balance');
   const [period, setPeriod] = useState<Period>('1m');
   const [offset, setOffset] = useState(0); // months back from the most recent window (0 = current)
@@ -111,13 +113,15 @@ export function Dashboard(p: Props) {
               <p className="label-caps text-secondary mb-2">Liquidità</p>
               <p className="text-sm font-semibold text-primary balance-num">{formatCurrency(p.liquidity)}</p>
             </div>
-            <button onClick={p.onSeeInvestments} className="text-left group">
-              <p className="label-caps text-secondary mb-2 flex items-center gap-1">
-                Investito
-                <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round" className="text-secondary group-hover:text-gold transition-colors"><path d="m9 18 6-6-6-6"/></svg>
-              </p>
-              <p className="text-sm font-semibold balance-num text-gold">{formatCurrency(p.investmentTotal)}</p>
-            </button>
+            {enableInvestments && (
+              <button onClick={p.onSeeInvestments} className="text-left group">
+                <p className="label-caps text-secondary mb-2 flex items-center gap-1">
+                  Investito
+                  <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round" className="text-secondary group-hover:text-gold transition-colors"><path d="m9 18 6-6-6-6"/></svg>
+                </p>
+                <p className="text-sm font-semibold balance-num text-gold">{formatCurrency(p.investmentTotal)}</p>
+              </button>
+            )}
           </div>
         </div>
 
@@ -159,8 +163,8 @@ export function Dashboard(p: Props) {
             label="Risparmio"
             value={formatCurrency(saved)}
             colorClass={saved >= 0 ? 'text-gold' : 'text-red'}
-            warn={saved < 0}
-            hint={periodInvestments > 0 ? `dopo ${formatCurrency(periodInvestments)} investiti` : 'entrate − uscite − investimenti'}
+            warn={saved < 0 && enableInvestments}
+            hint={enableInvestments && periodInvestments > 0 ? `dopo ${formatCurrency(periodInvestments)} investiti` : undefined}
           />
         </div>
       </div>
@@ -179,9 +183,9 @@ export function Dashboard(p: Props) {
       {/* Cards grid — 1 col mobile, 2 col desktop */}
       <div className="mt-5 md:grid md:grid-cols-2 md:gap-5 md:items-start space-y-3 md:space-y-0">
         <div className="space-y-3">
-          <FlowBar income={periodIncome} expense={periodExpenses} invest={periodInvestments} />
+          <FlowBar income={periodIncome} expense={periodExpenses} invest={periodInvestments} showInvest={enableInvestments} />
           <TrendChart data={p.trend} />
-          <InvestmentSummaryCard investmentByCategory={p.investmentByCategory} total={p.investmentTotal} onClick={p.onSeeInvestments} />
+          {enableInvestments && <InvestmentSummaryCard investmentByCategory={p.investmentByCategory} total={p.investmentTotal} onClick={p.onSeeInvestments} />}
         </div>
         <div className="space-y-3">
           <CategoryCard categoryTotals={periodCategoryTotals} />

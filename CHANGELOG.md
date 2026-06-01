@@ -19,6 +19,7 @@ git.
 
 ## 2026-06-01
 
+- **[Claude]** Impostazioni → Generali: nuovo toggle **"Gestione investimenti"** che nasconde l'intera funzionalità (schermata `/investments`, card dashboard Investito + InvestmentSummaryCard, barra "Investito" nella FlowBar, sezione Budget investimenti, tipo "Investimento" nel form transazioni). Il toggle "Includi investito nel patrimonio" scompare automaticamente quando la gestione investimenti è disattivata. — `(pending)`
 - **[Claude]** Canale di rilascio **beta** (`APP_CHANNEL` in `appInfo.ts`): badge "BETA" accanto alla versione nelle impostazioni e nota nel registro versioni. Da cambiare in 'stable' quando l'app diventerà ufficiale. — `(pending)`
 - **[Claude]** Modello di previsione di fine mese migliorato: da run-rate puro (spese ÷ frazione di mese, instabile a inizio mese) a **"spese finora + (frazione di mese rimasta × media storica)"** — blend pesato sulla confidenza che non esplode a inizio mese, converge al totale reale a fine mese e reagisce comunque ai mesi anomali. Fallback al run-rate guardato senza storico. Spiegazioni aggiornate + 4 nuovi test. — `(pending)`
 - **[Claude]** Impostazioni: nuova sezione **"Come funziona"** che spiega in linguaggio semplice tutte le formule (patrimonio, saldo conto, capitale investito, risparmio, previsione fine mese, media storica, tendenze, stagionalità, budget suggerito). Footer con **versione app** (`appInfo.ts`, v1.5.0) e link al **Registro versioni**. — `(pending)`

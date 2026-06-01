@@ -34,7 +34,7 @@ function reorder<T>(arr: T[], from: number, to: number): T[] {
 
 export function SettingsScreen({ user, transactions, onLogOut, onDeleteAll, onDeleteAccount }: Props) {
   const navigate = useNavigate();
-  const { categories, accounts, theme, includeInvestments, saveCategories, saveAccounts, saveTheme, saveIncludeInvestments } = useSettings();
+  const { categories, accounts, theme, includeInvestments, enableInvestments, saveCategories, saveAccounts, saveTheme, saveIncludeInvestments, saveEnableInvestments } = useSettings();
   const [sub, setSub] = useState<Sub>('menu');
   const [editing, setEditing] = useState<{ kind: 'category' | 'account'; draft: DefDraft; isNew: boolean; withKind?: boolean } | null>(null);
   const [confirmReset, setConfirmReset] = useState(false);
@@ -213,11 +213,19 @@ export function SettingsScreen({ user, transactions, onLogOut, onDeleteAll, onDe
               onToggle={() => saveTheme(theme === 'dark' ? 'light' : 'dark')}
             />
             <ToggleRow
-              icon="📈" label="Includi investito nel patrimonio"
-              sub={includeInvestments ? 'Il patrimonio comprende il capitale investito' : 'Il patrimonio mostra solo la liquidità'}
-              on={includeInvestments}
-              onToggle={() => saveIncludeInvestments(!includeInvestments)}
+              icon="📊" label="Gestione investimenti"
+              sub={enableInvestments ? 'Investi e tieni traccia del tuo portafoglio' : 'Investimenti nascosti da tutta l\'app'}
+              on={enableInvestments}
+              onToggle={() => saveEnableInvestments(!enableInvestments)}
             />
+            {enableInvestments && (
+              <ToggleRow
+                icon="📈" label="Includi investito nel patrimonio"
+                sub={includeInvestments ? 'Il patrimonio comprende il capitale investito' : 'Il patrimonio mostra solo la liquidità'}
+                on={includeInvestments}
+                onToggle={() => saveIncludeInvestments(!includeInvestments)}
+              />
+            )}
           </div>
         </>
       )}

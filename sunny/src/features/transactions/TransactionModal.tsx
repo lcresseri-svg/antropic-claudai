@@ -18,7 +18,7 @@ const today = () => new Date().toISOString().slice(0, 10);
 const yesterday = () => { const d = new Date(); d.setDate(d.getDate() - 1); return d.toISOString().slice(0, 10); };
 
 export function TransactionModal({ open, editing, groupTransfers = [], onClose, onSave }: Props) {
-  const { categories, accounts } = useSettings();
+  const { categories, accounts, enableInvestments } = useSettings();
   const [type, setType] = useState<TransactionType>('expense');
   const [description, setDescription] = useState('');
   const [amount, setAmount] = useState('');
@@ -79,6 +79,7 @@ export function TransactionModal({ open, editing, groupTransfers = [], onClose, 
 
   useEscapeKey(onClose, open);
 
+  const availableTypes = TYPE_ORDER.filter(t => enableInvestments || t !== 'investment');
   const typeCats = categories.filter(c => c.kind === type);
   useEffect(() => {
     if (type === 'transfer') return;
@@ -169,8 +170,8 @@ export function TransactionModal({ open, editing, groupTransfers = [], onClose, 
 
         <form onSubmit={submit} className="px-5 pb-5 space-y-3">
           {/* Type segmented */}
-          <div className="grid grid-cols-4 gap-1.5 bg-elevated rounded-2xl p-1">
-            {TYPE_ORDER.map(t => (
+          <div className="grid gap-1.5 bg-elevated rounded-2xl p-1" style={{ gridTemplateColumns: `repeat(${availableTypes.length}, 1fr)` }}>
+            {availableTypes.map(t => (
               <button key={t} type="button" onClick={() => setType(t)}
                 className="py-2 rounded-xl text-[11px] font-semibold transition-all"
                 style={type === t ? { backgroundColor: TYPE_META[t].color, color: '#0D0D0D' } : { color: '#8B8B8B' }}>

@@ -21,7 +21,7 @@ function stripUndefined<T>(obj: T): T {
   return obj;
 }
 
-export function useTransactions(user: User | null, accounts: AccountDef[] = [], includeInvestments = true, categories: CategoryDef[] = []) {
+export function useTransactions(user: User | null, accounts: AccountDef[] = [], includeInvestments = true, categories: CategoryDef[] = [], enableInvestments = true) {
   const [transactions, setTransactions] = useState<Transaction[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
@@ -126,24 +126,30 @@ export function useTransactions(user: User | null, accounts: AccountDef[] = [], 
 
     const monthlyIncome = monthTx.filter(t => t.type === 'income').reduce((s, t) => s + t.amount, 0);
     const monthlyExpenses = monthTx.filter(t => t.type === 'expense').reduce((s, t) => s + ownShare(t), 0);
-    const monthlyInvestments = monthTx.filter(t => t.type === 'investment').reduce((s, t) => s + t.amount, 0);
+    const monthlyInvestments = enableInvestments
+      ? monthTx.filter(t => t.type === 'investment').reduce((s, t) => s + t.amount, 0)
+      : 0;
 
     // Invested capital by category (all-time), seeded with each investment
     // category's initial balance (capital already invested before Sunny).
+    // Zeroed out when the investments feature is disabled.
     const investmentByCategory: Record<string, number> = {};
-    let investmentInitial = 0;
-    for (const c of categories) {
-      if (c.kind === 'investment' && c.initialBalance) {
-        investmentByCategory[c.id] = (investmentByCategory[c.id] ?? 0) + c.initialBalance;
-        investmentInitial += c.initialBalance;
+    let investmentTotal = 0;
+    if (enableInvestments) {
+      let investmentInitial = 0;
+      for (const c of categories) {
+        if (c.kind === 'investment' && c.initialBalance) {
+          investmentByCategory[c.id] = (investmentByCategory[c.id] ?? 0) + c.initialBalance;
+          investmentInitial += c.initialBalance;
+        }
       }
+      for (const t of transactions) {
+        if (t.type !== 'investment') continue;
+        investmentByCategory[t.category] = (investmentByCategory[t.category] ?? 0) + t.amount;
+      }
+      investmentTotal =
+        transactions.filter(t => t.type === 'investment').reduce((s, t) => s + t.amount, 0) + investmentInitial;
     }
-    for (const t of transactions) {
-      if (t.type !== 'investment') continue;
-      investmentByCategory[t.category] = (investmentByCategory[t.category] ?? 0) + t.amount;
-    }
-    const investmentTotal =
-      transactions.filter(t => t.type === 'investment').reduce((s, t) => s + t.amount, 0) + investmentInitial;
 
     // Per-account balance (initial balance + cash flow through the account)
     const accountBalances: Record<string, number> = {};
@@ -187,7 +193,7 @@ export function useTransactions(user: User | null, accounts: AccountDef[] = [], 
       if (!slot) continue;
       if (t.type === 'income') slot.income += t.amount;
       else if (t.type === 'expense') slot.expense += ownShare(t);
-      else if (t.type === 'investment') slot.invest += t.amount;
+      else if (t.type === 'investment' && enableInvestments) slot.invest += t.amount;
     }
 
     const recent = [...transactions]
@@ -199,7 +205,7 @@ export function useTransactions(user: User | null, accounts: AccountDef[] = [], 
       accountBalances, liquidity, netWorth, categoryTotals, expenseByAccount, trend,
       recentTransactions: recent, monthTx,
     };
-  }, [transactions, accounts, includeInvestments, categories]);
+  }, [transactions, accounts, includeInvestments, categories, enableInvestments]);
 
   return {
     transactions, loading, error,

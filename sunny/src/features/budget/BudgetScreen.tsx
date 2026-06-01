@@ -32,7 +32,7 @@ const currentMonth = new Date().toISOString().slice(0, 7);
 export function BudgetScreen({
   user, transactions, monthlyIncome, monthlyExpenses, monthlyInvestments, categoryTotals,
 }: Props) {
-  const { categories } = useSettings();
+  const { categories, enableInvestments } = useSettings();
   const {
     budget, setSavingsTarget, setCategoryBudget, setIncomeBudget, setInvestmentBudget,
     acceptSuggestion, hasBudget,
@@ -141,7 +141,7 @@ export function BudgetScreen({
 
       {/* Panoramica del mese */}
       <div className="space-y-3">
-        <BudgetOverview plannedIncome={plannedIncome} plannedExpenses={plannedExpenses} plannedInvestments={plannedInvestments} />
+        <BudgetOverview plannedIncome={plannedIncome} plannedExpenses={plannedExpenses} plannedInvestments={plannedInvestments} showInvest={enableInvestments} />
         <SavingsGoalCard predicted={predicted} target={budget.savingsTarget} onEdit={() => openEdit('savings')} />
       </div>
 
@@ -195,23 +195,25 @@ export function BudgetScreen({
       />
 
       {/* Investimenti */}
-      <div className="space-y-3">
-        <CategoryBudgetList
-          categories={investmentCats}
-          spend={investmentCategoryTotals}
-          budgets={activeInvBudgets}
-          mode="investment"
-          onEditCategory={id => openEdit('investments', id)}
-        />
-        {investmentCats.length > 0 && Object.keys(activeInvBudgets).length === 0 && (
-          <button
-            onClick={() => openEdit('investments')}
-            className="w-full glass-card rounded-2xl px-4 py-3 flex items-center gap-2.5 text-left">
-            <span className="text-gold">+</span>
-            <p className="text-[13px] text-secondary">Aggiungi obiettivi di investimento mensili</p>
-          </button>
-        )}
-      </div>
+      {enableInvestments && (
+        <div className="space-y-3">
+          <CategoryBudgetList
+            categories={investmentCats}
+            spend={investmentCategoryTotals}
+            budgets={activeInvBudgets}
+            mode="investment"
+            onEditCategory={id => openEdit('investments', id)}
+          />
+          {investmentCats.length > 0 && Object.keys(activeInvBudgets).length === 0 && (
+            <button
+              onClick={() => openEdit('investments')}
+              className="w-full glass-card rounded-2xl px-4 py-3 flex items-center gap-2.5 text-left">
+              <span className="text-gold">+</span>
+              <p className="text-[13px] text-secondary">Aggiungi obiettivi di investimento mensili</p>
+            </button>
+          )}
+        </div>
+      )}
 
       <BudgetInsights insights={insights} />
 
