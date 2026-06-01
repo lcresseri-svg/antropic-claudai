@@ -18,9 +18,65 @@ export function monthProgress(now: Date): number {
 }
 
 /**
+ * Average spend per category in a given calendar month (0–11) across past
+ * years. The current (partial) month is excluded so it doesn't skew history.
+ * Used to make budget suggestions seasonally aware (e.g. gifts in December).
+ */
+export function seasonalMonthlyAverage(
+  transactions: Transaction[],
+  monthIdx: number,
+  now: Date = new Date(),
+): Record<string, number> {
+  const curKey = now.toISOString().slice(0, 7);
+  const byCatYear: Record<string, Record<number, number>> = {};
+  for (const t of transactions) {
+    if (t.type !== 'expense') continue;
+    if (t.date.slice(0, 7) === curKey) continue;
+    const d = new Date(t.date);
+    if (d.getMonth() !== monthIdx) continue;
+    (byCatYear[t.category] ??= {});
+    byCatYear[t.category][d.getFullYear()] = (byCatYear[t.category][d.getFullYear()] ?? 0) + ownShare(t);
+  }
+  const out: Record<string, number> = {};
+  for (const [cat, perYear] of Object.entries(byCatYear)) {
+    const vals = Object.values(perYear);
+    if (vals.length) out[cat] = vals.reduce((a, b) => a + b, 0) / vals.length;
+  }
+  return out;
+}
+
+export interface SeasonalHint { categoryId: string; monthAvg: number; overallAvg: number; ratio: number; }
+
+/** Top category that historically spikes in the current calendar month. */
+export function seasonalHint(
+  transactions: Transaction[],
+  now: Date = new Date(),
+): SeasonalHint | null {
+  const monthIdx = now.getMonth();
+  const curKey = now.toISOString().slice(0, 7);
+  const monthAvg = seasonalMonthlyAverage(transactions, monthIdx, now);
+  const overallSum: Record<string, number> = {};
+  const monthsByCat: Record<string, Set<string>> = {};
+  for (const t of transactions) {
+    if (t.type !== 'expense') continue;
+    if (t.date.slice(0, 7) === curKey) continue;
+    overallSum[t.category] = (overallSum[t.category] ?? 0) + ownShare(t);
+    (monthsByCat[t.category] ??= new Set()).add(t.date.slice(0, 7));
+  }
+  let best: SeasonalHint | null = null;
+  for (const [cat, ma] of Object.entries(monthAvg)) {
+    const overallAvg = (overallSum[cat] ?? 0) / Math.max(1, monthsByCat[cat]?.size ?? 1);
+    if (overallAvg <= 0 || ma < 30) continue;
+    const ratio = ma / overallAvg;
+    if (ratio >= 1.4 && (!best || ratio > best.ratio)) best = { categoryId: cat, monthAvg: ma, overallAvg, ratio };
+  }
+  return best;
+}
+
+/**
  * Suggest a monthly budget per expense category from the average monthly
- * spend over the last ~3 calendar months. If there's less data, the average
- * is taken over whatever months are present.
+ * spend over the last ~3 calendar months, raised to the seasonal level when
+ * the current calendar month historically runs higher (e.g. December gifts).
  */
 export function suggestBudgets(
   transactions: Transaction[],
@@ -40,10 +96,14 @@ export function suggestBudgets(
   }
 
   const monthCount = Math.max(1, months.size);
+  const seasonal = seasonalMonthlyAverage(transactions, now.getMonth(), now);
   const out: Record<string, number> = {};
   for (const c of expenseCategories) {
-    const avg = (byCat[c.id] ?? 0) / monthCount;
-    if (avg > 0) out[c.id] = round10(avg);
+    const recentAvg = (byCat[c.id] ?? 0) / monthCount;
+    const seasonalAvg = seasonal[c.id] ?? 0;
+    // Use the seasonal level if this month is historically heavier for the category.
+    const value = Math.max(recentAvg, seasonalAvg);
+    if (value > 0) out[c.id] = round10(value);
   }
   return out;
 }
