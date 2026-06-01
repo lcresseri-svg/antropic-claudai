@@ -19,6 +19,7 @@ git.
 
 ## 2026-06-01
 
+- **[Claude]** Saldo iniziale nascosto per il conto Investimenti (`isInvestment: true`): il campo appare solo per conti correnti, risparmio, carta di credito e contanti. — `(pending)`
 - **[Claude]** Fix sicurezza: chiave Firebase rimossa dal codice sorgente e spostata in variabili d'ambiente Vite (`VITE_FIREBASE_*`). `sunny/.env.local` gitignored. Workflow di deploy aggiornato per passare le `VITE_FIREBASE_*` alla build (chiave API via GitHub Secret `VITE_FIREBASE_API_KEY`, valori pubblici inline). — `4b8e5b3`
 
 ---

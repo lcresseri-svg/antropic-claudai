@@ -118,7 +118,8 @@ export function SettingsScreen({ user, transactions, onLogOut, onDeleteAll, onDe
       saveCategories(editing.isNew ? [...categories, def] : categories.map(c => c.id === d.id ? def : c));
     } else {
       const def: AccountDef = { id: d.id, label: d.label, icon: d.icon, color: d.color,
-        ...(d.initialBalance !== undefined ? { initialBalance: d.initialBalance } : {}) };
+        ...(d.initialBalance !== undefined ? { initialBalance: d.initialBalance } : {}),
+        ...(d.isInvestment ? { isInvestment: true } : {}) };
       saveAccounts(editing.isNew ? [...accounts, def] : accounts.map(a => a.id === d.id ? def : a));
     }
     setEditing(null);

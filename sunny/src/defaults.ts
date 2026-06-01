@@ -30,7 +30,7 @@ export const DEFAULT_ACCOUNTS: AccountDef[] = [
   { id: 'conto_risparmio',    label: 'Conto Risparmio', icon: '💰', color: '#8A9270' },
   { id: 'carta_credito',      label: 'Carta di Credito',icon: '💳', color: '#B5A8C8' },
   { id: 'contanti',           label: 'Contanti',        icon: '💵', color: '#E6B95C' },
-  { id: 'conto_investimenti', label: 'Investimenti',    icon: '📊', color: '#D4956A' },
+  { id: 'conto_investimenti', label: 'Investimenti',    icon: '📊', color: '#D4956A', isInvestment: true },
 ];
 
 export const FALLBACK_CATEGORY = (id: string): CategoryDef => ({

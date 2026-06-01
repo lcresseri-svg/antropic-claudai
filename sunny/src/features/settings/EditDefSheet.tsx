@@ -9,6 +9,7 @@ export interface DefDraft {
   color: string;
   kind?: TransactionType;
   initialBalance?: number;
+  isInvestment?: boolean;
 }
 
 interface Props {
@@ -94,7 +95,7 @@ export function EditDefSheet({ open, draft, withKind, canDelete, onSave, onDelet
           ))}
         </div>
 
-        {!withKind && (
+        {!withKind && !draft.isInvestment && (
           <div className="mb-6">
             <p className="text-xs font-medium text-secondary mb-2 px-1">Saldo iniziale</p>
             <div className="relative">

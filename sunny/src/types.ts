@@ -25,6 +25,7 @@ export interface AccountDef {
   icon: string;
   color: string;
   initialBalance?: number;
+  isInvestment?: boolean;
 }
 
 export interface Transaction {
