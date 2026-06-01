@@ -19,7 +19,7 @@ git.
 
 ## 2026-06-01
 
-- **[Claude]** Fix sicurezza: chiave Firebase rimossa dal codice sorgente e spostata in variabili d'ambiente Vite (`VITE_FIREBASE_*`). `sunny/.env.local` gitignored. La vecchia chiave esposta va rigenerata manualmente su Google Cloud Console. — `(pending)`
+- **[Claude]** Fix sicurezza: chiave Firebase rimossa dal codice sorgente e spostata in variabili d'ambiente Vite (`VITE_FIREBASE_*`). `sunny/.env.local` gitignored. Workflow di deploy aggiornato per passare le `VITE_FIREBASE_*` alla build (chiave API via GitHub Secret `VITE_FIREBASE_API_KEY`, valori pubblici inline). — `4b8e5b3`
 
 ---
 
