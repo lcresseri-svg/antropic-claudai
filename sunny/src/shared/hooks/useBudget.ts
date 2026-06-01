@@ -5,6 +5,8 @@ import { BudgetState } from '../../types';
 const DEFAULT_BUDGET: BudgetState = {
   savingsTarget: 500,
   categoryBudgets: {},
+  incomeBudgets: {},
+  investmentBudgets: {},
   suggestionAccepted: false,
 };
 
@@ -18,6 +20,8 @@ function load(user: User | null): BudgetState {
     return {
       savingsTarget: parsed.savingsTarget ?? DEFAULT_BUDGET.savingsTarget,
       categoryBudgets: parsed.categoryBudgets ?? {},
+      incomeBudgets: parsed.incomeBudgets ?? {},
+      investmentBudgets: parsed.investmentBudgets ?? {},
       suggestionAccepted: parsed.suggestionAccepted ?? false,
     };
   } catch {
@@ -29,10 +33,8 @@ function load(user: User | null): BudgetState {
 export function useBudget(user: User | null) {
   const [budget, setBudget] = useState<BudgetState>(() => load(user));
 
-  // Reload when the signed-in user changes.
   useEffect(() => { setBudget(load(user)); }, [user]);
 
-  // Apply a change and persist atomically (functional update avoids stale state).
   const update = useCallback((patch: (prev: BudgetState) => BudgetState) => {
     setBudget(prev => {
       const next = patch(prev);
@@ -54,15 +56,38 @@ export function useBudget(user: User | null) {
     });
   }, [update]);
 
+  const setIncomeBudget = useCallback((catId: string, n: number) => {
+    update(prev => {
+      const incomeBudgets = { ...prev.incomeBudgets };
+      if (n > 0) incomeBudgets[catId] = Math.round(n);
+      else delete incomeBudgets[catId];
+      return { ...prev, incomeBudgets };
+    });
+  }, [update]);
+
+  const setInvestmentBudget = useCallback((catId: string, n: number) => {
+    update(prev => {
+      const investmentBudgets = { ...prev.investmentBudgets };
+      if (n > 0) investmentBudgets[catId] = Math.round(n);
+      else delete investmentBudgets[catId];
+      return { ...prev, investmentBudgets };
+    });
+  }, [update]);
+
   const acceptSuggestion = useCallback((suggested: Record<string, number>, target: number) => {
-    update(() => ({
+    update(prev => ({
+      ...prev,
       savingsTarget: Math.max(0, Math.round(target)),
       categoryBudgets: { ...suggested },
       suggestionAccepted: true,
     }));
   }, [update]);
 
-  const hasBudget = budget.suggestionAccepted || Object.keys(budget.categoryBudgets).length > 0;
+  const hasBudget =
+    budget.suggestionAccepted ||
+    Object.keys(budget.categoryBudgets).length > 0 ||
+    Object.keys(budget.incomeBudgets).length > 0 ||
+    Object.keys(budget.investmentBudgets).length > 0;
 
-  return { budget, setSavingsTarget, setCategoryBudget, acceptSuggestion, hasBudget };
+  return { budget, setSavingsTarget, setCategoryBudget, setIncomeBudget, setInvestmentBudget, acceptSuggestion, hasBudget };
 }

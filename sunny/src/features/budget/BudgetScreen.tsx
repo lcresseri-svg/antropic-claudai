@@ -13,55 +13,96 @@ import { CategoryBudgetList } from './CategoryBudgetList';
 import { BudgetInsights } from './BudgetInsights';
 import { BudgetEditSheet } from './BudgetEditSheet';
 
+type EditSection = 'savings' | 'income' | 'expenses' | 'investments';
+
 interface Props {
   user: User;
   transactions: Transaction[];
   monthlyIncome: number;
   monthlyExpenses: number;
   monthlyInvestments: number;
-  categoryTotals: Record<string, number>;
+  categoryTotals: Record<string, number>;   // expense totals (current month)
 }
+
+const currentMonth = new Date().toISOString().slice(0, 7);
 
 export function BudgetScreen({
   user, transactions, monthlyIncome, monthlyExpenses, monthlyInvestments, categoryTotals,
 }: Props) {
   const { categories } = useSettings();
-  const { budget, setSavingsTarget, setCategoryBudget, acceptSuggestion, hasBudget } = useBudget(user);
+  const {
+    budget, setSavingsTarget, setCategoryBudget, setIncomeBudget, setInvestmentBudget,
+    acceptSuggestion, hasBudget,
+  } = useBudget(user);
 
   const [editOpen, setEditOpen] = useState(false);
+  const [editSection, setEditSection] = useState<EditSection>('expenses');
   const [focusCategory, setFocusCategory] = useState<string | null>(null);
 
-  const expenseCats = useMemo(
-    () => categories.filter(c => c.kind === 'expense'),
-    [categories],
-  );
+  const expenseCats    = useMemo(() => categories.filter(c => c.kind === 'expense'),    [categories]);
+  const incomeCats     = useMemo(() => categories.filter(c => c.kind === 'income'),     [categories]);
+  const investmentCats = useMemo(() => categories.filter(c => c.kind === 'investment'), [categories]);
 
-  // Before any real data exists, fall back to a demo dataset so the screen
-  // feels alive ("learning" phase of the copilot).
+  // Income totals by category (current month)
+  const incomeCategoryTotals = useMemo(() => {
+    const out: Record<string, number> = {};
+    for (const t of transactions) {
+      if (t.type !== 'income') continue;
+      if (t.date.slice(0, 7) !== currentMonth) continue;
+      out[t.category] = (out[t.category] ?? 0) + t.amount;
+    }
+    return out;
+  }, [transactions]);
+
+  // Investment totals by category (current month)
+  const investmentCategoryTotals = useMemo(() => {
+    const out: Record<string, number> = {};
+    for (const t of transactions) {
+      if (t.type !== 'investment') continue;
+      if (t.date.slice(0, 7) !== currentMonth) continue;
+      out[t.category] = (out[t.category] ?? 0) + t.amount;
+    }
+    return out;
+  }, [transactions]);
+
   const isLearning = transactions.length === 0;
-  const spend = isLearning ? DEMO_CATEGORY_SPEND : categoryTotals;
+  const expenseSpend = isLearning ? DEMO_CATEGORY_SPEND : categoryTotals;
 
   const suggested = useMemo(() => {
     if (isLearning) return DEMO_CATEGORY_BUDGETS;
     return suggestBudgets(transactions, expenseCats);
   }, [isLearning, transactions, expenseCats]);
 
-  const predicted = isLearning ? 420 : predictedSavings(monthlyIncome, monthlyExpenses, monthlyInvestments);
+  // Planned income: sum of income budgets if set, otherwise actual monthly income
+  const plannedIncome = useMemo(() => {
+    const sum = Object.values(budget.incomeBudgets).reduce((s, v) => s + v, 0);
+    return sum > 0 ? sum : monthlyIncome;
+  }, [budget.incomeBudgets, monthlyIncome]);
 
-  const activeBudgets = hasBudget ? budget.categoryBudgets : (isLearning ? DEMO_CATEGORY_BUDGETS : {});
+  const predicted = isLearning
+    ? 420
+    : predictedSavings(plannedIncome, monthlyExpenses, monthlyInvestments);
+
+  const activeExpBudgets  = hasBudget ? budget.categoryBudgets  : (isLearning ? DEMO_CATEGORY_BUDGETS : {});
+  const activeIncBudgets  = budget.incomeBudgets;
+  const activeInvBudgets  = budget.investmentBudgets;
 
   const insights = useMemo(
     () => generateBudgetInsights({
       expenseCategories: expenseCats,
-      categorySpend: spend,
-      categoryBudgets: activeBudgets,
+      categorySpend: expenseSpend,
+      categoryBudgets: activeExpBudgets,
       predicted,
       savingsTarget: budget.savingsTarget,
     }),
-    [expenseCats, spend, activeBudgets, predicted, budget.savingsTarget],
+    [expenseCats, expenseSpend, activeExpBudgets, predicted, budget.savingsTarget],
   );
 
-  const openEdit = (catId?: string) => { setFocusCategory(catId ?? null); setEditOpen(true); };
+  const openEdit = (section: EditSection = 'expenses', catId?: string) => {
+    setEditSection(section);
+    setFocusCategory(catId ?? null);
+    setEditOpen(true);
+  };
 
   return (
     <div className="pb-32 space-y-3">
@@ -74,34 +115,77 @@ export function BudgetScreen({
         </div>
       )}
 
-      <SavingsGoalCard predicted={predicted} target={budget.savingsTarget} onEdit={() => openEdit()} />
+      <SavingsGoalCard predicted={predicted} target={budget.savingsTarget} onEdit={() => openEdit('savings')} />
 
       {!hasBudget && (
         <SuggestedBudgetCard
           categories={expenseCats}
           suggested={suggested}
           onAccept={() => acceptSuggestion(suggested, budget.savingsTarget)}
-          onEdit={() => openEdit()}
+          onEdit={() => openEdit('expenses')}
         />
       )}
 
+      {/* Entrate previste */}
+      <CategoryBudgetList
+        categories={incomeCats}
+        spend={incomeCategoryTotals}
+        budgets={activeIncBudgets}
+        mode="income"
+        onEditCategory={id => openEdit('income', id)}
+      />
+      {incomeCats.length > 0 && Object.keys(activeIncBudgets).length === 0 && (
+        <button
+          onClick={() => openEdit('income')}
+          className="w-full glass-card rounded-2xl px-4 py-3 flex items-center gap-2.5 text-left">
+          <span className="text-gold">+</span>
+          <p className="text-[13px] text-secondary">Aggiungi entrate previste per categoria</p>
+        </button>
+      )}
+
+      {/* Uscite */}
       <CategoryBudgetList
         categories={expenseCats}
-        spend={spend}
-        budgets={activeBudgets}
-        onEditCategory={openEdit}
+        spend={expenseSpend}
+        budgets={activeExpBudgets}
+        mode="expense"
+        onEditCategory={id => openEdit('expenses', id)}
       />
+
+      {/* Investimenti */}
+      <CategoryBudgetList
+        categories={investmentCats}
+        spend={investmentCategoryTotals}
+        budgets={activeInvBudgets}
+        mode="investment"
+        onEditCategory={id => openEdit('investments', id)}
+      />
+      {investmentCats.length > 0 && Object.keys(activeInvBudgets).length === 0 && (
+        <button
+          onClick={() => openEdit('investments')}
+          className="w-full glass-card rounded-2xl px-4 py-3 flex items-center gap-2.5 text-left">
+          <span className="text-gold">+</span>
+          <p className="text-[13px] text-secondary">Aggiungi obiettivi di investimento mensili</p>
+        </button>
+      )}
 
       <BudgetInsights insights={insights} />
 
       <BudgetEditSheet
         open={editOpen}
-        categories={expenseCats}
+        expenseCategories={expenseCats}
+        incomeCategories={incomeCats}
+        investmentCategories={investmentCats}
         savingsTarget={budget.savingsTarget}
-        budgets={budget.categoryBudgets}
+        categoryBudgets={budget.categoryBudgets}
+        incomeBudgets={budget.incomeBudgets}
+        investmentBudgets={budget.investmentBudgets}
+        defaultTab={editSection}
         focusCategory={focusCategory}
         onSetTarget={setSavingsTarget}
         onSetCategory={setCategoryBudget}
+        onSetIncome={setIncomeBudget}
+        onSetInvestment={setInvestmentBudget}
         onClose={() => setEditOpen(false)}
       />
     </div>

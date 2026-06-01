@@ -58,7 +58,9 @@ export type TransactionPatch = Partial<Pick<Transaction, 'category' | 'account' 
 
 /** Budget configuration, persisted locally (no backend required). */
 export interface BudgetState {
-  savingsTarget: number;                    // monthly savings goal (€)
-  categoryBudgets: Record<string, number>;  // categoryId -> monthly limit (€)
-  suggestionAccepted: boolean;              // true once the user accepts Sunny's plan
+  savingsTarget: number;                       // monthly savings goal (€)
+  categoryBudgets: Record<string, number>;     // expense categoryId -> monthly limit (€)
+  incomeBudgets: Record<string, number>;       // income categoryId -> monthly expected (€)
+  investmentBudgets: Record<string, number>;   // investment categoryId -> monthly target (€)
+  suggestionAccepted: boolean;
 }
