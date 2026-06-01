@@ -138,11 +138,19 @@ export interface MonthForecast {
  * Single source of truth for the end-of-month forecast, used by BOTH the
  * Insights engine and the Budget screen so they never contradict each other.
  *
- * - Expenses are projected from the elapsed-time run rate once enough of the
- *   month has passed; early on (a few days) we fall back to the historical
- *   average to avoid wildly inflated estimates.
- * - Income/investments use the higher of "already recorded" and "historical
- *   average", since salaries/contributions often land as a single lump sum.
+ * Expense model — "actuals so far + typical spending for the days that remain":
+ *   projected = spentSoFar + (1 − monthProgress) × avgMonthlyExpense
+ *
+ * This is a confidence-weighted blend: at the start of the month the estimate
+ * is essentially the historical average (we trust history); as days pass it
+ * leans on what you've actually spent, and at month end it equals the real
+ * total. Crucially it still reacts to an unusual month, because any over- or
+ * under-spend so far is carried through in full — unlike a naive run-rate
+ * (spent ÷ elapsed-fraction) it never explodes from a single early purchase.
+ * With no history we fall back to a guarded run-rate.
+ *
+ * Income/investments use the higher of "already recorded" and "historical
+ * average", since salaries/contributions usually land as a single lump sum.
  */
 export function forecastSavings(o: {
   monthlyIncome: number;
@@ -156,9 +164,16 @@ export function forecastSavings(o: {
   const now = o.now ?? new Date();
   const prog = monthProgress(now);
   const avgExpense = o.avgExpense ?? 0;
-  const projectedExpenses = Math.round(
-    prog >= 0.15 || avgExpense <= 0 ? o.monthlyExpenses / prog : avgExpense,
-  );
+
+  let projectedExpenses: number;
+  if (avgExpense > 0) {
+    projectedExpenses = o.monthlyExpenses + Math.max(0, 1 - prog) * avgExpense;
+  } else {
+    projectedExpenses = prog >= 0.15 ? o.monthlyExpenses / prog : o.monthlyExpenses;
+  }
+  // Can't end the month having spent less than you already have.
+  projectedExpenses = Math.round(Math.max(projectedExpenses, o.monthlyExpenses));
+
   const expectedIncome = Math.round(Math.max(o.monthlyIncome, o.avgIncome ?? 0));
   const expectedInvest = Math.round(Math.max(o.monthlyInvestments, o.avgInvest ?? 0));
   const savings = expectedIncome - projectedExpenses - expectedInvest;

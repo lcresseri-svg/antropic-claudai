@@ -335,9 +335,11 @@ export function buildInsights(input: InsightInput): Insight[] {
     });
     const projExp = f.projectedExpenses, expInc = f.expectedIncome, expInv = f.expectedInvest;
     const forecast = f.savings;
-    const basis    = h.months > 0 ? 'ritmo attuale e storico' : 'ritmo attuale';
+    const basis    = h.months > 0 ? 'spese attuali e abitudini storiche' : 'ritmo attuale';
     const pctMonth = Math.round(prog * 100);
-    const howExp = `Guardo quanto hai speso finora (${formatCurrency(monthlyExpenses)}) e lo riproietto su tutto il mese in base ai giorni passati: sei circa al ${pctMonth}% del mese, quindi a questo ritmo le uscite arriverebbero intorno a ${formatCurrency(projExp)}.`;
+    const howExp = h.avgExpense > 0
+      ? `Parto da quanto hai già speso questo mese (${formatCurrency(monthlyExpenses)}) e aggiungo quanto spendi di solito nei giorni che restano: di norma spendi circa ${formatCurrency(h.avgExpense)} al mese e manca circa il ${100 - pctMonth}% del mese, quindi stimo intorno a ${formatCurrency(projExp)} di uscite a fine mese.`
+      : `Riproietto quanto hai già speso (${formatCurrency(monthlyExpenses)}) sul resto del mese in base ai giorni passati (sei circa al ${pctMonth}%), arrivando a circa ${formatCurrency(projExp)}.`;
     const howInc = h.avgIncome > 0
       ? ` Per le entrate uso la cifra più alta tra quanto hai già incassato (${formatCurrency(monthlyIncome)}) e quanto incassi di solito (${formatCurrency(h.avgIncome)}), perché lo stipendio di solito arriva tutto insieme.`
       : ` Per le entrate considero quanto hai già incassato (${formatCurrency(monthlyIncome)}).`;

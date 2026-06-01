@@ -1,5 +1,5 @@
 import { describe, it, expect } from 'vitest';
-import { suggestBudgets, seasonalHint, seasonalMonthlyAverage } from './budgetUtils';
+import { suggestBudgets, seasonalHint, seasonalMonthlyAverage, forecastSavings } from './budgetUtils';
 import { Transaction, CategoryDef } from '../../types';
 
 const NOW = new Date('2026-12-15T12:00:00Z'); // December → seasonal gifts
@@ -57,6 +57,49 @@ describe('seasonalHint', () => {
       tx({ category: 'spesa', amount: 100, date: '2025-12-10' }),
     ];
     expect(seasonalHint(txs, NOW)).toBeNull();
+  });
+});
+
+describe('forecastSavings', () => {
+  const MID = new Date('2026-12-16T12:00:00Z'); // ~half of December (31 days)
+
+  it('uses "spent so far + typical remaining" when history exists', () => {
+    const f = forecastSavings({
+      monthlyIncome: 3000, monthlyExpenses: 800, monthlyInvestments: 0,
+      avgIncome: 3000, avgExpense: 1600, now: MID,
+    });
+    // prog ≈ 16/31 ≈ 0.516 → projected ≈ 800 + 0.484*1600 ≈ 1574
+    expect(f.projectedExpenses).toBeGreaterThan(1500);
+    expect(f.projectedExpenses).toBeLessThan(1650);
+    expect(f.savings).toBe(f.expectedIncome - f.projectedExpenses - f.expectedInvest);
+  });
+
+  it('does not explode early in the month thanks to the historical blend', () => {
+    const early = new Date('2026-12-02T12:00:00Z'); // day 2
+    const f = forecastSavings({
+      monthlyIncome: 0, monthlyExpenses: 50, monthlyInvestments: 0,
+      avgIncome: 3000, avgExpense: 1500, now: early,
+    });
+    // ≈ 50 + ~0.94*1500 ≈ 1460 — close to the typical month, NOT 50/0.06 ≈ 800+ inflated nonsense
+    expect(f.projectedExpenses).toBeLessThan(1600);
+    expect(f.projectedExpenses).toBeGreaterThan(1300);
+  });
+
+  it('never projects less than already spent', () => {
+    const f = forecastSavings({
+      monthlyIncome: 2000, monthlyExpenses: 1800, monthlyInvestments: 0,
+      avgIncome: 2000, avgExpense: 500, now: MID,
+    });
+    expect(f.projectedExpenses).toBeGreaterThanOrEqual(1800);
+  });
+
+  it('falls back to a guarded run-rate without history', () => {
+    const f = forecastSavings({
+      monthlyIncome: 2000, monthlyExpenses: 600, monthlyInvestments: 0, now: MID,
+    });
+    // prog ≈ 0.516 → 600 / 0.516 ≈ 1162
+    expect(f.projectedExpenses).toBeGreaterThan(1050);
+    expect(f.projectedExpenses).toBeLessThan(1300);
   });
 });
 
