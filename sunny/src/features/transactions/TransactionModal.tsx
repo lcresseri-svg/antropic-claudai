@@ -85,6 +85,12 @@ export function TransactionModal({ open, editing, groupTransfers = [], onClose, 
     if (!typeCats.some(c => c.id === category)) setCategory(typeCats[0]?.id ?? '');
   }, [type, categories]);
 
+  // Fallback description used when the field is left empty: the selected
+  // category label (or the destination account for transfers).
+  const defaultDesc = type === 'transfer'
+    ? (accounts.find(a => a.id === toAccount)?.label ?? 'Trasferimento')
+    : (categories.find(c => c.id === category)?.label ?? '');
+
   const addReimb = () => {
     const def = accounts.find(a => a.id !== account)?.id ?? accounts[0]?.id ?? '';
     setReimbursements(rs => [...rs, { amount: '', account: def }]);
@@ -99,12 +105,11 @@ export function TransactionModal({ open, editing, groupTransfers = [], onClose, 
     const value = parseFloat(amount.replace(',', '.'));
     if (!value || value <= 0) { setAmountError(true); return; }
     setAmountError(false);
-    if (!description.trim()) return;
 
     const recurring: RecurrenceRule | undefined = isRecurring
       ? { freq: recurringFreq, until: recurringUntil || undefined }
       : undefined;
-    const desc = description.trim();
+    const desc = description.trim() || defaultDesc.trim() || 'Senza nome';
     const deleteIds = editing ? [editing.id, ...groupTransfers.map(t => t.id)] : [];
 
     const storni = (type === 'expense' && isShared)
@@ -190,8 +195,8 @@ export function TransactionModal({ open, editing, groupTransfers = [], onClose, 
           </div>
 
           {/* Description */}
-          <Field label="Descrizione">
-            <input type="text" placeholder="es. Supermercato" value={description} maxLength={80}
+          <Field label="Descrizione (facoltativa)">
+            <input type="text" placeholder={defaultDesc || 'es. Supermercato'} value={description} maxLength={80}
               onChange={e => {
                 const v = e.target.value;
                 setDescription(v);
@@ -199,7 +204,7 @@ export function TransactionModal({ open, editing, groupTransfers = [], onClose, 
                   const g = guessCategory(v, typeCats);
                   if (g) setCategory(g);
                 }
-              }} required
+              }}
               className="w-full bg-elevated rounded-2xl px-4 py-3 text-primary placeholder:text-secondary/50 outline-none focus:ring-1 focus:ring-gold/40" />
           </Field>
 
