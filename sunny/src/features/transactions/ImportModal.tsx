@@ -8,10 +8,10 @@ import { parseDate, parseAmount, parseType, col, MAX_IMPORT_ROWS } from './impor
 interface Props {
   open: boolean;
   onClose: () => void;
-  onImport: (txs: Omit<Transaction, 'id'>[]) => void;
+  onImport: (txs: Omit<Transaction, 'id'>[]) => void | Promise<void>;
 }
 
-type Step = 'upload' | 'preview' | 'done';
+type Step = 'upload' | 'preview' | 'importing' | 'done';
 
 export function ImportModal({ open, onClose, onImport }: Props) {
   const { categories, accounts } = useSettings();
@@ -19,6 +19,7 @@ export function ImportModal({ open, onClose, onImport }: Props) {
   const [parsed, setParsed] = useState<Omit<Transaction, 'id'>[]>([]);
   const [errors, setErrors] = useState<string[]>([]);
   const [warnings, setWarnings] = useState<string[]>([]);
+  const [importError, setImportError] = useState<string | null>(null);
   const [dragging, setDragging] = useState(false);
   const fileRef = useRef<HTMLInputElement>(null);
 
@@ -43,8 +44,20 @@ export function ImportModal({ open, onClose, onImport }: Props) {
     return byLabel?.id ?? accounts[0]?.id ?? 'conto_corrente';
   };
 
-  const reset = () => { setStep('upload'); setParsed([]); setErrors([]); setWarnings([]); };
+  const reset = () => { setStep('upload'); setParsed([]); setErrors([]); setWarnings([]); setImportError(null); };
   const close = () => { reset(); onClose(); };
+
+  const runImport = async () => {
+    setImportError(null);
+    setStep('importing');
+    try {
+      await onImport(parsed);
+      setStep('done');
+    } catch (e) {
+      setImportError(e instanceof Error ? e.message : 'Errore durante l\'importazione');
+      setStep('preview');
+    }
+  };
 
   const process = async (file: File) => {
     const XLSX = await import('xlsx');
@@ -157,6 +170,11 @@ export function ImportModal({ open, onClose, onImport }: Props) {
                 {errors.length > 0 && `, ${errors.length} ignorate`}
                 {warnings.length > 0 && `, ${warnings.length} con tipo stimato`}
               </p>
+              {importError && (
+                <div className="bg-[#C0605A]/10 rounded-2xl p-3">
+                  <p className="text-xs text-[#C0605A]">Importazione non riuscita: {importError}. Riprova.</p>
+                </div>
+              )}
               {errors.length > 0 && (
                 <div className="bg-[#C0605A]/10 rounded-2xl p-3 max-h-24 overflow-y-auto space-y-1">
                   {errors.map((e, i) => <p key={i} className="text-xs text-[#C0605A]">{e}</p>)}
@@ -186,6 +204,18 @@ export function ImportModal({ open, onClose, onImport }: Props) {
             </div>
           )}
 
+          {step === 'importing' && (
+            <div className="text-center py-10">
+              <div className="inline-block animate-spin mb-4" style={{ animationDuration: '1s' }}>
+                <svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="rgb(var(--c-gold))" strokeWidth="2.5" strokeLinecap="round">
+                  <path d="M21 12a9 9 0 1 1-6.2-8.5"/>
+                </svg>
+              </div>
+              <p className="text-lg font-semibold text-primary">Importazione in corso…</p>
+              <p className="text-sm text-secondary mt-1">Salvataggio di {parsed.length} transazioni</p>
+            </div>
+          )}
+
           {step === 'done' && (
             <div className="text-center py-10">
               <p className="text-4xl mb-3">✅</p>
@@ -200,11 +230,16 @@ export function ImportModal({ open, onClose, onImport }: Props) {
           {step === 'preview' && (
             <>
               <button onClick={reset} className="px-5 py-3.5 rounded-2xl bg-elevated text-secondary font-medium">Indietro</button>
-              <button onClick={() => { onImport(parsed); setStep('done'); }} disabled={parsed.length === 0}
+              <button onClick={runImport} disabled={parsed.length === 0}
                 className="flex-1 py-3.5 rounded-2xl bg-gold text-bg font-semibold disabled:opacity-40">
                 Importa {parsed.length}
               </button>
             </>
+          )}
+          {step === 'importing' && (
+            <button disabled className="flex-1 py-3.5 rounded-2xl bg-gold text-bg font-semibold opacity-60">
+              Importazione…
+            </button>
           )}
           {step === 'done' && <button onClick={close} className="flex-1 py-3.5 rounded-2xl bg-gold text-bg font-semibold">Chiudi</button>}
         </div>

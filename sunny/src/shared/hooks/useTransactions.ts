@@ -50,11 +50,14 @@ export function useTransactions(user: User | null, accounts: AccountDef[] = []) 
     addDoc(colRef(), stripUndefined(tx));
   }, [user, colRef]);
 
-  const addTransactions = useCallback((txs: Omit<Transaction, 'id'>[]) => {
+  const addTransactions = useCallback(async (txs: Omit<Transaction, 'id'>[]) => {
     if (!user) return;
-    const batch = writeBatch(db);
-    txs.forEach(tx => batch.set(doc(colRef()), stripUndefined(tx)));
-    batch.commit();
+    // Firestore allows max 500 writes per batch — chunk to stay under the limit.
+    for (let i = 0; i < txs.length; i += 450) {
+      const batch = writeBatch(db);
+      txs.slice(i, i + 450).forEach(tx => batch.set(doc(colRef()), stripUndefined(tx)));
+      await batch.commit();
+    }
   }, [user, colRef]);
 
   const replaceGroup = useCallback((deleteIds: string[], create: Omit<Transaction, 'id'>[]) => {
