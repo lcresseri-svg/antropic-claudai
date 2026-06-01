@@ -6,7 +6,6 @@ import { CategoryCard } from './CategoryCard';
 import { AccountsCard } from './AccountsCard';
 import { TrendChart } from './TrendChart';
 import { Insights } from '../insights/Insights';
-import { TransactionRow } from '../transactions/TransactionRow';
 
 type Period = '1m' | '3m' | '6m' | '1y';
 
@@ -158,26 +157,6 @@ export function Dashboard(p: Props) {
         {/* Left column */}
         <div className="space-y-3">
           <TrendChart data={p.trend} />
-
-          {/* Recent transactions */}
-          <section>
-            <div className="flex items-center justify-between mb-3">
-              <h3 className="text-[13px] font-semibold text-primary">Recenti</h3>
-              <button onClick={p.onSeeAll} className="label-caps text-gold" style={{ letterSpacing: '0.06em' }}>
-                Vedi tutte
-              </button>
-            </div>
-            <div className="glass-card rounded-2xl overflow-hidden">
-              <div className="divide-y divide-white/[0.06] px-4">
-                {p.recentTransactions.slice(0, 8).map(tx => (
-                  <TransactionRow key={tx.id} tx={tx} onClick={p.onEditTransaction} />
-                ))}
-                {p.recentTransactions.length === 0 && (
-                  <p className="text-[13px] text-secondary py-8 text-center">Nessuna transazione</p>
-                )}
-              </div>
-            </div>
-          </section>
         </div>
 
         {/* Right column */}

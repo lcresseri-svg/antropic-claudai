@@ -19,6 +19,7 @@ git.
 
 ## 2026-06-01
 
+- **[Claude]** Dashboard: rimossa la sezione "Recenti". AccountsCard: il riquadro "Saldo/Spese per conto" non sparisce più passando a "Vedi spese" quando non ci sono spese nel periodo (header e toggle restano, con messaggio vuoto). Transazioni: nuovo raggruppamento "Per categoria" oltre a mese e conto. — `(pending)`
 - **[Claude]** Insight potenziati: nuovo motore (`insightsEngine.ts`, con test) che aggiunge previsione di fine mese, previsione entrate e investimenti sulla base della media storica (ultimi 3 mesi attivi), voce di spesa più pesante, spese vs media. Nuovo setting in Generali per includere o no il capitale investito nel patrimonio netto (`includeInvestments`), con calcolo aggiornato. — `(pending)`
 - **[Claude]** Aggiunte 60 emoji alla palette categorie: sport (⚽🏊🚴…), natura/montagna (🌲🏔️🌸…), shopping (🏪👠💎…), cibo/ristoranti (🍕🍴🍷…). — `(pending)`
 - **[Claude]** Saldo iniziale nascosto per il conto Investimenti (`isInvestment: true`): il campo appare solo per conti correnti, risparmio, carta di credito e contanti. — `(pending)`

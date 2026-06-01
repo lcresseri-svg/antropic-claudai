@@ -14,10 +14,10 @@ interface Props {
   onAdd: () => void;
 }
 
-type GroupMode = 'month' | 'account';
+type GroupMode = 'month' | 'account' | 'category';
 
 export function TransactionList({ transactions, onEdit, onDelete, onBulkUpdate, onBulkDelete, onAdd }: Props) {
-  const { categories, accounts, getAcc } = useSettings();
+  const { categories, accounts, getAcc, getCat } = useSettings();
   const [search, setSearch] = useState('');
   const [typeFilter, setTypeFilter] = useState<TransactionType | 'all'>('all');
   const [groupMode, setGroupMode] = useState<GroupMode>('month');
@@ -47,14 +47,16 @@ export function TransactionList({ transactions, onEdit, onDelete, onBulkUpdate, 
   const groups = useMemo(() => {
     const map = new Map<string, Transaction[]>();
     for (const t of filtered) {
-      const key = groupMode === 'month' ? t.date.slice(0, 7) : t.account;
+      const key = groupMode === 'month' ? t.date.slice(0, 7) : groupMode === 'account' ? t.account : t.category;
       (map.get(key) ?? map.set(key, []).get(key)!).push(t);
     }
     return Array.from(map.entries());
   }, [filtered, groupMode]);
 
   const groupTitle = (key: string) =>
-    groupMode === 'month' ? capitalize(formatMonthLong(key)) : `${getAcc(key).icon} ${getAcc(key).label}`;
+    groupMode === 'month' ? capitalize(formatMonthLong(key))
+      : groupMode === 'account' ? `${getAcc(key).icon} ${getAcc(key).label}`
+      : `${getCat(key).icon} ${getCat(key).label}`;
 
   const groupSum = (txs: Transaction[]) =>
     txs.reduce((s, t) => s + (t.type === 'income' ? t.amount : t.type === 'expense' ? -t.amount : 0), 0);
@@ -115,12 +117,12 @@ export function TransactionList({ transactions, onEdit, onDelete, onBulkUpdate, 
         {/* Group + select */}
         <div className="flex items-center justify-between">
           <div className="flex gap-1 bg-card rounded-xl p-1">
-            {(['month', 'account'] as GroupMode[]).map(m => (
+            {(['month', 'account', 'category'] as GroupMode[]).map(m => (
               <button key={m} onClick={() => setGroupMode(m)}
                 className={`px-3 py-1.5 rounded-lg text-xs font-medium transition-colors ${
                   groupMode === m ? 'bg-elevated text-primary' : 'text-secondary'
                 }`}>
-                {m === 'month' ? 'Per mese' : 'Per conto'}
+                {m === 'month' ? 'Per mese' : m === 'account' ? 'Per conto' : 'Per categoria'}
               </button>
             ))}
           </div>

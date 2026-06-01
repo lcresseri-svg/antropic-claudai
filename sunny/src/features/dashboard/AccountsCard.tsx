@@ -24,9 +24,15 @@ export function AccountsCard({ accountBalances, expenseByAccount, mode, onToggle
       entries.push({ acc: getAcc(id), value: source[id] });
     }
   }
-  if (entries.length === 0) return null;
 
-  const max = Math.max(...entries.map(e => Math.abs(e.value)));
+  // Hide the whole card only when there's no data in EITHER mode — otherwise
+  // keep the header + toggle visible so the user can switch back.
+  const hasAnyData =
+    Object.values(accountBalances).some(v => Math.abs(v) > 0.005) ||
+    Object.values(expenseByAccount).some(v => Math.abs(v) > 0.005);
+  if (!hasAnyData) return null;
+
+  const max = entries.length ? Math.max(...entries.map(e => Math.abs(e.value))) : 0;
 
   return (
     <div className="glass-card rounded-2xl p-5">
@@ -36,6 +42,11 @@ export function AccountsCard({ accountBalances, expenseByAccount, mode, onToggle
           {mode === 'balance' ? 'Vedi spese' : 'Vedi saldi'}
         </button>
       </div>
+      {entries.length === 0 && (
+        <p className="text-[13px] text-secondary py-4 text-center">
+          {mode === 'spending' ? 'Nessuna spesa in questo periodo' : 'Nessun saldo da mostrare'}
+        </p>
+      )}
       <ul className="space-y-3.5">
         {entries.map(({ acc, value }) => (
           <li key={acc.id}>
