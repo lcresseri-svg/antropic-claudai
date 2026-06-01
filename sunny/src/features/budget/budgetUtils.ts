@@ -28,11 +28,13 @@ export function seasonalMonthlyAverage(
   now: Date = new Date(),
 ): Record<string, number> {
   const curKey = now.toISOString().slice(0, 7);
+  const cutoff = new Date(now.getFullYear(), now.getMonth() - 18, 1);
   const byCatYear: Record<string, Record<number, number>> = {};
   for (const t of transactions) {
     if (t.type !== 'expense') continue;
     if (t.date.slice(0, 7) === curKey) continue;
     const d = new Date(t.date);
+    if (d < cutoff) continue; // only the last ~18 months
     if (d.getMonth() !== monthIdx) continue;
     (byCatYear[t.category] ??= {});
     byCatYear[t.category][d.getFullYear()] = (byCatYear[t.category][d.getFullYear()] ?? 0) + ownShare(t);
@@ -54,12 +56,14 @@ export function seasonalHint(
 ): SeasonalHint | null {
   const monthIdx = now.getMonth();
   const curKey = now.toISOString().slice(0, 7);
+  const cutoff = new Date(now.getFullYear(), now.getMonth() - 18, 1);
   const monthAvg = seasonalMonthlyAverage(transactions, monthIdx, now);
   const overallSum: Record<string, number> = {};
   const monthsByCat: Record<string, Set<string>> = {};
   for (const t of transactions) {
     if (t.type !== 'expense') continue;
     if (t.date.slice(0, 7) === curKey) continue;
+    if (new Date(t.date) < cutoff) continue; // only the last ~18 months
     overallSum[t.category] = (overallSum[t.category] ?? 0) + ownShare(t);
     (monthsByCat[t.category] ??= new Set()).add(t.date.slice(0, 7));
   }
@@ -121,6 +125,44 @@ export function predictedSavings(
 ): number {
   const projectedExpenses = monthlyExpenses / monthProgress(now);
   return Math.round(monthlyIncome - projectedExpenses - monthlyInvestments);
+}
+
+export interface MonthForecast {
+  expectedIncome: number;
+  projectedExpenses: number;
+  expectedInvest: number;
+  savings: number;
+}
+
+/**
+ * Single source of truth for the end-of-month forecast, used by BOTH the
+ * Insights engine and the Budget screen so they never contradict each other.
+ *
+ * - Expenses are projected from the elapsed-time run rate once enough of the
+ *   month has passed; early on (a few days) we fall back to the historical
+ *   average to avoid wildly inflated estimates.
+ * - Income/investments use the higher of "already recorded" and "historical
+ *   average", since salaries/contributions often land as a single lump sum.
+ */
+export function forecastSavings(o: {
+  monthlyIncome: number;
+  monthlyExpenses: number;
+  monthlyInvestments: number;
+  avgIncome?: number;
+  avgExpense?: number;
+  avgInvest?: number;
+  now?: Date;
+}): MonthForecast {
+  const now = o.now ?? new Date();
+  const prog = monthProgress(now);
+  const avgExpense = o.avgExpense ?? 0;
+  const projectedExpenses = Math.round(
+    prog >= 0.15 || avgExpense <= 0 ? o.monthlyExpenses / prog : avgExpense,
+  );
+  const expectedIncome = Math.round(Math.max(o.monthlyIncome, o.avgIncome ?? 0));
+  const expectedInvest = Math.round(Math.max(o.monthlyInvestments, o.avgInvest ?? 0));
+  const savings = expectedIncome - projectedExpenses - expectedInvest;
+  return { expectedIncome, projectedExpenses, expectedInvest, savings };
 }
 
 export function categoryStatus(spent: number, budget: number): CategoryStatus {

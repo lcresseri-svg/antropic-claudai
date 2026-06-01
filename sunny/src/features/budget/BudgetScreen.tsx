@@ -4,9 +4,10 @@ import { Transaction } from '../../types';
 import { useSettings } from '../../shared/providers/settings';
 import { useBudget } from '../../shared/hooks/useBudget';
 import {
-  suggestBudgets, predictedSavings, generateBudgetInsights, seasonalHint,
+  suggestBudgets, forecastSavings, generateBudgetInsights, seasonalHint,
   DEMO_CATEGORY_SPEND, DEMO_CATEGORY_BUDGETS,
 } from './budgetUtils';
+import { history } from '../insights/insightsEngine';
 import { SavingsGoalCard } from './SavingsGoalCard';
 import { SuggestedBudgetCard } from './SuggestedBudgetCard';
 import { CategoryBudgetList } from './CategoryBudgetList';
@@ -81,9 +82,16 @@ export function BudgetScreen({
     return sum > 0 ? sum : monthlyIncome;
   }, [budget.incomeBudgets, monthlyIncome]);
 
-  const predicted = isLearning
-    ? 420
-    : predictedSavings(plannedIncome, monthlyExpenses, monthlyInvestments);
+  // End-of-month forecast — same engine the Insights use, so the two views
+  // never contradict each other.
+  const predicted = useMemo(() => {
+    if (isLearning) return 420;
+    const h = history(transactions, 3);
+    return forecastSavings({
+      monthlyIncome, monthlyExpenses, monthlyInvestments,
+      avgIncome: h.avgIncome, avgExpense: h.avgExpense, avgInvest: h.avgInvest,
+    }).savings;
+  }, [isLearning, transactions, monthlyIncome, monthlyExpenses, monthlyInvestments]);
 
   const activeExpBudgets  = hasBudget ? budget.categoryBudgets  : (isLearning ? DEMO_CATEGORY_BUDGETS : {});
   const activeIncBudgets  = budget.incomeBudgets;

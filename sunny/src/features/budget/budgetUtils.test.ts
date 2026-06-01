@@ -14,14 +14,22 @@ const cats: CategoryDef[] = [
 ];
 
 describe('seasonalMonthlyAverage', () => {
-  it('averages a category over the same calendar month across years', () => {
+  it('averages a category over the same calendar month across years (within the 18-month window)', () => {
     const txs = [
-      tx({ category: 'regali', amount: 400, date: '2024-12-10' }),
-      tx({ category: 'regali', amount: 600, date: '2025-12-10' }),
-      tx({ category: 'regali', amount: 50,  date: '2025-06-10' }), // different month, ignored
+      tx({ category: 'regali', amount: 400, date: '2025-10-10' }),
+      tx({ category: 'regali', amount: 600, date: '2026-10-10' }),
+      tx({ category: 'regali', amount: 50,  date: '2026-08-10' }), // different month, ignored
     ];
-    const avg = seasonalMonthlyAverage(txs, 11, NOW); // 11 = December
+    const avg = seasonalMonthlyAverage(txs, 9, NOW); // 9 = October
     expect(avg.regali).toBe(500);
+  });
+
+  it('ignores data older than ~18 months', () => {
+    const txs = [
+      tx({ category: 'regali', amount: 400, date: '2024-12-10' }), // 24 months back → excluded
+      tx({ category: 'regali', amount: 600, date: '2025-12-10' }),
+    ];
+    expect(seasonalMonthlyAverage(txs, 11, NOW).regali).toBe(600);
   });
 
   it('excludes the current partial month', () => {

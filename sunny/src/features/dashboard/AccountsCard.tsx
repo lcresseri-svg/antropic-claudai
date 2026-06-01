@@ -17,9 +17,11 @@ export function AccountsCard({ accountBalances, expenseByAccount, mode, onToggle
   const [showAll, setShowAll] = useState(false);
   const source = mode === 'balance' ? accountBalances : expenseByAccount;
 
+  // In spending mode keep every account visible (even at €0), so the list is
+  // a complete picture. In balance mode hide empty accounts.
   const entries = accounts
     .map(a => ({ acc: a, value: source[a.id] ?? 0 }))
-    .filter(e => Math.abs(e.value) > 0.005)
+    .filter(e => mode === 'spending' || Math.abs(e.value) > 0.005)
     .sort((a, b) => Math.abs(b.value) - Math.abs(a.value));
 
   // also include unknown account ids that may exist in data

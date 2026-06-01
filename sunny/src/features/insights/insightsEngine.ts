@@ -1,6 +1,6 @@
 import { Transaction, RecurrenceRule, ownShare } from '../../types';
 import { formatCurrency, capitalize } from '../../utils';
-import { monthProgress } from '../budget/budgetUtils';
+import { monthProgress, forecastSavings } from '../budget/budgetUtils';
 
 export type InsightCategory = 'alert' | 'forecast' | 'seasonal' | 'trend' | 'habit' | 'highlight';
 
@@ -192,6 +192,9 @@ export interface SeasonalSpike {
  */
 export function seasonalSpikes(transactions: Transaction[], targetMonthIdx: number, now: Date = new Date()): SeasonalSpike[] {
   const curKey = monthKey(0, now);
+  // Trend/seasonal analysis only looks back ~18 months: older habits are
+  // rarely representative of how you spend today.
+  const cutoff = new Date(now.getFullYear(), now.getMonth() - 18, 1);
   const targetByCatYear: Record<string, Record<number, number>> = {};
   const overallByCat: Record<string, number> = {};
   const monthsByCat: Record<string, Set<string>> = {};
@@ -201,6 +204,7 @@ export function seasonalSpikes(transactions: Transaction[], targetMonthIdx: numb
     const k = t.date.slice(0, 7);
     if (k === curKey) continue; // exclude current partial month
     const d = localDate(t.date);
+    if (d < cutoff) continue;   // ignore anything older than 18 months
     const share = ownShare(t);
     overallByCat[t.category] = (overallByCat[t.category] ?? 0) + share;
     (monthsByCat[t.category] ??= new Set()).add(k);
@@ -325,28 +329,30 @@ export function buildInsights(input: InsightInput): Insight[] {
   // Skip too early in the month: projecting from a few days' run-rate explodes
   // the estimate and is misleading (a €50 spend on day 1 ≠ €1500 for the month).
   if ((monthlyExpenses > 0 || monthlyIncome > 0) && prog > 0.15) {
-    const projExp  = projectExpenses(monthlyExpenses, now);
-    const expInc   = h.avgIncome > 0 ? Math.max(h.avgIncome, monthlyIncome) : monthlyIncome;
-    const expInv   = h.avgInvest > 0 ? Math.max(h.avgInvest, monthlyInvestments) : monthlyInvestments;
-    const forecast = Math.round(expInc - projExp - expInv);
+    const f = forecastSavings({
+      monthlyIncome, monthlyExpenses, monthlyInvestments,
+      avgIncome: h.avgIncome, avgExpense: h.avgExpense, avgInvest: h.avgInvest, now,
+    });
+    const projExp = f.projectedExpenses, expInc = f.expectedIncome, expInv = f.expectedInvest;
+    const forecast = f.savings;
     const basis    = h.months > 0 ? 'ritmo attuale e storico' : 'ritmo attuale';
     const pctMonth = Math.round(prog * 100);
-    const howExp = `Uscite previste = uscite registrate finora ÷ frazione di mese trascorsa. Hai speso ${formatCurrency(monthlyExpenses)} nel ${pctMonth}% del mese, quindi stimo ${formatCurrency(monthlyExpenses)} ÷ ${(prog).toFixed(2)} ≈ ${formatCurrency(projExp)} a fine mese.`;
+    const howExp = `Guardo quanto hai speso finora (${formatCurrency(monthlyExpenses)}) e lo riproietto su tutto il mese in base ai giorni passati: sei circa al ${pctMonth}% del mese, quindi a questo ritmo le uscite arriverebbero intorno a ${formatCurrency(projExp)}.`;
     const howInc = h.avgIncome > 0
-      ? ` Le entrate previste sono il massimo tra quanto hai già incassato (${formatCurrency(monthlyIncome)}) e la tua media storica (${formatCurrency(h.avgIncome)}).`
-      : ` Le entrate previste sono quelle già incassate (${formatCurrency(monthlyIncome)}).`;
+      ? ` Per le entrate uso la cifra più alta tra quanto hai già incassato (${formatCurrency(monthlyIncome)}) e quanto incassi di solito (${formatCurrency(h.avgIncome)}), perché lo stipendio di solito arriva tutto insieme.`
+      : ` Per le entrate considero quanto hai già incassato (${formatCurrency(monthlyIncome)}).`;
     push(forecast >= 0
       ? { icon: '🔮', category: 'forecast', title: `Fine mese stimato: +${formatCurrency(forecast)}`, detail: `Risparmio proiettato su ${basis}`, accent: ACCENT.good,
           explain: {
             what: 'Stima di quanto ti resterà a fine mese se mantieni questo ritmo.',
-            how: `${howExp}${howInc} Risparmio stimato = entrate previste − uscite previste − investimenti previsti.`,
+            how: `${howExp}${howInc} Il risparmio stimato è quello che resta: entrate previste, meno le uscite previste, meno gli investimenti.`,
             basis: 'Mese corrente + media degli ultimi mesi attivi.',
             chart: { labels: ['Entrate', 'Uscite stim.', 'Investito'], values: [Math.round(expInc), projExp, Math.round(expInv)], format: 'currency', highlightIndex: 0 },
           } }
       : { icon: '🔮', category: 'forecast', title: `Fine mese stimato: −${formatCurrency(-forecast)}`, detail: `Le uscite supererebbero le entrate su ${basis}`, accent: ACCENT.warn,
           explain: {
             what: 'A questo ritmo chiuderesti il mese in negativo.',
-            how: `${howExp}${howInc} Saldo stimato = entrate previste − uscite previste − investimenti previsti, che qui risulta negativo.`,
+            how: `${howExp}${howInc} Mettendo insieme entrate previste, uscite previste e investimenti, il conto finale risulta negativo.`,
             basis: 'Mese corrente + media degli ultimi mesi attivi.',
             chart: { labels: ['Entrate', 'Uscite stim.', 'Investito'], values: [Math.round(expInc), projExp, Math.round(expInv)], format: 'currency', highlightIndex: 1 },
           } });
