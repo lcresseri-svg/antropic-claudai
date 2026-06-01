@@ -115,19 +115,29 @@ export function InvestmentsScreen({ investmentByCategory, investmentTotal, month
           {trend.some(t => t.invest > 0) && (
             <div className="glass-card rounded-2xl p-5">
               <p className="label-caps text-secondary mb-4">Versamenti ultimi 6 mesi</p>
-              <div className="flex items-end justify-around gap-2" style={{ height: 100 }}>
+              {/* bars — month labels live in a separate row so they don't eat bar height */}
+              <div className="flex items-end justify-around gap-2" style={{ height: 130 }}>
                 {trend.map(t => {
-                  const h = Math.max(2, (t.invest / maxMonth) * 84);
+                  const h = t.invest > 0 ? Math.max(16, (t.invest / maxMonth) * 100) : 10;
                   return (
-                    <div key={t.key} className="flex-1 flex flex-col items-center justify-end gap-1.5 min-w-0">
-                      <span className="text-[10px] text-secondary balance-num truncate w-full text-center">
-                        {t.invest > 0 ? formatCurrency(t.invest) : ''}
-                      </span>
-                      <div className="w-full rounded-t-md" style={{ height: h, maxWidth: 40, backgroundColor: 'var(--accent-gold)', opacity: t.invest > 0 ? 1 : 0.25 }} />
-                      <span className="text-[10px] text-secondary">{capitalize(formatMonthShort(t.key))}</span>
+                    <div key={t.key} className="flex-1 flex flex-col items-center justify-end min-w-0">
+                      {t.invest > 0 && (
+                        <span className="text-[10px] text-secondary balance-num mb-1 truncate w-full text-center leading-tight">
+                          {formatCurrency(t.invest)}
+                        </span>
+                      )}
+                      <div className="w-full rounded-t-md" style={{ height: h, maxWidth: 40, backgroundColor: 'var(--accent-gold)', opacity: t.invest > 0 ? 1 : 0.15 }} />
                     </div>
                   );
                 })}
+              </div>
+              {/* month label row — separate so bars use the full height above */}
+              <div className="flex justify-around gap-2 mt-2">
+                {trend.map(t => (
+                  <span key={t.key} className="flex-1 text-[10px] text-secondary text-center truncate min-w-0">
+                    {capitalize(formatMonthShort(t.key))}
+                  </span>
+                ))}
               </div>
             </div>
           )}
