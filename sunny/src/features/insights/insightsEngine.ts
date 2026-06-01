@@ -480,10 +480,10 @@ export function buildInsights(input: InsightInput): Insight[] {
     const expChart: InsightChart = { labels: spanLbl, values: span.map(m => Math.round(m.expense)), format: 'currency', refLine: Math.round(avgExp), refLabel: 'media' };
     if (relSlope > 0.06) {
       push({ icon: '📊', category: 'trend', title: `Spese in crescita costante`, detail: `+${Math.round(relSlope * 100)}% al mese negli ultimi ${months6.length} mesi`, accent: ACCENT.warn,
-        explain: { what: 'La traiettoria delle spese mensili è in aumento.', how: 'Pendenza della retta di regressione lineare sulle uscite mensili, normalizzata sulla media.', basis: `Ultimi ${months6.length} mesi con dati.`, chart: expChart } });
+        explain: { what: 'La traiettoria delle spese mensili è in aumento.', how: 'Confronto le uscite mese per mese e guardo se, nel complesso, la linea tende a salire in modo costante.', basis: `Ultimi ${months6.length} mesi con dati.`, chart: expChart } });
     } else if (relSlope < -0.06) {
       push({ icon: '📊', category: 'trend', title: `Stai riducendo le spese`, detail: `−${Math.round(Math.abs(relSlope) * 100)}% al mese negli ultimi ${months6.length} mesi`, accent: ACCENT.good,
-        explain: { what: 'Le tue uscite mensili stanno calando in modo costante.', how: 'Pendenza della regressione lineare sulle uscite mensili, normalizzata sulla media.', basis: `Ultimi ${months6.length} mesi con dati.`, chart: expChart } });
+        explain: { what: 'Le tue uscite mensili stanno calando in modo costante.', how: 'Confronto le uscite mese per mese e guardo se, nel complesso, la linea tende a scendere in modo costante.', basis: `Ultimi ${months6.length} mesi con dati.`, chart: expChart } });
     }
   }
 
@@ -495,10 +495,10 @@ export function buildInsights(input: InsightInput): Insight[] {
     if (rateSlope > 0.02) {
       const curRate = withIncome[withIncome.length - 1]?.savingsRate ?? 0;
       push({ icon: '🚀', category: 'trend', title: `Tasso di risparmio in crescita`, detail: `Ora al ${Math.round(curRate * 100)}% · la tendenza è positiva`, accent: ACCENT.good,
-        explain: { what: 'La quota di reddito che riesci a risparmiare sta aumentando.', how: 'Per ogni mese: (Entrate − Uscite − Investimenti) / Entrate. Poi pendenza nel tempo.', basis: 'Mesi con entrate negli ultimi 6.', chart: rateChart } });
+        explain: { what: 'La quota di reddito che riesci a risparmiare sta aumentando.', how: 'Per ogni mese calcolo quanta parte delle entrate ti resta dopo spese e investimenti, e guardo se questa quota cresce nel tempo.', basis: 'Mesi con entrate negli ultimi 6.', chart: rateChart } });
     } else if (rateSlope < -0.03) {
       push({ icon: '📉', category: 'trend', title: `Tasso di risparmio in calo`, detail: `La quota risparmiata sul reddito sta diminuendo`, accent: ACCENT.warn,
-        explain: { what: 'Stai risparmiando una fetta sempre minore del tuo reddito.', how: 'Tasso di risparmio mensile (risparmio/entrate) e sua pendenza nel tempo.', basis: 'Mesi con entrate negli ultimi 6.', chart: rateChart } });
+        explain: { what: 'Stai risparmiando una fetta sempre minore del tuo reddito.', how: 'Per ogni mese guardo quanta parte delle entrate ti resta dopo spese e investimenti, e noto che questa quota sta diminuendo.', basis: 'Mesi con entrate negli ultimi 6.', chart: rateChart } });
     }
   }
 
@@ -553,7 +553,7 @@ export function buildInsights(input: InsightInput): Insight[] {
       const c = getCat(fastCat);
       const vals = catSeries[fastCat]!;
       push({ icon: c.icon, category: 'trend', title: `${c.label} in forte crescita`, detail: `Media mensile ${formatCurrency(avg(vals))} · +${Math.round(fastSlope * 100)}% mese su mese`, accent: ACCENT.warn,
-        explain: { what: `La spesa in ${c.label} sta accelerando.`, how: 'Pendenza della spesa mensile della categoria, normalizzata sul primo mese.', basis: 'Ultimi 3 mesi con dati.', chart: { labels: months3.map(m => shortMonth(m.key)), values: vals.map(v => Math.round(v)), format: 'currency' } } });
+        explain: { what: `La spesa in ${c.label} sta accelerando.`, how: 'Confronto quanto spendi in questa categoria mese dopo mese: l\'aumento è marcato rispetto a dove eri partito.', basis: 'Ultimi 3 mesi con dati.', chart: { labels: months3.map(m => shortMonth(m.key)), values: vals.map(v => Math.round(v)), format: 'currency' } } });
     }
   }
 
@@ -723,10 +723,10 @@ export function buildInsights(input: InsightInput): Insight[] {
     const chart: InsightChart = { labels: spanLbl, values: span.map(m => Math.round(m.expense)), format: 'currency', refLine: Math.round(mean), refLabel: 'media' };
     if (cv < 0.12) {
       push({ icon: '🧘', category: 'highlight', title: `Spese molto costanti`, detail: `Variazione mensile sotto il 12% — ottima prevedibilità`, accent: ACCENT.good,
-        explain: { what: 'Le tue uscite mensili sono molto stabili, facili da pianificare.', how: 'Coefficiente di variazione = deviazione standard ÷ media delle uscite mensili.', basis: `Ultimi ${months6.length} mesi con dati.`, chart } });
+        explain: { what: 'Le tue uscite mensili sono molto stabili, facili da pianificare.', how: 'Guardo quanto le uscite di ogni mese si discostano dalla media: qui restano molto vicine, quindi sono prevedibili.', basis: `Ultimi ${months6.length} mesi con dati.`, chart } });
     } else if (cv > 0.4) {
       push({ icon: '🌊', category: 'highlight', title: `Spese molto variabili`, detail: `Fluttuazione del ${Math.round(cv * 100)}% tra i mesi — difficile pianificare`, accent: ACCENT.info,
-        explain: { what: 'Le uscite oscillano molto da un mese all\'altro.', how: 'Coefficiente di variazione = deviazione standard ÷ media delle uscite mensili.', basis: `Ultimi ${months6.length} mesi con dati.`, chart } });
+        explain: { what: 'Le uscite oscillano molto da un mese all\'altro.', how: 'Guardo quanto le uscite di ogni mese si discostano dalla media: qui variano parecchio, quindi sono difficili da prevedere.', basis: `Ultimi ${months6.length} mesi con dati.`, chart } });
     }
   }
 

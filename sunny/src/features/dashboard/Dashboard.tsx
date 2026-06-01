@@ -155,7 +155,13 @@ export function Dashboard(p: Props) {
         <div className="grid grid-cols-3 gap-2.5">
           <Stat label="Entrate"   value={formatCurrency(periodIncome)}    colorClass="text-green" />
           <Stat label="Uscite"    value={formatCurrency(periodExpenses)}  colorClass="text-secondary" />
-          <Stat label="Risparmio" value={formatCurrency(saved)} colorClass={saved >= 0 ? 'text-gold' : 'text-red'} />
+          <Stat
+            label="Risparmio"
+            value={formatCurrency(saved)}
+            colorClass={saved >= 0 ? 'text-gold' : 'text-red'}
+            warn={saved < 0}
+            hint={periodInvestments > 0 ? `dopo ${formatCurrency(periodInvestments)} investiti` : 'entrate − uscite − investimenti'}
+          />
         </div>
       </div>
 
@@ -191,11 +197,20 @@ export function Dashboard(p: Props) {
   );
 }
 
-function Stat({ label, value, colorClass }: { label: string; value: string; colorClass: string }) {
+function Stat({ label, value, colorClass, hint, warn }: {
+  label: string; value: string; colorClass: string; hint?: string; warn?: boolean;
+}) {
   return (
     <div className="glass-card rounded-2xl px-4 py-4">
-      <p className="label-caps text-secondary mb-2">{label}</p>
+      <div className="flex items-center gap-1.5 mb-2">
+        <p className="label-caps text-secondary">{label}</p>
+        {warn && (
+          <span title="Entrate − Uscite − Investimenti è negativo: gli investimenti superano quanto ti è rimasto"
+            className="w-3.5 h-3.5 rounded-full bg-red/20 text-red text-[9px] font-bold flex items-center justify-center flex-shrink-0">!</span>
+        )}
+      </div>
       <p className={`text-[14px] font-semibold balance-num truncate ${colorClass}`}>{value}</p>
+      {hint && <p className="text-[10px] text-secondary/70 mt-1 leading-tight truncate">{hint}</p>}
     </div>
   );
 }
