@@ -18,6 +18,7 @@ type GroupMode = 'month' | 'account';
 
 export function TransactionList({ transactions, onEdit, onDelete, onBulkUpdate, onBulkDelete, onAdd }: Props) {
   const { categories, accounts, getAcc } = useSettings();
+  const [search, setSearch] = useState('');
   const [typeFilter, setTypeFilter] = useState<TransactionType | 'all'>('all');
   const [groupMode, setGroupMode] = useState<GroupMode>('month');
   const [selectMode, setSelectMode] = useState(false);
@@ -26,10 +27,22 @@ export function TransactionList({ transactions, onEdit, onDelete, onBulkUpdate, 
   const [confirmDelete, setConfirmDelete] = useState(false);
 
   const filtered = useMemo(() => {
+    const q = search.trim().toLowerCase();
     return [...transactions]
       .filter(t => typeFilter === 'all' || t.type === typeFilter)
+      .filter(t => {
+        if (!q) return true;
+        const cat = categories.find(c => c.id === t.category);
+        const acc = accounts.find(a => a.id === t.account);
+        return (
+          t.description.toLowerCase().includes(q) ||
+          (t.notes ?? '').toLowerCase().includes(q) ||
+          (cat?.label ?? '').toLowerCase().includes(q) ||
+          (acc?.label ?? '').toLowerCase().includes(q)
+        );
+      })
       .sort((a, b) => new Date(b.date).getTime() - new Date(a.date).getTime());
-  }, [transactions, typeFilter]);
+  }, [transactions, typeFilter, search, categories, accounts]);
 
   const groups = useMemo(() => {
     const map = new Map<string, Transaction[]>();
@@ -69,6 +82,25 @@ export function TransactionList({ transactions, onEdit, onDelete, onBulkUpdate, 
     <div className="space-y-4 pb-28">
       {/* Controls */}
       <div className="space-y-3">
+        {/* Search */}
+        <div className="relative">
+          <svg className="absolute left-3.5 top-1/2 -translate-y-1/2 text-secondary" width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+            <circle cx="11" cy="11" r="7"/><path d="m21 21-4.35-4.35"/>
+          </svg>
+          <input
+            type="text" value={search} onChange={e => setSearch(e.target.value)}
+            placeholder="Cerca transazioni…"
+            className="w-full bg-card rounded-2xl pl-9 pr-9 py-2.5 text-sm text-primary placeholder:text-secondary/50 outline-none focus:ring-1 focus:ring-gold/40"
+          />
+          {search && (
+            <button onClick={() => setSearch('')} className="absolute right-3 top-1/2 -translate-y-1/2 text-secondary hover:text-primary transition-colors">
+              <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round">
+                <path d="M18 6 6 18M6 6l12 12"/>
+              </svg>
+            </button>
+          )}
+        </div>
+
         {/* Type filter */}
         <div className="flex gap-2 overflow-x-auto scrollbar-hide -mx-1 px-1">
           <Chip active={typeFilter === 'all'} onClick={() => setTypeFilter('all')}>Tutte</Chip>
@@ -103,8 +135,8 @@ export function TransactionList({ transactions, onEdit, onDelete, onBulkUpdate, 
       {filtered.length === 0 ? (
         <div className="bg-card rounded-2xl p-10 text-center">
           <p className="text-3xl mb-3 opacity-60">🔍</p>
-          <p className="text-sm text-secondary">Nessuna transazione</p>
-          <button onClick={onAdd} className="mt-3 text-sm font-medium text-gold">+ Aggiungi</button>
+          <p className="text-sm text-secondary">{search ? `Nessun risultato per "${search}"` : 'Nessuna transazione'}</p>
+          {!search && <button onClick={onAdd} className="mt-3 text-sm font-medium text-gold">+ Aggiungi</button>}
         </div>
       ) : (
         groups.map(([key, txs]) => (

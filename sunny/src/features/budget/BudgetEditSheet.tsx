@@ -1,6 +1,7 @@
 import { useState, useEffect } from 'react';
 import { CategoryDef } from '../../types';
 import { formatCurrency } from '../../utils';
+import { useEscapeKey } from '../../shared/hooks/useEscapeKey';
 
 interface Props {
   open: boolean;
@@ -24,6 +25,8 @@ export function BudgetEditSheet({
   useEffect(() => {
     if (open) setCustomTarget(TARGET_PRESETS.includes(savingsTarget) ? '' : String(savingsTarget));
   }, [open, savingsTarget]);
+
+  useEscapeKey(onClose, open);
 
   if (!open) return null;
 

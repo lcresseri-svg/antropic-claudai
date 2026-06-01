@@ -1,6 +1,7 @@
 import { useState, useEffect } from 'react';
 import { TransactionType, TYPE_META, TYPE_ORDER } from '../../types';
 import { EMOJI_CHOICES, COLOR_CHOICES } from '../../defaults';
+import { useEscapeKey } from '../../shared/hooks/useEscapeKey';
 
 export interface DefDraft {
   id: string;
@@ -37,6 +38,8 @@ export function EditDefSheet({ open, draft, withKind, canDelete, onSave, onDelet
     setInitialBalance(draft.initialBalance !== undefined ? String(draft.initialBalance) : '');
     setConfirmingDelete(false);
   }, [open, draft]);
+
+  useEscapeKey(onClose, open);
 
   if (!open || !draft) return null;
 

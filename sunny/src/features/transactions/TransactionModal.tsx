@@ -2,6 +2,7 @@ import { useState, useEffect } from 'react';
 import { Transaction, TransactionType, TYPE_META, TYPE_ORDER, RecurrenceRule } from '../../types';
 import { formatCurrency, guessCategory } from '../../utils';
 import { useSettings } from '../../shared/providers/settings';
+import { useEscapeKey } from '../../shared/hooks/useEscapeKey';
 
 interface Props {
   open: boolean;
@@ -75,6 +76,8 @@ export function TransactionModal({ open, editing, groupTransfers = [], onClose, 
     document.body.style.overflow = 'hidden';
     return () => { document.body.style.overflow = prev; };
   }, [open]);
+
+  useEscapeKey(onClose, open);
 
   const typeCats = categories.filter(c => c.kind === type);
   useEffect(() => {

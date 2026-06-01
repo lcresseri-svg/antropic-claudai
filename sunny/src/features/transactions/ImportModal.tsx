@@ -1,4 +1,5 @@
 import { useState, useRef } from 'react';
+import { useEscapeKey } from '../../shared/hooks/useEscapeKey';
 import { Transaction, TransactionType, TYPE_META } from '../../types';
 import { formatCurrency, formatDate } from '../../utils';
 import { useSettings } from '../../shared/providers/settings';
@@ -99,6 +100,8 @@ export function ImportModal({ open, onClose, onImport }: Props) {
     XLSX.utils.book_append_sheet(wb, ws, 'Transazioni');
     XLSX.writeFile(wb, 'sunny-template.xlsx');
   };
+
+  useEscapeKey(close, open);
 
   if (!open) return null;
 
