@@ -1,4 +1,4 @@
-import { useState, useMemo } from 'react';
+import { useState, useMemo, useEffect } from 'react';
 import { Transaction, TransactionType, TYPE_META, TYPE_ORDER, TransactionPatch } from '../../types';
 import { formatCurrency, formatMonthLong, capitalize } from '../../utils';
 import { useSettings } from '../../shared/providers/settings';
@@ -15,21 +15,55 @@ interface Props {
 }
 
 type GroupMode = 'month' | 'account' | 'category';
+type SortDir = 'desc' | 'asc';
+type PeriodFilter = 'all' | '1m' | '3m' | '6m' | '1y';
+
+const PERIOD_OPTS: { value: PeriodFilter; label: string }[] = [
+  { value: 'all', label: 'Tutto' },
+  { value: '1m', label: 'Ultimo mese' },
+  { value: '3m', label: 'Ultimi 3 mesi' },
+  { value: '6m', label: 'Ultimi 6 mesi' },
+  { value: '1y', label: 'Ultimo anno' },
+];
+
+function periodCutoff(p: PeriodFilter, now: Date): Date | null {
+  if (p === 'all') return null;
+  const d = new Date(now);
+  if (p === '1m') d.setMonth(d.getMonth() - 1);
+  else if (p === '3m') d.setMonth(d.getMonth() - 3);
+  else if (p === '6m') d.setMonth(d.getMonth() - 6);
+  else d.setFullYear(d.getFullYear() - 1);
+  return d;
+}
 
 export function TransactionList({ transactions, onEdit, onDelete, onBulkUpdate, onBulkDelete, onAdd }: Props) {
   const { categories, accounts, getAcc, getCat } = useSettings();
   const [search, setSearch] = useState('');
   const [typeFilter, setTypeFilter] = useState<TransactionType | 'all'>('all');
   const [groupMode, setGroupMode] = useState<GroupMode>('month');
+  const [sortDir, setSortDir] = useState<SortDir>('desc');
+  const [period, setPeriod] = useState<PeriodFilter>('all');
+  const [filterOpen, setFilterOpen] = useState(false);
+  const [collapsed, setCollapsed] = useState<Set<string>>(new Set());
   const [selectMode, setSelectMode] = useState(false);
   const [selected, setSelected] = useState<Set<string>>(new Set());
   const [picker, setPicker] = useState<'category' | 'account' | null>(null);
   const [confirmDelete, setConfirmDelete] = useState(false);
 
+  // Esc chiude il pannello filtri
+  useEffect(() => {
+    if (!filterOpen) return;
+    const onKey = (e: KeyboardEvent) => { if (e.key === 'Escape') setFilterOpen(false); };
+    window.addEventListener('keydown', onKey);
+    return () => window.removeEventListener('keydown', onKey);
+  }, [filterOpen]);
+
   const filtered = useMemo(() => {
     const q = search.trim().toLowerCase();
+    const cutoff = periodCutoff(period, new Date());
     return [...transactions]
       .filter(t => typeFilter === 'all' || t.type === typeFilter)
+      .filter(t => !cutoff || new Date(t.date) >= cutoff)
       .filter(t => {
         if (!q) return true;
         const cat = categories.find(c => c.id === t.category);
@@ -41,8 +75,11 @@ export function TransactionList({ transactions, onEdit, onDelete, onBulkUpdate, 
           (acc?.label ?? '').toLowerCase().includes(q)
         );
       })
-      .sort((a, b) => new Date(b.date).getTime() - new Date(a.date).getTime());
-  }, [transactions, typeFilter, search, categories, accounts]);
+      .sort((a, b) => {
+        const diff = new Date(b.date).getTime() - new Date(a.date).getTime();
+        return sortDir === 'desc' ? diff : -diff;
+      });
+  }, [transactions, typeFilter, period, search, sortDir, categories, accounts]);
 
   const groups = useMemo(() => {
     const map = new Map<string, Transaction[]>();
@@ -60,6 +97,22 @@ export function TransactionList({ transactions, onEdit, onDelete, onBulkUpdate, 
 
   const groupSum = (txs: Transaction[]) =>
     txs.reduce((s, t) => s + (t.type === 'income' ? t.amount : t.type === 'expense' ? -t.amount : 0), 0);
+
+  const toggleCollapse = (key: string) => {
+    setCollapsed(prev => {
+      const next = new Set(prev);
+      next.has(key) ? next.delete(key) : next.add(key);
+      return next;
+    });
+  };
+
+  const allCollapsed = groups.length > 0 && groups.every(([key]) => collapsed.has(key));
+  const toggleAll = () => {
+    setCollapsed(allCollapsed ? new Set() : new Set(groups.map(([key]) => key)));
+  };
+
+  // cambiando raggruppamento le chiavi non corrispondono più: ripulisco
+  const changeGroup = (m: GroupMode) => { setGroupMode(m); setCollapsed(new Set()); };
 
   const toggle = (id: string) => {
     setSelected(prev => {
@@ -80,56 +133,122 @@ export function TransactionList({ transactions, onEdit, onDelete, onBulkUpdate, 
     exitSelect();
   };
 
+  const filterActive = period !== 'all' || sortDir !== 'desc';
+  const periodLabel = PERIOD_OPTS.find(o => o.value === period)!.label;
+
   return (
     <div className="space-y-4 pb-28">
       {/* Controls */}
       <div className="space-y-3">
-        {/* Search */}
-        <div className="relative">
-          <svg className="absolute left-3.5 top-1/2 -translate-y-1/2 text-secondary" width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-            <circle cx="11" cy="11" r="7"/><path d="m21 21-4.35-4.35"/>
-          </svg>
-          <input
-            type="text" value={search} onChange={e => setSearch(e.target.value)}
-            placeholder="Cerca transazioni…"
-            className="w-full bg-card rounded-2xl pl-9 pr-9 py-2.5 text-sm text-primary placeholder:text-secondary/50 outline-none focus:ring-1 focus:ring-gold/40"
-          />
-          {search && (
-            <button onClick={() => setSearch('')} className="absolute right-3 top-1/2 -translate-y-1/2 text-secondary hover:text-primary transition-colors">
-              <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round">
-                <path d="M18 6 6 18M6 6l12 12"/>
+        {/* Search + filter */}
+        <div className="flex gap-2">
+          <div className="relative flex-1">
+            <svg className="absolute left-3.5 top-1/2 -translate-y-1/2 text-secondary" width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+              <circle cx="11" cy="11" r="7"/><path d="m21 21-4.35-4.35"/>
+            </svg>
+            <input
+              type="text" value={search} onChange={e => setSearch(e.target.value)}
+              placeholder="Cerca transazioni…"
+              className="w-full bg-card rounded-2xl pl-9 pr-9 py-2.5 text-sm text-primary placeholder:text-secondary/50 outline-none focus:ring-1 focus:ring-gold/40"
+            />
+            {search && (
+              <button onClick={() => setSearch('')} className="absolute right-3 top-1/2 -translate-y-1/2 text-secondary hover:text-primary transition-colors">
+                <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round">
+                  <path d="M18 6 6 18M6 6l12 12"/>
+                </svg>
+              </button>
+            )}
+          </div>
+          <div className="relative">
+            <button onClick={() => setFilterOpen(o => !o)} aria-label="Filtri e ordinamento"
+              className={`relative h-full px-3 rounded-2xl flex items-center gap-1.5 text-sm transition-colors ${
+                filterActive || filterOpen ? 'bg-gold/10 text-gold' : 'bg-card text-secondary hover:text-primary'
+              }`}>
+              <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                <line x1="4" y1="6" x2="20" y2="6"/><line x1="7" y1="12" x2="17" y2="12"/><line x1="10" y1="18" x2="14" y2="18"/>
               </svg>
+              {filterActive && <span className="w-1.5 h-1.5 rounded-full bg-gold" />}
             </button>
-          )}
+
+            {filterOpen && (
+              <>
+                <div className="fixed inset-0 z-40" onClick={() => setFilterOpen(false)} />
+                <div className="absolute right-0 mt-2 w-60 z-50 glass-elevated rounded-2xl shadow-float p-3 animate-fade-in-fast">
+                  <p className="label-caps text-secondary mb-2 px-1">Ordina per data</p>
+                  <div className="flex gap-1 bg-card rounded-xl p-1 mb-3">
+                    {([['desc', 'Più recenti'], ['asc', 'Meno recenti']] as [SortDir, string][]).map(([dir, lbl]) => (
+                      <button key={dir} onClick={() => setSortDir(dir)}
+                        className={`flex-1 px-2 py-1.5 rounded-lg text-xs font-medium transition-colors ${
+                          sortDir === dir ? 'bg-elevated text-primary' : 'text-secondary'
+                        }`}>
+                        {lbl}
+                      </button>
+                    ))}
+                  </div>
+                  <p className="label-caps text-secondary mb-2 px-1">Periodo</p>
+                  <div className="space-y-1">
+                    {PERIOD_OPTS.map(opt => (
+                      <button key={opt.value} onClick={() => { setPeriod(opt.value); setFilterOpen(false); }}
+                        className={`w-full flex items-center justify-between px-3 py-2 rounded-xl text-sm transition-colors ${
+                          period === opt.value ? 'bg-gold/10 text-gold font-medium' : 'text-primary hover:bg-card'
+                        }`}>
+                        {opt.label}
+                        {period === opt.value && (
+                          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
+                            <path d="M20 6 9 17l-5-5"/>
+                          </svg>
+                        )}
+                      </button>
+                    ))}
+                  </div>
+                </div>
+              </>
+            )}
+          </div>
         </div>
 
-        {/* Type filter */}
-        <div className="flex gap-2 overflow-x-auto scrollbar-hide -mx-1 px-1">
-          <Chip active={typeFilter === 'all'} onClick={() => setTypeFilter('all')}>Tutte</Chip>
+        {/* Filtro periodo attivo — pill rimovibile */}
+        {period !== 'all' && (
+          <button onClick={() => setPeriod('all')}
+            className="inline-flex items-center gap-1.5 bg-gold/10 text-gold rounded-full pl-3 pr-2 py-1 text-xs font-medium">
+            {periodLabel}
+            <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round">
+              <path d="M18 6 6 18M6 6l12 12"/>
+            </svg>
+          </button>
+        )}
+
+        {/* Type filter — segmented, uniforme col raggruppamento */}
+        <div className="flex gap-1 bg-card rounded-xl p-1 overflow-x-auto scrollbar-hide">
+          <SegBtn active={typeFilter === 'all'} onClick={() => setTypeFilter('all')}>Tutte</SegBtn>
           {usedTypes.map(t => (
-            <Chip key={t} active={typeFilter === t} color={TYPE_META[t].color}
+            <SegBtn key={t} active={typeFilter === t} dot={TYPE_META[t].color}
               onClick={() => setTypeFilter(typeFilter === t ? 'all' : t)}>
               {TYPE_META[t].label}
-            </Chip>
+            </SegBtn>
           ))}
         </div>
 
         {/* Group + select */}
-        <div className="flex items-center justify-between">
-          <div className="flex gap-1 bg-card rounded-xl p-1">
+        <div className="flex items-center justify-between gap-2">
+          <div className="flex gap-1 bg-card rounded-xl p-1 overflow-x-auto scrollbar-hide">
             {(['month', 'account', 'category'] as GroupMode[]).map(m => (
-              <button key={m} onClick={() => setGroupMode(m)}
-                className={`px-3 py-1.5 rounded-lg text-xs font-medium transition-colors ${
-                  groupMode === m ? 'bg-elevated text-primary' : 'text-secondary'
-                }`}>
+              <SegBtn key={m} active={groupMode === m} onClick={() => changeGroup(m)}>
                 {m === 'month' ? 'Per mese' : m === 'account' ? 'Per conto' : 'Per categoria'}
-              </button>
+              </SegBtn>
             ))}
           </div>
-          <button onClick={() => selectMode ? exitSelect() : setSelectMode(true)}
-            className="text-xs font-medium text-gold px-2 py-1.5">
-            {selectMode ? 'Annulla' : 'Seleziona'}
-          </button>
+          <div className="flex items-center gap-1 flex-shrink-0">
+            {groups.length > 1 && (
+              <button onClick={toggleAll} className="text-xs font-medium text-secondary hover:text-primary px-2 py-1.5">
+                {allCollapsed ? 'Espandi' : 'Comprimi'}
+              </button>
+            )}
+            <button onClick={() => selectMode ? exitSelect() : setSelectMode(true)}
+              className="text-xs font-medium text-gold px-2 py-1.5">
+              {selectMode ? 'Annulla' : 'Seleziona'}
+            </button>
+          </div>
         </div>
       </div>
 
@@ -141,23 +260,36 @@ export function TransactionList({ transactions, onEdit, onDelete, onBulkUpdate, 
           {!search && <button onClick={onAdd} className="mt-3 text-sm font-medium text-gold">+ Aggiungi</button>}
         </div>
       ) : (
-        groups.map(([key, txs]) => (
-          <div key={key} className="bg-card rounded-2xl p-4">
-            <div className="flex items-center justify-between mb-1 px-1">
-              <h4 className="label-caps text-secondary">{groupTitle(key)}</h4>
-              <span className={`text-xs font-medium balance-num ${groupSum(txs) >= 0 ? 'text-green' : 'text-secondary'}`}>
-                {formatCurrency(groupSum(txs), { sign: true })}
-              </span>
+        groups.map(([key, txs]) => {
+          const isCollapsed = collapsed.has(key);
+          return (
+            <div key={key} className="bg-card rounded-2xl p-4">
+              <button onClick={() => toggleCollapse(key)}
+                className="w-full flex items-center justify-between mb-1 px-1 group">
+                <div className="flex items-center gap-1.5 min-w-0">
+                  <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"
+                    className={`text-secondary flex-shrink-0 transition-transform ${isCollapsed ? '-rotate-90' : ''}`}>
+                    <path d="m6 9 6 6 6-6"/>
+                  </svg>
+                  <h4 className="label-caps text-secondary truncate group-hover:text-primary transition-colors">{groupTitle(key)}</h4>
+                  {isCollapsed && <span className="text-[11px] text-secondary/60 flex-shrink-0">· {txs.length}</span>}
+                </div>
+                <span className={`text-xs font-medium balance-num flex-shrink-0 ${groupSum(txs) >= 0 ? 'text-green' : 'text-secondary'}`}>
+                  {formatCurrency(groupSum(txs), { sign: true })}
+                </span>
+              </button>
+              {!isCollapsed && (
+                <div className="divide-y divide-divider">
+                  {txs.map(tx => (
+                    <TransactionRow key={tx.id} tx={tx}
+                      selectable={selectMode} selected={selected.has(tx.id)}
+                      onToggle={toggle} onClick={onEdit} />
+                  ))}
+                </div>
+              )}
             </div>
-            <div className="divide-y divide-divider">
-              {txs.map(tx => (
-                <TransactionRow key={tx.id} tx={tx}
-                  selectable={selectMode} selected={selected.has(tx.id)}
-                  onToggle={toggle} onClick={onEdit} />
-              ))}
-            </div>
-          </div>
-        ))
+          );
+        })
       )}
 
       {/* Bulk action bar */}
@@ -193,13 +325,13 @@ export function TransactionList({ transactions, onEdit, onDelete, onBulkUpdate, 
   );
 }
 
-function Chip({ children, active, color, onClick }: { children: React.ReactNode; active: boolean; color?: string; onClick: () => void }) {
+function SegBtn({ children, active, dot, onClick }: { children: React.ReactNode; active: boolean; dot?: string; onClick: () => void }) {
   return (
     <button onClick={onClick}
-      className={`px-4 py-2 rounded-full text-xs font-medium whitespace-nowrap transition-all ${
-        active ? 'text-bg' : 'bg-card text-secondary'
-      }`}
-      style={active ? { backgroundColor: color ?? '#F5F5F5' } : {}}>
+      className={`flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-medium whitespace-nowrap transition-colors ${
+        active ? 'bg-elevated text-primary' : 'text-secondary'
+      }`}>
+      {dot && <span className="w-1.5 h-1.5 rounded-full flex-shrink-0" style={{ backgroundColor: dot }} />}
       {children}
     </button>
   );
