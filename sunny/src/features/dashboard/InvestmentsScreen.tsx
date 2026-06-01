@@ -34,14 +34,21 @@ export function InvestmentsScreen({ investmentByCategory, investmentTotal, month
     return r;
   }, [categories]);
 
-  const entries = Object.entries(investmentByCategory)
-    .filter(([, v]) => v > 0)
-    .sort(([, a], [, b]) => b - a);
+  // Every investment category (even at €0), plus any other id that has a value.
+  const rows = useMemo(() => {
+    const ids = new Set<string>([
+      ...categories.filter(c => c.kind === 'investment').map(c => c.id),
+      ...Object.keys(investmentByCategory),
+    ]);
+    return [...ids]
+      .map(id => {
+        const c = getCat(id);
+        return { id, label: c.label, color: c.color, icon: c.icon, value: investmentByCategory[id] ?? 0 };
+      })
+      .sort((a, b) => b.value - a.value);
+  }, [categories, investmentByCategory, getCat]);
 
-  const segments = entries.map(([id, value]) => {
-    const c = getCat(id);
-    return { label: c.label, value, color: c.color, icon: c.icon };
-  });
+  const segments = rows.filter(r => r.value > 0).map(r => ({ label: r.label, value: r.value, color: r.color, icon: r.icon }));
 
   const maxMonth = Math.max(1, ...trend.map(t => t.invest));
 
@@ -74,28 +81,28 @@ export function InvestmentsScreen({ investmentByCategory, investmentTotal, month
           </div>
 
           {/* Donut by category */}
-          {segments.length > 0 && (
+          {rows.length > 0 && (
             <div className="glass-card rounded-2xl p-5">
               <p className="label-caps text-secondary mb-4">Allocazione per categoria</p>
               <div className="flex items-center gap-5 flex-wrap">
                 <Donut segments={segments} centerLabel="Investito" size={140} />
                 <ul className="flex-1 space-y-3 min-w-[180px]">
-                  {segments.map(s => {
-                    const id = entries.find(e => getCat(e[0]).label === s.label)?.[0] ?? '';
-                    const count = txCountByCat[id] ?? 0;
-                    const hasInitial = (initialByCat[id] ?? 0) > 0;
+                  {rows.map(r => {
+                    const count = txCountByCat[r.id] ?? 0;
+                    const hasInitial = (initialByCat[r.id] ?? 0) > 0;
+                    const empty = r.value <= 0;
                     return (
-                      <li key={s.label} className="flex items-center gap-2.5 min-w-0">
-                        <span className="w-2.5 h-2.5 rounded-full flex-shrink-0" style={{ backgroundColor: s.color }} />
+                      <li key={r.id} className={`flex items-center gap-2.5 min-w-0 ${empty ? 'opacity-50' : ''}`}>
+                        <span className="w-2.5 h-2.5 rounded-full flex-shrink-0" style={{ backgroundColor: r.color }} />
                         <div className="flex-1 min-w-0">
-                          <p className="text-[13px] text-primary truncate">{s.label}</p>
+                          <p className="text-[13px] text-primary truncate">{r.label}</p>
                           <p className="text-[11px] text-secondary">
-                            {Math.round((s.value / investmentTotal) * 100)}%
+                            {investmentTotal > 0 ? Math.round((r.value / investmentTotal) * 100) : 0}%
                             {count > 0 && ` · ${count} op.`}
                             {hasInitial && ' · capitale iniziale'}
                           </p>
                         </div>
-                        <span className="text-[13px] font-semibold text-primary balance-num flex-shrink-0">{formatCurrency(s.value)}</span>
+                        <span className="text-[13px] font-semibold text-primary balance-num flex-shrink-0">{formatCurrency(r.value)}</span>
                       </li>
                     );
                   })}
