@@ -1,7 +1,9 @@
+import { useState } from 'react';
 import { Transaction } from '../../types';
 import { useSettings } from '../../shared/providers/settings';
 import { buildInsights, Insight, InsightCategory } from './insightsEngine';
 import { InsightCard } from './Insights';
+import { InsightDetailSheet } from './InsightDetailSheet';
 import { formatCurrency } from '../../utils';
 
 interface Props {
@@ -12,17 +14,19 @@ interface Props {
 }
 
 const CAT_META: Record<InsightCategory, { label: string; icon: string }> = {
-  alert:     { label: 'Priorità',    icon: '⚡' },
-  forecast:  { label: 'Previsione',  icon: '🔮' },
-  trend:     { label: 'Tendenze',    icon: '📈' },
-  habit:     { label: 'Abitudini',   icon: '🧠' },
-  highlight: { label: 'Questo mese', icon: '✦' },
+  alert:     { label: 'Priorità',      icon: '⚡' },
+  forecast:  { label: 'Previsione',    icon: '🔮' },
+  seasonal:  { label: 'Stagionalità',  icon: '🗓️' },
+  trend:     { label: 'Tendenze',      icon: '📈' },
+  habit:     { label: 'Abitudini',     icon: '🧠' },
+  highlight: { label: 'Questo mese',   icon: '✦' },
 };
 
-const CAT_ORDER: InsightCategory[] = ['alert', 'forecast', 'trend', 'habit', 'highlight'];
+const CAT_ORDER: InsightCategory[] = ['alert', 'forecast', 'seasonal', 'trend', 'habit', 'highlight'];
 
 export function InsightsScreen(p: Props) {
   const { getCat } = useSettings();
+  const [detail, setDetail] = useState<Insight | null>(null);
 
   const insights = buildInsights({
     transactions: p.transactions,
@@ -32,7 +36,6 @@ export function InsightsScreen(p: Props) {
     getCat,
   });
 
-  // Group by category
   const grouped = new Map<InsightCategory, Insight[]>();
   for (const ins of insights) {
     const list = grouped.get(ins.category) ?? [];
@@ -46,7 +49,6 @@ export function InsightsScreen(p: Props) {
     <div className="pb-32">
       <h1 className="text-2xl font-bold text-primary tracking-[-0.03em] mb-5">Insight</h1>
 
-      {/* Summary strip */}
       {p.monthlyIncome > 0 && (
         <div className="grid grid-cols-3 gap-2 mb-6">
           <SummaryPill label="Entrate" value={formatCurrency(p.monthlyIncome)} color="#8A9270" />
@@ -67,12 +69,14 @@ export function InsightsScreen(p: Props) {
                 <span className="text-[11px] text-secondary/50">· {items.length}</span>
               </div>
               <div className="space-y-2.5">
-                {items.map((ins, i) => <InsightCard key={i} ins={ins} />)}
+                {items.map((ins, i) => <InsightCard key={i} ins={ins} onInfo={setDetail} />)}
               </div>
             </section>
           );
         })}
       </div>
+
+      <InsightDetailSheet insight={detail} onClose={() => setDetail(null)} />
     </div>
   );
 }
