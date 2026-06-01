@@ -13,11 +13,13 @@ interface SettingsValue {
   categories: CategoryDef[];
   accounts: AccountDef[];
   theme: Theme;
+  includeInvestments: boolean; // count invested capital in net worth
   getCat: (id: string) => CategoryDef;
   getAcc: (id: string) => AccountDef;
   saveCategories: (c: CategoryDef[]) => void;
   saveAccounts: (a: AccountDef[]) => void;
   saveTheme: (t: Theme) => void;
+  saveIncludeInvestments: (v: boolean) => void;
 }
 
 const SettingsContext = createContext<SettingsValue | null>(null);
@@ -28,6 +30,7 @@ export function SettingsProvider({ user, children }: { user: User | null; childr
   const [categories, setCategories] = useState<CategoryDef[]>(DEFAULT_CATEGORIES);
   const [accounts, setAccounts] = useState<AccountDef[]>(DEFAULT_ACCOUNTS);
   const [theme, setTheme] = useState<Theme>('dark');
+  const [includeInvestments, setIncludeInvestments] = useState(true);
 
   // Apply theme class to <html> immediately when state changes
   useEffect(() => {
@@ -39,6 +42,7 @@ export function SettingsProvider({ user, children }: { user: User | null; childr
       setCategories(DEFAULT_CATEGORIES);
       setAccounts(DEFAULT_ACCOUNTS);
       setTheme('dark');
+      setIncludeInvestments(true);
       return;
     }
     const ref = doc(db, 'users', user.uid, 'meta', 'settings');
@@ -51,6 +55,7 @@ export function SettingsProvider({ user, children }: { user: User | null; childr
       setCategories((d.categories as CategoryDef[]) ?? DEFAULT_CATEGORIES);
       setAccounts((d.accounts as AccountDef[]) ?? DEFAULT_ACCOUNTS);
       setTheme((d.theme as Theme) ?? 'dark');
+      setIncludeInvestments(d.includeInvestments ?? true);
     });
   }, [user]);
 
@@ -76,6 +81,11 @@ export function SettingsProvider({ user, children }: { user: User | null; childr
     if (user) setDoc(settingsRef(), { theme: t }, MERGE);
   }, [user, settingsRef]);
 
+  const saveIncludeInvestments = useCallback((v: boolean) => {
+    setIncludeInvestments(v);
+    if (user) setDoc(settingsRef(), { includeInvestments: v }, MERGE);
+  }, [user, settingsRef]);
+
   const getCat = useCallback(
     (id: string) => categories.find(c => c.id === id) ?? FALLBACK_CATEGORY(id),
     [categories],
@@ -86,7 +96,7 @@ export function SettingsProvider({ user, children }: { user: User | null; childr
   );
 
   return (
-    <SettingsContext.Provider value={{ categories, accounts, theme, getCat, getAcc, saveCategories, saveAccounts, saveTheme }}>
+    <SettingsContext.Provider value={{ categories, accounts, theme, includeInvestments, getCat, getAcc, saveCategories, saveAccounts, saveTheme, saveIncludeInvestments }}>
       {children}
     </SettingsContext.Provider>
   );

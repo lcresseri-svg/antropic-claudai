@@ -33,7 +33,7 @@ function reorder<T>(arr: T[], from: number, to: number): T[] {
 
 export function SettingsScreen({ user, transactions, onLogOut, onDeleteAll, onDeleteAccount }: Props) {
   const navigate = useNavigate();
-  const { categories, accounts, theme, saveCategories, saveAccounts, saveTheme } = useSettings();
+  const { categories, accounts, theme, includeInvestments, saveCategories, saveAccounts, saveTheme, saveIncludeInvestments } = useSettings();
   const [sub, setSub] = useState<Sub>('menu');
   const [editing, setEditing] = useState<{ kind: 'category' | 'account'; draft: DefDraft; isNew: boolean; withKind?: boolean } | null>(null);
   const [confirmReset, setConfirmReset] = useState(false);
@@ -193,25 +193,19 @@ export function SettingsScreen({ user, transactions, onLogOut, onDeleteAll, onDe
       {sub === 'generali' && (
         <>
           <ManageHeader title="Generali" editMode={false} onBack={exitToMenu} onToggleEdit={() => {}} hideEdit />
-          <div className="bg-card rounded-2xl p-4">
-            <div className="flex items-center gap-3.5">
-              <span className="text-2xl">🌙</span>
-              <div className="flex-1">
-                <p className="text-sm font-medium text-primary">Tema scuro</p>
-                <p className="text-xs text-secondary">{theme === 'dark' ? 'Attivo' : 'Non attivo'}</p>
-              </div>
-              <button
-                onClick={() => saveTheme(theme === 'dark' ? 'light' : 'dark')}
-                className={`relative flex-shrink-0 w-[46px] h-[26px] rounded-full transition-colors duration-200 ${
-                  theme === 'dark' ? 'bg-gold' : 'bg-secondary/25'
-                }`}
-                aria-label="Cambia tema"
-              >
-                <span className={`absolute left-0 top-[3px] w-5 h-5 rounded-full bg-white shadow-sm transition-transform duration-200 ${
-                  theme === 'dark' ? 'translate-x-[23px]' : 'translate-x-[3px]'
-                }`} />
-              </button>
-            </div>
+          <div className="bg-card rounded-2xl divide-y divide-divider">
+            <ToggleRow
+              icon="🌙" label="Tema scuro"
+              sub={theme === 'dark' ? 'Attivo' : 'Non attivo'}
+              on={theme === 'dark'}
+              onToggle={() => saveTheme(theme === 'dark' ? 'light' : 'dark')}
+            />
+            <ToggleRow
+              icon="📈" label="Includi investito nel patrimonio"
+              sub={includeInvestments ? 'Il patrimonio comprende il capitale investito' : 'Il patrimonio mostra solo la liquidità'}
+              on={includeInvestments}
+              onToggle={() => saveIncludeInvestments(!includeInvestments)}
+            />
           </div>
         </>
       )}
@@ -460,6 +454,27 @@ function Row({ icon, color, label, onClick }: { icon: string; color: string; lab
       <span className="flex-1 text-[15px] font-medium text-primary">{label}</span>
       <ChevronRight />
     </button>
+  );
+}
+
+function ToggleRow({ icon, label, sub, on, onToggle }: {
+  icon: string; label: string; sub: string; on: boolean; onToggle: () => void;
+}) {
+  return (
+    <div className="flex items-center gap-3.5 p-4">
+      <span className="text-2xl">{icon}</span>
+      <div className="flex-1 min-w-0">
+        <p className="text-sm font-medium text-primary">{label}</p>
+        <p className="text-xs text-secondary">{sub}</p>
+      </div>
+      <button
+        onClick={onToggle}
+        className={`relative flex-shrink-0 w-[46px] h-[26px] rounded-full transition-colors duration-200 ${on ? 'bg-gold' : 'bg-secondary/25'}`}
+        aria-label={label}
+      >
+        <span className={`absolute left-0 top-[3px] w-5 h-5 rounded-full bg-white shadow-sm transition-transform duration-200 ${on ? 'translate-x-[23px]' : 'translate-x-[3px]'}`} />
+      </button>
+    </div>
   );
 }
 

@@ -21,7 +21,7 @@ function stripUndefined<T>(obj: T): T {
   return obj;
 }
 
-export function useTransactions(user: User | null, accounts: AccountDef[] = []) {
+export function useTransactions(user: User | null, accounts: AccountDef[] = [], includeInvestments = true) {
   const [transactions, setTransactions] = useState<Transaction[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
@@ -143,7 +143,7 @@ export function useTransactions(user: User | null, accounts: AccountDef[] = []) 
       else if (t.type === 'transfer') { bal(t.account, -t.amount); if (t.toAccount) bal(t.toAccount, t.amount); }
     }
     const liquidity = Object.values(accountBalances).reduce((s, v) => s + v, 0);
-    const netWorth = liquidity + investmentTotal;
+    const netWorth = includeInvestments ? liquidity + investmentTotal : liquidity;
 
     // Spending by category (current month, expenses)
     const categoryTotals: Record<string, number> = {};
@@ -183,7 +183,7 @@ export function useTransactions(user: User | null, accounts: AccountDef[] = []) 
       accountBalances, liquidity, netWorth, categoryTotals, expenseByAccount, trend,
       recentTransactions: recent, monthTx,
     };
-  }, [transactions, accounts]);
+  }, [transactions, accounts, includeInvestments]);
 
   return {
     transactions, loading, error,
