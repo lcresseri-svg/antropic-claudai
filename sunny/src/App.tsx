@@ -52,8 +52,8 @@ function Main({ user, onLogOut, onDeleteAccount }: {
 }) {
   const navigate = useNavigate();
   const location = useLocation();
-  const { accounts, includeInvestments } = useSettings();
-  const tx = useTransactions(user, accounts, includeInvestments);
+  const { accounts, categories, includeInvestments } = useSettings();
+  const tx = useTransactions(user, accounts, includeInvestments, categories);
   const [editing, setEditing] = useState<Transaction | null>(null);
   const [modalOpen, setModalOpen] = useState(false);
   const [importOpen, setImportOpen] = useState(false);

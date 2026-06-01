@@ -114,7 +114,9 @@ export function SettingsScreen({ user, transactions, onLogOut, onDeleteAll, onDe
   const save = (d: DefDraft) => {
     if (!editing) return;
     if (editing.kind === 'category') {
-      const def: CategoryDef = { id: d.id, label: d.label, icon: d.icon, color: d.color, kind: d.kind ?? 'expense' };
+      const kind = d.kind ?? 'expense';
+      const def: CategoryDef = { id: d.id, label: d.label, icon: d.icon, color: d.color, kind,
+        ...(kind === 'investment' && d.initialBalance !== undefined ? { initialBalance: d.initialBalance } : {}) };
       saveCategories(editing.isNew ? [...categories, def] : categories.map(c => c.id === d.id ? def : c));
     } else {
       const def: AccountDef = { id: d.id, label: d.label, icon: d.icon, color: d.color,

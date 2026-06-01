@@ -16,6 +16,7 @@ export interface CategoryDef {
   icon: string;   // single emoji
   color: string;  // hex
   kind: TransactionType;
+  initialBalance?: number; // investment categories only: capital already invested before Sunny
 }
 
 /** User-editable account. */

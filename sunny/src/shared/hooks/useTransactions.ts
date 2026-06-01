@@ -4,7 +4,7 @@ import {
   addDoc, deleteDoc, doc, updateDoc, writeBatch,
 } from 'firebase/firestore';
 import { User } from 'firebase/auth';
-import { AccountDef, Transaction, TransactionPatch, ownShare } from '../../types';
+import { AccountDef, CategoryDef, Transaction, TransactionPatch, ownShare } from '../../types';
 import { db } from '../../lib/firebase';
 
 // Recursively drop `undefined` values — Firestore rejects writes that contain
@@ -21,7 +21,7 @@ function stripUndefined<T>(obj: T): T {
   return obj;
 }
 
-export function useTransactions(user: User | null, accounts: AccountDef[] = [], includeInvestments = true) {
+export function useTransactions(user: User | null, accounts: AccountDef[] = [], includeInvestments = true, categories: CategoryDef[] = []) {
   const [transactions, setTransactions] = useState<Transaction[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
@@ -128,14 +128,22 @@ export function useTransactions(user: User | null, accounts: AccountDef[] = [], 
     const monthlyExpenses = monthTx.filter(t => t.type === 'expense').reduce((s, t) => s + ownShare(t), 0);
     const monthlyInvestments = monthTx.filter(t => t.type === 'investment').reduce((s, t) => s + t.amount, 0);
 
-    const investmentTotal = transactions.filter(t => t.type === 'investment').reduce((s, t) => s + t.amount, 0);
-
-    // Invested capital by category (all-time)
+    // Invested capital by category (all-time), seeded with each investment
+    // category's initial balance (capital already invested before Sunny).
     const investmentByCategory: Record<string, number> = {};
+    let investmentInitial = 0;
+    for (const c of categories) {
+      if (c.kind === 'investment' && c.initialBalance) {
+        investmentByCategory[c.id] = (investmentByCategory[c.id] ?? 0) + c.initialBalance;
+        investmentInitial += c.initialBalance;
+      }
+    }
     for (const t of transactions) {
       if (t.type !== 'investment') continue;
       investmentByCategory[t.category] = (investmentByCategory[t.category] ?? 0) + t.amount;
     }
+    const investmentTotal =
+      transactions.filter(t => t.type === 'investment').reduce((s, t) => s + t.amount, 0) + investmentInitial;
 
     // Per-account balance (initial balance + cash flow through the account)
     const accountBalances: Record<string, number> = {};
@@ -191,7 +199,7 @@ export function useTransactions(user: User | null, accounts: AccountDef[] = [], 
       accountBalances, liquidity, netWorth, categoryTotals, expenseByAccount, trend,
       recentTransactions: recent, monthTx,
     };
-  }, [transactions, accounts, includeInvestments]);
+  }, [transactions, accounts, includeInvestments, categories]);
 
   return {
     transactions, loading, error,

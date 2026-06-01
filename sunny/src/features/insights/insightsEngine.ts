@@ -303,8 +303,10 @@ export function buildInsights(input: InsightInput): Insight[] {
   }
 
   // ── 1. ALERT — Expenses outpacing income this month ───────────────────────
+  // Only meaningful past mid-month: early on, a single expense before income
+  // is logged would falsely look like "overspending".
   const saved = monthlyIncome - monthlyExpenses - monthlyInvestments;
-  if (monthlyIncome > 0 && saved < 0) {
+  if (monthlyIncome > 0 && saved < 0 && prog > 0.5) {
     push({
       icon: '⚠️', category: 'alert', urgent: true,
       title: `Sforamento di ${formatCurrency(-saved)}`,
@@ -320,7 +322,9 @@ export function buildInsights(input: InsightInput): Insight[] {
   }
 
   // ── 2. FORECAST — End-of-month projection ────────────────────────────────
-  if (monthlyExpenses > 0 || monthlyIncome > 0) {
+  // Skip too early in the month: projecting from a few days' run-rate explodes
+  // the estimate and is misleading (a €50 spend on day 1 ≠ €1500 for the month).
+  if ((monthlyExpenses > 0 || monthlyIncome > 0) && prog > 0.15) {
     const projExp  = projectExpenses(monthlyExpenses, now);
     const expInc   = h.avgIncome > 0 ? Math.max(h.avgIncome, monthlyIncome) : monthlyIncome;
     const expInv   = h.avgInvest > 0 ? Math.max(h.avgInvest, monthlyInvestments) : monthlyInvestments;

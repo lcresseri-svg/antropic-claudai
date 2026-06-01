@@ -43,13 +43,19 @@ export function EditDefSheet({ open, draft, withKind, canDelete, onSave, onDelet
 
   if (!open || !draft) return null;
 
+  // Initial balance is editable for accounts (non-investment) and for
+  // investment categories (capital already invested before Sunny).
+  const isInvestmentCategory = withKind && kind === 'investment';
+  const showBalance = (!withKind && !draft.isInvestment) || isInvestmentCategory;
+
   const save = () => {
     if (!label.trim()) return;
     const parsedBalance = initialBalance !== '' ? parseFloat(initialBalance) : undefined;
+    const validBalance = parsedBalance !== undefined && !isNaN(parsedBalance) ? parsedBalance : undefined;
     onSave({
       id: draft.id, label: label.trim(), icon, color,
       kind: withKind ? kind : undefined,
-      initialBalance: !withKind && parsedBalance !== undefined && !isNaN(parsedBalance) ? parsedBalance : undefined,
+      initialBalance: showBalance ? validBalance : undefined,
     });
   };
 
@@ -98,9 +104,11 @@ export function EditDefSheet({ open, draft, withKind, canDelete, onSave, onDelet
           ))}
         </div>
 
-        {!withKind && !draft.isInvestment && (
+        {showBalance && (
           <div className="mb-6">
-            <p className="text-xs font-medium text-secondary mb-2 px-1">Saldo iniziale</p>
+            <p className="text-xs font-medium text-secondary mb-2 px-1">
+              {isInvestmentCategory ? 'Capitale già investito' : 'Saldo iniziale'}
+            </p>
             <div className="relative">
               <span className="absolute left-3.5 top-1/2 -translate-y-1/2 text-secondary text-sm">€</span>
               <input
@@ -112,7 +120,11 @@ export function EditDefSheet({ open, draft, withKind, canDelete, onSave, onDelet
                 className="w-full bg-elevated rounded-2xl pl-8 pr-4 py-3 text-primary placeholder:text-secondary/50 outline-none focus:ring-1 focus:ring-gold/40"
               />
             </div>
-            <p className="text-[11px] text-secondary/70 px-1 mt-1.5">Saldo del conto quando hai iniziato a usare Sunny</p>
+            <p className="text-[11px] text-secondary/70 px-1 mt-1.5">
+              {isInvestmentCategory
+                ? 'Quanto avevi già investito in questa categoria prima di usare Sunny'
+                : 'Saldo del conto quando hai iniziato a usare Sunny'}
+            </p>
           </div>
         )}
 

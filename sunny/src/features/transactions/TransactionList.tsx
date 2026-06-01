@@ -15,6 +15,7 @@ interface Props {
 }
 
 type GroupMode = 'month' | 'account' | 'category';
+type SortKey = 'date' | 'amount';
 type SortDir = 'desc' | 'asc';
 type PeriodFilter = 'all' | '1m' | '3m' | '6m' | '1y';
 
@@ -41,6 +42,7 @@ export function TransactionList({ transactions, onEdit, onDelete, onBulkUpdate, 
   const [search, setSearch] = useState('');
   const [typeFilter, setTypeFilter] = useState<TransactionType | 'all'>('all');
   const [groupMode, setGroupMode] = useState<GroupMode>('month');
+  const [sortKey, setSortKey] = useState<SortKey>('date');
   const [sortDir, setSortDir] = useState<SortDir>('desc');
   const [period, setPeriod] = useState<PeriodFilter>('all');
   const [filterOpen, setFilterOpen] = useState(false);
@@ -76,10 +78,12 @@ export function TransactionList({ transactions, onEdit, onDelete, onBulkUpdate, 
         );
       })
       .sort((a, b) => {
-        const diff = new Date(b.date).getTime() - new Date(a.date).getTime();
+        const diff = sortKey === 'amount'
+          ? b.amount - a.amount
+          : new Date(b.date).getTime() - new Date(a.date).getTime();
         return sortDir === 'desc' ? diff : -diff;
       });
-  }, [transactions, typeFilter, period, search, sortDir, categories, accounts]);
+  }, [transactions, typeFilter, period, search, sortKey, sortDir, categories, accounts]);
 
   const groups = useMemo(() => {
     const map = new Map<string, Transaction[]>();
@@ -133,8 +137,11 @@ export function TransactionList({ transactions, onEdit, onDelete, onBulkUpdate, 
     exitSelect();
   };
 
-  const filterActive = period !== 'all' || sortDir !== 'desc';
+  const filterActive = period !== 'all' || sortKey !== 'date' || sortDir !== 'desc';
   const periodLabel = PERIOD_OPTS.find(o => o.value === period)!.label;
+  const dirLabels: [SortDir, string][] = sortKey === 'amount'
+    ? [['desc', 'Più alto'], ['asc', 'Più basso']]
+    : [['desc', 'Più recenti'], ['asc', 'Meno recenti']];
 
   return (
     <div className="space-y-4 pb-28">
@@ -174,9 +181,19 @@ export function TransactionList({ transactions, onEdit, onDelete, onBulkUpdate, 
               <>
                 <div className="fixed inset-0 z-40" onClick={() => setFilterOpen(false)} />
                 <div className="absolute right-0 mt-2 w-60 z-50 glass-elevated rounded-2xl shadow-float p-3 animate-fade-in-fast">
-                  <p className="label-caps text-secondary mb-2 px-1">Ordina per data</p>
+                  <p className="label-caps text-secondary mb-2 px-1">Ordina per</p>
+                  <div className="flex gap-1 bg-card rounded-xl p-1 mb-2">
+                    {([['date', 'Data'], ['amount', 'Importo']] as [SortKey, string][]).map(([key, lbl]) => (
+                      <button key={key} onClick={() => setSortKey(key)}
+                        className={`flex-1 px-2 py-1.5 rounded-lg text-xs font-medium transition-colors ${
+                          sortKey === key ? 'bg-elevated text-primary' : 'text-secondary'
+                        }`}>
+                        {lbl}
+                      </button>
+                    ))}
+                  </div>
                   <div className="flex gap-1 bg-card rounded-xl p-1 mb-3">
-                    {([['desc', 'Più recenti'], ['asc', 'Meno recenti']] as [SortDir, string][]).map(([dir, lbl]) => (
+                    {dirLabels.map(([dir, lbl]) => (
                       <button key={dir} onClick={() => setSortDir(dir)}
                         className={`flex-1 px-2 py-1.5 rounded-lg text-xs font-medium transition-colors ${
                           sortDir === dir ? 'bg-elevated text-primary' : 'text-secondary'
@@ -218,24 +235,24 @@ export function TransactionList({ transactions, onEdit, onDelete, onBulkUpdate, 
           </button>
         )}
 
-        {/* Type filter — segmented, uniforme col raggruppamento */}
-        <div className="flex gap-1 bg-card rounded-xl p-1 overflow-x-auto scrollbar-hide">
-          <SegBtn active={typeFilter === 'all'} onClick={() => setTypeFilter('all')}>Tutte</SegBtn>
+        {/* Type filter — capsule pills */}
+        <div className="flex gap-1.5 overflow-x-auto scrollbar-hide -mx-1 px-1">
+          <PillBtn active={typeFilter === 'all'} onClick={() => setTypeFilter('all')}>Tutte</PillBtn>
           {usedTypes.map(t => (
-            <SegBtn key={t} active={typeFilter === t} dot={TYPE_META[t].color}
+            <PillBtn key={t} active={typeFilter === t} dot={TYPE_META[t].color}
               onClick={() => setTypeFilter(typeFilter === t ? 'all' : t)}>
               {TYPE_META[t].label}
-            </SegBtn>
+            </PillBtn>
           ))}
         </div>
 
         {/* Group + select */}
         <div className="flex items-center justify-between gap-2">
-          <div className="flex gap-1 bg-card rounded-xl p-1 overflow-x-auto scrollbar-hide">
+          <div className="flex gap-1.5 overflow-x-auto scrollbar-hide -mx-1 px-1">
             {(['month', 'account', 'category'] as GroupMode[]).map(m => (
-              <SegBtn key={m} active={groupMode === m} onClick={() => changeGroup(m)}>
+              <PillBtn key={m} active={groupMode === m} onClick={() => changeGroup(m)}>
                 {m === 'month' ? 'Per mese' : m === 'account' ? 'Per conto' : 'Per categoria'}
-              </SegBtn>
+              </PillBtn>
             ))}
           </div>
           <div className="flex items-center gap-1 flex-shrink-0">
@@ -325,11 +342,11 @@ export function TransactionList({ transactions, onEdit, onDelete, onBulkUpdate, 
   );
 }
 
-function SegBtn({ children, active, dot, onClick }: { children: React.ReactNode; active: boolean; dot?: string; onClick: () => void }) {
+function PillBtn({ children, active, dot, onClick }: { children: React.ReactNode; active: boolean; dot?: string; onClick: () => void }) {
   return (
     <button onClick={onClick}
-      className={`flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-medium whitespace-nowrap transition-colors ${
-        active ? 'bg-elevated text-primary' : 'text-secondary'
+      className={`flex items-center gap-1.5 px-3.5 py-1.5 rounded-full text-xs font-semibold whitespace-nowrap transition-colors ${
+        active ? 'bg-gold/10 text-gold' : 'text-secondary hover:text-primary'
       }`}>
       {dot && <span className="w-1.5 h-1.5 rounded-full flex-shrink-0" style={{ backgroundColor: dot }} />}
       {children}
