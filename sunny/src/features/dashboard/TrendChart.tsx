@@ -35,7 +35,7 @@ function smoothPath(pts: { x: number; y: number }[]): string {
   return d;
 }
 
-function areaPath(pts: { x: number; y: number }[]): string {
+function areaToBase(pts: { x: number; y: number }[]): string {
   if (pts.length < 2) return '';
   const line = smoothPath(pts);
   const last = pts[pts.length - 1];
@@ -43,32 +43,39 @@ function areaPath(pts: { x: number; y: number }[]): string {
   return `${line} L ${last.x} ${H} L ${first.x} ${H} Z`;
 }
 
-const SERIES = [
-  { key: 'income'  as const, label: 'Entrate',  color: 'var(--accent-green)', fill: 'rgba(122,158,110,0.06)' },
-  { key: 'expense' as const, label: 'Uscite',   color: '#E08B8B',             fill: 'rgba(224,139,139,0.05)' },
-  { key: 'invest'  as const, label: 'Investito', color: 'var(--accent-gold)', fill: 'rgba(230,185,92,0.06)' },
-];
+/** Filled band between a top curve and a bottom curve (both smoothed). */
+function areaBetween(top: { x: number; y: number }[], bottom: { x: number; y: number }[]): string {
+  if (top.length < 2) return '';
+  const topLine = smoothPath(top);
+  const botReversed = smoothPath([...bottom].reverse()).replace(/^M/, 'L');
+  return `${topLine} ${botReversed} Z`;
+}
+
+const COLORS = {
+  income:  'var(--accent-green)',
+  expense: '#E08B8B',
+  invest:  'var(--accent-gold)',
+};
 
 export function TrendChart({ data }: Props) {
-  const max = Math.max(1, ...data.flatMap(d => [d.income, d.expense, d.invest]));
+  // Expenses and investments are stacked: the gold line sits on top of the red
+  // one, so its height is "uscite + investimenti" (total money going out).
+  const stacked = data.map(d => d.expense + d.invest);
+  const max = Math.max(1, ...data.map(d => Math.max(d.income, d.expense + d.invest)));
   const hasData = data.some(d => d.income > 0 || d.expense > 0 || d.invest > 0);
 
-  const pts = {
-    income:  toPoints(data.map(d => d.income), max),
-    expense: toPoints(data.map(d => d.expense), max),
-    invest:  toPoints(data.map(d => d.invest), max),
-  };
+  const incPts = toPoints(data.map(d => d.income), max);
+  const expPts = toPoints(data.map(d => d.expense), max);
+  const topPts = toPoints(stacked, max);
 
   return (
     <div className="glass-card rounded-2xl p-5">
       <div className="flex items-center justify-between mb-5 flex-wrap gap-y-2">
         <p className="label-caps text-secondary">Andamento 6 mesi</p>
         <div className="flex items-center gap-3 text-[11px] text-secondary">
-          {SERIES.map(s => (
-            <span key={s.key} className="flex items-center gap-1.5">
-              <span className="w-5 h-px inline-block" style={{ backgroundColor: s.color }} /> {s.label}
-            </span>
-          ))}
+          <span className="flex items-center gap-1.5"><span className="w-5 h-px inline-block" style={{ backgroundColor: COLORS.income }} /> Entrate</span>
+          <span className="flex items-center gap-1.5"><span className="w-5 h-px inline-block" style={{ backgroundColor: COLORS.expense }} /> Uscite</span>
+          <span className="flex items-center gap-1.5"><span className="w-5 h-px inline-block" style={{ backgroundColor: COLORS.invest }} /> + Investito</span>
         </div>
       </div>
 
@@ -86,15 +93,20 @@ export function TrendChart({ data }: Props) {
                 style={{ stroke: 'var(--progress-track)' }} strokeWidth="1" />
             ))}
 
-            {SERIES.map(s => <path key={s.key} d={areaPath(pts[s.key])} fill={s.fill} />)}
-            {SERIES.map(s => (
-              <path key={s.key} d={smoothPath(pts[s.key])} fill="none"
-                style={{ stroke: s.color }} strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" />
-            ))}
-            {SERIES.map(s => {
-              const p = pts[s.key][pts[s.key].length - 1];
-              return <circle key={s.key} cx={p.x} cy={p.y} r="2.5" style={{ fill: s.color }} />;
-            })}
+            {/* Stacked outflow: expense band (0→expense) + investment band (expense→top) */}
+            <path d={areaToBase(expPts)} fill="rgba(224,139,139,0.07)" />
+            <path d={areaBetween(topPts, expPts)} fill="rgba(230,185,92,0.10)" />
+            <path d={areaToBase(incPts)} fill="rgba(122,158,110,0.05)" />
+
+            {/* Lines */}
+            <path d={smoothPath(incPts)} fill="none" style={{ stroke: COLORS.income }} strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" />
+            <path d={smoothPath(expPts)} fill="none" style={{ stroke: COLORS.expense }} strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" />
+            <path d={smoothPath(topPts)} fill="none" style={{ stroke: COLORS.invest }} strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" strokeDasharray="3 2.5" />
+
+            {/* Dots at last point */}
+            <circle cx={incPts[incPts.length - 1].x} cy={incPts[incPts.length - 1].y} r="2.5" style={{ fill: COLORS.income }} />
+            <circle cx={expPts[expPts.length - 1].x} cy={expPts[expPts.length - 1].y} r="2.5" style={{ fill: COLORS.expense }} />
+            <circle cx={topPts[topPts.length - 1].x} cy={topPts[topPts.length - 1].y} r="2.5" style={{ fill: COLORS.invest }} />
           </svg>
 
           <div className="flex justify-between mt-2" style={{ paddingLeft: PAD_X, paddingRight: PAD_X }}>

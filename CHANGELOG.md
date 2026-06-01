@@ -19,6 +19,7 @@ git.
 
 ## 2026-06-01
 
+- **[Claude]** TrendChart: uscite e investimenti ora sono **impilati** — la linea oro (tratteggiata) rappresenta "uscite + investimenti" (totale in uscita), con banda colorata tra le due, confrontabile a colpo d'occhio con le entrate. — `(pending)`
 - **[Claude]** Schermata Investimenti: l'allocazione per categoria elenca ora **tutte le categorie di investimento**, anche quelle a €0 (mostrate sbiadite), oltre a eventuali categorie con valore non più presenti tra quelle attive. — `(pending)`
 - **[Claude]** Dashboard: la statistica **Risparmio** ora mostra un sottotitolo ("dopo €X investiti" / "entrate − uscite − investimenti") e un indicatore **"!"** quando entrate − uscite − investimenti è negativo, per chiarire perché può risultare < 0 anche con entrate > uscite. Spiegazioni insight ulteriormente semplificate (rimossi termini come "regressione lineare", "pendenza", "deviazione standard" in favore di linguaggio comune). — `(pending)`
 - **[Claude]** Previsione di fine mese unificata: nuova funzione condivisa `forecastSavings` usata sia dagli Insight sia dai "Consigli Sunny" del budget, così le due viste non si contraddicono più (prima una poteva dire −500 e l'altra +1000). Modalità "Vedi spese" della dashboard ora elenca **tutti i conti, anche a €0**. Spiegazione insight della proiezione riscritta in linguaggio semplice (niente più formule con ÷). Analisi stagionali/trend limitate agli **ultimi ~18 mesi** (le abitudini molto vecchie non sono più rappresentative). — `(pending)`
