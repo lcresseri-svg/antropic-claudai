@@ -5,6 +5,7 @@ import { CategoryDef, AccountDef, Transaction, TransactionType, TYPE_META, TYPE_
 import { useSettings } from '../../shared/providers/settings';
 import { EditDefSheet, DefDraft } from './EditDefSheet';
 import { buildExportPayload, downloadJson, downloadCsv } from './dataExport';
+import { APP_VERSION, VERSIONS } from '../../appInfo';
 
 interface Props {
   user: User;
@@ -15,7 +16,7 @@ interface Props {
 }
 
 const newId = () => `x_${Date.now().toString(36)}`;
-type Sub = 'menu' | 'generali' | 'gestione' | 'dati' | 'accounts' | 'categories';
+type Sub = 'menu' | 'generali' | 'gestione' | 'dati' | 'accounts' | 'categories' | 'info' | 'versioni';
 
 type DragState = {
   list: 'accounts' | TransactionType;
@@ -181,14 +182,18 @@ export function SettingsScreen({ user, transactions, onLogOut, onDeleteAll, onDe
             <button onClick={onLogOut} className="text-xs font-medium text-secondary px-3 py-2 rounded-xl bg-elevated">Esci</button>
           </div>
 
-          {/* 3 main entries */}
-          <div className="bg-card rounded-2xl divide-y divide-divider md:bg-transparent md:divide-y-0 md:grid md:grid-cols-3 md:gap-3">
+          {/* Main entries */}
+          <div className="bg-card rounded-2xl divide-y divide-divider md:bg-transparent md:divide-y-0 md:grid md:grid-cols-2 md:gap-3">
             <Row icon="⚙️" color="#8B8B8B" label="Generali" sub="Tema, patrimonio" onClick={() => enterSub('generali')} />
             <Row icon="🗂️" color="#6FA8DC" label="Gestione" sub="Conti e categorie" onClick={() => enterSub('gestione')} />
             <Row icon="💾" color="#8A9270" label="Dati" sub="Esporta, elimina" onClick={() => enterSub('dati')} />
+            <Row icon="ℹ️" color="#88B0C0" label="Come funziona" sub="Calcoli e formule" onClick={() => enterSub('info')} />
           </div>
 
-          <p className="text-center text-xs text-secondary/60 pt-2">Sunny · finanza personale</p>
+          <div className="text-center pt-2 space-y-1.5">
+            <p className="text-xs text-secondary/60">Sunny · finanza personale · v{APP_VERSION}</p>
+            <button onClick={() => enterSub('versioni')} className="text-xs font-medium text-gold">Registro versioni</button>
+          </div>
         </>
       )}
 
@@ -366,6 +371,69 @@ export function SettingsScreen({ user, transactions, onLogOut, onDeleteAll, onDe
         </>
       )}
 
+      {sub === 'info' && (
+        <>
+          <ManageHeader title="Come funziona" editMode={false} onBack={exitToMenu} onToggleEdit={() => {}} hideEdit />
+          <div className="space-y-3 md:max-w-2xl">
+            <p className="text-[13px] text-secondary px-1 leading-relaxed">
+              Sunny non indovina nulla: ogni numero nasce dai tuoi movimenti. Ecco, in parole semplici, come vengono calcolate le cose principali.
+            </p>
+            <InfoBlock icon="💰" title="Patrimonio netto">
+              È la somma dei saldi di tutti i conti (liquidità) più, se hai attivato l'opzione in Generali, il capitale investito. In formula: <b>liquidità + investito</b>.
+            </InfoBlock>
+            <InfoBlock icon="🏦" title="Saldo di un conto">
+              Parte dal <b>saldo iniziale</b> che imposti e poi applica tutta la storia: <b>+ entrate − uscite − investimenti partiti da quel conto ± trasferimenti</b>. La liquidità totale è la somma dei saldi di tutti i conti.
+            </InfoBlock>
+            <InfoBlock icon="📈" title="Capitale investito">
+              È la somma di tutte le transazioni di tipo "investimento", più l'eventuale <b>capitale già investito</b> impostato nelle categorie di investimento (quello che avevi prima di usare Sunny).
+            </InfoBlock>
+            <InfoBlock icon="✨" title="Risparmio del periodo">
+              <b>Entrate − Uscite − Investimenti</b>. Attenzione: anche gli investimenti vengono sottratti, quindi il risparmio può essere negativo pur avendo entrate maggiori delle uscite (i soldi non sono spariti, sono investiti). In quel caso compare un "!".
+            </InfoBlock>
+            <InfoBlock icon="🔮" title="Previsione di fine mese">
+              Le <b>uscite previste</b> si ottengono riproiettando quanto hai già speso sul resto del mese in base ai giorni trascorsi: a metà mese, grosso modo, raddoppiano. Le <b>entrate previste</b> sono la cifra più alta tra quanto hai già incassato e quanto incassi di solito (lo stipendio spesso arriva tutto insieme). Il risparmio stimato è <b>entrate previste − uscite previste − investimenti previsti</b>. Questa stessa formula è usata sia negli Insight sia nei Consigli del Budget, così non si contraddicono.
+            </InfoBlock>
+            <InfoBlock icon="📊" title="Media storica e proiezioni">
+              Quando parliamo di "media" intendiamo la media mensile sugli <b>ultimi mesi con dati</b> (di solito gli ultimi 3): i mesi vuoti non abbassano la media. La proiezione annuale è semplicemente la media mensile × 12.
+            </InfoBlock>
+            <InfoBlock icon="📈" title="Tendenze">
+              Confrontiamo i valori mese per mese e guardiamo se, nel complesso, salgono o scendono in modo costante. Per restare attuali consideriamo solo gli <b>ultimi ~18 mesi</b>: abitudini molto vecchie non sono rappresentative di oggi.
+            </InfoBlock>
+            <InfoBlock icon="🗓️" title="Stagionalità e anno-su-anno">
+              Confrontiamo lo stesso mese in anni diversi (entro 18 mesi) per cogliere i periodi in cui una categoria sale di solito (es. regali a dicembre). Se la spesa media in quel mese supera di almeno il 40% la tua media mensile per quella categoria, te lo segnaliamo — e ne teniamo conto nel budget suggerito.
+            </InfoBlock>
+            <InfoBlock icon="🎯" title="Budget suggerito">
+              Parte dalla media mensile degli ultimi ~3 mesi per categoria, arrotondata. Se il mese corrente è storicamente più pesante per una categoria, il suggerimento viene <b>alzato al livello stagionale</b>.
+            </InfoBlock>
+          </div>
+        </>
+      )}
+
+      {sub === 'versioni' && (
+        <>
+          <ManageHeader title="Registro versioni" editMode={false} onBack={exitToMenu} onToggleEdit={() => {}} hideEdit />
+          <div className="space-y-3 md:max-w-2xl">
+            {VERSIONS.map(v => (
+              <div key={v.version} className="bg-card rounded-2xl p-4">
+                <div className="flex items-baseline gap-2 mb-2">
+                  <span className="text-sm font-bold text-primary">v{v.version}</span>
+                  <span className="text-[13px] text-primary flex-1">{v.title}</span>
+                  <span className="text-[11px] text-secondary balance-num">{v.date}</span>
+                </div>
+                <ul className="space-y-1.5">
+                  {v.changes.map((c, i) => (
+                    <li key={i} className="flex gap-2 text-[13px] text-secondary leading-snug">
+                      <span className="text-gold flex-shrink-0">·</span>
+                      <span>{c}</span>
+                    </li>
+                  ))}
+                </ul>
+              </div>
+            ))}
+          </div>
+        </>
+      )}
+
       <EditDefSheet
         open={!!editing}
         draft={editing?.draft ?? null}
@@ -445,6 +513,18 @@ function ManageRow({ icon, color, label, editMode, selected, onClick, showHandle
       <span className="w-9 h-9 rounded-full flex items-center justify-center text-base flex-shrink-0" style={{ backgroundColor: color + '22' }}>{icon}</span>
       <span className="flex-1 text-[15px] font-medium text-primary">{label}</span>
       {!!onClick && !showHandle && <ChevronRight />}
+    </div>
+  );
+}
+
+function InfoBlock({ icon, title, children }: { icon: string; title: string; children: React.ReactNode }) {
+  return (
+    <div className="bg-card rounded-2xl p-4 flex gap-3.5">
+      <span className="w-9 h-9 rounded-full flex items-center justify-center text-base flex-shrink-0" style={{ backgroundColor: 'rgba(136,176,192,0.14)' }}>{icon}</span>
+      <div className="min-w-0">
+        <p className="text-sm font-semibold text-primary mb-1">{title}</p>
+        <p className="text-[13px] text-secondary leading-relaxed">{children}</p>
+      </div>
     </div>
   );
 }

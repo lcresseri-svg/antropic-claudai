@@ -19,6 +19,7 @@ git.
 
 ## 2026-06-01
 
+- **[Claude]** Impostazioni: nuova sezione **"Come funziona"** che spiega in linguaggio semplice tutte le formule (patrimonio, saldo conto, capitale investito, risparmio, previsione fine mese, media storica, tendenze, stagionalità, budget suggerito). Footer con **versione app** (`appInfo.ts`, v1.5.0) e link al **Registro versioni**. — `(pending)`
 - **[Claude]** TrendChart: uscite e investimenti ora sono **impilati** — la linea oro (tratteggiata) rappresenta "uscite + investimenti" (totale in uscita), con banda colorata tra le due, confrontabile a colpo d'occhio con le entrate. — `(pending)`
 - **[Claude]** Schermata Investimenti: l'allocazione per categoria elenca ora **tutte le categorie di investimento**, anche quelle a €0 (mostrate sbiadite), oltre a eventuali categorie con valore non più presenti tra quelle attive. — `(pending)`
 - **[Claude]** Dashboard: la statistica **Risparmio** ora mostra un sottotitolo ("dopo €X investiti" / "entrate − uscite − investimenti") e un indicatore **"!"** quando entrate − uscite − investimenti è negativo, per chiarire perché può risultare < 0 anche con entrate > uscite. Spiegazioni insight ulteriormente semplificate (rimossi termini come "regressione lineare", "pendenza", "deviazione standard" in favore di linguaggio comune). — `(pending)`
