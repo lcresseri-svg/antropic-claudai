@@ -19,6 +19,7 @@ git.
 
 ## 2026-06-01
 
+- **[Claude]** Canale di rilascio **beta** (`APP_CHANNEL` in `appInfo.ts`): badge "BETA" accanto alla versione nelle impostazioni e nota nel registro versioni. Da cambiare in 'stable' quando l'app diventerà ufficiale. — `(pending)`
 - **[Claude]** Modello di previsione di fine mese migliorato: da run-rate puro (spese ÷ frazione di mese, instabile a inizio mese) a **"spese finora + (frazione di mese rimasta × media storica)"** — blend pesato sulla confidenza che non esplode a inizio mese, converge al totale reale a fine mese e reagisce comunque ai mesi anomali. Fallback al run-rate guardato senza storico. Spiegazioni aggiornate + 4 nuovi test. — `(pending)`
 - **[Claude]** Impostazioni: nuova sezione **"Come funziona"** che spiega in linguaggio semplice tutte le formule (patrimonio, saldo conto, capitale investito, risparmio, previsione fine mese, media storica, tendenze, stagionalità, budget suggerito). Footer con **versione app** (`appInfo.ts`, v1.5.0) e link al **Registro versioni**. — `(pending)`
 - **[Claude]** TrendChart: uscite e investimenti ora sono **impilati** — la linea oro (tratteggiata) rappresenta "uscite + investimenti" (totale in uscita), con banda colorata tra le due, confrontabile a colpo d'occhio con le entrate. — `(pending)`

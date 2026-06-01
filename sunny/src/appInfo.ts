@@ -1,5 +1,11 @@
 export const APP_VERSION = '1.5.0';
 
+/**
+ * Release channel. While in 'beta' the app is still under active development
+ * and versions are not considered official. Switch to 'stable' when ready.
+ */
+export const APP_CHANNEL: 'beta' | 'stable' = 'beta';
+
 export interface VersionEntry {
   version: string;
   date: string;        // YYYY-MM-GG

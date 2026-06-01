@@ -5,7 +5,7 @@ import { CategoryDef, AccountDef, Transaction, TransactionType, TYPE_META, TYPE_
 import { useSettings } from '../../shared/providers/settings';
 import { EditDefSheet, DefDraft } from './EditDefSheet';
 import { buildExportPayload, downloadJson, downloadCsv } from './dataExport';
-import { APP_VERSION, VERSIONS } from '../../appInfo';
+import { APP_VERSION, APP_CHANNEL, VERSIONS } from '../../appInfo';
 
 interface Props {
   user: User;
@@ -191,7 +191,12 @@ export function SettingsScreen({ user, transactions, onLogOut, onDeleteAll, onDe
           </div>
 
           <div className="text-center pt-2 space-y-1.5">
-            <p className="text-xs text-secondary/60">Sunny · finanza personale · v{APP_VERSION}</p>
+            <p className="text-xs text-secondary/60 flex items-center justify-center gap-1.5">
+              Sunny · finanza personale · v{APP_VERSION}
+              {APP_CHANNEL === 'beta' && (
+                <span className="px-1.5 py-0.5 rounded-md bg-gold/15 text-gold text-[10px] font-semibold tracking-wide uppercase">beta</span>
+              )}
+            </p>
             <button onClick={() => enterSub('versioni')} className="text-xs font-medium text-gold">Registro versioni</button>
           </div>
         </>
@@ -413,6 +418,14 @@ export function SettingsScreen({ user, transactions, onLogOut, onDeleteAll, onDe
         <>
           <ManageHeader title="Registro versioni" editMode={false} onBack={exitToMenu} onToggleEdit={() => {}} hideEdit />
           <div className="space-y-3 md:max-w-2xl">
+            {APP_CHANNEL === 'beta' && (
+              <div className="glass-card rounded-2xl px-4 py-3 flex items-start gap-2.5 border border-gold/15">
+                <span className="text-gold">🧪</span>
+                <p className="text-[13px] text-secondary leading-snug">
+                  Versione <b className="text-primary">beta</b>: l'app è ancora in sviluppo e queste versioni non sono ancora ufficiali.
+                </p>
+              </div>
+            )}
             {VERSIONS.map(v => (
               <div key={v.version} className="bg-card rounded-2xl p-4">
                 <div className="flex items-baseline gap-2 mb-2">
