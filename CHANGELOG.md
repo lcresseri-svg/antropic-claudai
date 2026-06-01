@@ -17,6 +17,12 @@ git.
 
 ---
 
+## 2026-06-01
+
+- **[Claude]** Fix sicurezza: chiave Firebase rimossa dal codice sorgente e spostata in variabili d'ambiente Vite (`VITE_FIREBASE_*`). `sunny/.env.local` gitignored. La vecchia chiave esposta va rigenerata manualmente su Google Cloud Console. — `(pending)`
+
+---
+
 ## 2026-05-31
 
 - **[Claude]** Navbar riorganizzata in layout simmetrico `Home · Insight · (+) · Budget · Movimenti` e nuova sezione **Insight** dedicata (`/insights`); la Dashboard mostra un'anteprima di 3 insight con link "Vedi tutti". Aggiunte emoji vestiti da uomo (👔 👕 👖) alla palette categorie. — `6d9b1bb`
