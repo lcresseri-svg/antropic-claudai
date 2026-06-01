@@ -130,6 +130,13 @@ export function useTransactions(user: User | null, accounts: AccountDef[] = [], 
 
     const investmentTotal = transactions.filter(t => t.type === 'investment').reduce((s, t) => s + t.amount, 0);
 
+    // Invested capital by category (all-time)
+    const investmentByCategory: Record<string, number> = {};
+    for (const t of transactions) {
+      if (t.type !== 'investment') continue;
+      investmentByCategory[t.category] = (investmentByCategory[t.category] ?? 0) + t.amount;
+    }
+
     // Per-account balance (initial balance + cash flow through the account)
     const accountBalances: Record<string, number> = {};
     for (const a of accounts) {
@@ -160,11 +167,11 @@ export function useTransactions(user: User | null, accounts: AccountDef[] = [], 
     }
 
     // 6-month trend
-    const trend: { key: string; income: number; expense: number }[] = [];
+    const trend: { key: string; income: number; expense: number; invest: number }[] = [];
     for (let i = 5; i >= 0; i--) {
       const d = new Date(cy, cm - i, 1);
       const key = `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}`;
-      trend.push({ key, income: 0, expense: 0 });
+      trend.push({ key, income: 0, expense: 0, invest: 0 });
     }
     for (const t of transactions) {
       const key = t.date.slice(0, 7);
@@ -172,6 +179,7 @@ export function useTransactions(user: User | null, accounts: AccountDef[] = [], 
       if (!slot) continue;
       if (t.type === 'income') slot.income += t.amount;
       else if (t.type === 'expense') slot.expense += ownShare(t);
+      else if (t.type === 'investment') slot.invest += t.amount;
     }
 
     const recent = [...transactions]
@@ -179,7 +187,7 @@ export function useTransactions(user: User | null, accounts: AccountDef[] = [], 
       .slice(0, 20);
 
     return {
-      monthlyIncome, monthlyExpenses, monthlyInvestments, investmentTotal,
+      monthlyIncome, monthlyExpenses, monthlyInvestments, investmentTotal, investmentByCategory,
       accountBalances, liquidity, netWorth, categoryTotals, expenseByAccount, trend,
       recentTransactions: recent, monthTx,
     };

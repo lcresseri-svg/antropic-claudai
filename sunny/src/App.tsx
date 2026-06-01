@@ -4,6 +4,7 @@ import { useAuth } from './shared/hooks/useAuth';
 import { useTransactions } from './shared/hooks/useTransactions';
 import { SettingsProvider, useSettings } from './shared/providers/settings';
 import { Transaction } from './types';
+import { greeting } from './utils';
 import { LoginScreen } from './shared/components/LoginScreen';
 import { Dashboard } from './features/dashboard/Dashboard';
 import { InsightsScreen } from './features/insights/InsightsScreen';
@@ -59,6 +60,8 @@ function Main({ user, onLogOut, onDeleteAccount }: {
   const [settingsOpen, setSettingsOpen] = useState(false);
 
   const isSettings = location.pathname.startsWith('/settings');
+  const firstName = user.displayName?.split(' ')[0] ?? 'utente';
+  const brand = `${greeting()}, ${firstName}`;
 
   const openAdd  = () => { setEditing(null); setModalOpen(true); };
   const openEdit = (t: Transaction) => { setEditing(t); setModalOpen(true); };
@@ -78,7 +81,7 @@ function Main({ user, onLogOut, onDeleteAccount }: {
       )}
 
       {/* Desktop sidebar */}
-      <SideNav loading={tx.loading} onAdd={openAdd} onImport={() => setImportOpen(true)} />
+      <SideNav loading={tx.loading} brand={brand} onAdd={openAdd} onImport={() => setImportOpen(true)} />
 
       {/* Content (shifted right by sidebar on desktop) */}
       <div className="flex-1 md:ml-[220px] min-w-0">
@@ -86,10 +89,10 @@ function Main({ user, onLogOut, onDeleteAccount }: {
         {/* Mobile-only header — z-[40] so it sits above the z-[35] backdrop */}
         <header className="sticky top-0 z-[40] glass-header md:hidden">
           <div className="max-w-2xl mx-auto px-5 h-14 flex items-center justify-between">
-            <div className="flex items-center gap-2.5">
+            <div className="flex items-center gap-2.5 min-w-0">
               <ArcLogo size={28} />
-              <span className="font-semibold text-primary tracking-[-0.02em]">Sunny</span>
-              {tx.loading && <span className="w-1.5 h-1.5 rounded-full bg-gold animate-pulse" />}
+              <span className="font-semibold text-primary tracking-[-0.02em] truncate">{brand}</span>
+              {tx.loading && <span className="w-1.5 h-1.5 rounded-full bg-gold animate-pulse flex-shrink-0" />}
             </div>
             {!isSettings && (
               <div className="relative">
@@ -128,15 +131,13 @@ function Main({ user, onLogOut, onDeleteAccount }: {
           <Routes>
             <Route path="/" element={
               <Dashboard
-                user={user}
                 netWorth={tx.netWorth} liquidity={tx.liquidity} investmentTotal={tx.investmentTotal}
                 monthlyIncome={tx.monthlyIncome} monthlyExpenses={tx.monthlyExpenses}
                 monthlyInvestments={tx.monthlyInvestments}
-                categoryTotals={tx.categoryTotals} accountBalances={tx.accountBalances}
-                expenseByAccount={tx.expenseByAccount}
-                trend={tx.trend} transactions={tx.transactions} recentTransactions={tx.recentTransactions}
-                onSeeAll={() => navigate('/transactions')} onSeeInsights={() => navigate('/insights')}
-                onEditTransaction={openEdit}
+                investmentByCategory={tx.investmentByCategory}
+                accountBalances={tx.accountBalances}
+                trend={tx.trend} transactions={tx.transactions}
+                onSeeInsights={() => navigate('/insights')}
               />
             } />
             <Route path="/insights" element={

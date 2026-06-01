@@ -1,66 +1,69 @@
 import { useState, useMemo } from 'react';
-import { User } from 'firebase/auth';
 import { Transaction, ownShare } from '../../types';
-import { formatCurrency, greeting } from '../../utils';
+import { formatCurrency, capitalize } from '../../utils';
 import { CategoryCard } from './CategoryCard';
 import { AccountsCard } from './AccountsCard';
 import { TrendChart } from './TrendChart';
-import { Insights } from '../insights/Insights';
+import { FlowBar } from './FlowBar';
+import { InvestmentSummaryCard } from './InvestmentSummaryCard';
+import { InsightTicker } from '../insights/InsightTicker';
 
 type Period = '1m' | '3m' | '6m' | '1y';
 
-const PERIOD_OPTS: { value: Period; label: string; desc: string }[] = [
-  { value: '1m', label: 'Mese',   desc: 'questo mese' },
-  { value: '3m', label: '3 mesi', desc: 'ultimi 3 mesi' },
-  { value: '6m', label: '6 mesi', desc: 'ultimi 6 mesi' },
-  { value: '1y', label: 'Anno',   desc: 'ultimo anno' },
+const PERIOD_OPTS: { value: Period; label: string; months: number }[] = [
+  { value: '1m', label: 'Mese',   months: 1 },
+  { value: '3m', label: '3 mesi', months: 3 },
+  { value: '6m', label: '6 mesi', months: 6 },
+  { value: '1y', label: 'Anno',   months: 12 },
 ];
 
-function periodCutoff(p: Period, now: Date): Date | null {
-  if (p === '1m') return null; // handled separately
-  const d = new Date(now.getFullYear(), now.getMonth(), 1);
-  if (p === '3m') d.setMonth(d.getMonth() - 2);
-  else if (p === '6m') d.setMonth(d.getMonth() - 5);
-  else d.setMonth(d.getMonth() - 11);
-  return d;
-}
-
 interface Props {
-  user: User;
   netWorth: number;
   liquidity: number;
   investmentTotal: number;
   monthlyIncome: number;
   monthlyExpenses: number;
   monthlyInvestments: number;
-  categoryTotals: Record<string, number>;
+  investmentByCategory: Record<string, number>;
   accountBalances: Record<string, number>;
-  expenseByAccount: Record<string, number>;
-  trend: { key: string; income: number; expense: number }[];
+  trend: { key: string; income: number; expense: number; invest: number }[];
   transactions: Transaction[];
-  recentTransactions: Transaction[];
-  onSeeAll: () => void;
   onSeeInsights: () => void;
-  onEditTransaction: (tx: Transaction) => void;
 }
 
 export function Dashboard(p: Props) {
   const [accMode, setAccMode] = useState<'balance' | 'spending'>('balance');
   const [period, setPeriod] = useState<Period>('1m');
+  const [offset, setOffset] = useState(0); // months back from the most recent window (0 = current)
 
   const now = useMemo(() => new Date(), []);
-  const cm = now.getMonth(), cy = now.getFullYear();
+  const months = PERIOD_OPTS.find(o => o.value === period)!.months;
 
-  const periodTx = useMemo(() => {
-    if (period === '1m') {
-      return p.transactions.filter(t => {
-        const d = new Date(t.date);
-        return d.getMonth() === cm && d.getFullYear() === cy;
-      });
+  // Window [start, end] for the selected period + offset.
+  const { start, end, label } = useMemo(() => {
+    const cm = now.getMonth(), cy = now.getFullYear();
+    const endMonth = new Date(cy, cm - offset, 1);
+    const startMonth = new Date(cy, cm - offset - (months - 1), 1);
+    const isCurrent = offset === 0;
+    const end = isCurrent ? now : new Date(endMonth.getFullYear(), endMonth.getMonth() + 1, 0, 23, 59, 59);
+
+    const fmtM = (d: Date) => capitalize(d.toLocaleString('it-IT', { month: 'short' }).replace('.', ''));
+    let label: string;
+    if (months === 1) {
+      label = capitalize(endMonth.toLocaleString('it-IT', { month: 'long', year: 'numeric' }));
+    } else if (startMonth.getFullYear() === endMonth.getFullYear()) {
+      label = `${fmtM(startMonth)}–${fmtM(endMonth)} ${endMonth.getFullYear()}`;
+    } else {
+      label = `${fmtM(startMonth)} ${startMonth.getFullYear()} – ${fmtM(endMonth)} ${endMonth.getFullYear()}`;
     }
-    const cutoff = periodCutoff(period, now)!;
-    return p.transactions.filter(t => new Date(t.date) >= cutoff);
-  }, [p.transactions, period, now, cm, cy]);
+    return { start: startMonth, end, label };
+  }, [now, offset, months]);
+
+  const periodTx = useMemo(() =>
+    p.transactions.filter(t => {
+      const d = new Date(t.date);
+      return d >= start && d <= end;
+    }), [p.transactions, start, end]);
 
   const periodIncome      = useMemo(() => periodTx.filter(t => t.type === 'income').reduce((s, t) => s + t.amount, 0), [periodTx]);
   const periodExpenses    = useMemo(() => periodTx.filter(t => t.type === 'expense').reduce((s, t) => s + ownShare(t), 0), [periodTx]);
@@ -84,39 +87,18 @@ export function Dashboard(p: Props) {
     return r;
   }, [periodTx]);
 
-  const periodOpt   = PERIOD_OPTS.find(o => o.value === period)!;
-  const saved       = periodIncome - periodExpenses - periodInvestments;
-  const periodDelta = periodIncome - periodExpenses;
+  const saved = periodIncome - periodExpenses - periodInvestments;
 
   return (
     <div className="pb-32">
 
-      {/* Top section — full width on all sizes */}
+      {/* Hero — net worth */}
       <div className="space-y-3">
-        {/* Greeting */}
-        <div className="flex items-center justify-between pt-3">
-          <div>
-            <p className="text-[13px] text-secondary">{greeting()}</p>
-            <p className="text-lg font-semibold text-primary tracking-[-0.02em] leading-tight mt-0.5">
-              {p.user.displayName?.split(' ')[0] ?? 'utente'}
-            </p>
-          </div>
-          {p.user.photoURL && (
-            <img src={p.user.photoURL} alt="" className="w-9 h-9 rounded-full opacity-90" />
-          )}
-        </div>
-
-        {/* Hero */}
         <div className="pt-6 pb-7">
           <p className="label-caps text-secondary mb-3">Patrimonio netto</p>
           <p className="text-[52px] leading-none font-bold text-primary balance-num">
             {formatCurrency(p.netWorth)}
           </p>
-          {periodDelta !== 0 && (
-            <p className={`text-[13px] mt-2.5 balance-num ${periodDelta >= 0 ? 'text-green' : 'text-red'}`}>
-              {periodDelta >= 0 ? '+' : ''}{formatCurrency(periodDelta)}&ensp;{periodOpt.desc}
-            </p>
-          )}
           <div className="flex gap-8 mt-7 pt-6 border-t border-white/[0.06]">
             <div>
               <p className="label-caps text-secondary mb-2">Liquidità</p>
@@ -124,9 +106,7 @@ export function Dashboard(p: Props) {
             </div>
             <div>
               <p className="label-caps text-secondary mb-2">Investito</p>
-              <p className="text-sm font-semibold balance-num text-gold">
-                {formatCurrency(p.investmentTotal)}
-              </p>
+              <p className="text-sm font-semibold balance-num text-gold">{formatCurrency(p.investmentTotal)}</p>
             </div>
           </div>
         </div>
@@ -134,7 +114,7 @@ export function Dashboard(p: Props) {
         {/* Period selector */}
         <div className="flex items-center gap-1.5">
           {PERIOD_OPTS.map(opt => (
-            <button key={opt.value} onClick={() => setPeriod(opt.value)}
+            <button key={opt.value} onClick={() => { setPeriod(opt.value); setOffset(0); }}
               className={`px-3.5 py-1.5 rounded-full text-xs font-semibold transition-colors ${
                 period === opt.value ? 'bg-gold/10 text-gold' : 'text-secondary hover:text-primary'
               }`}>
@@ -143,23 +123,50 @@ export function Dashboard(p: Props) {
           ))}
         </div>
 
+        {/* Period navigator — scroll through past periods */}
+        <div className="flex items-center justify-between bg-card rounded-xl px-1.5 py-1.5">
+          <button onClick={() => setOffset(o => o + 1)} aria-label="Periodo precedente"
+            className="w-8 h-8 rounded-lg flex items-center justify-center text-secondary hover:text-primary hover:bg-elevated transition-colors">
+            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"><path d="m15 18-6-6 6-6"/></svg>
+          </button>
+          <div className="flex items-center gap-2">
+            <span className="text-[13px] font-medium text-primary">{label}</span>
+            {offset > 0 && (
+              <button onClick={() => setOffset(0)} className="text-[11px] font-medium text-gold">Oggi</button>
+            )}
+          </div>
+          <button onClick={() => setOffset(o => Math.max(0, o - 1))} disabled={offset === 0} aria-label="Periodo successivo"
+            className="w-8 h-8 rounded-lg flex items-center justify-center text-secondary hover:text-primary hover:bg-elevated transition-colors disabled:opacity-30 disabled:hover:bg-transparent">
+            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"><path d="m9 18 6-6-6-6"/></svg>
+          </button>
+        </div>
+
         {/* Period stats */}
         <div className="grid grid-cols-3 gap-2.5">
-          <Stat label="Entrate"   value={formatCurrency(periodIncome)}   colorClass="text-green" />
+          <Stat label="Entrate"   value={formatCurrency(periodIncome)}    colorClass="text-green" />
           <Stat label="Uscite"    value={formatCurrency(periodExpenses)}  colorClass="text-secondary" />
           <Stat label="Risparmio" value={formatCurrency(saved)} colorClass={saved >= 0 ? 'text-gold' : 'text-red'} />
         </div>
       </div>
 
+      {/* Insight ticker */}
+      <div className="mt-5">
+        <InsightTicker
+          transactions={p.transactions}
+          monthlyIncome={p.monthlyIncome}
+          monthlyExpenses={p.monthlyExpenses}
+          monthlyInvestments={p.monthlyInvestments}
+          onSeeAll={p.onSeeInsights}
+        />
+      </div>
+
       {/* Cards grid — 1 col mobile, 2 col desktop */}
-      <div className="mt-3 md:grid md:grid-cols-2 md:gap-5 md:items-start space-y-3 md:space-y-0">
-
-        {/* Left column */}
+      <div className="mt-5 md:grid md:grid-cols-2 md:gap-5 md:items-start space-y-3 md:space-y-0">
         <div className="space-y-3">
+          <FlowBar income={periodIncome} expense={periodExpenses} invest={periodInvestments} />
           <TrendChart data={p.trend} />
+          <InvestmentSummaryCard investmentByCategory={p.investmentByCategory} total={p.investmentTotal} />
         </div>
-
-        {/* Right column */}
         <div className="space-y-3">
           <CategoryCard categoryTotals={periodCategoryTotals} />
           <AccountsCard
@@ -167,14 +174,6 @@ export function Dashboard(p: Props) {
             expenseByAccount={periodExpenseByAccount}
             mode={accMode}
             onToggle={() => setAccMode(m => m === 'balance' ? 'spending' : 'balance')}
-          />
-          <Insights
-            transactions={p.transactions}
-            monthlyIncome={p.monthlyIncome}
-            monthlyExpenses={p.monthlyExpenses}
-            monthlyInvestments={p.monthlyInvestments}
-            limit={3}
-            onSeeAll={p.onSeeInsights}
           />
         </div>
       </div>

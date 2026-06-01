@@ -1,3 +1,4 @@
+import { useState } from 'react';
 import { formatCurrency } from '../../utils';
 import { useSettings } from '../../shared/providers/settings';
 import { ProgressBar } from '../../shared/components';
@@ -9,8 +10,11 @@ interface Props {
   onToggle: () => void;
 }
 
+const COLLAPSED_COUNT = 3;
+
 export function AccountsCard({ accountBalances, expenseByAccount, mode, onToggle }: Props) {
   const { accounts, getAcc } = useSettings();
+  const [showAll, setShowAll] = useState(false);
   const source = mode === 'balance' ? accountBalances : expenseByAccount;
 
   const entries = accounts
@@ -33,6 +37,8 @@ export function AccountsCard({ accountBalances, expenseByAccount, mode, onToggle
   if (!hasAnyData) return null;
 
   const max = entries.length ? Math.max(...entries.map(e => Math.abs(e.value))) : 0;
+  const visible = showAll ? entries : entries.slice(0, COLLAPSED_COUNT);
+  const hiddenCount = entries.length - visible.length;
 
   return (
     <div className="glass-card rounded-2xl p-5">
@@ -48,7 +54,7 @@ export function AccountsCard({ accountBalances, expenseByAccount, mode, onToggle
         </p>
       )}
       <ul className="space-y-3.5">
-        {entries.map(({ acc, value }) => (
+        {visible.map(({ acc, value }) => (
           <li key={acc.id}>
             <div className="flex items-center gap-2.5 mb-1.5">
               <span className="w-7 h-7 rounded-xl flex items-center justify-center text-sm flex-shrink-0" style={{ backgroundColor: acc.color + '18' }}>{acc.icon}</span>
@@ -61,6 +67,16 @@ export function AccountsCard({ accountBalances, expenseByAccount, mode, onToggle
           </li>
         ))}
       </ul>
+      {entries.length > COLLAPSED_COUNT && (
+        <button onClick={() => setShowAll(s => !s)}
+          className="mt-4 w-full text-xs font-medium text-gold flex items-center justify-center gap-1.5">
+          {showAll ? 'Mostra meno' : `Mostra tutti (${hiddenCount} in più)`}
+          <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"
+            className={`transition-transform ${showAll ? 'rotate-180' : ''}`}>
+            <path d="m6 9 6 6 6-6" />
+          </svg>
+        </button>
+      )}
     </div>
   );
 }

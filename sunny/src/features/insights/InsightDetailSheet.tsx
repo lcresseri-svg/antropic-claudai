@@ -99,7 +99,7 @@ function MiniBars({ chart, accent }: { chart: InsightChart; accent: string }) {
           return (
             <div key={i} className="flex-1 flex flex-col items-center justify-end h-full gap-1 min-w-0">
               <span className="text-[10px] font-medium balance-num truncate w-full text-center"
-                style={{ color: on ? accent : 'var(--text-secondary)' }}>
+                style={{ color: on ? accent : 'rgb(var(--c-secondary))' }}>
                 {fmt(v, format)}
               </span>
               <div className="w-full rounded-t-md transition-all"
