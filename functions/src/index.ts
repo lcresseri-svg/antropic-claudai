@@ -1,7 +1,7 @@
 import * as admin from 'firebase-admin';
 import { onSchedule } from 'firebase-functions/v2/scheduler';
 import { onDocumentDeleted } from 'firebase-functions/v2/firestore';
-import { onCall, HttpsError } from 'firebase-functions/v2/https';
+import { onCall } from 'firebase-functions/v2/https';
 import { GoogleGenerativeAI } from '@google/generative-ai';
 
 admin.initializeApp();
@@ -115,10 +115,6 @@ export const generateDigest = onCall(
     };
 
     const apiKey = process.env.GEMINI_API_KEY;
-    if (!apiKey) throw new Error('GEMINI_API_KEY not configured');
-
-    const genAI = new GoogleGenerativeAI(apiKey);
-    const model = genAI.getGenerativeModel({ model: 'gemini-flash-latest' });
 
     const prompt =
       `Sei l'assistente finanziario dell'app Sunny. ` +
@@ -128,14 +124,19 @@ export const generateDigest = onCall(
       `Insight principali: ${topInsights.slice(0, 5).join('; ')}. ` +
       `Non usare markdown. Solo testo piano, frasi brevi, tono positivo e concreto.`;
 
+    // TEMP DIAGNOSTIC: surface real errors to the client instead of falling back.
     try {
+      if (!apiKey) return { sentences: [`DEBUG: GEMINI_API_KEY assente nell'ambiente`] };
+      const genAI = new GoogleGenerativeAI(apiKey);
+      const model = genAI.getGenerativeModel({ model: 'gemini-flash-latest' });
       const result = await model.generateContent(prompt);
       const text = result.response.text().trim();
       const sentences = text.split(/(?<=[.!?])\s+/).filter(Boolean).slice(0, 3);
       return { sentences };
     } catch (err) {
+      const msg = err instanceof Error ? err.message : String(err);
       console.error('Gemini generateContent failed:', err);
-      throw new HttpsError('internal', 'Gemini request failed');
+      return { sentences: [`DEBUG keyLen=${apiKey?.length ?? 0}`, `err=${msg.slice(0, 220)}`] };
     }
   }
 );
