@@ -146,7 +146,7 @@ export const generateDigest = onRequest(
         `Non usare markdown. Solo testo piano, frasi brevi, tono positivo e concreto.`;
 
       const gemResp = await fetch(
-        'https://generativelanguage.googleapis.com/v1beta/models/gemini-2.0-flash:generateContent',
+        'https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash:generateContent',
         {
           method: 'POST',
           headers: { 'Content-Type': 'application/json', 'x-goog-api-key': apiKey },
