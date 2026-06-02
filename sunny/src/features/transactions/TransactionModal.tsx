@@ -8,6 +8,7 @@ interface Props {
   open: boolean;
   editing?: Transaction | null;
   groupTransfers?: Transaction[];
+  seriesEdit?: boolean;
   onClose: () => void;
   onSave: (deleteIds: string[], create: Omit<Transaction, 'id'>[]) => void;
 }
@@ -17,7 +18,7 @@ interface Reimb { amount: string; account: string }
 const today = () => new Date().toISOString().slice(0, 10);
 const yesterday = () => { const d = new Date(); d.setDate(d.getDate() - 1); return d.toISOString().slice(0, 10); };
 
-export function TransactionModal({ open, editing, groupTransfers = [], onClose, onSave }: Props) {
+export function TransactionModal({ open, editing, groupTransfers = [], seriesEdit = false, onClose, onSave }: Props) {
   const { categories, accounts, enableInvestments } = useSettings();
   const [type, setType] = useState<TransactionType>('expense');
   const [description, setDescription] = useState('');
@@ -115,6 +116,10 @@ export function TransactionModal({ open, editing, groupTransfers = [], onClose, 
     const recurring: RecurrenceRule | undefined = isRecurring
       ? { freq: recurringFreq, until: recurringUntil || undefined }
       : undefined;
+    // Stable series id: preserve an existing one (series edits churn the doc id,
+    // and single-instance edits must keep their link); otherwise mint one for a
+    // brand-new series, falling back to the legacy template's own id.
+    const seriesId = editing?.seriesId ?? (isRecurring ? (editing?.id ?? crypto.randomUUID()) : undefined);
     const desc = description.trim() || defaultDesc.trim() || 'Senza nome';
     const deleteIds = editing ? [editing.id, ...groupTransfers.map(t => t.id)] : [];
 
@@ -139,7 +144,7 @@ export function TransactionModal({ open, editing, groupTransfers = [], onClose, 
       if (net > 0) {
         create.push({
           type: 'expense', description: desc, amount: net, date,
-          category, account, notes: notes.trim() || undefined, groupId, recurring,
+          category, account, notes: notes.trim() || undefined, groupId, recurring, seriesId,
         });
       }
       onSave(deleteIds, create);
@@ -157,7 +162,7 @@ export function TransactionModal({ open, editing, groupTransfers = [], onClose, 
       account,
       toAccount: type === 'transfer' ? toAccount : undefined,
       notes: notes.trim() || undefined,
-      recurring,
+      recurring, seriesId,
       ...(groupId ? { groupId } : {}),
     }];
     if (hasFee) {
@@ -181,11 +186,16 @@ export function TransactionModal({ open, editing, groupTransfers = [], onClose, 
 
       <div className="relative w-full max-w-sm sm:max-w-lg glass-elevated rounded-3xl shadow-float max-h-[88vh] overflow-y-auto scrollbar-hide animate-sheet-up">
         <div className="sticky top-0 bg-[var(--modal-hdr-bg)] backdrop-blur-xl z-10 px-5 pt-5 pb-3 flex items-center justify-between">
-          <h2 className="text-base font-semibold text-primary">{editing ? 'Modifica' : 'Nuova transazione'}</h2>
+          <h2 className="text-base font-semibold text-primary">{seriesEdit ? 'Modifica serie' : editing ? 'Modifica' : 'Nuova transazione'}</h2>
           <button onClick={onClose} className="w-8 h-8 rounded-full bg-elevated flex items-center justify-center text-secondary">✕</button>
         </div>
 
         <form onSubmit={submit} className="px-5 sm:px-7 pb-5 sm:pb-7 space-y-3 sm:space-y-4">
+          {seriesEdit && (
+            <p className="text-[11px] text-secondary bg-elevated rounded-xl px-3 py-2 leading-snug">
+              🔁 Stai modificando l'intera serie. Le modifiche valgono per le occorrenze future; le voci già registrate non cambiano.
+            </p>
+          )}
           {/* Type segmented */}
           <div className="grid gap-1.5 bg-elevated rounded-2xl p-1" style={{ gridTemplateColumns: `repeat(${availableTypes.length}, 1fr)` }}>
             {availableTypes.map(t => (
@@ -399,11 +409,11 @@ export function TransactionModal({ open, editing, groupTransfers = [], onClose, 
               ? <button type="button"
                   onClick={() => { onSave([editing.id, ...groupTransfers.map(t => t.id)], []); onClose(); }}
                   className="w-full py-3 rounded-2xl font-semibold text-[#E08B8B] text-sm bg-[#E08B8B]/15">
-                  Conferma eliminazione
+                  {seriesEdit ? 'Conferma: elimina la serie' : 'Conferma eliminazione'}
                 </button>
               : <button type="button" onClick={() => setConfirmDelete(true)}
                   className="w-full py-3 rounded-2xl font-medium text-[#E08B8B] text-sm">
-                  Elimina transazione
+                  {seriesEdit ? 'Elimina serie' : 'Elimina transazione'}
                 </button>
           )}
         </form>

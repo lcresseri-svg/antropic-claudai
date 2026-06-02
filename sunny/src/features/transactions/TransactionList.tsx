@@ -7,6 +7,7 @@ import { OptionSheet } from '../../shared/components/OptionSheet';
 
 interface Props {
   transactions: Transaction[];
+  projected?: Transaction[]; // virtual future occurrences — display only
   onEdit: (tx: Transaction) => void;
   onDelete: (id: string) => void;
   onBulkUpdate: (ids: string[], patch: TransactionPatch) => void;
@@ -37,7 +38,7 @@ function periodCutoff(p: PeriodFilter, now: Date): Date | null {
   return d;
 }
 
-export function TransactionList({ transactions, onEdit, onDelete, onBulkUpdate, onBulkDelete, onAdd }: Props) {
+export function TransactionList({ transactions, projected = [], onEdit, onDelete, onBulkUpdate, onBulkDelete, onAdd }: Props) {
   const { categories, accounts, getAcc, getCat } = useSettings();
   const [search, setSearch] = useState('');
   const [typeFilter, setTypeFilter] = useState<TransactionType | 'all'>('all');
@@ -63,7 +64,7 @@ export function TransactionList({ transactions, onEdit, onDelete, onBulkUpdate, 
   const filtered = useMemo(() => {
     const q = search.trim().toLowerCase();
     const cutoff = periodCutoff(period, new Date());
-    return [...transactions]
+    return [...transactions, ...projected]
       .filter(t => typeFilter === 'all' || t.type === typeFilter)
       .filter(t => !cutoff || new Date(t.date) >= cutoff)
       .filter(t => {
@@ -83,7 +84,7 @@ export function TransactionList({ transactions, onEdit, onDelete, onBulkUpdate, 
           : new Date(b.date).getTime() - new Date(a.date).getTime();
         return sortDir === 'desc' ? diff : -diff;
       });
-  }, [transactions, typeFilter, period, search, sortKey, sortDir, categories, accounts]);
+  }, [transactions, projected, typeFilter, period, search, sortKey, sortDir, categories, accounts]);
 
   const groups = useMemo(() => {
     const map = new Map<string, Transaction[]>();
@@ -99,8 +100,14 @@ export function TransactionList({ transactions, onEdit, onDelete, onBulkUpdate, 
       : groupMode === 'account' ? `${getAcc(key).icon} ${getAcc(key).label}`
       : `${getCat(key).icon} ${getCat(key).label}`;
 
+  // Subtotals reflect only realized (actual) transactions — projected occurrences
+  // are forecasts and must not inflate the month total.
+  const signed = (t: Transaction) => t.type === 'income' ? t.amount : t.type === 'expense' ? -t.amount : 0;
   const groupSum = (txs: Transaction[]) =>
-    txs.reduce((s, t) => s + (t.type === 'income' ? t.amount : t.type === 'expense' ? -t.amount : 0), 0);
+    txs.filter(t => !t.projected).reduce((s, t) => s + signed(t), 0);
+  const groupHasReal = (txs: Transaction[]) => txs.some(t => !t.projected);
+  const groupProjectedSum = (txs: Transaction[]) =>
+    txs.filter(t => t.projected).reduce((s, t) => s + signed(t), 0);
 
   const toggleCollapse = (key: string) => {
     setCollapsed(prev => {
@@ -291,15 +298,21 @@ export function TransactionList({ transactions, onEdit, onDelete, onBulkUpdate, 
                   <h4 className="label-caps text-secondary truncate group-hover:text-primary transition-colors">{groupTitle(key)}</h4>
                   {isCollapsed && <span className="text-[11px] text-secondary/60 flex-shrink-0">· {txs.length}</span>}
                 </div>
-                <span className={`text-xs font-medium balance-num flex-shrink-0 ${groupSum(txs) >= 0 ? 'text-green' : 'text-secondary'}`}>
-                  {formatCurrency(groupSum(txs), { sign: true })}
-                </span>
+                {groupHasReal(txs) ? (
+                  <span className={`text-xs font-medium balance-num flex-shrink-0 ${groupSum(txs) >= 0 ? 'text-green' : 'text-secondary'}`}>
+                    {formatCurrency(groupSum(txs), { sign: true })}
+                  </span>
+                ) : (
+                  <span className="text-xs font-medium balance-num flex-shrink-0 text-secondary/70">
+                    previsto {formatCurrency(groupProjectedSum(txs), { sign: true })}
+                  </span>
+                )}
               </button>
               {!isCollapsed && (
                 <div className="divide-y divide-divider">
                   {txs.map(tx => (
                     <TransactionRow key={tx.id} tx={tx}
-                      selectable={selectMode} selected={selected.has(tx.id)}
+                      selectable={selectMode && !tx.projected} selected={selected.has(tx.id)}
                       onToggle={toggle} onClick={onEdit} />
                   ))}
                 </div>

@@ -13,17 +13,20 @@ const db = admin.firestore();
 // Convention: a Transaction with `recurring` set is a TEMPLATE.
 // Its `date` field = date of the NEXT occurrence (always in the future after
 // the function runs). Each day at 06:00 the function finds all templates
-// where `date <= today`, creates a non-recurring instance for that date,
-// and advances the template's date by the configured frequency.
+// where `date <= today` and materializes EVERY due occurrence (catch-up loop),
+// stamping each instance with the template's `seriesId` so the client can
+// later edit/manage the whole series. The template's date is then advanced to
+// its next future occurrence.
 //
 // Composite index required (see firestore.indexes.json):
 //   collectionGroup: transactions | recurring ASC, date ASC
 // ─────────────────────────────────────────────────────────────────────────────
 
-type Freq = 'weekly' | 'monthly' | 'yearly';
+type Freq = 'daily' | 'weekly' | 'monthly' | 'yearly';
 
 function addPeriod(dateStr: string, freq: Freq): string {
   const d = new Date(dateStr + 'T00:00:00Z');
+  if (freq === 'daily')   d.setUTCDate(d.getUTCDate() + 1);
   if (freq === 'weekly')  d.setUTCDate(d.getUTCDate() + 7);
   if (freq === 'monthly') d.setUTCMonth(d.getUTCMonth() + 1);
   if (freq === 'yearly')  d.setUTCFullYear(d.getUTCFullYear() + 1);
@@ -46,24 +49,40 @@ export const processRecurringTransactions = onSchedule(
       const tx = doc.data() as Record<string, unknown>;
       const recurring = tx.recurring as { freq: Freq; until?: string } | undefined;
       if (!recurring) continue;
-      if (recurring.until && recurring.until < today) continue;
 
       // Extract userId from Firestore path: users/{userId}/transactions/{txId}
       const userId = doc.ref.path.split('/')[1];
       const txsRef = db.collection(`users/${userId}/transactions`);
 
-      // Create a non-recurring instance for the due date
+      // Stable series id linking this template to every instance it spawns.
+      // Backfill from the template's own doc id for legacy templates.
+      const seriesId = (tx.seriesId as string | undefined) ?? doc.id;
+
+      // Instance copy: drop the recurring rule and the stored id; keep seriesId.
       const { recurring: _r, id: _id, ...instanceData } = tx;
-      const newRef = txsRef.doc();
       const batch = db.batch();
-      batch.set(newRef, { ...instanceData, id: newRef.id });
 
-      // Advance the template to the next occurrence
-      const nextDate = addPeriod(tx.date as string, recurring.freq);
-      batch.update(doc.ref, { date: nextDate });
+      // CATCH-UP: materialize EVERY missed occurrence (date <= today) in one run,
+      // not just the next one, so a template that fell behind (or whose `until`
+      // already passed) still produces all its due instances. Guard caps runaway.
+      let date = tx.date as string;
+      let guard = 400;
+      let advanced = false;
+      while (date <= today && (!recurring.until || date <= recurring.until) && guard-- > 0) {
+        const newRef = txsRef.doc();
+        // Override date: each catch-up instance lands on its own occurrence date,
+        // not the template's original (first) date carried in instanceData.
+        batch.set(newRef, { ...instanceData, id: newRef.id, seriesId, date });
+        date = addPeriod(date, recurring.freq);
+        advanced = true;
+        created++;
+      }
 
-      await batch.commit();
-      created++;
+      if (advanced) {
+        // Advance the template to its next future occurrence; backfill seriesId.
+        batch.update(doc.ref, { date, seriesId });
+        await batch.commit();
+      }
     }
 
     console.log(`processRecurringTransactions: created ${created} instances for ${today}`);

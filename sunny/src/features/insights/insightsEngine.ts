@@ -1,6 +1,7 @@
-import { Transaction, RecurrenceRule, ownShare } from '../../types';
+import { Transaction, ownShare } from '../../types';
 import { formatCurrency, capitalize } from '../../utils';
 import { monthProgress, forecastSavings } from '../budget/budgetUtils';
+import { addPeriod, recurringMonthlyEquivalent } from '../../shared/recurrence';
 
 export type InsightCategory = 'alert' | 'forecast' | 'seasonal' | 'trend' | 'habit' | 'highlight';
 
@@ -52,15 +53,6 @@ function ym(d: Date): string {
 export function monthKey(offset: number, now: Date = new Date()): string {
   const d = new Date(now.getFullYear(), now.getMonth() - offset, 1);
   return ym(d);
-}
-
-function addPeriod(dateStr: string, freq: RecurrenceRule['freq']): string {
-  const d = new Date(dateStr);
-  if      (freq === 'daily')   d.setDate(d.getDate() + 1);
-  else if (freq === 'weekly')  d.setDate(d.getDate() + 7);
-  else if (freq === 'monthly') d.setMonth(d.getMonth() + 1);
-  else                          d.setFullYear(d.getFullYear() + 1);
-  return d.toISOString().slice(0, 10);
 }
 
 function daysUntil(dateStr: string, now: Date = new Date()): number {
@@ -620,17 +612,29 @@ export function buildInsights(input: InsightInput): Insight[] {
 
   // ── 12. TREND — Annual projection ─────────────────────────────────────────
   if (h.months >= 2 && h.avgIncome > 0) {
-    const yrSav = Math.round((h.avgIncome - h.avgExpense - h.avgInvest) * 12);
-    const yrInv = Math.round(h.avgInvest * 12);
+    // Floor expenses/investments at the known recurring commitments so the
+    // long-term outlook never under-counts fixed costs. Using max() (rather
+    // than adding) avoids double-counting: if the historical average already
+    // exceeds the recurring total, recurring is presumably included in it.
+    const recExp = recurringMonthlyEquivalent(transactions, 'expense', today);
+    const recInv = recurringMonthlyEquivalent(transactions, 'investment', today);
+    const monthlyExp = Math.max(h.avgExpense, recExp);
+    const monthlyInv = Math.max(h.avgInvest, recInv);
+    const usesRecurring = recExp > h.avgExpense || recInv > h.avgInvest;
+
+    const yrSav = Math.round((h.avgIncome - monthlyExp - monthlyInv) * 12);
+    const yrInv = Math.round(monthlyInv * 12);
     push({
       icon: '🗓️', category: 'trend',
       title: `Proiezione annuale: ${yrSav >= 0 ? '+' : '−'}${formatCurrency(Math.abs(yrSav))} risparmiati`,
       detail: `+ ${formatCurrency(yrInv)} investiti · totale ${formatCurrency(Math.abs(yrSav) + yrInv)}`,
       accent: yrSav >= 0 ? ACCENT.good : ACCENT.warn,
       explain: {
-        what: 'Quanto accumuleresti in un anno mantenendo le medie attuali.',
-        how: `(Entrate − Uscite − Investimenti) medie mensili × 12 per il risparmio; investimenti medi × 12 per il capitale investito.`,
-        basis: 'Medie sugli ultimi 3 mesi con dati.',
+        what: 'Quanto accumuleresti in un anno mantenendo le medie attuali e tenendo conto delle spese ricorrenti previste.',
+        how: `(Entrate − Uscite − Investimenti) mensili × 12 per il risparmio; investimenti × 12 per il capitale investito. Per uscite e investimenti uso il maggiore tra la media storica e le ricorrenze già programmate, così gli impegni fissi non vengono sottostimati.`,
+        basis: usesRecurring
+          ? 'Medie ultimi 3 mesi + ricorrenti attive (riportate al mese).'
+          : 'Medie sugli ultimi 3 mesi con dati.',
         chart: { labels: ['Risparmio/anno', 'Investito/anno'], values: [yrSav, yrInv], format: 'currency' },
       },
     });

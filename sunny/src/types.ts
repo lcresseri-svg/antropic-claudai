@@ -42,12 +42,16 @@ export interface Transaction {
   shared?: number;       // others' part of a shared expense; counted as movement, not spending
   groupId?: string;      // links a split expense with its reimbursement transfers
   recurring?: RecurrenceRule;
+  seriesId?: string;     // stable id linking a recurring template to its materialized instances
+  projected?: boolean;   // CLIENT-ONLY: a virtual future occurrence — NEVER persisted to Firestore
 }
 
 export interface RecurrenceRule {
   freq: 'daily' | 'weekly' | 'monthly' | 'yearly';
   until?: string; // YYYY-MM-DD
 }
+
+export type Freq = RecurrenceRule['freq'];
 
 /** The portion of an expense that is actually yours (excludes the shared part). */
 export function ownShare(t: Transaction): number {

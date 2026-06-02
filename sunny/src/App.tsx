@@ -1,10 +1,11 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useMemo } from 'react';
 import { Routes, Route, Navigate, useNavigate, useLocation } from 'react-router-dom';
 import { useAuth } from './shared/hooks/useAuth';
 import { useTransactions } from './shared/hooks/useTransactions';
 import { SettingsProvider, useSettings } from './shared/providers/settings';
 import { Transaction } from './types';
 import { greeting } from './utils';
+import { buildProjectedOccurrences } from './shared/recurrence';
 import { LoginScreen } from './shared/components/LoginScreen';
 import { Dashboard } from './features/dashboard/Dashboard';
 import { InvestmentsScreen } from './features/dashboard/InvestmentsScreen';
@@ -13,6 +14,7 @@ import { BudgetScreen } from './features/budget/BudgetScreen';
 import { TransactionList } from './features/transactions/TransactionList';
 import { SettingsScreen } from './features/settings/SettingsScreen';
 import { TransactionModal } from './features/transactions/TransactionModal';
+import { SeriesEditChoiceSheet } from './features/transactions/SeriesEditChoiceSheet';
 import { ImportModal } from './features/transactions/ImportModal';
 import { BottomNav } from './shared/components/BottomNav';
 import { SideNav } from './shared/components/SideNav';
@@ -56,6 +58,8 @@ function Main({ user, onLogOut, onDeleteAccount }: {
   const { accounts, categories, includeInvestments, enableInvestments } = useSettings();
   const tx = useTransactions(user, accounts, includeInvestments, categories, enableInvestments);
   const [editing, setEditing] = useState<Transaction | null>(null);
+  const [seriesEdit, setSeriesEdit] = useState(false);
+  const [seriesChoice, setSeriesChoice] = useState<Transaction | null>(null);
   const [modalOpen, setModalOpen] = useState(false);
   const [importOpen, setImportOpen] = useState(false);
   const [settingsOpen, setSettingsOpen] = useState(false);
@@ -64,8 +68,43 @@ function Main({ user, onLogOut, onDeleteAccount }: {
   const firstName = user.displayName?.split(' ')[0] ?? 'utente';
   const brand = `${greeting()}, ${firstName}`;
 
-  const openAdd  = () => { setEditing(null); setModalOpen(true); };
-  const openEdit = (t: Transaction) => { setEditing(t); setModalOpen(true); };
+  // Virtual future occurrences of every recurring template — shown ahead of time
+  // as "Programmato" rows, up to `until` or a rolling 12-month horizon. These are
+  // display-only and never written to Firestore.
+  const projected = useMemo(() => {
+    const todayISO = new Date().toISOString().slice(0, 10);
+    const horizon = new Date(); horizon.setFullYear(horizon.getFullYear() + 1);
+    return buildProjectedOccurrences(tx.transactions, todayISO, horizon.toISOString().slice(0, 10));
+  }, [tx.transactions]);
+
+  // Resolve the template (series anchor) for any occurrence carrying a seriesId.
+  const findTemplate = (t: Transaction): Transaction | undefined =>
+    tx.transactions.find(x => x.recurring && (x.seriesId ?? x.id) === (t.seriesId ?? t.id));
+
+  const startEdit = (t: Transaction, asSeries: boolean) => {
+    setEditing(t); setSeriesEdit(asSeries); setModalOpen(true);
+  };
+
+  const openAdd = () => { setEditing(null); setSeriesEdit(false); setModalOpen(true); };
+
+  // Outlook-style: opening an occurrence opens the series.
+  const openEdit = (t: Transaction) => {
+    if (t.projected) {
+      // Virtual occurrence → edit the underlying series (template). Only the
+      // template is a real doc; if it can't be resolved, do nothing (a projected
+      // row's synthetic id must never reach a write path).
+      const tpl = findTemplate(t);
+      if (tpl) startEdit(tpl, true);
+    } else if (t.recurring) {
+      // The template row itself → series edit.
+      startEdit(t, true);
+    } else if (t.seriesId) {
+      // A past, already-recorded instance → ask "just this one" or "the series".
+      setSeriesChoice(t);
+    } else {
+      startEdit(t, false);
+    }
+  };
 
   const groupTransfers = (editing?.groupId && (editing.type === 'expense' || editing.type === 'transfer'))
     ? tx.transactions.filter(t => t.groupId === editing.groupId && t.id !== editing.id)
@@ -177,7 +216,7 @@ function Main({ user, onLogOut, onDeleteAccount }: {
               <div className="pt-4 md:pt-6">
                 <h1 className="text-2xl font-bold text-primary tracking-[-0.03em] mb-6">Movimenti</h1>
                 <TransactionList
-                  transactions={tx.transactions}
+                  transactions={tx.transactions} projected={projected}
                   onEdit={openEdit} onDelete={tx.deleteTransaction}
                   onBulkUpdate={tx.updateTransactions} onBulkDelete={tx.deleteTransactions}
                   onAdd={openAdd}
@@ -199,9 +238,21 @@ function Main({ user, onLogOut, onDeleteAccount }: {
       </div>
 
       <TransactionModal
-        open={modalOpen} editing={editing} groupTransfers={groupTransfers}
+        open={modalOpen} editing={editing} groupTransfers={groupTransfers} seriesEdit={seriesEdit}
         onClose={() => setModalOpen(false)}
         onSave={handleSave}
+      />
+      <SeriesEditChoiceSheet
+        open={!!seriesChoice}
+        onClose={() => setSeriesChoice(null)}
+        onChoose={scope => {
+          const inst = seriesChoice;
+          setSeriesChoice(null);
+          if (!inst) return;
+          if (scope === 'single') { startEdit(inst, false); return; }
+          const tpl = findTemplate(inst);
+          startEdit(tpl ?? inst, !!tpl);
+        }}
       />
       <ImportModal open={importOpen} onClose={() => setImportOpen(false)} onImport={tx.addTransactions} />
     </div>

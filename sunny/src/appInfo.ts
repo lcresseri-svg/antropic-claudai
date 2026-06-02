@@ -1,4 +1,4 @@
-export const APP_VERSION = '1.6.1';
+export const APP_VERSION = '1.7.0';
 
 /**
  * Release channel. While in 'beta' the app is still under active development
@@ -15,6 +15,16 @@ export interface VersionEntry {
 
 /** Registro versioni mostrato in Impostazioni → Registro versioni. */
 export const VERSIONS: VersionEntry[] = [
+  {
+    version: '1.7.0', date: '2026-06-02', title: 'Ricorrenze a serie',
+    changes: [
+      'Le transazioni ricorrenti future ora si vedono in anticipo nei Movimenti come righe "Programmato", fino alla scadenza (o 12 mesi se senza fine).',
+      'Gestione stile Outlook: toccando un\'occorrenza apri la serie. Per le voci già registrate scegli "solo questa" o "tutta la serie".',
+      'I totali del mese restano sulle voci realizzate; le ricorrenze previste pesano solo nelle previsioni.',
+      'La proiezione annuale tiene conto delle spese e degli investimenti ricorrenti già programmati.',
+      'Generazione automatica più robusta: recupera tutte le occorrenze arretrate in un colpo solo e collega le voci alla loro serie.',
+    ],
+  },
   {
     version: '1.6.1', date: '2026-06-02', title: 'Rifiniture',
     changes: [
