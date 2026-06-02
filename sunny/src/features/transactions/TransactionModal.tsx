@@ -162,18 +162,18 @@ export function TransactionModal({ open, editing, groupTransfers = [], onClose, 
       onClick={e => { if (e.target === e.currentTarget) onClose(); }}>
       <div className="absolute inset-0 bg-black/60 backdrop-blur-sm animate-fade-in-fast" />
 
-      <div className="relative w-full max-w-sm glass-elevated rounded-3xl shadow-float max-h-[88vh] overflow-y-auto scrollbar-hide animate-sheet-up">
+      <div className="relative w-full max-w-sm sm:max-w-lg glass-elevated rounded-3xl shadow-float max-h-[88vh] overflow-y-auto scrollbar-hide animate-sheet-up">
         <div className="sticky top-0 bg-[var(--modal-hdr-bg)] backdrop-blur-xl z-10 px-5 pt-5 pb-3 flex items-center justify-between">
           <h2 className="text-base font-semibold text-primary">{editing ? 'Modifica' : 'Nuova transazione'}</h2>
           <button onClick={onClose} className="w-8 h-8 rounded-full bg-elevated flex items-center justify-center text-secondary">✕</button>
         </div>
 
-        <form onSubmit={submit} className="px-5 pb-5 space-y-3">
+        <form onSubmit={submit} className="px-5 sm:px-7 pb-5 sm:pb-7 space-y-3 sm:space-y-4">
           {/* Type segmented */}
           <div className="grid gap-1.5 bg-elevated rounded-2xl p-1" style={{ gridTemplateColumns: `repeat(${availableTypes.length}, 1fr)` }}>
             {availableTypes.map(t => (
               <button key={t} type="button" onClick={() => setType(t)}
-                className="py-2 rounded-xl text-[11px] font-semibold transition-all"
+                className="py-2 sm:py-2.5 rounded-xl text-[11px] sm:text-xs font-semibold transition-all"
                 style={type === t ? { backgroundColor: TYPE_META[t].color, color: '#0D0D0D' } : { color: '#8B8B8B' }}>
                 {TYPE_META[t].label}
               </button>
@@ -212,14 +212,15 @@ export function TransactionModal({ open, editing, groupTransfers = [], onClose, 
           {/* Category */}
           {type !== 'transfer' && (
             <Field label="Categoria">
-              <div className="flex flex-wrap gap-2">
+              <div className="grid grid-cols-3 sm:grid-cols-4 gap-2">
                 {typeCats.map(c => {
                   const sel = category === c.id;
                   return (
                     <button key={c.id} type="button" onClick={() => { setCategory(c.id); setCategoryTouched(true); }}
-                      className="px-3 py-2 rounded-full text-xs font-medium transition-all flex items-center gap-1.5"
+                      className="w-full px-2 py-2 rounded-full text-xs font-medium transition-all flex items-center justify-center gap-1.5 truncate"
                       style={sel ? { backgroundColor: c.color, color: '#0D0D0D' } : { backgroundColor: '#161616', color: '#8B8B8B' }}>
-                      <span>{c.icon}</span>{c.label}
+                      <span className="flex-shrink-0">{c.icon}</span>
+                      <span className="truncate">{c.label}</span>
                     </button>
                   );
                 })}
@@ -227,34 +228,28 @@ export function TransactionModal({ open, editing, groupTransfers = [], onClose, 
             </Field>
           )}
 
-          {/* Accounts */}
-          <div className={`grid gap-3 ${type === 'transfer' ? 'grid-cols-2' : 'grid-cols-1'}`}>
-            <Field label={type === 'transfer' ? 'Da conto' : 'Conto'}>
-              <Select value={account} onChange={setAccount} options={accounts.map(a => ({ value: a.id, label: `${a.icon} ${a.label}` }))} />
-            </Field>
-            {type === 'transfer' && (
-              <Field label="A conto">
-                <Select value={toAccount} onChange={setToAccount}
-                  options={accounts.filter(a => a.id !== account).map(a => ({ value: a.id, label: `${a.icon} ${a.label}` }))} />
+          {/* Accounts + Date */}
+          {type === 'transfer' ? (
+            <>
+              <div className="grid grid-cols-2 gap-3">
+                <Field label="Da conto">
+                  <Select value={account} onChange={setAccount} options={accounts.map(a => ({ value: a.id, label: `${a.icon} ${a.label}` }))} />
+                </Field>
+                <Field label="A conto">
+                  <Select value={toAccount} onChange={setToAccount}
+                    options={accounts.filter(a => a.id !== account).map(a => ({ value: a.id, label: `${a.icon} ${a.label}` }))} />
+                </Field>
+              </div>
+              <DateField date={date} td={td} yd={yd} setDate={setDate} />
+            </>
+          ) : (
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+              <Field label="Conto">
+                <Select value={account} onChange={setAccount} options={accounts.map(a => ({ value: a.id, label: `${a.icon} ${a.label}` }))} />
               </Field>
-            )}
-          </div>
-
-          {/* Date — compact quick buttons */}
-          <Field label="Data">
-            <div className="flex gap-2">
-              <button type="button" onClick={() => setDate(td)}
-                className={`px-3.5 py-2 rounded-xl text-xs font-semibold transition-colors flex-shrink-0 ${date === td ? 'bg-gold text-bg' : 'bg-elevated text-secondary'}`}>
-                Oggi
-              </button>
-              <button type="button" onClick={() => setDate(yd)}
-                className={`px-3.5 py-2 rounded-xl text-xs font-semibold transition-colors flex-shrink-0 ${date === yd ? 'bg-gold text-bg' : 'bg-elevated text-secondary'}`}>
-                Ieri
-              </button>
-              <input type="date" value={date} onChange={e => setDate(e.target.value)}
-                className="flex-1 min-w-0 bg-elevated rounded-xl px-3 py-2 text-primary text-xs outline-none focus:ring-1 focus:ring-gold/40" />
+              <DateField date={date} td={td} yd={yd} setDate={setDate} />
             </div>
-          </Field>
+          )}
 
           {/* Vedi altro — opzioni avanzate */}
           <button type="button" onClick={() => setShowMore(s => !s)}
@@ -421,6 +416,25 @@ function Field({ label, children }: { label: string; children: React.ReactNode }
       <label className="block text-xs font-medium text-secondary mb-2 px-1">{label}</label>
       {children}
     </div>
+  );
+}
+
+function DateField({ date, td, yd, setDate }: { date: string; td: string; yd: string; setDate: (d: string) => void }) {
+  return (
+    <Field label="Data">
+      <div className="flex gap-2">
+        <button type="button" onClick={() => setDate(td)}
+          className={`px-3.5 py-2 rounded-xl text-xs font-semibold transition-colors flex-shrink-0 ${date === td ? 'bg-gold text-bg' : 'bg-elevated text-secondary'}`}>
+          Oggi
+        </button>
+        <button type="button" onClick={() => setDate(yd)}
+          className={`px-3.5 py-2 rounded-xl text-xs font-semibold transition-colors flex-shrink-0 ${date === yd ? 'bg-gold text-bg' : 'bg-elevated text-secondary'}`}>
+          Ieri
+        </button>
+        <input type="date" value={date} onChange={e => setDate(e.target.value)}
+          className="flex-1 min-w-0 bg-elevated rounded-xl px-3 py-2 text-primary text-xs outline-none focus:ring-1 focus:ring-gold/40" />
+      </div>
+    </Field>
   );
 }
 
