@@ -214,7 +214,7 @@ function Stat({ label, value, colorClass, hint, warn }: {
         )}
       </div>
       <p className={`text-[14px] font-semibold balance-num truncate ${colorClass}`}>{value}</p>
-      {hint && <p className="text-[10px] text-secondary/70 mt-1 leading-tight truncate">{hint}</p>}
+      {hint && <p className="text-[11px] text-secondary mt-1 leading-snug">{hint}</p>}
     </div>
   );
 }
