@@ -19,7 +19,7 @@ const today = () => new Date().toISOString().slice(0, 10);
 const yesterday = () => { const d = new Date(); d.setDate(d.getDate() - 1); return d.toISOString().slice(0, 10); };
 
 export function TransactionModal({ open, editing, groupTransfers = [], seriesEdit = false, onClose, onSave }: Props) {
-  const { categories, accounts, enableInvestments } = useSettings();
+  const { categories, accounts, enableInvestments, detailedInvestments } = useSettings();
   const [type, setType] = useState<TransactionType>('expense');
   const [description, setDescription] = useState('');
   const [amount, setAmount] = useState('');
@@ -34,6 +34,7 @@ export function TransactionModal({ open, editing, groupTransfers = [], seriesEdi
   const [recurringFreq, setRecurringFreq] = useState<RecurrenceRule['freq']>('monthly');
   const [recurringUntil, setRecurringUntil] = useState('');
   const [fee, setFee] = useState('');
+  const [tfr, setTfr] = useState('');
 
   const [amountError, setAmountError] = useState(false);
   const [categoryTouched, setCategoryTouched] = useState(false);
@@ -61,13 +62,14 @@ export function TransactionModal({ open, editing, groupTransfers = [], seriesEdi
       setFee(editing.type === 'transfer'
         ? String(groupTransfers.find(t => t.type === 'expense')?.amount ?? '')
         : '');
+      setTfr(editing.tfr !== undefined ? String(editing.tfr) : '');
     } else {
       setType('expense'); setDescription(''); setAmount(''); setDate(today());
       setCategory(''); setAccount(accounts[0]?.id ?? '');
       setToAccount(accounts[1]?.id ?? ''); setNotes('');
       setIsShared(false); setReimbursements([]);
       setIsRecurring(false); setRecurringFreq('monthly'); setRecurringUntil('');
-      setFee('');
+      setFee(''); setTfr('');
     }
     setAmountError(false);
     setCategoryTouched(!!editing);
@@ -91,6 +93,18 @@ export function TransactionModal({ open, editing, groupTransfers = [], seriesEdi
     if (type === 'transfer') return;
     if (!typeCats.some(c => c.id === category)) setCategory(typeCats[0]?.id ?? '');
   }, [type, categories]);
+
+  // Detailed-investments extras (gated per user): a source-less investment and,
+  // for pension funds, the TFR portion of the contribution.
+  const canNoAccount = type === 'investment' && detailedInvestments;
+  const selCat = categories.find(c => c.id === category);
+  const isPensionInvest = type === 'investment' && detailedInvestments && selCat?.fundType === 'pension';
+
+  // An empty account is only valid for a source-less investment; otherwise snap
+  // back to a real account (e.g. after switching type away from investment).
+  useEffect(() => {
+    if (account === '' && !canNoAccount) setAccount(accounts[0]?.id ?? '');
+  }, [account, canNoAccount, accounts]);
 
   // Fallback description used when the field is left empty: the selected
   // category label (or the destination account for transfers).
@@ -156,6 +170,10 @@ export function TransactionModal({ open, editing, groupTransfers = [], seriesEdi
     const hasFee = feeVal > 0;
     const groupId = hasFee ? (editing?.groupId ?? crypto.randomUUID()) : undefined;
 
+    // TFR portion of a pension-fund contribution, capped at the amount.
+    const tfrRaw = isPensionInvest ? parseFloat(tfr.replace(',', '.')) : NaN;
+    const tfrClean = tfrRaw > 0 ? Math.min(tfrRaw, value) : undefined;
+
     const create: Omit<Transaction, 'id'>[] = [{
       type, description: desc, amount: value, date,
       category: type === 'transfer' ? 'trasferimento' : category,
@@ -163,6 +181,7 @@ export function TransactionModal({ open, editing, groupTransfers = [], seriesEdi
       toAccount: type === 'transfer' ? toAccount : undefined,
       notes: notes.trim() || undefined,
       recurring, seriesId,
+      ...(type === 'investment' && tfrClean ? { tfr: tfrClean } : {}),
       ...(groupId ? { groupId } : {}),
     }];
     if (hasFee) {
@@ -272,10 +291,35 @@ export function TransactionModal({ open, editing, groupTransfers = [], seriesEdi
           ) : (
             <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
               <Field label="Conto">
-                <Select value={account} onChange={setAccount} options={accounts.map(a => ({ value: a.id, label: `${a.icon} ${a.label}` }))} />
+                <Select value={account} onChange={setAccount}
+                  options={[
+                    ...(canNoAccount ? [{ value: '', label: '🚫 Senza conto (TFR / datore)' }] : []),
+                    ...accounts.map(a => ({ value: a.id, label: `${a.icon} ${a.label}` })),
+                  ]} />
               </Field>
               <DateField date={date} td={td} yd={yd} setDate={setDate} />
             </div>
+          )}
+
+          {canNoAccount && account === '' && (
+            <p className="text-[11px] text-secondary -mt-1 px-1 leading-snug">
+              Questo versamento non esce da nessun conto: aumenta il capitale investito senza intaccare la liquidità.
+            </p>
+          )}
+
+          {/* TFR portion — pension-fund investments only */}
+          {isPensionInvest && (
+            <Field label="Di cui TFR (facoltativo)">
+              <div className="relative">
+                <span className="absolute left-4 top-1/2 -translate-y-1/2 text-secondary text-sm">€</span>
+                <input type="text" inputMode="decimal" placeholder="0,00" value={tfr}
+                  onChange={e => setTfr(e.target.value.replace(/[^\d.,]/g, ''))}
+                  className="w-full bg-elevated rounded-2xl pl-8 pr-4 py-3 text-primary placeholder:text-secondary/50 outline-none focus:ring-1 focus:ring-gold/40 balance-num" />
+              </div>
+              <p className="text-[11px] mt-1.5 px-1 text-secondary">
+                Quanta parte di questo versamento proviene dal TFR.
+              </p>
+            </Field>
           )}
 
           {/* Commission — transfers only */}

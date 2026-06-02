@@ -49,7 +49,8 @@ export interface Transaction {
   amount: number;        // always positive
   type: TransactionType;
   category: string;      // CategoryDef.id
-  account: string;       // AccountDef.id
+  account: string;       // AccountDef.id — may be '' for a source-less investment (e.g. TFR / employer contribution)
+  tfr?: number;          // investment into a pension fund only: portion of this contribution that is TFR
   toAccount?: string;    // AccountDef.id — transfers only
   notes?: string;
   shared?: number;       // others' part of a shared expense; counted as movement, not spending

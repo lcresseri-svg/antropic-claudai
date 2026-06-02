@@ -1,4 +1,4 @@
-export const APP_VERSION = '1.7.2';
+export const APP_VERSION = '1.7.3';
 
 /**
  * Release channel. While in 'beta' the app is still under active development
@@ -15,6 +15,14 @@ export interface VersionEntry {
 
 /** Registro versioni mostrato in Impostazioni → Registro versioni. */
 export const VERSIONS: VersionEntry[] = [
+  {
+    version: '1.7.3', date: '2026-06-02', title: 'Versamenti senza conto e TFR',
+    changes: [
+      'Investimenti: ora puoi registrare un versamento "senza conto di provenienza" (es. TFR o contributo del datore) che aumenta il capitale investito senza intaccare la liquidità.',
+      'Versamenti in un fondo pensionistico: puoi indicare quanta parte del singolo versamento è TFR.',
+      'Le statistiche del TFR tengono conto sia del capitale iniziale sia dei singoli versamenti.',
+    ],
+  },
   {
     version: '1.7.2', date: '2026-06-02', title: 'Investimenti dettagliati',
     changes: [

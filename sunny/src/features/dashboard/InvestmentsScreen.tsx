@@ -54,15 +54,23 @@ export function InvestmentsScreen({ investmentByCategory, investmentTotal, month
   // Values reuse the per-category capital already computed (initial + flows).
   const fundAlloc = useMemo(() => {
     const byType: Record<FundType, number> = { pension: 0, bond: 0, equity: 0 };
+    const pensionCatIds = new Set<string>();
     let tfrTotal = 0;
     for (const c of categories) {
       if (c.kind !== 'investment' || !c.fundType) continue;
       byType[c.fundType] += investmentByCategory[c.id] ?? 0;
-      if (c.fundType === 'pension' && c.tfrAmount) tfrTotal += c.tfrAmount;
+      if (c.fundType === 'pension') {
+        pensionCatIds.add(c.id);
+        if (c.tfrAmount) tfrTotal += c.tfrAmount; // TFR within the pre-Sunny capital
+      }
+    }
+    // TFR declared on individual pension-fund contributions.
+    for (const t of transactions) {
+      if (t.type === 'investment' && t.tfr && pensionCatIds.has(t.category)) tfrTotal += t.tfr;
     }
     const classifiedTotal = byType.pension + byType.bond + byType.equity;
     return { byType, tfrTotal, classifiedTotal };
-  }, [categories, investmentByCategory]);
+  }, [categories, investmentByCategory, transactions]);
 
   const fundSegments = FUND_TYPE_ORDER
     .filter(ft => fundAlloc.byType[ft] > 0)
