@@ -1,6 +1,6 @@
 import { useState, useMemo, useEffect } from 'react';
 import { Transaction, TransactionType, TYPE_META, TYPE_ORDER, TransactionPatch } from '../../types';
-import { formatCurrency, formatMonthLong, capitalize } from '../../utils';
+import { formatCurrency, formatDate, formatMonthLong, capitalize } from '../../utils';
 import { useSettings } from '../../shared/providers/settings';
 import { TransactionRow } from './TransactionRow';
 import { OptionSheet } from '../../shared/components/OptionSheet';
@@ -38,6 +38,27 @@ function periodCutoff(p: PeriodFilter, now: Date): Date | null {
   return d;
 }
 
+// How far ahead to show projected ("Programmato") occurrences. Default: 5 days.
+type ProjView = '5d' | '30d' | '3m' | 'all' | 'off';
+const PROJ_DEFAULT: ProjView = '5d';
+const PROJ_OPTS: { value: ProjView; label: string }[] = [
+  { value: '5d',  label: 'Prossimi 5 giorni' },
+  { value: '30d', label: 'Prossimi 30 giorni' },
+  { value: '3m',  label: 'Prossimi 3 mesi' },
+  { value: 'all', label: 'Tutti i previsti' },
+  { value: 'off', label: 'Nascondi previsti' },
+];
+
+/** Upper bound (inclusive, YYYY-MM-DD) for projected rows; null = no limit. */
+function projectedCutoffISO(v: ProjView, now: Date): string | null {
+  if (v === 'all' || v === 'off') return null;
+  const d = new Date(now);
+  if (v === '5d') d.setDate(d.getDate() + 5);
+  else if (v === '30d') d.setDate(d.getDate() + 30);
+  else d.setMonth(d.getMonth() + 3);
+  return d.toISOString().slice(0, 10);
+}
+
 export function TransactionList({ transactions, projected = [], onEdit, onDelete, onBulkUpdate, onBulkDelete, onAdd }: Props) {
   const { categories, accounts, getAcc, getCat } = useSettings();
   const [search, setSearch] = useState('');
@@ -46,6 +67,7 @@ export function TransactionList({ transactions, projected = [], onEdit, onDelete
   const [sortKey, setSortKey] = useState<SortKey>('date');
   const [sortDir, setSortDir] = useState<SortDir>('desc');
   const [period, setPeriod] = useState<PeriodFilter>('all');
+  const [projView, setProjView] = useState<ProjView>(PROJ_DEFAULT);
   const [filterOpen, setFilterOpen] = useState(false);
   const [collapsed, setCollapsed] = useState<Set<string>>(new Set());
   const [selectMode, setSelectMode] = useState(false);
@@ -63,28 +85,50 @@ export function TransactionList({ transactions, projected = [], onEdit, onDelete
 
   const filtered = useMemo(() => {
     const q = search.trim().toLowerCase();
-    const cutoff = periodCutoff(period, new Date());
-    return [...transactions, ...projected]
+    const now = new Date();
+    const cutoff = periodCutoff(period, now);
+    const projCut = projectedCutoffISO(projView, now);
+    const visibleProjected = projView === 'off'
+      ? []
+      : projected.filter(p => !projCut || p.date <= projCut);
+
+    // Search across everything the user can see: description, notes, category &
+    // account names (incl. transfer destination), type, date (ISO + "2 giu 2026"
+    // + "giugno 2026") and amount (raw, 2-decimals, comma form and formatted).
+    const matches = (t: Transaction): boolean => {
+      if (!q) return true;
+      const cat = categories.find(c => c.id === t.category);
+      const acc = accounts.find(a => a.id === t.account);
+      const toAcc = t.toAccount ? accounts.find(a => a.id === t.toAccount) : undefined;
+      const hay = [
+        t.description,
+        t.notes ?? '',
+        cat?.label ?? '',
+        acc?.label ?? '',
+        toAcc?.label ?? '',
+        TYPE_META[t.type].label,
+        t.date,
+        formatDate(t.date),
+        formatMonthLong(t.date.slice(0, 7)),
+        String(t.amount),
+        t.amount.toFixed(2),
+        t.amount.toFixed(2).replace('.', ','),
+        formatCurrency(t.amount),
+      ].join(' ').toLowerCase();
+      return hay.includes(q);
+    };
+
+    return [...transactions, ...visibleProjected]
       .filter(t => typeFilter === 'all' || t.type === typeFilter)
       .filter(t => !cutoff || new Date(t.date) >= cutoff)
-      .filter(t => {
-        if (!q) return true;
-        const cat = categories.find(c => c.id === t.category);
-        const acc = accounts.find(a => a.id === t.account);
-        return (
-          t.description.toLowerCase().includes(q) ||
-          (t.notes ?? '').toLowerCase().includes(q) ||
-          (cat?.label ?? '').toLowerCase().includes(q) ||
-          (acc?.label ?? '').toLowerCase().includes(q)
-        );
-      })
+      .filter(matches)
       .sort((a, b) => {
         const diff = sortKey === 'amount'
           ? b.amount - a.amount
           : new Date(b.date).getTime() - new Date(a.date).getTime();
         return sortDir === 'desc' ? diff : -diff;
       });
-  }, [transactions, projected, typeFilter, period, search, sortKey, sortDir, categories, accounts]);
+  }, [transactions, projected, projView, typeFilter, period, search, sortKey, sortDir, categories, accounts]);
 
   const groups = useMemo(() => {
     const map = new Map<string, Transaction[]>();
@@ -144,8 +188,9 @@ export function TransactionList({ transactions, projected = [], onEdit, onDelete
     exitSelect();
   };
 
-  const filterActive = period !== 'all' || sortKey !== 'date' || sortDir !== 'desc';
+  const filterActive = period !== 'all' || sortKey !== 'date' || sortDir !== 'desc' || projView !== PROJ_DEFAULT;
   const periodLabel = PERIOD_OPTS.find(o => o.value === period)!.label;
+  const projLabel = PROJ_OPTS.find(o => o.value === projView)!.label;
   const dirLabels: [SortDir, string][] = sortKey === 'amount'
     ? [['desc', 'Più alto'], ['asc', 'Più basso']]
     : [['desc', 'Più recenti'], ['asc', 'Meno recenti']];
@@ -162,7 +207,7 @@ export function TransactionList({ transactions, projected = [], onEdit, onDelete
             </svg>
             <input
               type="text" value={search} onChange={e => setSearch(e.target.value)}
-              placeholder="Cerca transazioni…"
+              placeholder="Cerca per nome, importo, data, conto…"
               className="w-full bg-card rounded-2xl pl-9 pr-9 py-2.5 text-sm text-primary placeholder:text-secondary/50 outline-none focus:ring-1 focus:ring-gold/40"
             />
             {search && (
@@ -225,21 +270,55 @@ export function TransactionList({ transactions, projected = [], onEdit, onDelete
                       </button>
                     ))}
                   </div>
+
+                  {projected.length > 0 && (
+                    <>
+                      <p className="label-caps text-secondary mb-2 mt-3 px-1">Previsti</p>
+                      <div className="space-y-1">
+                        {PROJ_OPTS.map(opt => (
+                          <button key={opt.value} onClick={() => { setProjView(opt.value); setFilterOpen(false); }}
+                            className={`w-full flex items-center justify-between px-3 py-2 rounded-xl text-sm transition-colors ${
+                              projView === opt.value ? 'bg-gold/10 text-gold font-medium' : 'text-primary hover:bg-card'
+                            }`}>
+                            {opt.label}
+                            {projView === opt.value && (
+                              <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
+                                <path d="M20 6 9 17l-5-5"/>
+                              </svg>
+                            )}
+                          </button>
+                        ))}
+                      </div>
+                    </>
+                  )}
                 </div>
               </>
             )}
           </div>
         </div>
 
-        {/* Filtro periodo attivo — pill rimovibile */}
-        {period !== 'all' && (
-          <button onClick={() => setPeriod('all')}
-            className="inline-flex items-center gap-1.5 bg-gold/10 text-gold rounded-full pl-3 pr-2 py-1 text-xs font-medium">
-            {periodLabel}
-            <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round">
-              <path d="M18 6 6 18M6 6l12 12"/>
-            </svg>
-          </button>
+        {/* Filtri attivi — pill rimovibili */}
+        {(period !== 'all' || projView !== PROJ_DEFAULT) && (
+          <div className="flex flex-wrap gap-2">
+            {period !== 'all' && (
+              <button onClick={() => setPeriod('all')}
+                className="inline-flex items-center gap-1.5 bg-gold/10 text-gold rounded-full pl-3 pr-2 py-1 text-xs font-medium">
+                {periodLabel}
+                <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round">
+                  <path d="M18 6 6 18M6 6l12 12"/>
+                </svg>
+              </button>
+            )}
+            {projView !== PROJ_DEFAULT && (
+              <button onClick={() => setProjView(PROJ_DEFAULT)}
+                className="inline-flex items-center gap-1.5 bg-gold/10 text-gold rounded-full pl-3 pr-2 py-1 text-xs font-medium">
+                🗓️ {projLabel}
+                <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round">
+                  <path d="M18 6 6 18M6 6l12 12"/>
+                </svg>
+              </button>
+            )}
+          </div>
         )}
 
         {/* Type filter — capsule pills */}

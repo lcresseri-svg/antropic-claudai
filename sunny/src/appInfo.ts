@@ -18,8 +18,9 @@ export const VERSIONS: VersionEntry[] = [
   {
     version: '1.7.0', date: '2026-06-02', title: 'Ricorrenze a serie',
     changes: [
-      'Le transazioni ricorrenti future ora si vedono in anticipo nei Movimenti come righe "Programmato", fino alla scadenza (o 12 mesi se senza fine).',
+      'Le transazioni ricorrenti future si vedono in anticipo nei Movimenti come righe "Programmato": di default i prossimi 5 giorni, con orizzonte regolabile dal filtro (30 giorni, 3 mesi, tutti, o nascondi).',
       'Gestione stile Outlook: toccando un\'occorrenza apri la serie. Per le voci già registrate scegli "solo questa" o "tutta la serie".',
+      'Ricerca movimenti potenziata: cerca anche per importo, data, conto e tipo, non solo nella descrizione.',
       'I totali del mese restano sulle voci realizzate; le ricorrenze previste pesano solo nelle previsioni.',
       'La proiezione annuale tiene conto delle spese e degli investimenti ricorrenti già programmati.',
       'Generazione automatica più robusta: recupera tutte le occorrenze arretrate in un colpo solo e collega le voci alla loro serie.',
