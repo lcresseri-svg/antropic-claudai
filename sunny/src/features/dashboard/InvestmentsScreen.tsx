@@ -159,6 +159,9 @@ export function InvestmentsScreen({ investmentByCategory, investmentTotal, month
                   <span className="text-base flex-shrink-0">🛡️</span>
                   <p className="text-[12px] text-secondary leading-snug">
                     Di questo totale, <span className="font-semibold text-primary balance-num">{formatCurrency(fundAlloc.tfrTotal)}</span> proviene dal <span className="font-medium text-primary">TFR</span>
+                    {investmentTotal > 0 && (
+                      <> — il <span className="font-medium text-primary">{Math.round((fundAlloc.tfrTotal / investmentTotal) * 100)}%</span> del capitale totale investito</>
+                    )}
                     {fundAlloc.byType.pension > 0 && (
                       <> ({Math.round((fundAlloc.tfrTotal / fundAlloc.byType.pension) * 100)}% del fondo pensionistico)</>
                     )}.
