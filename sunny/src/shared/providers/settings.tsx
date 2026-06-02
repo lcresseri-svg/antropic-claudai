@@ -8,6 +8,7 @@ import {
 } from '../../defaults';
 
 type Theme = 'dark' | 'light';
+export type InsightDepth = 'minimal' | 'medium' | 'advanced';
 
 interface SettingsValue {
   categories: CategoryDef[];
@@ -15,6 +16,7 @@ interface SettingsValue {
   theme: Theme;
   includeInvestments: boolean; // count invested capital in net worth
   enableInvestments: boolean;  // show/hide entire investments feature
+  insightDepth: InsightDepth;
   getCat: (id: string) => CategoryDef;
   getAcc: (id: string) => AccountDef;
   saveCategories: (c: CategoryDef[]) => void;
@@ -22,6 +24,7 @@ interface SettingsValue {
   saveTheme: (t: Theme) => void;
   saveIncludeInvestments: (v: boolean) => void;
   saveEnableInvestments: (v: boolean) => void;
+  saveInsightDepth: (v: InsightDepth) => void;
 }
 
 const SettingsContext = createContext<SettingsValue | null>(null);
@@ -34,6 +37,7 @@ export function SettingsProvider({ user, children }: { user: User | null; childr
   const [theme, setTheme] = useState<Theme>('dark');
   const [includeInvestments, setIncludeInvestments] = useState(true);
   const [enableInvestments, setEnableInvestments] = useState(true);
+  const [insightDepth, setInsightDepth] = useState<InsightDepth>('advanced');
 
   // Apply theme class to <html> immediately when state changes
   useEffect(() => {
@@ -47,6 +51,7 @@ export function SettingsProvider({ user, children }: { user: User | null; childr
       setTheme('dark');
       setIncludeInvestments(true);
       setEnableInvestments(true);
+      setInsightDepth('advanced');
       return;
     }
     const ref = doc(db, 'users', user.uid, 'meta', 'settings');
@@ -61,6 +66,7 @@ export function SettingsProvider({ user, children }: { user: User | null; childr
       setTheme((d.theme as Theme) ?? 'dark');
       setIncludeInvestments(d.includeInvestments ?? true);
       setEnableInvestments(d.enableInvestments ?? true);
+      setInsightDepth((d.insightDepth as InsightDepth) ?? 'advanced');
     });
   }, [user]);
 
@@ -96,6 +102,11 @@ export function SettingsProvider({ user, children }: { user: User | null; childr
     if (user) setDoc(settingsRef(), { enableInvestments: v }, MERGE);
   }, [user, settingsRef]);
 
+  const saveInsightDepth = useCallback((v: InsightDepth) => {
+    setInsightDepth(v);
+    if (user) setDoc(settingsRef(), { insightDepth: v }, MERGE);
+  }, [user, settingsRef]);
+
   const getCat = useCallback(
     (id: string) => categories.find(c => c.id === id) ?? FALLBACK_CATEGORY(id),
     [categories],
@@ -106,7 +117,7 @@ export function SettingsProvider({ user, children }: { user: User | null; childr
   );
 
   return (
-    <SettingsContext.Provider value={{ categories, accounts, theme, includeInvestments, enableInvestments, getCat, getAcc, saveCategories, saveAccounts, saveTheme, saveIncludeInvestments, saveEnableInvestments }}>
+    <SettingsContext.Provider value={{ categories, accounts, theme, includeInvestments, enableInvestments, insightDepth, getCat, getAcc, saveCategories, saveAccounts, saveTheme, saveIncludeInvestments, saveEnableInvestments, saveInsightDepth }}>
       {children}
     </SettingsContext.Provider>
   );

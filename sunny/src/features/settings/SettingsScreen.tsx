@@ -34,7 +34,7 @@ function reorder<T>(arr: T[], from: number, to: number): T[] {
 
 export function SettingsScreen({ user, transactions, onLogOut, onDeleteAll, onDeleteAccount }: Props) {
   const navigate = useNavigate();
-  const { categories, accounts, theme, includeInvestments, enableInvestments, saveCategories, saveAccounts, saveTheme, saveIncludeInvestments, saveEnableInvestments } = useSettings();
+  const { categories, accounts, theme, includeInvestments, enableInvestments, insightDepth, saveCategories, saveAccounts, saveTheme, saveIncludeInvestments, saveEnableInvestments, saveInsightDepth } = useSettings();
   const [sub, setSub] = useState<Sub>('menu');
   const [editing, setEditing] = useState<{ kind: 'category' | 'account'; draft: DefDraft; isNew: boolean; withKind?: boolean } | null>(null);
   const [confirmReset, setConfirmReset] = useState(false);
@@ -226,6 +226,34 @@ export function SettingsScreen({ user, transactions, onLogOut, onDeleteAll, onDe
                 onToggle={() => saveIncludeInvestments(!includeInvestments)}
               />
             )}
+            <div className="p-4">
+              <div className="flex items-start gap-3.5 mb-3">
+                <span className="text-2xl mt-0.5">🔍</span>
+                <div>
+                  <p className="text-sm font-medium text-primary">Livello di analisi</p>
+                  <p className="text-xs text-secondary mt-0.5">
+                    {insightDepth === 'minimal'
+                      ? 'Solo scadenze ricorrenti'
+                      : insightDepth === 'medium'
+                      ? 'Previsioni e confronti principali'
+                      : 'Analisi completa con trend e statistiche'}
+                  </p>
+                </div>
+              </div>
+              <div className="flex rounded-xl bg-elevated p-0.5 gap-0.5">
+                {(['minimal', 'medium', 'advanced'] as const).map(d => (
+                  <button
+                    key={d}
+                    onClick={() => saveInsightDepth(d)}
+                    className={`flex-1 py-2 rounded-[10px] text-[13px] font-medium transition-colors ${
+                      insightDepth === d ? 'bg-gold text-bg' : 'text-secondary active:text-primary'
+                    }`}
+                  >
+                    {d === 'minimal' ? 'Minimal' : d === 'medium' ? 'Media' : 'Smanettone'}
+                  </button>
+                ))}
+              </div>
+            </div>
           </div>
         </>
       )}

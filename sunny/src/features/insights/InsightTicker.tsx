@@ -18,11 +18,11 @@ interface Props {
  * Tapping a card opens its full explanation.
  */
 export function InsightTicker({ transactions, monthlyIncome, monthlyExpenses, monthlyInvestments, limit = 8, onSeeAll }: Props) {
-  const { getCat } = useSettings();
+  const { getCat, insightDepth } = useSettings();
   const [detail, setDetail] = useState<Insight | null>(null);
 
   const insights = buildInsights({
-    transactions, monthlyIncome, monthlyExpenses, monthlyInvestments, getCat,
+    transactions, monthlyIncome, monthlyExpenses, monthlyInvestments, getCat, depth: insightDepth,
   }).slice(0, limit);
 
   if (insights.length === 0) return null;
