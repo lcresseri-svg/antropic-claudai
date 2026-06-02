@@ -73,11 +73,11 @@ export function EditDefSheet({ open, draft, withKind, canDelete, onSave, onDelet
         {withKind && (
           <div className="mb-5">
             <p className="text-xs font-medium text-secondary mb-2 px-1">Tipo</p>
-            <div className="grid grid-cols-4 gap-1.5 bg-elevated rounded-2xl p-1.5">
+            <div className="grid grid-cols-4 gap-1.5 bg-surface rounded-2xl p-1.5">
               {TYPE_ORDER.map(t => (
                 <button key={t} onClick={() => setKind(t)}
-                  className="py-2 rounded-xl text-[11px] font-semibold transition-all"
-                  style={kind === t ? { backgroundColor: TYPE_META[t].color, color: '#0D0D0D' } : { color: '#8B8B8B' }}>
+                  className={`py-2 rounded-xl text-[11px] font-semibold transition-all ${kind === t ? 'shadow-sm' : 'text-secondary'}`}
+                  style={kind === t ? { backgroundColor: TYPE_META[t].color, color: '#0D0D0D' } : undefined}>
                   {TYPE_META[t].label}
                 </button>
               ))}

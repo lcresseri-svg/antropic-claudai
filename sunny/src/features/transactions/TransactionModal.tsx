@@ -197,11 +197,11 @@ export function TransactionModal({ open, editing, groupTransfers = [], seriesEdi
             </p>
           )}
           {/* Type segmented */}
-          <div className="grid gap-1.5 bg-elevated rounded-2xl p-1" style={{ gridTemplateColumns: `repeat(${availableTypes.length}, 1fr)` }}>
+          <div className="grid gap-1.5 bg-surface rounded-2xl p-1" style={{ gridTemplateColumns: `repeat(${availableTypes.length}, 1fr)` }}>
             {availableTypes.map(t => (
               <button key={t} type="button" onClick={() => setType(t)}
-                className="py-2 sm:py-2.5 rounded-xl text-[11px] sm:text-xs font-semibold transition-all"
-                style={type === t ? { backgroundColor: TYPE_META[t].color, color: '#0D0D0D' } : { color: '#8B8B8B' }}>
+                className={`py-2 sm:py-2.5 rounded-xl text-[11px] sm:text-xs font-semibold transition-all ${type === t ? 'shadow-sm' : 'text-secondary'}`}
+                style={type === t ? { backgroundColor: TYPE_META[t].color, color: '#0D0D0D' } : undefined}>
                 {TYPE_META[t].label}
               </button>
             ))}
@@ -244,8 +244,8 @@ export function TransactionModal({ open, editing, groupTransfers = [], seriesEdi
                   const sel = category === c.id;
                   return (
                     <button key={c.id} type="button" onClick={() => { setCategory(c.id); setCategoryTouched(true); }}
-                      className="w-full px-2 py-2 rounded-full text-xs font-medium transition-all flex items-center justify-center gap-1.5 truncate"
-                      style={sel ? { backgroundColor: c.color, color: '#0D0D0D' } : { backgroundColor: '#161616', color: '#8B8B8B' }}>
+                      className={`w-full px-2 py-2 rounded-full text-xs font-medium transition-all flex items-center justify-center gap-1.5 truncate ${sel ? 'shadow-sm' : 'bg-surface text-secondary'}`}
+                      style={sel ? { backgroundColor: c.color, color: '#0D0D0D' } : undefined}>
                       <span className="flex-shrink-0">{c.icon}</span>
                       <span className="truncate">{c.label}</span>
                     </button>
