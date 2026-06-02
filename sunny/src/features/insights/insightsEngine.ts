@@ -56,9 +56,10 @@ export function monthKey(offset: number, now: Date = new Date()): string {
 
 function addPeriod(dateStr: string, freq: RecurrenceRule['freq']): string {
   const d = new Date(dateStr);
-  if (freq === 'weekly') d.setDate(d.getDate() + 7);
+  if      (freq === 'daily')   d.setDate(d.getDate() + 1);
+  else if (freq === 'weekly')  d.setDate(d.getDate() + 7);
   else if (freq === 'monthly') d.setMonth(d.getMonth() + 1);
-  else d.setFullYear(d.getFullYear() + 1);
+  else                          d.setFullYear(d.getFullYear() + 1);
   return d.toISOString().slice(0, 10);
 }
 
@@ -289,7 +290,7 @@ export function buildInsights(input: InsightInput): Insight[] {
     const nextDue = addPeriod(t.date, rule.freq);
     const days = daysUntil(nextDue, now);
     if (days > 14 || days < -7) continue;
-    const freqLabel = rule.freq === 'weekly' ? 'settimana' : rule.freq === 'monthly' ? 'mese' : 'anno';
+    const freqLabel = rule.freq === 'daily' ? 'giorno' : rule.freq === 'weekly' ? 'settimana' : rule.freq === 'monthly' ? 'mese' : 'anno';
     const dueLabel = days < 0
       ? `${Math.abs(days)} giorni fa (non ancora registrato)`
       : days === 0 ? 'oggi' : days === 1 ? 'domani' : `tra ${days} giorni`;
@@ -304,6 +305,59 @@ export function buildInsights(input: InsightInput): Insight[] {
         basis: 'Transazioni marcate come "Ricorrente".',
       },
     });
+  }
+
+  // ── 0b. FORECAST — Monthly recurring summary ─────────────────────────────
+  {
+    const monthStart = `${ym(now)}-01`;
+    const lastDay = new Date(now.getFullYear(), now.getMonth() + 1, 0).getDate();
+    const monthEnd = `${ym(now)}-${String(lastDay).padStart(2, '0')}`;
+
+    interface REntry { desc: string; amount: number; count: number }
+    const thisMonth: REntry[] = [];
+
+    for (const [, t] of seriesMap) {
+      const rule = t.recurring!;
+      if (rule.until && rule.until < monthStart) continue;
+
+      // Advance to first occurrence in this month, with a safety cap
+      let d = addPeriod(t.date, rule.freq);
+      let guard = 2000;
+      while (d < monthStart && --guard > 0) d = addPeriod(d, rule.freq);
+      if (d > monthEnd) continue;
+
+      // Count all occurrences in the month (capped at 35 for daily)
+      let count = 0;
+      let cur = d;
+      while (cur <= monthEnd && count < 35) {
+        if (!rule.until || cur <= rule.until) count++;
+        cur = addPeriod(cur, rule.freq);
+      }
+      if (count > 0) thisMonth.push({ desc: t.description, amount: t.amount, count });
+    }
+
+    if (thisMonth.length > 0) {
+      const total = thisMonth.reduce((s, e) => s + e.amount * e.count, 0);
+      const top3 = thisMonth.slice(0, 3)
+        .map(e => `${e.desc}${e.count > 1 ? ` ×${e.count}` : ''}`)
+        .join(' · ');
+      push({
+        icon: '🗓️', category: 'forecast',
+        title: `${thisMonth.length} ricorrenti questo mese · ${formatCurrency(total)}`,
+        detail: thisMonth.length > 3 ? `${top3} · +${thisMonth.length - 3} altre` : top3,
+        accent: ACCENT.gold,
+        explain: {
+          what: 'Tutti i pagamenti ricorrenti attesi nel mese corrente, basati sulle scadenze calcolate.',
+          how: 'Per ogni transazione taggata "Ricorrente" avanzo la data dell\'ultima occorrenza della frequenza impostata finché non rientra in questo mese, poi conto quante ne cadono entro fine mese.',
+          basis: `${thisMonth.length} serie ricorrenti attive questo mese.`,
+          chart: {
+            labels: thisMonth.slice(0, 6).map(e => (e.desc.length > 12 ? e.desc.slice(0, 11) + '…' : e.desc)),
+            values: thisMonth.slice(0, 6).map(e => Math.round(e.amount * e.count)),
+            format: 'currency',
+          },
+        },
+      });
+    }
   }
 
   // ── 1. ALERT — Expenses outpacing income this month ───────────────────────

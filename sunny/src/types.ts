@@ -45,7 +45,7 @@ export interface Transaction {
 }
 
 export interface RecurrenceRule {
-  freq: 'weekly' | 'monthly' | 'yearly';
+  freq: 'daily' | 'weekly' | 'monthly' | 'yearly';
   until?: string; // YYYY-MM-DD
 }
 

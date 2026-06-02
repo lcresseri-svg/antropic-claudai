@@ -1,6 +1,6 @@
 import { useState, useEffect } from 'react';
 import { Transaction, TransactionType, TYPE_META, TYPE_ORDER, RecurrenceRule } from '../../types';
-import { formatCurrency, guessCategory } from '../../utils';
+import { formatCurrency, formatDate, guessCategory } from '../../utils';
 import { useSettings } from '../../shared/providers/settings';
 import { useEscapeKey } from '../../shared/hooks/useEscapeKey';
 
@@ -330,19 +330,34 @@ export function TransactionModal({ open, editing, groupTransfers = [], onClose, 
             <div className="space-y-3">
               <div>
                 <label className="text-xs font-medium text-secondary mb-2 block">Frequenza</label>
-                <div className="flex gap-2">
-                  {(['weekly', 'monthly', 'yearly'] as const).map(f => (
+                <div className="grid grid-cols-2 gap-2">
+                  {(['daily', 'weekly', 'monthly', 'yearly'] as const).map(f => (
                     <button key={f} type="button" onClick={() => setRecurringFreq(f)}
-                      className={`flex-1 py-2 rounded-xl text-xs font-semibold transition-colors ${recurringFreq === f ? 'bg-gold text-bg' : 'bg-elevated text-secondary'}`}>
-                      {f === 'weekly' ? 'Settimanale' : f === 'monthly' ? 'Mensile' : 'Annuale'}
+                      className={`py-2 rounded-xl text-xs font-semibold transition-colors ${recurringFreq === f ? 'bg-gold text-bg' : 'bg-elevated text-secondary'}`}>
+                      {f === 'daily' ? 'Ogni giorno' : f === 'weekly' ? 'Ogni settimana' : f === 'monthly' ? 'Ogni mese' : 'Ogni anno'}
                     </button>
                   ))}
                 </div>
               </div>
-              <div>
-                <label className="text-xs font-medium text-secondary mb-2 block">Termina il (opzionale)</label>
+
+              {/* End date — visually distinct card */}
+              <div className="rounded-2xl border border-divider p-3.5 space-y-2">
+                <div className="flex items-center justify-between">
+                  <p className="text-xs font-semibold text-primary">Fine ricorrenza</p>
+                  {recurringUntil && (
+                    <button type="button" onClick={() => setRecurringUntil('')}
+                      className="text-[11px] font-medium text-secondary hover:text-primary">
+                      Rimuovi
+                    </button>
+                  )}
+                </div>
+                <p className="text-[11px] text-secondary leading-snug">
+                  {recurringUntil
+                    ? `Si ripete fino al ${formatDate(recurringUntil)}, poi smette`
+                    : 'Nessun limite — si ripete a tempo indeterminato'}
+                </p>
                 <input type="date" value={recurringUntil} onChange={e => setRecurringUntil(e.target.value)}
-                  className="block w-full min-w-0 box-border appearance-none bg-elevated rounded-xl px-3 py-2 text-primary text-sm outline-none focus:ring-1 focus:ring-gold/40" />
+                  className="block w-full min-w-0 box-border appearance-none bg-elevated rounded-xl px-3 py-2.5 text-primary text-sm outline-none focus:ring-1 focus:ring-gold/40" />
               </div>
             </div>
           </ToggleBlock>
