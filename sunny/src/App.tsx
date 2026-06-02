@@ -66,6 +66,8 @@ function Main({ user, onLogOut, onDeleteAccount }: {
 
   const isSettings = location.pathname.startsWith('/settings');
   const firstName = user.displayName?.split(' ')[0] ?? 'utente';
+
+  useEffect(() => { window.scrollTo(0, 0); }, [location.pathname]);
   const brand = `${greeting()}, ${firstName}`;
 
   // Virtual future occurrences of every recurring template — shown ahead of time
