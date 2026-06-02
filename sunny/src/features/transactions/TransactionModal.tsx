@@ -340,24 +340,23 @@ export function TransactionModal({ open, editing, groupTransfers = [], onClose, 
                 </div>
               </div>
 
-              {/* End date — visually distinct card */}
-              <div className="rounded-2xl border border-divider p-3.5 space-y-2">
-                <div className="flex items-center justify-between">
-                  <p className="text-xs font-semibold text-primary">Fine ricorrenza</p>
+              <div>
+                <div className="flex items-center justify-between mb-1.5">
+                  <label className="text-xs font-medium text-secondary">Fine ricorrenza</label>
                   {recurringUntil && (
                     <button type="button" onClick={() => setRecurringUntil('')}
-                      className="text-[11px] font-medium text-secondary hover:text-primary">
+                      className="text-[11px] font-medium text-gold">
                       Rimuovi
                     </button>
                   )}
                 </div>
-                <p className="text-[11px] text-secondary leading-snug">
-                  {recurringUntil
-                    ? `Si ripete fino al ${formatDate(recurringUntil)}, poi smette`
-                    : 'Nessun limite — si ripete a tempo indeterminato'}
-                </p>
                 <input type="date" value={recurringUntil} onChange={e => setRecurringUntil(e.target.value)}
-                  className="block w-full min-w-0 box-border appearance-none bg-elevated rounded-xl px-3 py-2.5 text-primary text-sm outline-none focus:ring-1 focus:ring-gold/40" />
+                  className="block w-full min-w-0 box-border appearance-none bg-elevated rounded-xl px-3 py-3.5 text-primary text-sm outline-none focus:ring-1 focus:ring-gold/40" />
+                {recurringUntil && (
+                  <p className="text-[11px] text-secondary mt-1.5 px-1">
+                    Si ripete fino al {formatDate(recurringUntil)}, poi smette
+                  </p>
+                )}
               </div>
             </div>
           </ToggleBlock>
