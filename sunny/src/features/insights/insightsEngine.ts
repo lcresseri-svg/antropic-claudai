@@ -161,6 +161,19 @@ function recentMonths(txs: Transaction[], n: number, now: Date): MonthStats[] {
   return Array.from({ length: n }, (_, i) => monthStats(txs, monthKey(n - i, now)));
 }
 
+/** Aggregate income/expense/invest over a span of month keys. */
+function aggregateMonths(txs: Transaction[], keys: string[]): { income: number; expense: number; invest: number } {
+  const set = new Set(keys);
+  let income = 0, expense = 0, invest = 0;
+  for (const t of txs) {
+    if (!set.has(t.date.slice(0, 7))) continue;
+    if (t.type === 'income')          income  += t.amount;
+    else if (t.type === 'expense')    expense += ownShare(t);
+    else if (t.type === 'investment') invest  += t.amount;
+  }
+  return { income, expense, invest };
+}
+
 /** Ordinary least-squares slope of a numeric series. */
 function linearSlope(arr: number[]): number {
   const n = arr.length;
@@ -814,6 +827,235 @@ export function buildInsights(input: InsightInput): Insight[] {
     } else if (cv > 0.4) {
       push({ icon: '🌊', category: 'highlight', title: `Spese molto variabili`, detail: `Fluttuazione del ${Math.round(cv * 100)}% tra i mesi — difficile pianificare`, accent: ACCENT.info,
         explain: { what: 'Le uscite oscillano molto da un mese all\'altro.', how: 'Guardo quanto le uscite di ogni mese si discostano dalla media: qui variano parecchio, quindi sono difficili da prevedere.', basis: `Ultimi ${months6.length} mesi con dati.`, chart } });
+    }
+  }
+
+  // ── 26. TREND — Quarter-over-quarter expenses ────────────────────────────
+  // Compares the last completed 3 months with the 3 before that.
+  {
+    const recentQ = [monthKey(1, now), monthKey(2, now), monthKey(3, now)];
+    const priorQ  = [monthKey(4, now), monthKey(5, now), monthKey(6, now)];
+    const rA = aggregateMonths(transactions, recentQ);
+    const pA = aggregateMonths(transactions, priorQ);
+    if (pA.expense > 100 && rA.expense > 100) {
+      const delta = pct(rA.expense - pA.expense, pA.expense);
+      if (Math.abs(delta) >= 10) {
+        const up = delta > 0;
+        push({ icon: '📅', category: 'trend',
+          title: `Spese trimestre ${up ? '+' : '−'}${Math.abs(delta)}% vs trimestre prima`,
+          detail: `${formatCurrency(rA.expense)} negli ultimi 3 mesi vs ${formatCurrency(pA.expense)} nei 3 precedenti`,
+          accent: up ? ACCENT.warn : ACCENT.good,
+          explain: {
+            what: 'Confronto tra gli ultimi 3 mesi completi e i 3 mesi ancora precedenti.',
+            how: 'Somma delle uscite del trimestre recente vs il trimestre precedente, variazione percentuale.',
+            basis: 'Ultimi 6 mesi completi (mese corrente escluso).',
+            chart: { labels: ['Trim. prec.', 'Trim. recente'], values: [Math.round(pA.expense), Math.round(rA.expense)], format: 'currency', highlightIndex: 1 },
+          } });
+      }
+    }
+  }
+
+  // ── 27. TREND — Quarter-over-quarter savings ─────────────────────────────
+  {
+    const recentQ = [monthKey(1, now), monthKey(2, now), monthKey(3, now)];
+    const priorQ  = [monthKey(4, now), monthKey(5, now), monthKey(6, now)];
+    const rA = aggregateMonths(transactions, recentQ);
+    const pA = aggregateMonths(transactions, priorQ);
+    const rSav = rA.income - rA.expense - rA.invest;
+    const pSav = pA.income - pA.expense - pA.invest;
+    if (rA.income > 100 && pA.income > 100 && Math.abs(rSav - pSav) >= 100) {
+      const up = rSav > pSav;
+      push({ icon: up ? '🚀' : '📉', category: 'trend',
+        title: `Risparmio trimestrale ${up ? 'in crescita' : 'in calo'}`,
+        detail: `${formatCurrency(rSav)} negli ultimi 3 mesi vs ${formatCurrency(pSav)} nei 3 precedenti`,
+        accent: up ? ACCENT.good : ACCENT.warn,
+        explain: {
+          what: 'Quanto hai messo da parte negli ultimi 3 mesi rispetto al trimestre precedente.',
+          how: '(Entrate − Uscite − Investimenti) sommate sui due trimestri e confrontate.',
+          basis: 'Ultimi 6 mesi completi (mese corrente escluso).',
+          chart: { labels: ['Trim. prec.', 'Trim. recente'], values: [Math.round(pSav), Math.round(rSav)], format: 'currency', highlightIndex: 1 },
+        } });
+    }
+  }
+
+  // ── 28. FORECAST — End-of-month expense vs same month history ────────────
+  // Uses the seasonal baseline (same calendar month in past years) when present.
+  if (prog > 0.2 && monthlyExpenses > 0) {
+    const sameMonthKeys: string[] = [];
+    for (let y = 1; y <= 3; y++) sameMonthKeys.push(`${now.getFullYear() - y}-${String(now.getMonth() + 1).padStart(2, '0')}`);
+    const past = sameMonthKeys.map(k => monthStats(transactions, k)).filter(m => m.expense > 0);
+    if (past.length >= 1) {
+      const seasonalAvg = avg(past.map(m => m.expense));
+      const proj = projectExpenses(monthlyExpenses, now);
+      const delta = pct(proj - seasonalAvg, seasonalAvg);
+      if (Math.abs(delta) >= 12) {
+        const up = delta > 0;
+        const mName = monthNameFromIndex(now.getMonth());
+        push({ icon: '🔮', category: 'forecast',
+          title: `${mName} proiettato ${up ? '+' : '−'}${Math.abs(delta)}% vs solito`,
+          detail: `Stima ${formatCurrency(proj)} vs ~${formatCurrency(seasonalAvg)} tipici di ${mName}`,
+          accent: up ? ACCENT.warn : ACCENT.good,
+          explain: {
+            what: `Proiezione di fine mese confrontata con quanto spendi di solito a ${mName}.`,
+            how: `Uscite proiettate (${formatCurrency(proj)}) vs media di ${mName} negli ultimi ${past.length} anni (${formatCurrency(seasonalAvg)}).`,
+            basis: `${past.length} ${past.length === 1 ? 'anno' : 'anni'} di storico per ${mName}.`,
+            chart: { labels: [`${mName} (solito)`, `${mName} (stima)`], values: [Math.round(seasonalAvg), proj], format: 'currency', highlightIndex: 1 },
+          } });
+      }
+    }
+  }
+
+  // ── 29. HABIT — Recurring (fixed) cost load ──────────────────────────────
+  // Sum of monthly-equivalent of all tagged recurring expenses vs avg income.
+  if (h.avgIncome > 0) {
+    let fixedMonthly = 0;
+    for (const [, t] of seriesMap) {
+      if (t.type !== 'expense') continue;
+      const rule = t.recurring!;
+      if (rule.until && rule.until < today) continue;
+      const perMonth = rule.freq === 'daily' ? t.amount * 30
+        : rule.freq === 'weekly' ? t.amount * 4.33
+        : rule.freq === 'yearly' ? t.amount / 12
+        : t.amount;
+      fixedMonthly += perMonth;
+    }
+    if (fixedMonthly > 0) {
+      const share = Math.round((fixedMonthly / h.avgIncome) * 100);
+      const heavy = share >= 50;
+      push({ icon: '🧾', category: 'habit',
+        title: `Spese fisse: ${share}% del reddito`,
+        detail: `~${formatCurrency(fixedMonthly)}/mese di ricorrenti su ~${formatCurrency(h.avgIncome)} di entrate`,
+        accent: heavy ? ACCENT.warn : ACCENT.info,
+        explain: {
+          what: 'Quanta parte del reddito è già impegnata in costi fissi ricorrenti.',
+          how: 'Sommo tutte le spese ricorrenti riportate al mese (settimanali ×4,33, annuali ÷12, giornaliere ×30) e le divido per la media delle entrate.',
+          basis: 'Ricorrenti attive + media entrate ultimi 3 mesi.',
+          chart: { labels: ['Fisse', 'Reddito'], values: [Math.round(fixedMonthly), Math.round(h.avgIncome)], format: 'currency', highlightIndex: 0 },
+        } });
+    }
+  }
+
+  // ── 30. TREND — Positive-savings streak ──────────────────────────────────
+  {
+    const last12 = recentMonths(transactions, 12, now).filter(m => m.income > 0);
+    let streak = 0;
+    for (let i = last12.length - 1; i >= 0; i--) {
+      if (last12[i].savings > 0) streak++;
+      else break;
+    }
+    if (streak >= 3) {
+      push({ icon: '🔥', category: 'trend',
+        title: `${streak} mesi di fila in positivo`,
+        detail: `Chiudi il mese risparmiando da ${streak} mesi consecutivi`,
+        accent: ACCENT.good,
+        explain: {
+          what: 'Mesi consecutivi più recenti chiusi con risparmio positivo.',
+          how: 'Scorro i mesi dal più recente e conto quanti di fila hanno Entrate − Uscite − Investimenti > 0.',
+          basis: 'Ultimi 12 mesi con entrate.',
+          chart: { labels: last12.slice(-6).map(m => shortMonth(m.key)), values: last12.slice(-6).map(m => Math.round(m.savings)), format: 'currency' },
+        } }, 'medium');
+    }
+  }
+
+  // ── 31. HIGHLIGHT — Year-to-date savings ─────────────────────────────────
+  {
+    const ytdKeys: string[] = [];
+    for (let m = 0; m <= now.getMonth(); m++) ytdKeys.push(`${now.getFullYear()}-${String(m + 1).padStart(2, '0')}`);
+    const a = aggregateMonths(transactions, ytdKeys);
+    const ytdSav = a.income - a.expense - a.invest;
+    if (a.income > 0 && now.getMonth() >= 1) {
+      push({ icon: '🗓️', category: 'highlight',
+        title: `Da inizio anno: ${ytdSav >= 0 ? '+' : '−'}${formatCurrency(Math.abs(ytdSav))} risparmiati`,
+        detail: `+ ${formatCurrency(a.invest)} investiti su ${formatCurrency(a.income)} di entrate nel ${now.getFullYear()}`,
+        accent: ytdSav >= 0 ? ACCENT.good : ACCENT.warn,
+        explain: {
+          what: `Bilancio cumulato da gennaio a ${monthNameFromIndex(now.getMonth())}.`,
+          how: 'Sommo entrate, uscite e investimenti di tutti i mesi dell\'anno corrente; il risparmio è la differenza.',
+          basis: `Anno ${now.getFullYear()}, mese corrente incluso.`,
+          chart: { labels: ['Entrate', 'Uscite', 'Investito', 'Risparmio'], values: [Math.round(a.income), Math.round(a.expense), Math.round(a.invest), Math.round(ytdSav)], format: 'currency', highlightIndex: 3 },
+        } });
+    }
+  }
+
+  // ── 32. HABIT — Heaviest weekday for spending ────────────────────────────
+  {
+    const cutoff = new Date(now); cutoff.setMonth(cutoff.getMonth() - 3);
+    const byDow = [0, 0, 0, 0, 0, 0, 0];
+    let total = 0;
+    for (const t of transactions) {
+      if (t.type !== 'expense' || localDate(t.date) < cutoff) continue;
+      const dow = localDate(t.date).getDay();
+      const s = ownShare(t);
+      byDow[dow] += s; total += s;
+    }
+    if (total > 100) {
+      let maxDow = 0;
+      for (let i = 1; i < 7; i++) if (byDow[i] > byDow[maxDow]) maxDow = i;
+      const share = pct(byDow[maxDow], total);
+      if (share >= 22) {
+        const names = ['Domenica', 'Lunedì', 'Martedì', 'Mercoledì', 'Giovedì', 'Venerdì', 'Sabato'];
+        const shortNames = ['Dom', 'Lun', 'Mar', 'Mer', 'Gio', 'Ven', 'Sab'];
+        push({ icon: '📆', category: 'habit',
+          title: `${names[maxDow]} è il tuo giorno di spesa`,
+          detail: `Il ${share}% delle uscite degli ultimi 3 mesi cade di ${names[maxDow].toLowerCase()}`,
+          accent: ACCENT.info,
+          explain: {
+            what: 'Il giorno della settimana in cui concentri più spesa.',
+            how: 'Sommo le uscite degli ultimi 3 mesi per giorno della settimana e prendo il maggiore.',
+            basis: 'Ultimi 3 mesi di uscite.',
+            chart: { labels: shortNames, values: byDow.map(v => Math.round(v)), format: 'currency', highlightIndex: maxDow },
+          } });
+      }
+    }
+  }
+
+  // ── 33. TREND — Income quarter-over-quarter ──────────────────────────────
+  {
+    const recentQ = [monthKey(1, now), monthKey(2, now), monthKey(3, now)];
+    const priorQ  = [monthKey(4, now), monthKey(5, now), monthKey(6, now)];
+    const rA = aggregateMonths(transactions, recentQ);
+    const pA = aggregateMonths(transactions, priorQ);
+    if (pA.income > 100 && rA.income > 100) {
+      const delta = pct(rA.income - pA.income, pA.income);
+      if (Math.abs(delta) >= 10) {
+        const up = delta > 0;
+        push({ icon: up ? '💰' : '📥', category: 'trend',
+          title: `Entrate trimestre ${up ? '+' : '−'}${Math.abs(delta)}%`,
+          detail: `${formatCurrency(rA.income)} negli ultimi 3 mesi vs ${formatCurrency(pA.income)} nei 3 precedenti`,
+          accent: up ? ACCENT.good : ACCENT.info,
+          explain: {
+            what: 'Andamento delle entrate tra gli ultimi due trimestri.',
+            how: 'Somma delle entrate del trimestre recente vs precedente, variazione percentuale.',
+            basis: 'Ultimi 6 mesi completi (mese corrente escluso).',
+            chart: { labels: ['Trim. prec.', 'Trim. recente'], values: [Math.round(pA.income), Math.round(rA.income)], format: 'currency', highlightIndex: 1 },
+          } });
+      }
+    }
+  }
+
+  // ── 34. HIGHLIGHT — Average transaction size trend ───────────────────────
+  if (months3.length >= 2) {
+    const avgSize = months3.map(m => {
+      const txs = transactions.filter(t => t.type === 'expense' && t.date.startsWith(m.key));
+      const sum = txs.reduce((s, t) => s + ownShare(t), 0);
+      return txs.length ? sum / txs.length : 0;
+    }).filter(v => v > 0);
+    if (avgSize.length >= 2) {
+      const first = avgSize[0], last = avgSize[avgSize.length - 1];
+      const delta = pct(last - first, first);
+      if (Math.abs(delta) >= 20) {
+        const up = delta > 0;
+        push({ icon: '🔬', category: 'highlight',
+          title: `Scontrino medio ${up ? 'in aumento' : 'in calo'} (${up ? '+' : '−'}${Math.abs(delta)}%)`,
+          detail: `Da ${formatCurrency(first)} a ${formatCurrency(last)} a transazione negli ultimi mesi`,
+          accent: up ? ACCENT.warn : ACCENT.good,
+          explain: {
+            what: 'Come cambia l\'importo medio di una singola spesa.',
+            how: 'Per ogni mese: uscite totali ÷ numero di transazioni di spesa. Confronto il primo e l\'ultimo mese con dati.',
+            basis: 'Ultimi 3 mesi con dati.',
+            chart: { labels: months3.map(m => shortMonth(m.key)), values: avgSize.map(v => Math.round(v)), format: 'currency' },
+          } });
+      }
     }
   }
 
