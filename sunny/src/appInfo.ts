@@ -1,4 +1,4 @@
-export const APP_VERSION = '1.7.1';
+export const APP_VERSION = '1.7.2';
 
 /**
  * Release channel. While in 'beta' the app is still under active development
@@ -15,6 +15,14 @@ export interface VersionEntry {
 
 /** Registro versioni mostrato in Impostazioni → Registro versioni. */
 export const VERSIONS: VersionEntry[] = [
+  {
+    version: '1.7.2', date: '2026-06-02', title: 'Investimenti dettagliati',
+    changes: [
+      'Categorie di investimento: classificazione per tipo di fondo (Pensionistico, Obbligazionario, Azionario).',
+      'Fondi pensionistici: possibilità di indicare quanta parte del capitale è TFR.',
+      'Sezione Investimenti: nuovo grafico ad anello "Allocazione per tipo di fondo", con nota sulla quota di TFR.',
+    ],
+  },
   {
     version: '1.7.1', date: '2026-06-02', title: 'Budget e AI',
     changes: [

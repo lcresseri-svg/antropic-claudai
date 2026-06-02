@@ -1,5 +1,5 @@
 import { useState, useEffect } from 'react';
-import { TransactionType, TYPE_META, TYPE_ORDER } from '../../types';
+import { TransactionType, TYPE_META, TYPE_ORDER, FundType, FUND_TYPE_META, FUND_TYPE_ORDER } from '../../types';
 import { EMOJI_CHOICES, COLOR_CHOICES } from '../../defaults';
 import { useEscapeKey } from '../../shared/hooks/useEscapeKey';
 
@@ -11,6 +11,8 @@ export interface DefDraft {
   kind?: TransactionType;
   initialBalance?: number;
   isInvestment?: boolean;
+  fundType?: FundType;
+  tfrAmount?: number;
 }
 
 interface Props {
@@ -18,17 +20,20 @@ interface Props {
   draft: DefDraft | null;
   withKind: boolean;
   canDelete: boolean;
+  showFundType?: boolean; // detailed-investments mode (per-user gated)
   onSave: (d: DefDraft) => void;
   onDelete?: (id: string) => void;
   onClose: () => void;
 }
 
-export function EditDefSheet({ open, draft, withKind, canDelete, onSave, onDelete, onClose }: Props) {
+export function EditDefSheet({ open, draft, withKind, canDelete, showFundType, onSave, onDelete, onClose }: Props) {
   const [label, setLabel] = useState('');
   const [icon, setIcon] = useState('•');
   const [color, setColor] = useState(COLOR_CHOICES[0]);
   const [kind, setKind] = useState<TransactionType>('expense');
   const [initialBalance, setInitialBalance] = useState('');
+  const [fundType, setFundType] = useState<FundType | ''>('');
+  const [tfrAmount, setTfrAmount] = useState('');
   const [confirmingDelete, setConfirmingDelete] = useState(false);
   const [emojiExpanded, setEmojiExpanded] = useState(false);
 
@@ -37,6 +42,8 @@ export function EditDefSheet({ open, draft, withKind, canDelete, onSave, onDelet
     setLabel(draft.label); setIcon(draft.icon); setColor(draft.color);
     setKind(draft.kind ?? 'expense');
     setInitialBalance(draft.initialBalance !== undefined ? String(draft.initialBalance) : '');
+    setFundType(draft.fundType ?? '');
+    setTfrAmount(draft.tfrAmount !== undefined ? String(draft.tfrAmount) : '');
     setConfirmingDelete(false);
     setEmojiExpanded(false);
   }, [open, draft]);
@@ -49,15 +56,20 @@ export function EditDefSheet({ open, draft, withKind, canDelete, onSave, onDelet
   // investment categories (capital already invested before Sunny).
   const isInvestmentCategory = withKind && kind === 'investment';
   const showBalance = (!withKind && !draft.isInvestment) || isInvestmentCategory;
+  const showFunds = isInvestmentCategory && !!showFundType;
 
   const save = () => {
     if (!label.trim()) return;
     const parsedBalance = initialBalance !== '' ? parseFloat(initialBalance) : undefined;
     const validBalance = parsedBalance !== undefined && !isNaN(parsedBalance) ? parsedBalance : undefined;
+    const parsedTfr = tfrAmount !== '' ? parseFloat(tfrAmount) : undefined;
+    const validTfr = parsedTfr !== undefined && !isNaN(parsedTfr) ? parsedTfr : undefined;
     onSave({
       id: draft.id, label: label.trim(), icon, color,
       kind: withKind ? kind : undefined,
       initialBalance: showBalance ? validBalance : undefined,
+      fundType: showFunds && fundType ? fundType : undefined,
+      tfrAmount: showFunds && fundType === 'pension' ? validTfr : undefined,
     });
   };
 
@@ -135,6 +147,44 @@ export function EditDefSheet({ open, draft, withKind, canDelete, onSave, onDelet
                 ? 'Quanto avevi già investito in questa categoria prima di usare Sunny'
                 : 'Saldo del conto quando hai iniziato a usare Sunny'}
             </p>
+          </div>
+        )}
+
+        {showFunds && (
+          <div className="mb-6">
+            <p className="text-xs font-medium text-secondary mb-2 px-1">Tipo di fondo</p>
+            <div className="grid grid-cols-2 gap-1.5">
+              <button onClick={() => setFundType('')}
+                className={`py-2.5 rounded-xl text-[12px] font-semibold transition-all ${fundType === '' ? 'bg-gold text-bg' : 'bg-elevated text-secondary'}`}>
+                Nessuno
+              </button>
+              {FUND_TYPE_ORDER.map(ft => (
+                <button key={ft} onClick={() => setFundType(ft)}
+                  className={`py-2.5 rounded-xl text-[12px] font-semibold transition-all ${fundType === ft ? 'shadow-sm' : 'bg-elevated text-secondary'}`}
+                  style={fundType === ft ? { backgroundColor: FUND_TYPE_META[ft].color, color: '#0D0D0D' } : undefined}>
+                  {FUND_TYPE_META[ft].icon} {FUND_TYPE_META[ft].label}
+                </button>
+              ))}
+            </div>
+
+            {fundType === 'pension' && (
+              <div className="mt-3">
+                <p className="text-xs font-medium text-secondary mb-2 px-1">Di cui TFR</p>
+                <div className="relative">
+                  <span className="absolute left-3.5 top-1/2 -translate-y-1/2 text-secondary text-sm">€</span>
+                  <input
+                    type="number" inputMode="decimal" value={tfrAmount}
+                    onChange={e => setTfrAmount(e.target.value)}
+                    onKeyDown={e => { if (e.key === 'Enter') { e.preventDefault(); save(); } }}
+                    placeholder="0"
+                    className="w-full bg-elevated rounded-2xl pl-8 pr-4 py-3 text-primary placeholder:text-secondary/50 outline-none focus:ring-1 focus:ring-gold/40"
+                  />
+                </div>
+                <p className="text-[11px] text-secondary/70 px-1 mt-1.5">
+                  Quanta parte del capitale in questo fondo proviene dal TFR.
+                </p>
+              </div>
+            )}
           </div>
         )}
 

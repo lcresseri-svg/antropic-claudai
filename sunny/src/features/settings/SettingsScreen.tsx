@@ -34,7 +34,7 @@ function reorder<T>(arr: T[], from: number, to: number): T[] {
 
 export function SettingsScreen({ user, transactions, onLogOut, onDeleteAll, onDeleteAccount }: Props) {
   const navigate = useNavigate();
-  const { categories, accounts, theme, includeInvestments, enableInvestments, insightDepth, aiEnabled, saveCategories, saveAccounts, saveTheme, saveIncludeInvestments, saveEnableInvestments, saveInsightDepth, saveAiEnabled } = useSettings();
+  const { categories, accounts, theme, includeInvestments, enableInvestments, insightDepth, aiEnabled, detailedInvestments, saveCategories, saveAccounts, saveTheme, saveIncludeInvestments, saveEnableInvestments, saveInsightDepth, saveAiEnabled } = useSettings();
   const [sub, setSub] = useState<Sub>('menu');
   const [editing, setEditing] = useState<{ kind: 'category' | 'account'; draft: DefDraft; isNew: boolean; withKind?: boolean } | null>(null);
   const [confirmReset, setConfirmReset] = useState(false);
@@ -117,7 +117,9 @@ export function SettingsScreen({ user, transactions, onLogOut, onDeleteAll, onDe
     if (editing.kind === 'category') {
       const kind = d.kind ?? 'expense';
       const def: CategoryDef = { id: d.id, label: d.label, icon: d.icon, color: d.color, kind,
-        ...(kind === 'investment' && d.initialBalance !== undefined ? { initialBalance: d.initialBalance } : {}) };
+        ...(kind === 'investment' && d.initialBalance !== undefined ? { initialBalance: d.initialBalance } : {}),
+        ...(kind === 'investment' && d.fundType ? { fundType: d.fundType } : {}),
+        ...(kind === 'investment' && d.fundType === 'pension' && d.tfrAmount !== undefined ? { tfrAmount: d.tfrAmount } : {}) };
       saveCategories(editing.isNew ? [...categories, def] : categories.map(c => c.id === d.id ? def : c));
     } else {
       const def: AccountDef = { id: d.id, label: d.label, icon: d.icon, color: d.color,
@@ -494,6 +496,7 @@ export function SettingsScreen({ user, transactions, onLogOut, onDeleteAll, onDe
         draft={editing?.draft ?? null}
         withKind={editing?.kind === 'category' && (editing?.withKind ?? true)}
         canDelete={!editing?.isNew}
+        showFundType={detailedInvestments}
         onSave={save}
         onDelete={remove}
         onClose={() => setEditing(null)}

@@ -6,6 +6,7 @@ import { CategoryDef, AccountDef } from '../../types';
 import {
   DEFAULT_CATEGORIES, DEFAULT_ACCOUNTS, FALLBACK_CATEGORY, FALLBACK_ACCOUNT,
 } from '../../defaults';
+import { canUseDetailedInvestments } from '../featureFlags';
 
 type Theme = 'dark' | 'light';
 export type InsightDepth = 'minimal' | 'medium' | 'advanced';
@@ -18,6 +19,7 @@ interface SettingsValue {
   enableInvestments: boolean;  // show/hide entire investments feature
   insightDepth: InsightDepth;
   aiEnabled: boolean;
+  detailedInvestments: boolean; // per-user gated: fund-type classification + TFR
   getCat: (id: string) => CategoryDef;
   getAcc: (id: string) => AccountDef;
   saveCategories: (c: CategoryDef[]) => void;
@@ -123,6 +125,8 @@ export function SettingsProvider({ user, children }: { user: User | null; childr
     if (user) setDoc(settingsRef(), { aiEnabled: v }, MERGE);
   }, [user, settingsRef]);
 
+  const detailedInvestments = canUseDetailedInvestments(user);
+
   const getCat = useCallback(
     (id: string) => categories.find(c => c.id === id) ?? FALLBACK_CATEGORY(id),
     [categories],
@@ -133,7 +137,7 @@ export function SettingsProvider({ user, children }: { user: User | null; childr
   );
 
   return (
-    <SettingsContext.Provider value={{ categories, accounts, theme, includeInvestments, enableInvestments, insightDepth, aiEnabled, getCat, getAcc, saveCategories, saveAccounts, saveTheme, saveIncludeInvestments, saveEnableInvestments, saveInsightDepth, saveAiEnabled }}>
+    <SettingsContext.Provider value={{ categories, accounts, theme, includeInvestments, enableInvestments, insightDepth, aiEnabled, detailedInvestments, getCat, getAcc, saveCategories, saveAccounts, saveTheme, saveIncludeInvestments, saveEnableInvestments, saveInsightDepth, saveAiEnabled }}>
       {children}
     </SettingsContext.Provider>
   );
