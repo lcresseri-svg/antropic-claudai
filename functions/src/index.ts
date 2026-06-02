@@ -122,48 +122,62 @@ export const onUserDeleted = onDocumentDeleted(
 // ─────────────────────────────────────────────────────────────────────────────
 
 export const generateDigest = onCall(
-  // 512MiB + 120s: the @google/genai SDK is heavy; 256MiB cold-starts could OOM
-  // (process killed → client sees a generic "internal" error, uncatchable here).
-  { region: 'europe-west1', cors: true, memory: '512MiB', timeoutSeconds: 120 },
+  { region: 'europe-west1', cors: true },
   async (req) => {
-    const { income, expenses, investments, saved, topInsights } = req.data as {
-      income: number;
-      expenses: number;
-      investments: number;
-      saved: number;
-      topInsights: string[];
-    };
-
+    // Entire body wrapped: any throw becomes a reported DEBUG line, never an
+    // uncatchable "internal". We call the Gemini REST API directly with the
+    // built-in fetch (Node 20) instead of the heavy @google/genai SDK, which
+    // was crashing the instance on cold start. The new AQ.* key format works on
+    // the native endpoint as long as the key is sent ONLY via header (sending it
+    // both as ?key= and header triggers "multiple authentication credentials").
     const apiKey = process.env.GEMINI_API_KEY;
-
-    const prompt =
-      `Sei l'assistente finanziario dell'app Sunny. ` +
-      `Scrivi esattamente 2-3 frasi in italiano sintetico e diretto che riassumono ` +
-      `la situazione finanziaria di questo mese. ` +
-      `Dati: entrate ${income}€, uscite ${expenses}€, investito ${investments}€, risparmio ${saved}€. ` +
-      `Insight principali: ${topInsights.slice(0, 5).join('; ')}. ` +
-      `Non usare markdown. Solo testo piano, frasi brevi, tono positivo e concreto.`;
-
-    // TEMP DIAGNOSTIC: surface real errors to the client instead of falling back.
     try {
+      const { income, expenses, investments, saved, topInsights } = (req.data ?? {}) as {
+        income: number;
+        expenses: number;
+        investments: number;
+        saved: number;
+        topInsights: string[];
+      };
+
       if (!apiKey) return { sentences: [`DEBUG: GEMINI_API_KEY assente nell'ambiente`] };
-      // New unified Google Gen AI SDK (@google/genai) — supports the new AQ.* key
-      // format that the deprecated @google/generative-ai SDK rejected. Imported
-      // lazily so a load-time failure is caught and surfaced, not fatal "internal".
-      const { GoogleGenAI } = await import('@google/genai');
-      const ai = new GoogleGenAI({ apiKey });
-      const result = await ai.models.generateContent({
-        model: 'gemini-2.0-flash',
-        contents: prompt,
-      });
-      const text = (result.text ?? '').trim();
+
+      const prompt =
+        `Sei l'assistente finanziario dell'app Sunny. ` +
+        `Scrivi esattamente 2-3 frasi in italiano sintetico e diretto che riassumono ` +
+        `la situazione finanziaria di questo mese. ` +
+        `Dati: entrate ${income}€, uscite ${expenses}€, investito ${investments}€, risparmio ${saved}€. ` +
+        `Insight principali: ${(topInsights ?? []).slice(0, 5).join('; ')}. ` +
+        `Non usare markdown. Solo testo piano, frasi brevi, tono positivo e concreto.`;
+
+      const resp = await fetch(
+        'https://generativelanguage.googleapis.com/v1beta/models/gemini-2.0-flash:generateContent',
+        {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json', 'x-goog-api-key': apiKey },
+          body: JSON.stringify({ contents: [{ parts: [{ text: prompt }] }] }),
+        },
+      );
+
+      if (!resp.ok) {
+        const body = await resp.text();
+        console.error('Gemini REST non-2xx:', resp.status, body);
+        return { sentences: [`DEBUG http=${resp.status} keyLen=${apiKey.length}`, `body=${body.slice(0, 200)}`] };
+      }
+
+      const data = (await resp.json()) as {
+        candidates?: { content?: { parts?: { text?: string }[] } }[];
+      };
+      const text = (data?.candidates?.[0]?.content?.parts?.[0]?.text ?? '').trim();
+      if (!text) return { sentences: [`DEBUG: risposta vuota`, `raw=${JSON.stringify(data).slice(0, 180)}`] };
+
       const sentences = text.split(/(?<=[.!?])\s+/).filter(Boolean).slice(0, 3);
       return { sentences };
     } catch (err) {
       const name = err instanceof Error ? err.name : 'Unknown';
       const msg = err instanceof Error ? err.message : String(err);
-      console.error('Gemini generateContent failed:', err);
-      return { sentences: [`DEBUG keyLen=${apiKey?.length ?? 0} ${name}`, `err=${msg.slice(0, 220)}`] };
+      console.error('Gemini REST failed:', err);
+      return { sentences: [`DEBUG keyLen=${apiKey?.length ?? 0} ${name}`, `err=${msg.slice(0, 200)}`] };
     }
   }
 );
