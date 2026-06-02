@@ -16,6 +16,10 @@ export function formatDate(dateStr: string): string {
   return new Intl.DateTimeFormat('it-IT', { day: 'numeric', month: 'short' }).format(new Date(dateStr));
 }
 
+export function formatDateFull(dateStr: string): string {
+  return new Intl.DateTimeFormat('it-IT', { day: 'numeric', month: 'short', year: 'numeric' }).format(new Date(dateStr));
+}
+
 export function formatMonthShort(key: string): string {
   return new Intl.DateTimeFormat('it-IT', { month: 'short' }).format(new Date(key + '-01'));
 }

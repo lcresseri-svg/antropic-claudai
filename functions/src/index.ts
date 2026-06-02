@@ -2,7 +2,6 @@ import * as admin from 'firebase-admin';
 import { onSchedule } from 'firebase-functions/v2/scheduler';
 import { onDocumentDeleted } from 'firebase-functions/v2/firestore';
 import { onCall } from 'firebase-functions/v2/https';
-import { GoogleGenAI } from '@google/genai';
 
 admin.initializeApp();
 const db = admin.firestore();
@@ -123,7 +122,9 @@ export const onUserDeleted = onDocumentDeleted(
 // ─────────────────────────────────────────────────────────────────────────────
 
 export const generateDigest = onCall(
-  { region: 'europe-west1', cors: true },
+  // 512MiB + 120s: the @google/genai SDK is heavy; 256MiB cold-starts could OOM
+  // (process killed → client sees a generic "internal" error, uncatchable here).
+  { region: 'europe-west1', cors: true, memory: '512MiB', timeoutSeconds: 120 },
   async (req) => {
     const { income, expenses, investments, saved, topInsights } = req.data as {
       income: number;
@@ -147,7 +148,9 @@ export const generateDigest = onCall(
     try {
       if (!apiKey) return { sentences: [`DEBUG: GEMINI_API_KEY assente nell'ambiente`] };
       // New unified Google Gen AI SDK (@google/genai) — supports the new AQ.* key
-      // format that the deprecated @google/generative-ai SDK rejected.
+      // format that the deprecated @google/generative-ai SDK rejected. Imported
+      // lazily so a load-time failure is caught and surfaced, not fatal "internal".
+      const { GoogleGenAI } = await import('@google/genai');
       const ai = new GoogleGenAI({ apiKey });
       const result = await ai.models.generateContent({
         model: 'gemini-2.0-flash',
@@ -157,9 +160,10 @@ export const generateDigest = onCall(
       const sentences = text.split(/(?<=[.!?])\s+/).filter(Boolean).slice(0, 3);
       return { sentences };
     } catch (err) {
+      const name = err instanceof Error ? err.name : 'Unknown';
       const msg = err instanceof Error ? err.message : String(err);
       console.error('Gemini generateContent failed:', err);
-      return { sentences: [`DEBUG keyLen=${apiKey?.length ?? 0}`, `err=${msg.slice(0, 220)}`] };
+      return { sentences: [`DEBUG keyLen=${apiKey?.length ?? 0} ${name}`, `err=${msg.slice(0, 220)}`] };
     }
   }
 );

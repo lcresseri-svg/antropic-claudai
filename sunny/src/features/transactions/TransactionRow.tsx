@@ -1,5 +1,5 @@
 import { Transaction, TYPE_META, ownShare } from '../../types';
-import { formatCurrency, formatDate } from '../../utils';
+import { formatCurrency, formatDateFull } from '../../utils';
 import { useSettings } from '../../shared/providers/settings';
 
 interface Props {
@@ -49,7 +49,7 @@ export function TransactionRow({ tx, selectable, selected, onToggle, onClick }: 
       <div className="flex-1 min-w-0">
         <p className="text-[15px] font-medium text-primary truncate">{tx.description}</p>
         <p className="text-xs text-secondary mt-0.5 truncate">
-          {formatDate(tx.date)} · {acc.label}
+          {formatDateFull(tx.date)} · {acc.label}
           {isTransfer && tx.toAccount && ` → ${getAcc(tx.toAccount).label}`}
           {isProjected ? ' · 🗓️' : tx.recurring && ' · 🔁'}
         </p>
