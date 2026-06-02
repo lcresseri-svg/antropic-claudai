@@ -57,7 +57,13 @@ export function SettingsProvider({ user, children }: { user: User | null; childr
     const ref = doc(db, 'users', user.uid, 'meta', 'settings');
     return onSnapshot(ref, snap => {
       if (!snap.exists()) {
-        setDoc(ref, { categories: DEFAULT_CATEGORIES, accounts: DEFAULT_ACCOUNTS, theme: 'dark' });
+        // CRITICAL: only seed defaults when the SERVER confirms the document is
+        // missing. A cold/empty local cache also reports !exists() (fromCache),
+        // and writing here would clobber a real user's settings. Also use merge
+        // so we never blow away fields we didn't include.
+        if (!snap.metadata.fromCache) {
+          setDoc(ref, { categories: DEFAULT_CATEGORIES, accounts: DEFAULT_ACCOUNTS, theme: 'dark' }, MERGE);
+        }
         return;
       }
       const d = snap.data();
