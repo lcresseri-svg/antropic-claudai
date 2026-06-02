@@ -1,0 +1,107 @@
+import { CategoryDef } from '../../types';
+import { formatCurrency } from '../../utils';
+import { ProgressBar } from '../../shared/components';
+import { CategoryStatus } from './budgetUtils';
+
+type ListMode = 'expense' | 'income' | 'investment';
+
+interface Props {
+  categories: CategoryDef[];
+  spend: Record<string, number>;
+  budgets: Record<string, number>;
+  onEditCategory: (catId: string) => void;
+  title?: string;
+  mode?: ListMode;
+}
+
+function statusFor(actual: number, planned: number, mode: ListMode): CategoryStatus {
+  if (planned <= 0) return 'normal';
+  const pct = actual / planned;
+  if (mode === 'expense') {
+    if (pct > 1) return 'over';
+    if (pct >= 0.8) return 'warning';
+    return 'normal';
+  }
+  // income / investment: higher = better
+  if (pct >= 1) return 'normal';
+  if (pct >= 0.5) return 'warning';
+  return 'over';
+}
+
+function barColorFor(status: CategoryStatus, catColor: string, mode: ListMode): string {
+  if (mode === 'expense') {
+    if (status === 'over') return 'rgb(var(--c-red))';
+    if (status === 'warning') return 'rgb(var(--c-gold))';
+    return catColor;
+  }
+  if (status === 'normal') return 'rgb(var(--c-green))';
+  return 'rgb(var(--c-gold))';
+}
+
+const EXPENSE_LABEL: Record<CategoryStatus, string> = {
+  normal: '', warning: 'Vicino al limite', over: 'Sopra il previsto',
+};
+const INCOME_LABEL: Record<CategoryStatus, string> = {
+  normal: 'Raggiunto ✓', warning: 'In corso', over: 'Sotto la previsione',
+};
+
+export function CategoryBudgetList({
+  categories, spend, budgets, onEditCategory,
+  title, mode = 'expense',
+}: Props) {
+  const defaultTitle =
+    mode === 'income' ? 'Entrate previste' :
+    mode === 'investment' ? 'Investimenti pianificati' :
+    'Budget per categoria';
+
+  const rows = categories
+    .map(c => ({ cat: c, actual: spend[c.id] ?? 0, planned: budgets[c.id] ?? 0 }))
+    .filter(r => r.planned > 0 || r.actual > 0)
+    .sort((a, b) => b.actual - a.actual);
+
+  if (rows.length === 0) return null;
+
+  const statusLabel = mode === 'expense' ? EXPENSE_LABEL : INCOME_LABEL;
+  const emptyLabel = mode === 'expense' ? 'Nessun budget impostato' : 'Nessuna previsione impostata';
+
+  return (
+    <div className="glass-card rounded-2xl p-5">
+      <p className="label-caps text-secondary mb-4">{title ?? defaultTitle}</p>
+      <ul className="space-y-4">
+        {rows.map(({ cat, actual, planned }) => {
+          const status = statusFor(actual, planned, mode);
+          const pct = planned > 0 ? Math.round((actual / planned) * 100) : 0;
+          const color = barColorFor(status, cat.color, mode);
+          return (
+            <li key={cat.id}>
+              <button onClick={() => onEditCategory(cat.id)} className="w-full text-left">
+                <div className="flex items-center gap-2.5 mb-1.5">
+                  <span className="w-7 h-7 rounded-xl flex items-center justify-center text-sm flex-shrink-0"
+                    style={{ backgroundColor: cat.color + '18' }}>{cat.icon}</span>
+                  <span className="text-[13px] text-primary flex-1 truncate">{cat.label}</span>
+                  <span className="text-[13px] font-semibold balance-num text-primary">
+                    {formatCurrency(actual)}
+                    {planned > 0 && <span className="text-secondary font-normal"> / {formatCurrency(planned)}</span>}
+                  </span>
+                </div>
+                <ProgressBar value={actual} max={planned > 0 ? planned : actual} color={color} />
+                <div className="flex items-center justify-between mt-2">
+                  <span className={`text-[11px] ${
+                    mode === 'expense'
+                      ? (status === 'over' ? 'text-red' : status === 'warning' ? 'text-gold' : 'text-secondary')
+                      : (status === 'normal' ? 'text-green' : 'text-gold')
+                  }`}>
+                    {planned > 0 ? (statusLabel[status] || `${pct}% del previsto`) : emptyLabel}
+                  </span>
+                  {planned > 0 && (
+                    <span className="text-[11px] text-secondary balance-num">{pct}%</span>
+                  )}
+                </div>
+              </button>
+            </li>
+          );
+        })}
+      </ul>
+    </div>
+  );
+}
