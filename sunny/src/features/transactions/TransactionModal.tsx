@@ -352,11 +352,9 @@ export function TransactionModal({ open, editing, groupTransfers = [], onClose, 
                 </div>
                 <input type="date" value={recurringUntil} onChange={e => setRecurringUntil(e.target.value)}
                   className="block w-full min-w-0 box-border appearance-none bg-elevated rounded-xl px-3 py-3.5 text-primary text-sm outline-none focus:ring-1 focus:ring-gold/40" />
-                {recurringUntil && (
-                  <p className="text-[11px] text-secondary mt-1.5 px-1">
-                    Si ripete fino al {formatDate(recurringUntil)}, poi smette
-                  </p>
-                )}
+                <p className={`text-[11px] mt-1.5 px-1 ${recurringUntil ? 'text-secondary' : 'invisible'}`}>
+                  {recurringUntil ? `Si ripete fino al ${formatDate(recurringUntil)}, poi smette` : 'placeholder'}
+                </p>
               </div>
             </div>
           </ToggleBlock>

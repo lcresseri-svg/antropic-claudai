@@ -314,14 +314,15 @@ export function buildInsights(input: InsightInput): Insight[] {
     }, 'minimal');
   }
 
-  // ── 0b. FORECAST — Monthly recurring summary ─────────────────────────────
+  // ── 0b. FORECAST — Monthly recurring summary (expenses + investments) ──────
   {
     const monthStart = `${ym(now)}-01`;
     const lastDay = new Date(now.getFullYear(), now.getMonth() + 1, 0).getDate();
     const monthEnd = `${ym(now)}-${String(lastDay).padStart(2, '0')}`;
 
     interface REntry { desc: string; amount: number; count: number }
-    const thisMonth: REntry[] = [];
+    const thisMonthExp: REntry[] = [];
+    const thisMonthInv: REntry[] = [];
 
     for (const [, t] of seriesMap) {
       const rule = t.recurring!;
@@ -340,26 +341,49 @@ export function buildInsights(input: InsightInput): Insight[] {
         if (!rule.until || cur <= rule.until) count++;
         cur = addPeriod(cur, rule.freq);
       }
-      if (count > 0) thisMonth.push({ desc: t.description, amount: t.amount, count });
+      if (count > 0) {
+        const entry: REntry = { desc: t.description, amount: t.amount, count };
+        if (t.type === 'investment') thisMonthInv.push(entry);
+        else if (t.type === 'expense') thisMonthExp.push(entry);
+      }
     }
 
-    if (thisMonth.length > 0) {
-      const total = thisMonth.reduce((s, e) => s + e.amount * e.count, 0);
-      const top3 = thisMonth.slice(0, 3)
-        .map(e => `${e.desc}${e.count > 1 ? ` ×${e.count}` : ''}`)
-        .join(' · ');
+    if (thisMonthExp.length > 0) {
+      const total = thisMonthExp.reduce((s, e) => s + e.amount * e.count, 0);
+      const top3 = thisMonthExp.slice(0, 3).map(e => `${e.desc}${e.count > 1 ? ` ×${e.count}` : ''}`).join(' · ');
       push({
         icon: '🗓️', category: 'forecast',
-        title: `${thisMonth.length} ricorrenti questo mese · ${formatCurrency(total)}`,
-        detail: thisMonth.length > 3 ? `${top3} · +${thisMonth.length - 3} altre` : top3,
+        title: `${thisMonthExp.length} spese ricorrenti · ${formatCurrency(total)}`,
+        detail: thisMonthExp.length > 3 ? `${top3} · +${thisMonthExp.length - 3} altre` : top3,
         accent: ACCENT.gold,
         explain: {
-          what: 'Tutti i pagamenti ricorrenti attesi nel mese corrente, basati sulle scadenze calcolate.',
-          how: 'Per ogni transazione taggata "Ricorrente" avanzo la data dell\'ultima occorrenza della frequenza impostata finché non rientra in questo mese, poi conto quante ne cadono entro fine mese.',
-          basis: `${thisMonth.length} serie ricorrenti attive questo mese.`,
+          what: 'Tutte le spese ricorrenti attese nel mese corrente, basate sulle scadenze calcolate.',
+          how: 'Per ogni spesa taggata "Ricorrente" avanzo la data dell\'ultima occorrenza della frequenza impostata finché non rientra in questo mese, poi conto quante ne cadono entro fine mese.',
+          basis: `${thisMonthExp.length} spese ricorrenti attive questo mese.`,
           chart: {
-            labels: thisMonth.slice(0, 6).map(e => (e.desc.length > 12 ? e.desc.slice(0, 11) + '…' : e.desc)),
-            values: thisMonth.slice(0, 6).map(e => Math.round(e.amount * e.count)),
+            labels: thisMonthExp.slice(0, 6).map(e => (e.desc.length > 12 ? e.desc.slice(0, 11) + '…' : e.desc)),
+            values: thisMonthExp.slice(0, 6).map(e => Math.round(e.amount * e.count)),
+            format: 'currency',
+          },
+        },
+      }, 'minimal');
+    }
+
+    if (thisMonthInv.length > 0) {
+      const total = thisMonthInv.reduce((s, e) => s + e.amount * e.count, 0);
+      const top3 = thisMonthInv.slice(0, 3).map(e => `${e.desc}${e.count > 1 ? ` ×${e.count}` : ''}`).join(' · ');
+      push({
+        icon: '📈', category: 'forecast',
+        title: `${thisMonthInv.length} investimenti ricorrenti · ${formatCurrency(total)}`,
+        detail: thisMonthInv.length > 3 ? `${top3} · +${thisMonthInv.length - 3} altri` : top3,
+        accent: ACCENT.gold,
+        explain: {
+          what: 'Tutti gli investimenti ricorrenti attesi nel mese corrente, basati sulle scadenze calcolate.',
+          how: 'Per ogni investimento taggato "Ricorrente" avanzo la data dell\'ultima occorrenza della frequenza impostata finché non rientra in questo mese, poi conto quante ne cadono entro fine mese.',
+          basis: `${thisMonthInv.length} investimenti ricorrenti attivi questo mese.`,
+          chart: {
+            labels: thisMonthInv.slice(0, 6).map(e => (e.desc.length > 12 ? e.desc.slice(0, 11) + '…' : e.desc)),
+            values: thisMonthInv.slice(0, 6).map(e => Math.round(e.amount * e.count)),
             format: 'currency',
           },
         },

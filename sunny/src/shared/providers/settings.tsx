@@ -37,7 +37,7 @@ export function SettingsProvider({ user, children }: { user: User | null; childr
   const [theme, setTheme] = useState<Theme>('dark');
   const [includeInvestments, setIncludeInvestments] = useState(true);
   const [enableInvestments, setEnableInvestments] = useState(true);
-  const [insightDepth, setInsightDepth] = useState<InsightDepth>('advanced');
+  const [insightDepth, setInsightDepth] = useState<InsightDepth>('medium');
 
   // Apply theme class to <html> immediately when state changes
   useEffect(() => {
@@ -51,7 +51,7 @@ export function SettingsProvider({ user, children }: { user: User | null; childr
       setTheme('dark');
       setIncludeInvestments(true);
       setEnableInvestments(true);
-      setInsightDepth('advanced');
+      setInsightDepth('medium');
       return;
     }
     const ref = doc(db, 'users', user.uid, 'meta', 'settings');
@@ -66,7 +66,7 @@ export function SettingsProvider({ user, children }: { user: User | null; childr
       setTheme((d.theme as Theme) ?? 'dark');
       setIncludeInvestments(d.includeInvestments ?? true);
       setEnableInvestments(d.enableInvestments ?? true);
-      setInsightDepth((d.insightDepth as InsightDepth) ?? 'advanced');
+      setInsightDepth((d.insightDepth as InsightDepth) ?? 'medium');
     });
   }, [user]);
 
