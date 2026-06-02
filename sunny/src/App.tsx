@@ -67,7 +67,7 @@ function Main({ user, onLogOut, onDeleteAccount }: {
   const openAdd  = () => { setEditing(null); setModalOpen(true); };
   const openEdit = (t: Transaction) => { setEditing(t); setModalOpen(true); };
 
-  const groupTransfers = (editing?.type === 'expense' && editing.groupId)
+  const groupTransfers = (editing?.groupId && (editing.type === 'expense' || editing.type === 'transfer'))
     ? tx.transactions.filter(t => t.groupId === editing.groupId && t.id !== editing.id)
     : [];
 

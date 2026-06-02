@@ -32,6 +32,7 @@ export function TransactionModal({ open, editing, groupTransfers = [], onClose, 
   const [isRecurring, setIsRecurring] = useState(false);
   const [recurringFreq, setRecurringFreq] = useState<RecurrenceRule['freq']>('monthly');
   const [recurringUntil, setRecurringUntil] = useState('');
+  const [fee, setFee] = useState('');
 
   const [amountError, setAmountError] = useState(false);
   const [categoryTouched, setCategoryTouched] = useState(false);
@@ -56,12 +57,16 @@ export function TransactionModal({ open, editing, groupTransfers = [], onClose, 
       setIsRecurring(!!editing.recurring);
       setRecurringFreq(editing.recurring?.freq ?? 'monthly');
       setRecurringUntil(editing.recurring?.until ?? '');
+      setFee(editing.type === 'transfer'
+        ? String(groupTransfers.find(t => t.type === 'expense')?.amount ?? '')
+        : '');
     } else {
       setType('expense'); setDescription(''); setAmount(''); setDate(today());
       setCategory(''); setAccount(accounts[0]?.id ?? '');
       setToAccount(accounts[1]?.id ?? ''); setNotes('');
       setIsShared(false); setReimbursements([]);
       setIsRecurring(false); setRecurringFreq('monthly'); setRecurringUntil('');
+      setFee('');
     }
     setAmountError(false);
     setCategoryTouched(!!editing);
@@ -142,14 +147,26 @@ export function TransactionModal({ open, editing, groupTransfers = [], onClose, 
       return;
     }
 
-    onSave(deleteIds, [{
+    const feeVal = type === 'transfer' ? parseFloat(fee.replace(',', '.')) : 0;
+    const hasFee = feeVal > 0;
+    const groupId = hasFee ? (editing?.groupId ?? crypto.randomUUID()) : undefined;
+
+    const create: Omit<Transaction, 'id'>[] = [{
       type, description: desc, amount: value, date,
       category: type === 'transfer' ? 'trasferimento' : category,
       account,
       toAccount: type === 'transfer' ? toAccount : undefined,
       notes: notes.trim() || undefined,
       recurring,
-    }]);
+      ...(groupId ? { groupId } : {}),
+    }];
+    if (hasFee) {
+      create.push({
+        type: 'expense', description: `Commissione · ${desc}`,
+        amount: feeVal, date, category: 'altro', account, groupId: groupId!,
+      });
+    }
+    onSave(deleteIds, create);
     onClose();
   };
 
@@ -249,6 +266,21 @@ export function TransactionModal({ open, editing, groupTransfers = [], onClose, 
               </Field>
               <DateField date={date} td={td} yd={yd} setDate={setDate} />
             </div>
+          )}
+
+          {/* Commission — transfers only */}
+          {type === 'transfer' && (
+            <Field label="Commissione (opzionale)">
+              <div className="relative">
+                <span className="absolute left-4 top-1/2 -translate-y-1/2 text-secondary text-sm">€</span>
+                <input type="text" inputMode="decimal" placeholder="0,00" value={fee}
+                  onChange={e => setFee(e.target.value.replace(/[^\d.,]/g, ''))}
+                  className="w-full bg-elevated rounded-2xl pl-8 pr-4 py-3 text-primary placeholder:text-secondary/50 outline-none focus:ring-1 focus:ring-gold/40 balance-num" />
+              </div>
+              <p className={`text-[11px] mt-1.5 px-1 ${parseFloat(fee.replace(',', '.')) > 0 ? 'text-secondary' : 'invisible'}`}>
+                Registrata come spesa separata in "Altro"
+              </p>
+            </Field>
           )}
 
           {/* Vedi altro — opzioni avanzate */}
