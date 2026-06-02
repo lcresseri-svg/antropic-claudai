@@ -42,4 +42,4 @@ jobs:
           GEMINI_API_KEY: ${{ secrets.GEMINI_API_KEY }}
 
       - name: Deploy functions
-        run: npx -y firebase-tools@latest deploy --only functions --project sunny-a2a98 --non-interactive --force
+        run: npx -y firebase-tools@latest deploy --only functions:generateDigest --project sunny-a2a98 --non-interactive --force
