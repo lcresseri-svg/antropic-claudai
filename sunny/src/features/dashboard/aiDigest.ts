@@ -16,8 +16,10 @@ export async function fetchDigest(input: DigestInput): Promise<string[]> {
     const sentences = res.data.sentences;
     if (Array.isArray(sentences) && sentences.length > 0) return sentences;
     return buildRuleBasedDigest(input);
-  } catch {
-    return buildRuleBasedDigest(input);
+  } catch (err) {
+    const msg = err instanceof Error ? err.message : String(err);
+    // TEMP: surface client-side call error so it's visible in the digest card
+    return [`⚠️ DEBUG client: ${msg.slice(0, 200)}`];
   }
 }
 

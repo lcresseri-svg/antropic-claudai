@@ -147,7 +147,7 @@ export const generateDigest = onCall(
     try {
       if (!apiKey) return { sentences: [`DEBUG: GEMINI_API_KEY assente nell'ambiente`] };
       const genAI = new GoogleGenerativeAI(apiKey);
-      const model = genAI.getGenerativeModel({ model: 'gemini-flash-latest' });
+      const model = genAI.getGenerativeModel({ model: 'gemini-2.0-flash' });
       const result = await model.generateContent(prompt);
       const text = result.response.text().trim();
       const sentences = text.split(/(?<=[.!?])\s+/).filter(Boolean).slice(0, 3);
