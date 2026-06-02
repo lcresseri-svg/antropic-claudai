@@ -2,7 +2,7 @@ import * as admin from 'firebase-admin';
 import { onSchedule } from 'firebase-functions/v2/scheduler';
 import { onDocumentDeleted } from 'firebase-functions/v2/firestore';
 import { onCall } from 'firebase-functions/v2/https';
-import { GoogleGenerativeAI } from '@google/generative-ai';
+import { GoogleGenAI } from '@google/genai';
 
 admin.initializeApp();
 const db = admin.firestore();
@@ -146,10 +146,14 @@ export const generateDigest = onCall(
     // TEMP DIAGNOSTIC: surface real errors to the client instead of falling back.
     try {
       if (!apiKey) return { sentences: [`DEBUG: GEMINI_API_KEY assente nell'ambiente`] };
-      const genAI = new GoogleGenerativeAI(apiKey);
-      const model = genAI.getGenerativeModel({ model: 'gemini-2.0-flash' });
-      const result = await model.generateContent(prompt);
-      const text = result.response.text().trim();
+      // New unified Google Gen AI SDK (@google/genai) — supports the new AQ.* key
+      // format that the deprecated @google/generative-ai SDK rejected.
+      const ai = new GoogleGenAI({ apiKey });
+      const result = await ai.models.generateContent({
+        model: 'gemini-2.0-flash',
+        contents: prompt,
+      });
+      const text = (result.text ?? '').trim();
       const sentences = text.split(/(?<=[.!?])\s+/).filter(Boolean).slice(0, 3);
       return { sentences };
     } catch (err) {
