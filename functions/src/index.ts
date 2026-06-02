@@ -138,12 +138,14 @@ export const generateDigest = onRequest(
       if (!apiKey) { res.json({ sentences: [`DEBUG: GEMINI_API_KEY assente nell'ambiente`] }); return; }
 
       const prompt =
-        `Sei l'assistente finanziario dell'app Sunny. ` +
-        `Scrivi esattamente 2-3 frasi in italiano sintetico e diretto che riassumono ` +
-        `la situazione finanziaria di questo mese. ` +
-        `Dati: entrate ${income}€, uscite ${expenses}€, investito ${investments}€, risparmio ${saved}€. ` +
-        `Insight principali: ${(topInsights ?? []).slice(0, 5).join('; ')}. ` +
-        `Non usare markdown. Solo testo piano, frasi brevi, tono positivo e concreto.`;
+       `Sei l'assistente finanziario dell'app Sunny. ` +
+      `Scrivi esattamente 2-3 frasi in italiano sintetico e diretto che riassumono la situazione finanziaria del mese. ` +
+      `Il mese potrebbe essere ancora in corso: non dire che l'utente è "in perdita", "in negativo" o "sotto" solo perché alcune entrate previste non sono ancora arrivate. ` +
+      `Interpreta entrate, uscite e risparmio come dati parziali se il mese non è finito. ` +
+      `Se le uscite sono alte rispetto alle entrate registrate, usa un tono prudente e parla di ritmo di spesa da monitorare, non di perdita definitiva. ` +
+      `Dati attuali: entrate registrate ${income}€, uscite registrate ${expenses}€, investito ${investments}€, saldo/risparmio registrato ${saved}€. ` +
+      `Insight principali: ${(topInsights ?? []).slice(0, 5).join('; ')}. ` +
+      `Non usare markdown. Solo testo piano, frasi brevi, tono positivo e concreto.`;
 
       const gemResp = await fetch(
         'https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash:generateContent',
