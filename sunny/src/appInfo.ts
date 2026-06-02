@@ -1,4 +1,4 @@
-export const APP_VERSION = '1.5.0';
+export const APP_VERSION = '1.6.1';
 
 /**
  * Release channel. While in 'beta' the app is still under active development
@@ -15,6 +15,26 @@ export interface VersionEntry {
 
 /** Registro versioni mostrato in Impostazioni → Registro versioni. */
 export const VERSIONS: VersionEntry[] = [
+  {
+    version: '1.6.1', date: '2026-06-02', title: 'Rifiniture',
+    changes: [
+      'Riepilogo AI: modello Gemini aggiornato e più affidabile.',
+      'Riassunto di riserva corretto quando le entrate del mese sono quasi nulle.',
+      'Favicon e logo trasparente sistemati.',
+      'Form transazione: layout migliorato su desktop.',
+      'Statistica "Risparmio": sottotitolo più leggibile.',
+    ],
+  },
+  {
+    version: '1.6.0', date: '2026-06-02', title: 'Riepilogo AI',
+    changes: [
+      'Nuova card "Riepilogo AI" in dashboard: 2-3 frasi sulla situazione del mese generate da Google Gemini, lato server (nessuna chiave da configurare). Se l’AI non risponde, mostra un riassunto locale.',
+      'Livello di analisi (Minimal / Media / Smanettone) ora applicato ovunque: "Insight → Vedi tutti" non mostra più sempre tutto.',
+      'Commissioni nei movimenti: campo opzionale, registrata come spesa separata collegata.',
+      '9 nuovi insight: confronti trimestrali, da inizio anno, previsione stagionale, peso dei costi fissi, streak di risparmio, abitudini per giorno della settimana.',
+      'Previsione ricorrenti divisa in due card: spese ricorrenti e investimenti ricorrenti.',
+    ],
+  },
   {
     version: '1.5.0', date: '2026-06-01', title: 'Investimenti e chiarezza',
     changes: [

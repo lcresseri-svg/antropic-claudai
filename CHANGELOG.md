@@ -17,6 +17,12 @@ git.
 
 ---
 
+## 2026-06-02
+
+- **[Claude]** **v1.6.0 — Riepilogo AI**: nuova card "Riepilogo AI" nella dashboard che genera 2-3 frasi sulla situazione finanziaria del mese tramite **Google Gemini**. Architettura server-side: Cloud Function callable `generateDigest` (`functions/src/index.ts`) con la chiave Gemini passata come variabile d'ambiente dal GitHub Secret `GEMINI_API_KEY` (mai nel codice). Client (`aiDigest.ts` + `AIDigestCard.tsx`) con **fallback rule-based** se la function non risponde. Nuovo workflow CI dedicato `deploy-functions.yml`. — `(pending)`
+- **[Claude]** Fix **livello di analisi**: `InsightsScreen` chiamava `buildInsights()` senza passare `depth`, quindi "Vedi tutti" mostrava sempre tutti gli insight ignorando il profilo scelto (Minimal/Media/Smanettone). Ora il livello è applicato anche lì. `buildInsights()` calcolato una sola volta in `Dashboard` e passato a `InsightTicker` via prop `prebuilt`. — `(pending)`
+- **[Claude]** **v1.6.1 — Rifiniture**: modello Gemini aggiornato a `gemini-flash-latest` (`gemini-1.5-flash` era dismesso e faceva sempre scattare il fallback); errori Gemini loggati server-side; riassunto di riserva non mostra più percentuali assurde quando le entrate sono ≈0. — `(pending)`
+
 ## 2026-06-01
 
 - **[Claude]** Impostazioni → Generali: nuovo toggle **"Gestione investimenti"** che nasconde l'intera funzionalità (schermata `/investments`, card dashboard Investito + InvestmentSummaryCard, barra "Investito" nella FlowBar, sezione Budget investimenti, tipo "Investimento" nel form transazioni). Il toggle "Includi investito nel patrimonio" scompare automaticamente quando la gestione investimenti è disattivata. — `(pending)`
