@@ -104,7 +104,7 @@ export const onUserDeleted = onDocumentDeleted(
 // ─────────────────────────────────────────────────────────────────────────────
 
 export const generateDigest = onCall(
-  { secrets: ['GEMINI_API_KEY'], region: 'europe-west1', cors: true },
+  { region: 'europe-west1', cors: true },
   async (req) => {
     const { income, expenses, investments, saved, topInsights } = req.data as {
       income: number;

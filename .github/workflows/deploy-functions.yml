@@ -34,10 +34,11 @@ jobs:
         with:
           credentials_json: ${{ secrets.FIREBASE_SERVICE_ACCOUNT }}
 
-      # Pushes the Gemini key from GitHub Secrets into Google Secret Manager.
-      # --data-file=- reads the value from stdin so it never appears in logs.
-      - name: Sync Gemini API key to Secret Manager
-        run: printf '%s' "$GEMINI_API_KEY" | npx -y firebase-tools@latest functions:secrets:set GEMINI_API_KEY --data-file=- --force --project sunny-a2a98
+      # Writes the Gemini key from GitHub Secrets into functions/.env so the
+      # deploy bakes it as a runtime environment variable. The file is created
+      # fresh in CI, is gitignored, and never committed.
+      - name: Write Gemini API key to .env
+        run: printf 'GEMINI_API_KEY=%s\n' "$GEMINI_API_KEY" > functions/.env
         env:
           GEMINI_API_KEY: ${{ secrets.GEMINI_API_KEY }}
 
