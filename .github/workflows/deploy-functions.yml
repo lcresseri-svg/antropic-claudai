@@ -1,0 +1,45 @@
+name: Deploy Sunny Cloud Functions
+
+on:
+  push:
+    branches: [main, claude/sunny-finance-mvp-HRtWy]
+    paths:
+      - 'functions/**'
+      - 'firebase.json'
+      - '.github/workflows/deploy-functions.yml'
+  workflow_dispatch:
+
+jobs:
+  deploy_functions:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 20
+
+      - name: Install
+        run: npm install
+        working-directory: functions
+
+      - name: Build
+        run: npm run build
+        working-directory: functions
+
+      # Authenticates the Firebase CLI: writes the service-account key and sets
+      # GOOGLE_APPLICATION_CREDENTIALS, which firebase-tools picks up automatically.
+      - id: auth
+        uses: google-github-actions/auth@v2
+        with:
+          credentials_json: ${{ secrets.FIREBASE_SERVICE_ACCOUNT }}
+
+      # Pushes the Gemini key from GitHub Secrets into Google Secret Manager.
+      # --data-file=- reads the value from stdin so it never appears in logs.
+      - name: Sync Gemini API key to Secret Manager
+        run: printf '%s' "$GEMINI_API_KEY" | npx -y firebase-tools@latest functions:secrets:set GEMINI_API_KEY --data-file=- --force --project sunny-a2a98
+        env:
+          GEMINI_API_KEY: ${{ secrets.GEMINI_API_KEY }}
+
+      - name: Deploy functions
+        run: npx -y firebase-tools@latest deploy --only functions --project sunny-a2a98 --non-interactive --force
