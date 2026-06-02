@@ -42,5 +42,11 @@ jobs:
         env:
           GEMINI_API_KEY: ${{ secrets.GEMINI_API_KEY }}
 
+      # Delete the old callable function first: Firebase won't let you change
+      # a function from callable (onCall) to HTTPS (onRequest) in-place.
+      # The delete is best-effort (|| true) so it doesn't fail on first deploy.
+      - name: Delete old callable function
+        run: npx -y firebase-tools@latest functions:delete generateDigest --region europe-west1 --project sunny-a2a98 --non-interactive --force || true
+
       - name: Deploy functions
         run: npx -y firebase-tools@latest deploy --only functions:generateDigest --project sunny-a2a98 --non-interactive --force
