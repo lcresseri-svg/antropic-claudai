@@ -6,11 +6,9 @@ import { User } from 'firebase/auth';
 // Detailed investments: fund-type classification (pension / bond / equity),
 // TFR tracking on pension funds, and the "by fund type" allocation donut.
 const DETAILED_INVEST_UIDS: string[] = [
-  // Add your Firebase UID here for the most robust gating, e.g. 'AbC123...'.
+  'qPtCOJGRrwOZ2EfjxMHwW6ZISXX2',
 ];
-const DETAILED_INVEST_EMAILS: string[] = [
-  'l.cresseri@technemetrologia.it',
-];
+const DETAILED_INVEST_EMAILS: string[] = [];
 
 export function canUseDetailedInvestments(user: User | null): boolean {
   if (!user) return false;

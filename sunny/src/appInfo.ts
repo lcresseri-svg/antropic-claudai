@@ -18,6 +18,7 @@ export const VERSIONS: VersionEntry[] = [
   {
     version: '1.7.2', date: '2026-06-02', title: 'Investimenti dettagliati',
     changes: [
+      'Budget ora sincronizzato sul cloud: obiettivi e limiti ti seguono su tutti i dispositivi (prima restavano sul singolo dispositivo).',
       'Categorie di investimento: classificazione per tipo di fondo (Pensionistico, Obbligazionario, Azionario).',
       'Fondi pensionistici: possibilità di indicare quanta parte del capitale è TFR.',
       'Sezione Investimenti: nuovo grafico ad anello "Allocazione per tipo di fondo", con nota sulla quota di TFR.',
