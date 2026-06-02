@@ -3,6 +3,8 @@ import { useNavigate } from 'react-router-dom';
 import { User } from 'firebase/auth';
 import { CategoryDef, AccountDef, Transaction, TransactionType, TYPE_META, TYPE_ORDER } from '../../types';
 import { useSettings } from '../../shared/providers/settings';
+import { canUsePush } from '../../shared/featureFlags';
+import { usePush } from '../../shared/hooks/usePush';
 import { EditDefSheet, DefDraft } from './EditDefSheet';
 import { buildExportPayload, downloadJson, downloadCsv } from './dataExport';
 import { APP_VERSION, APP_CHANNEL, VERSIONS } from '../../appInfo';
@@ -38,6 +40,9 @@ export function SettingsScreen({ user, transactions, onLogOut, onDeleteAll, onDe
   const [sub, setSub] = useState<Sub>('menu');
   const [editing, setEditing] = useState<{ kind: 'category' | 'account'; draft: DefDraft; isNew: boolean; withKind?: boolean } | null>(null);
   const [confirmReset, setConfirmReset] = useState(false);
+  const [pushMsg, setPushMsg] = useState<string | null>(null);
+  const pushAllowed = canUsePush(user);
+  const push = usePush(user);
   const [confirmDeleteAccount, setConfirmDeleteAccount] = useState(false);
   const [deletingAccount, setDeletingAccount] = useState(false);
   const [deleteError, setDeleteError] = useState<string | null>(null);
@@ -234,6 +239,49 @@ export function SettingsScreen({ user, transactions, onLogOut, onDeleteAll, onDe
               on={aiEnabled}
               onToggle={() => saveAiEnabled(!aiEnabled)}
             />
+            {pushAllowed && (
+              <>
+                <ToggleRow
+                  icon="🔔" label="Notifiche push"
+                  sub={
+                    !push.supported ? 'Non supportate su questo dispositivo'
+                    : push.enabled ? 'Attive su questo dispositivo'
+                    : 'Promemoria spese, ricorrenti e riepilogo mensile'
+                  }
+                  on={push.enabled}
+                  onToggle={async () => {
+                    if (push.busy) return;
+                    setPushMsg(null);
+                    if (push.enabled) { await push.disable(); return; }
+                    const res = await push.enable();
+                    if (!res.ok) setPushMsg(pushReason(res.reason));
+                  }}
+                />
+                {pushMsg && <p className="text-xs text-[#E08B8B] px-4 -mt-1 pb-3">{pushMsg}</p>}
+                {push.enabled && (
+                  <>
+                    <ToggleRow
+                      icon="📝" label="Promemoria spese"
+                      sub="A metà giornata e la sera, se non hai ancora registrato nulla"
+                      on={push.reminders.logExpenses}
+                      onToggle={() => push.setReminder('logExpenses', !push.reminders.logExpenses)}
+                    />
+                    <ToggleRow
+                      icon="🔁" label="Voci ricorrenti"
+                      sub="Quando una ricorrenza viene registrata automaticamente"
+                      on={push.reminders.recurring}
+                      onToggle={() => push.setReminder('recurring', !push.reminders.recurring)}
+                    />
+                    <ToggleRow
+                      icon="📊" label="Riepilogo mensile"
+                      sub="A inizio mese, il resoconto del mese precedente"
+                      on={push.reminders.monthly}
+                      onToggle={() => push.setReminder('monthly', !push.reminders.monthly)}
+                    />
+                  </>
+                )}
+              </>
+            )}
             <div className="p-4">
               <div className="flex items-start gap-3.5 mb-3">
                 <span className="text-2xl mt-0.5">🔍</span>
@@ -621,6 +669,16 @@ function ToggleRow({ icon, label, sub, on, onToggle }: {
       </button>
     </div>
   );
+}
+
+function pushReason(reason: string): string {
+  switch (reason) {
+    case 'denied':      return 'Permesso negato. Abilita le notifiche dalle impostazioni del browser.';
+    case 'unsupported': return 'Notifiche non supportate qui. Su iPhone installa prima l\'app sulla schermata Home.';
+    case 'no-vapid':    return 'Configurazione push non ancora pronta. Riprova più tardi.';
+    case 'no-token':    return 'Non è stato possibile registrare il dispositivo. Riprova.';
+    default:            return 'Attivazione non riuscita. Riprova.';
+  }
 }
 
 function ChevronLeft() {

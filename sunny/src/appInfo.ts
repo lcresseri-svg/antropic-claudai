@@ -1,4 +1,4 @@
-export const APP_VERSION = '1.7.4';
+export const APP_VERSION = '1.8.0';
 
 /**
  * Release channel. While in 'beta' the app is still under active development
@@ -15,6 +15,16 @@ export interface VersionEntry {
 
 /** Registro versioni mostrato in Impostazioni → Registro versioni. */
 export const VERSIONS: VersionEntry[] = [
+  {
+    version: '1.8.0', date: '2026-06-02', title: 'Notifiche push',
+    changes: [
+      'Notifiche push (Firebase Cloud Messaging): attivabili dalle impostazioni Generali.',
+      'Promemoria spese a metà giornata e alla sera, saltati automaticamente se hai già registrato qualcosa.',
+      'Avviso quando una voce ricorrente viene registrata automaticamente.',
+      'Riepilogo mensile a inizio mese con entrate, uscite e risparmio del mese precedente.',
+      'Su iPhone serve installare l\'app sulla schermata Home (iOS 16.4+) per ricevere le notifiche.',
+    ],
+  },
   {
     version: '1.7.4', date: '2026-06-02', title: 'Correzione categorie',
     changes: [

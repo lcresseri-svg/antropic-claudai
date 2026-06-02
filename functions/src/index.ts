@@ -6,6 +6,75 @@ import { onRequest } from 'firebase-functions/v2/https';
 admin.initializeApp();
 const db = admin.firestore();
 
+const APP_LINK = 'https://sunny-a2a98.web.app/';
+
+// ─────────────────────────────────────────────────────────────────────────────
+// PUSH NOTIFICATIONS (FCM)
+//
+// Tokens + reminder preferences live in users/{uid}/meta/push:
+//   { tokens: { [token]: true }, reminders: { logExpenses, recurring, monthly } }
+// We send data-only messages; the service worker renders the notification.
+// ─────────────────────────────────────────────────────────────────────────────
+
+const euro = (n: number) => `${Math.round(n)}€`;
+
+/** Send to every token of a user, optionally gated on a reminder preference.
+ *  Prunes tokens FCM reports as no longer valid. */
+async function sendToUser(
+  userId: string,
+  title: string,
+  body: string,
+  requireReminder?: 'logExpenses' | 'recurring' | 'monthly',
+  tag?: string,
+): Promise<void> {
+  const ref = db.doc(`users/${userId}/meta/push`);
+  const snap = await ref.get();
+  if (!snap.exists) return;
+  const data = snap.data() ?? {};
+
+  if (requireReminder) {
+    const reminders = (data.reminders ?? {}) as Record<string, boolean>;
+    if (reminders[requireReminder] === false) return; // default ON when unset
+  }
+
+  const tokens = Object.keys((data.tokens ?? {}) as Record<string, boolean>);
+  if (tokens.length === 0) return;
+
+  const resp = await admin.messaging().sendEachForMulticast({
+    tokens,
+    data: { title, body, link: APP_LINK, tag: tag ?? 'sunny' },
+    webpush: { fcmOptions: { link: APP_LINK } },
+  });
+
+  const updates: Record<string, unknown> = {};
+  resp.responses.forEach((r, i) => {
+    const code = r.success ? '' : (r.error?.code ?? '');
+    if (code === 'messaging/registration-token-not-registered' ||
+        code === 'messaging/invalid-argument' ||
+        code === 'messaging/invalid-registration-token') {
+      updates[`tokens.${tokens[i]}`] = admin.firestore.FieldValue.delete();
+    }
+  });
+  if (Object.keys(updates).length > 0) await ref.update(updates);
+}
+
+/** Users who have at least one token and haven't disabled the given reminder. */
+async function usersWithReminder(key: 'logExpenses' | 'recurring' | 'monthly'): Promise<string[]> {
+  const snap = await db.collectionGroup('meta').get();
+  const out: string[] = [];
+  for (const d of snap.docs) {
+    if (d.id !== 'push') continue;
+    const data = d.data() ?? {};
+    const tokens = (data.tokens ?? {}) as Record<string, boolean>;
+    if (Object.keys(tokens).length === 0) continue;
+    const reminders = (data.reminders ?? {}) as Record<string, boolean>;
+    if (reminders[key] === false) continue;
+    const userId = d.ref.parent.parent?.id;
+    if (userId) out.push(userId);
+  }
+  return out;
+}
+
 // ─────────────────────────────────────────────────────────────────────────────
 // RECURRING TRANSACTIONS
 //
@@ -43,6 +112,7 @@ export const processRecurringTransactions = onSchedule(
       .get();
 
     let created = 0;
+    const createdByUser: Record<string, number> = {};
 
     for (const doc of snapshot.docs) {
       const tx = doc.data() as Record<string, unknown>;
@@ -75,6 +145,7 @@ export const processRecurringTransactions = onSchedule(
         date = addPeriod(date, recurring.freq);
         advanced = true;
         created++;
+        createdByUser[userId] = (createdByUser[userId] ?? 0) + 1;
       }
 
       if (advanced) {
@@ -84,7 +155,92 @@ export const processRecurringTransactions = onSchedule(
       }
     }
 
+    // Notify each user about what was auto-recorded today.
+    for (const [userId, count] of Object.entries(createdByUser)) {
+      await sendToUser(
+        userId,
+        'Voci ricorrenti registrate 🔁',
+        count === 1
+          ? 'Ho registrato 1 voce ricorrente programmata per oggi.'
+          : `Ho registrato ${count} voci ricorrenti programmate per oggi.`,
+        'recurring',
+        'recurring',
+      );
+    }
+
     console.log(`processRecurringTransactions: created ${created} instances for ${today}`);
+  }
+);
+
+// ─────────────────────────────────────────────────────────────────────────────
+// REMINDERS
+// ─────────────────────────────────────────────────────────────────────────────
+
+// "Did you log your expenses?" — at 13:00 and 21:00 Europe/Rome, but only for
+// users who haven't recorded any expense yet today.
+export const remindLogExpenses = onSchedule(
+  { schedule: '0 13,21 * * *', timeZone: 'Europe/Rome', region: 'europe-west1' },
+  async () => {
+    const today = new Date().toISOString().slice(0, 10);
+    const hourRome = Number(
+      new Intl.DateTimeFormat('en-GB', { timeZone: 'Europe/Rome', hour: '2-digit', hour12: false }).format(new Date()),
+    );
+    const evening = hourRome >= 18;
+
+    const users = await usersWithReminder('logExpenses');
+    for (const userId of users) {
+      // Skip if they've already logged an expense today.
+      const todays = await db.collection(`users/${userId}/transactions`).where('date', '==', today).get();
+      const hasExpense = todays.docs.some(d => (d.data() as { type?: string }).type === 'expense');
+      if (hasExpense) continue;
+
+      await sendToUser(
+        userId,
+        evening ? 'Spese di oggi 🌙' : 'Promemoria spese ☀️',
+        evening
+          ? 'Hai segnato le spese di oggi? Bastano pochi secondi.'
+          : 'Ricordati di registrare le spese di stamattina.',
+        'logExpenses',
+        'log-expenses',
+      );
+    }
+  }
+);
+
+// Start-of-month summary of the previous month — 09:00 on the 1st.
+export const sendMonthlySummary = onSchedule(
+  { schedule: '0 9 1 * *', timeZone: 'Europe/Rome', region: 'europe-west1' },
+  async () => {
+    const now = new Date();
+    const lastMonth = new Date(Date.UTC(now.getUTCFullYear(), now.getUTCMonth() - 1, 1));
+    const ym = lastMonth.toISOString().slice(0, 7); // YYYY-MM
+
+    const users = await usersWithReminder('monthly');
+    for (const userId of users) {
+      const snap = await db.collection(`users/${userId}/transactions`)
+        .where('date', '>=', `${ym}-01`)
+        .where('date', '<=', `${ym}-31`)
+        .get();
+
+      let income = 0, expenses = 0, investments = 0;
+      snap.forEach(d => {
+        const t = d.data() as { type?: string; amount?: number; shared?: number };
+        const amount = Number(t.amount) || 0;
+        if (t.type === 'income') income += amount;
+        else if (t.type === 'expense') expenses += amount - (Number(t.shared) || 0);
+        else if (t.type === 'investment') investments += amount;
+      });
+      if (income === 0 && expenses === 0 && investments === 0) continue;
+
+      const saved = income - expenses - investments;
+      await sendToUser(
+        userId,
+        'Riepilogo del mese 📊',
+        `Entrate ${euro(income)} · Uscite ${euro(expenses)} · Risparmio ${euro(saved)}`,
+        'monthly',
+        'monthly',
+      );
+    }
   }
 );
 

@@ -48,5 +48,8 @@ jobs:
       - name: Delete old callable function
         run: npx -y firebase-tools@latest functions:delete generateDigest --region europe-west1 --project sunny-a2a98 --non-interactive --force || true
 
+      # Deploy every function: the AI digest (HTTP), the daily recurring-tx
+      # processor, the user-cleanup trigger, and the push reminders (expense
+      # nudges + monthly summary).
       - name: Deploy functions
-        run: npx -y firebase-tools@latest deploy --only functions:generateDigest --project sunny-a2a98 --non-interactive --force
+        run: npx -y firebase-tools@latest deploy --only functions --project sunny-a2a98 --non-interactive --force
