@@ -34,7 +34,7 @@ function reorder<T>(arr: T[], from: number, to: number): T[] {
 
 export function SettingsScreen({ user, transactions, onLogOut, onDeleteAll, onDeleteAccount }: Props) {
   const navigate = useNavigate();
-  const { categories, accounts, theme, includeInvestments, enableInvestments, insightDepth, saveCategories, saveAccounts, saveTheme, saveIncludeInvestments, saveEnableInvestments, saveInsightDepth } = useSettings();
+  const { categories, accounts, theme, includeInvestments, enableInvestments, insightDepth, aiEnabled, saveCategories, saveAccounts, saveTheme, saveIncludeInvestments, saveEnableInvestments, saveInsightDepth, saveAiEnabled } = useSettings();
   const [sub, setSub] = useState<Sub>('menu');
   const [editing, setEditing] = useState<{ kind: 'category' | 'account'; draft: DefDraft; isNew: boolean; withKind?: boolean } | null>(null);
   const [confirmReset, setConfirmReset] = useState(false);
@@ -226,6 +226,12 @@ export function SettingsScreen({ user, transactions, onLogOut, onDeleteAll, onDe
                 onToggle={() => saveIncludeInvestments(!includeInvestments)}
               />
             )}
+            <ToggleRow
+              icon="✨" label="Suggerimenti AI"
+              sub={aiEnabled ? 'Riepilogo mensile generato da Gemini' : 'Disattivato — nessuna chiamata all\'API'}
+              on={aiEnabled}
+              onToggle={() => saveAiEnabled(!aiEnabled)}
+            />
             <div className="p-4">
               <div className="flex items-start gap-3.5 mb-3">
                 <span className="text-2xl mt-0.5">🔍</span>

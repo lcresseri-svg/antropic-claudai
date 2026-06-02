@@ -99,13 +99,16 @@ export function BudgetScreen({
 
   const plannedExpenses = useMemo(() => {
     const sum = Object.values(activeExpBudgets).reduce((s, v) => s + v, 0);
-    return sum > 0 ? sum : monthlyExpenses;
-  }, [activeExpBudgets, monthlyExpenses]);
+    // Only fall back to actual spending in demo mode (no real transactions).
+    // When the user has real data but hasn't set a budget, show 0 — actual
+    // spending is "what happened", not "what was planned".
+    return sum > 0 ? sum : (isLearning ? monthlyExpenses : 0);
+  }, [activeExpBudgets, monthlyExpenses, isLearning]);
 
   const plannedInvestments = useMemo(() => {
     const sum = Object.values(activeInvBudgets).reduce((s, v) => s + v, 0);
-    return sum > 0 ? sum : monthlyInvestments;
-  }, [activeInvBudgets, monthlyInvestments]);
+    return sum > 0 ? sum : (isLearning ? monthlyInvestments : 0);
+  }, [activeInvBudgets, monthlyInvestments, isLearning]);
 
   // Seasonal heads-up: a category that historically spikes this calendar month.
   const season = useMemo(() => (isLearning ? null : seasonalHint(transactions)), [isLearning, transactions]);

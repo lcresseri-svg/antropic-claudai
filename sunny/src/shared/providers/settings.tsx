@@ -17,6 +17,7 @@ interface SettingsValue {
   includeInvestments: boolean; // count invested capital in net worth
   enableInvestments: boolean;  // show/hide entire investments feature
   insightDepth: InsightDepth;
+  aiEnabled: boolean;
   getCat: (id: string) => CategoryDef;
   getAcc: (id: string) => AccountDef;
   saveCategories: (c: CategoryDef[]) => void;
@@ -25,6 +26,7 @@ interface SettingsValue {
   saveIncludeInvestments: (v: boolean) => void;
   saveEnableInvestments: (v: boolean) => void;
   saveInsightDepth: (v: InsightDepth) => void;
+  saveAiEnabled: (v: boolean) => void;
 }
 
 const SettingsContext = createContext<SettingsValue | null>(null);
@@ -38,6 +40,7 @@ export function SettingsProvider({ user, children }: { user: User | null; childr
   const [includeInvestments, setIncludeInvestments] = useState(true);
   const [enableInvestments, setEnableInvestments] = useState(true);
   const [insightDepth, setInsightDepth] = useState<InsightDepth>('medium');
+  const [aiEnabled, setAiEnabled] = useState(true);
 
   // Apply theme class to <html> immediately when state changes
   useEffect(() => {
@@ -52,6 +55,7 @@ export function SettingsProvider({ user, children }: { user: User | null; childr
       setIncludeInvestments(true);
       setEnableInvestments(true);
       setInsightDepth('medium');
+      setAiEnabled(true);
       return;
     }
     const ref = doc(db, 'users', user.uid, 'meta', 'settings');
@@ -73,6 +77,7 @@ export function SettingsProvider({ user, children }: { user: User | null; childr
       setIncludeInvestments(d.includeInvestments ?? true);
       setEnableInvestments(d.enableInvestments ?? true);
       setInsightDepth((d.insightDepth as InsightDepth) ?? 'medium');
+      setAiEnabled(d.aiEnabled ?? true);
     });
   }, [user]);
 
@@ -113,6 +118,11 @@ export function SettingsProvider({ user, children }: { user: User | null; childr
     if (user) setDoc(settingsRef(), { insightDepth: v }, MERGE);
   }, [user, settingsRef]);
 
+  const saveAiEnabled = useCallback((v: boolean) => {
+    setAiEnabled(v);
+    if (user) setDoc(settingsRef(), { aiEnabled: v }, MERGE);
+  }, [user, settingsRef]);
+
   const getCat = useCallback(
     (id: string) => categories.find(c => c.id === id) ?? FALLBACK_CATEGORY(id),
     [categories],
@@ -123,7 +133,7 @@ export function SettingsProvider({ user, children }: { user: User | null; childr
   );
 
   return (
-    <SettingsContext.Provider value={{ categories, accounts, theme, includeInvestments, enableInvestments, insightDepth, getCat, getAcc, saveCategories, saveAccounts, saveTheme, saveIncludeInvestments, saveEnableInvestments, saveInsightDepth }}>
+    <SettingsContext.Provider value={{ categories, accounts, theme, includeInvestments, enableInvestments, insightDepth, aiEnabled, getCat, getAcc, saveCategories, saveAccounts, saveTheme, saveIncludeInvestments, saveEnableInvestments, saveInsightDepth, saveAiEnabled }}>
       {children}
     </SettingsContext.Provider>
   );
