@@ -116,7 +116,7 @@ export function TransactionModal({ open, editing, groupTransfers = [], onClose, 
     const storni = (type === 'expense' && isShared)
       ? reimbursements
           .map(r => ({ amount: parseFloat(r.amount.replace(',', '.')), account: r.account }))
-          .filter(r => r.amount > 0 && r.account && r.account !== account)
+          .filter(r => r.amount > 0 && r.account)
       : [];
     const sum = storni.reduce((s, r) => s + r.amount, 0);
 
@@ -298,7 +298,7 @@ export function TransactionModal({ open, editing, groupTransfers = [], onClose, 
                         </div>
                         <select value={r.account} onChange={e => updateReimb(i, { account: e.target.value })}
                           className="flex-1 min-w-0 bg-elevated rounded-xl px-3 py-2.5 text-primary text-sm outline-none focus:ring-1 focus:ring-gold/40 appearance-none">
-                          {accounts.filter(a => a.id !== account).map(a => <option key={a.id} value={a.id} className="bg-elevated">{a.icon} {a.label}</option>)}
+                          {accounts.map(a => <option key={a.id} value={a.id} className="bg-elevated">{a.icon} {a.label}</option>)}
                         </select>
                         <button type="button" onClick={() => removeReimb(i)}
                           className="w-8 h-8 rounded-full bg-elevated flex items-center justify-center text-secondary flex-shrink-0">✕</button>

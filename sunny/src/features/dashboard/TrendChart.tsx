@@ -75,7 +75,7 @@ export function TrendChart({ data }: Props) {
         <div className="flex items-center gap-3 text-[11px] text-secondary">
           <span className="flex items-center gap-1.5"><span className="w-5 h-px inline-block" style={{ backgroundColor: COLORS.income }} /> Entrate</span>
           <span className="flex items-center gap-1.5"><span className="w-5 h-px inline-block" style={{ backgroundColor: COLORS.expense }} /> Uscite</span>
-          <span className="flex items-center gap-1.5"><span className="w-5 h-px inline-block" style={{ backgroundColor: COLORS.invest }} /> + Investito</span>
+          <span className="flex items-center gap-1.5"><span className="w-5 h-px inline-block" style={{ backgroundColor: COLORS.invest }} /> Investito</span>
         </div>
       </div>
 
