@@ -52,10 +52,13 @@ export function EditDefSheet({ open, draft, withKind, canDelete, showFundType, o
 
   if (!open || !draft) return null;
 
-  // Initial balance is editable for accounts (non-investment) and for
-  // investment categories (capital already invested before Sunny).
-  const isInvestmentCategory = withKind && kind === 'investment';
-  const showBalance = (!withKind && !draft.isInvestment) || isInvestmentCategory;
+  // A category always carries a `kind` in its draft; an account never does.
+  // `withKind` only controls whether the type *selector* is shown (it's hidden
+  // when adding inside a specific section), so it must NOT decide the kind —
+  // doing so dropped the section's kind and made everything an expense.
+  const isCategory = draft.kind !== undefined;
+  const isInvestmentCategory = isCategory && kind === 'investment';
+  const showBalance = (!isCategory && !draft.isInvestment) || isInvestmentCategory;
   const showFunds = isInvestmentCategory && !!showFundType;
 
   const save = () => {
@@ -66,7 +69,7 @@ export function EditDefSheet({ open, draft, withKind, canDelete, showFundType, o
     const validTfr = parsedTfr !== undefined && !isNaN(parsedTfr) ? parsedTfr : undefined;
     onSave({
       id: draft.id, label: label.trim(), icon, color,
-      kind: withKind ? kind : undefined,
+      kind: isCategory ? kind : undefined,
       initialBalance: showBalance ? validBalance : undefined,
       fundType: showFunds && fundType ? fundType : undefined,
       tfrAmount: showFunds && fundType === 'pension' ? validTfr : undefined,

@@ -1,4 +1,4 @@
-export const APP_VERSION = '1.7.3';
+export const APP_VERSION = '1.7.4';
 
 /**
  * Release channel. While in 'beta' the app is still under active development
@@ -15,6 +15,14 @@ export interface VersionEntry {
 
 /** Registro versioni mostrato in Impostazioni → Registro versioni. */
 export const VERSIONS: VersionEntry[] = [
+  {
+    version: '1.7.4', date: '2026-06-02', title: 'Correzione categorie',
+    changes: [
+      'Risolto: aggiungendo una categoria dentro una sezione (Entrate, Investimenti…) veniva sempre creata come "Uscita". Ora mantiene il tipo corretto.',
+      'Aggiungendo una categoria di investimento da quella sezione ora compaiono anche tipo di fondo, TFR e capitale già investito.',
+      'Le categorie di spesa/entrata non mostrano più un campo "Saldo iniziale" che non le riguardava.',
+    ],
+  },
   {
     version: '1.7.3', date: '2026-06-02', title: 'Versamenti senza conto e TFR',
     changes: [
