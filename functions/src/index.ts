@@ -1,7 +1,7 @@
 import * as admin from 'firebase-admin';
 import { onSchedule } from 'firebase-functions/v2/scheduler';
 import { onDocumentDeleted } from 'firebase-functions/v2/firestore';
-import { onCall } from 'firebase-functions/v2/https';
+import { onCall, HttpsError } from 'firebase-functions/v2/https';
 import { GoogleGenerativeAI } from '@google/generative-ai';
 
 admin.initializeApp();
@@ -118,7 +118,7 @@ export const generateDigest = onCall(
     if (!apiKey) throw new Error('GEMINI_API_KEY not configured');
 
     const genAI = new GoogleGenerativeAI(apiKey);
-    const model = genAI.getGenerativeModel({ model: 'gemini-1.5-flash' });
+    const model = genAI.getGenerativeModel({ model: 'gemini-flash-latest' });
 
     const prompt =
       `Sei l'assistente finanziario dell'app Sunny. ` +
@@ -128,9 +128,14 @@ export const generateDigest = onCall(
       `Insight principali: ${topInsights.slice(0, 5).join('; ')}. ` +
       `Non usare markdown. Solo testo piano, frasi brevi, tono positivo e concreto.`;
 
-    const result = await model.generateContent(prompt);
-    const text = result.response.text().trim();
-    const sentences = text.split(/(?<=[.!?])\s+/).filter(Boolean).slice(0, 3);
-    return { sentences };
+    try {
+      const result = await model.generateContent(prompt);
+      const text = result.response.text().trim();
+      const sentences = text.split(/(?<=[.!?])\s+/).filter(Boolean).slice(0, 3);
+      return { sentences };
+    } catch (err) {
+      console.error('Gemini generateContent failed:', err);
+      throw new HttpsError('internal', 'Gemini request failed');
+    }
   }
 );
