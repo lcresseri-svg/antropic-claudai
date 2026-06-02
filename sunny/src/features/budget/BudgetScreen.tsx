@@ -35,7 +35,7 @@ export function BudgetScreen({
   const { categories, enableInvestments } = useSettings();
   const {
     budget, setSavingsTarget, setCategoryBudget, setIncomeBudget, setInvestmentBudget,
-    acceptSuggestion, hasBudget,
+    acceptSuggestion, resetAll, hasBudget,
   } = useBudget(user);
 
   const [editOpen, setEditOpen] = useState(false);
@@ -235,6 +235,8 @@ export function BudgetScreen({
         onSetCategory={setCategoryBudget}
         onSetIncome={setIncomeBudget}
         onSetInvestment={setInvestmentBudget}
+        hasBudget={hasBudget}
+        onResetAll={resetAll}
         onClose={() => setEditOpen(false)}
       />
     </div>

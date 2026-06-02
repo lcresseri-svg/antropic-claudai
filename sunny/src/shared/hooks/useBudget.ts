@@ -83,11 +83,23 @@ export function useBudget(user: User | null) {
     }));
   }, [update]);
 
+  // Clear every budget (categories, income, investments) and forget any
+  // accepted suggestion, so "planned" truly returns to nothing.
+  const resetAll = useCallback(() => {
+    update(prev => ({
+      ...prev,
+      categoryBudgets: {},
+      incomeBudgets: {},
+      investmentBudgets: {},
+      suggestionAccepted: false,
+    }));
+  }, [update]);
+
   const hasBudget =
     budget.suggestionAccepted ||
     Object.keys(budget.categoryBudgets).length > 0 ||
     Object.keys(budget.incomeBudgets).length > 0 ||
     Object.keys(budget.investmentBudgets).length > 0;
 
-  return { budget, setSavingsTarget, setCategoryBudget, setIncomeBudget, setInvestmentBudget, acceptSuggestion, hasBudget };
+  return { budget, setSavingsTarget, setCategoryBudget, setIncomeBudget, setInvestmentBudget, acceptSuggestion, resetAll, hasBudget };
 }

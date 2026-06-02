@@ -1,4 +1,4 @@
-export const APP_VERSION = '1.7.0';
+export const APP_VERSION = '1.7.1';
 
 /**
  * Release channel. While in 'beta' the app is still under active development
@@ -15,6 +15,16 @@ export interface VersionEntry {
 
 /** Registro versioni mostrato in Impostazioni → Registro versioni. */
 export const VERSIONS: VersionEntry[] = [
+  {
+    version: '1.7.1', date: '2026-06-02', title: 'Budget e AI',
+    changes: [
+      'Spese pianificate: niente più "default" pari alle spese reali. Senza budget impostato il piano parte da €0 (i dati demo restano solo per chi non ha ancora movimenti).',
+      'Nuovo pulsante "Azzera budget" nella modifica budget per ripartire da zero in un tocco.',
+      'Impostazioni → Generali: nuovo interruttore "Suggerimenti AI". Se disattivato, la card sparisce e non viene fatta alcuna chiamata all\'API.',
+      'Riepilogo AI: modello Gemini aggiornato (2.5) e chiamata resa più affidabile.',
+      'Date dei movimenti: ora mostrano anche l\'anno.',
+    ],
+  },
   {
     version: '1.7.0', date: '2026-06-02', title: 'Ricorrenze a serie',
     changes: [
