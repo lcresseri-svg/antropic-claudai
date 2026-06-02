@@ -177,6 +177,22 @@ export function TransactionList({ transactions, projected = [], onEdit, onDelete
     });
   };
 
+  // Whole-group selection (real rows only — projected occurrences aren't selectable).
+  const groupRealIds = (txs: Transaction[]) => txs.filter(t => !t.projected).map(t => t.id);
+  const groupAllSelected = (txs: Transaction[]) => {
+    const gIds = groupRealIds(txs);
+    return gIds.length > 0 && gIds.every(id => selected.has(id));
+  };
+  const toggleGroup = (txs: Transaction[]) => {
+    const gIds = groupRealIds(txs);
+    setSelected(prev => {
+      const next = new Set(prev);
+      const all = gIds.every(id => next.has(id));
+      gIds.forEach(id => (all ? next.delete(id) : next.add(id)));
+      return next;
+    });
+  };
+
   const exitSelect = () => { setSelectMode(false); setSelected(new Set()); setConfirmDelete(false); };
 
   const usedTypes = TYPE_ORDER.filter(t => transactions.some(tx => tx.type === t));
@@ -367,15 +383,24 @@ export function TransactionList({ transactions, projected = [], onEdit, onDelete
           const isCollapsed = collapsed.has(key);
           return (
             <div key={key} className="bg-card rounded-2xl p-4">
-              <button onClick={() => toggleCollapse(key)}
-                className="w-full flex items-center justify-between mb-1 px-1 group">
+              <div className="w-full flex items-center justify-between mb-1 px-1">
                 <div className="flex items-center gap-1.5 min-w-0">
-                  <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"
-                    className={`text-secondary flex-shrink-0 transition-transform ${isCollapsed ? '-rotate-90' : ''}`}>
-                    <path d="m6 9 6 6 6-6"/>
-                  </svg>
-                  <h4 className="label-caps text-secondary truncate group-hover:text-primary transition-colors">{groupTitle(key)}</h4>
-                  {isCollapsed && <span className="text-[11px] text-secondary/60 flex-shrink-0">· {txs.length}</span>}
+                  {selectMode && groupHasReal(txs) && (
+                    <button onClick={() => toggleGroup(txs)} aria-label="Seleziona gruppo"
+                      className={`w-5 h-5 rounded-full border-2 flex items-center justify-center flex-shrink-0 transition-colors mr-0.5 ${
+                        groupAllSelected(txs) ? 'bg-gold border-gold' : 'border-divider'
+                      }`}>
+                      {groupAllSelected(txs) && <span className="text-bg text-xs font-bold">✓</span>}
+                    </button>
+                  )}
+                  <button onClick={() => toggleCollapse(key)} className="flex items-center gap-1.5 min-w-0 group">
+                    <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"
+                      className={`text-secondary flex-shrink-0 transition-transform ${isCollapsed ? '-rotate-90' : ''}`}>
+                      <path d="m6 9 6 6 6-6"/>
+                    </svg>
+                    <h4 className="label-caps text-secondary truncate group-hover:text-primary transition-colors">{groupTitle(key)}</h4>
+                    {isCollapsed && <span className="text-[11px] text-secondary/60 flex-shrink-0">· {txs.length}</span>}
+                  </button>
                 </div>
                 {groupHasReal(txs) ? (
                   <span className={`text-xs font-medium balance-num flex-shrink-0 ${groupSum(txs) >= 0 ? 'text-green' : 'text-secondary'}`}>
@@ -386,7 +411,7 @@ export function TransactionList({ transactions, projected = [], onEdit, onDelete
                     previsto {formatCurrency(groupProjectedSum(txs), { sign: true })}
                   </span>
                 )}
-              </button>
+              </div>
               {!isCollapsed && (
                 <div className="divide-y divide-divider">
                   {txs.map(tx => (

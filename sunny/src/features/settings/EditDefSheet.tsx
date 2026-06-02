@@ -30,6 +30,7 @@ export function EditDefSheet({ open, draft, withKind, canDelete, onSave, onDelet
   const [kind, setKind] = useState<TransactionType>('expense');
   const [initialBalance, setInitialBalance] = useState('');
   const [confirmingDelete, setConfirmingDelete] = useState(false);
+  const [emojiExpanded, setEmojiExpanded] = useState(false);
 
   useEffect(() => {
     if (!open || !draft) return;
@@ -37,6 +38,7 @@ export function EditDefSheet({ open, draft, withKind, canDelete, onSave, onDelet
     setKind(draft.kind ?? 'expense');
     setInitialBalance(draft.initialBalance !== undefined ? String(draft.initialBalance) : '');
     setConfirmingDelete(false);
+    setEmojiExpanded(false);
   }, [open, draft]);
 
   useEscapeKey(onClose, open);
@@ -67,6 +69,7 @@ export function EditDefSheet({ open, draft, withKind, canDelete, onSave, onDelet
         <div className="flex items-center gap-3 mb-5">
           <span className="w-12 h-12 rounded-full flex items-center justify-center text-xl" style={{ backgroundColor: color + '22' }}>{icon}</span>
           <input value={label} onChange={e => setLabel(e.target.value)} placeholder="Nome" maxLength={24} autoFocus
+            onKeyDown={e => { if (e.key === 'Enter') { e.preventDefault(); save(); } }}
             className="flex-1 bg-elevated rounded-2xl px-4 py-3 text-primary placeholder:text-secondary/50 outline-none focus:ring-1 focus:ring-gold/40" />
         </div>
 
@@ -86,14 +89,20 @@ export function EditDefSheet({ open, draft, withKind, canDelete, onSave, onDelet
         )}
 
         <p className="text-xs font-medium text-secondary mb-2 px-1">Icona</p>
-        <div className="grid grid-cols-8 gap-1.5 mb-5">
-          {EMOJI_CHOICES.map(e => (
-            <button key={e} onClick={() => setIcon(e)}
+        <div className="grid grid-cols-8 gap-1.5">
+          {(emojiExpanded ? EMOJI_CHOICES : EMOJI_CHOICES.slice(0, 24)).map(e => (
+            <button key={e} onClick={() => { setIcon(e); setEmojiExpanded(false); }}
               className={`aspect-square rounded-xl flex items-center justify-center text-lg transition-colors ${
                 icon === e ? 'bg-gold/20 ring-1 ring-gold' : 'bg-elevated'
               }`}>{e}</button>
           ))}
         </div>
+        {EMOJI_CHOICES.length > 24 && (
+          <button type="button" onClick={() => setEmojiExpanded(v => !v)}
+            className="w-full mt-2 mb-5 py-1.5 text-xs font-medium text-gold">
+            {emojiExpanded ? 'Mostra meno' : 'Mostra altre icone'}
+          </button>
+        )}
 
         <p className="text-xs font-medium text-secondary mb-2 px-1">Colore</p>
         <div className="flex flex-wrap gap-2 mb-6">
@@ -116,6 +125,7 @@ export function EditDefSheet({ open, draft, withKind, canDelete, onSave, onDelet
                 inputMode="decimal"
                 value={initialBalance}
                 onChange={e => setInitialBalance(e.target.value)}
+                onKeyDown={e => { if (e.key === 'Enter') { e.preventDefault(); save(); } }}
                 placeholder="0"
                 className="w-full bg-elevated rounded-2xl pl-8 pr-4 py-3 text-primary placeholder:text-secondary/50 outline-none focus:ring-1 focus:ring-gold/40"
               />
