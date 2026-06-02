@@ -9,21 +9,18 @@ interface Props {
   monthlyIncome: number;
   monthlyExpenses: number;
   monthlyInvestments: number;
+  prebuilt?: Insight[];
   limit?: number;
   onSeeAll?: () => void;
 }
 
-/**
- * Horizontally scrollable strip of compact insight cards (news-ticker style).
- * Tapping a card opens its full explanation.
- */
-export function InsightTicker({ transactions, monthlyIncome, monthlyExpenses, monthlyInvestments, limit = 8, onSeeAll }: Props) {
+export function InsightTicker({ transactions, monthlyIncome, monthlyExpenses, monthlyInvestments, prebuilt, limit = 8, onSeeAll }: Props) {
   const { getCat, insightDepth } = useSettings();
   const [detail, setDetail] = useState<Insight | null>(null);
 
-  const insights = buildInsights({
+  const insights = (prebuilt ?? buildInsights({
     transactions, monthlyIncome, monthlyExpenses, monthlyInvestments, getCat, depth: insightDepth,
-  }).slice(0, limit);
+  })).slice(0, limit);
 
   if (insights.length === 0) return null;
 

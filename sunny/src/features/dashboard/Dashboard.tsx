@@ -7,7 +7,9 @@ import { TrendChart } from './TrendChart';
 import { FlowBar } from './FlowBar';
 import { InvestmentSummaryCard } from './InvestmentSummaryCard';
 import { InsightTicker } from '../insights/InsightTicker';
+import { AIDigestCard } from './AIDigestCard';
 import { useSettings } from '../../shared/providers/settings';
+import { buildInsights } from '../insights/insightsEngine';
 
 type Period = '1m' | '3m' | '6m' | '1y';
 
@@ -35,7 +37,7 @@ interface Props {
 }
 
 export function Dashboard(p: Props) {
-  const { enableInvestments } = useSettings();
+  const { enableInvestments, getCat, insightDepth } = useSettings();
   const [accMode, setAccMode] = useState<'balance' | 'spending'>('balance');
   const [period, setPeriod] = useState<Period>('1m');
   const [offset, setOffset] = useState(0); // months back from the most recent window (0 = current)
@@ -92,6 +94,25 @@ export function Dashboard(p: Props) {
   }, [periodTx]);
 
   const saved = periodIncome - periodExpenses - periodInvestments;
+
+  const dashboardInsights = useMemo(() =>
+    buildInsights({
+      transactions: p.transactions,
+      monthlyIncome: p.monthlyIncome,
+      monthlyExpenses: p.monthlyExpenses,
+      monthlyInvestments: p.monthlyInvestments,
+      getCat,
+      depth: insightDepth,
+    }),
+  [p.transactions, p.monthlyIncome, p.monthlyExpenses, p.monthlyInvestments, getCat, insightDepth]);
+
+  const digestInput = useMemo(() => ({
+    income: p.monthlyIncome,
+    expenses: p.monthlyExpenses,
+    investments: p.monthlyInvestments,
+    saved: p.monthlyIncome - p.monthlyExpenses - p.monthlyInvestments,
+    topInsights: dashboardInsights.slice(0, 5).map(i => i.title),
+  }), [p.monthlyIncome, p.monthlyExpenses, p.monthlyInvestments, dashboardInsights]);
 
   return (
     <div className="pb-32">
@@ -176,8 +197,14 @@ export function Dashboard(p: Props) {
           monthlyIncome={p.monthlyIncome}
           monthlyExpenses={p.monthlyExpenses}
           monthlyInvestments={p.monthlyInvestments}
+          prebuilt={dashboardInsights}
           onSeeAll={p.onSeeInsights}
         />
+      </div>
+
+      {/* AI digest */}
+      <div className="mt-3">
+        <AIDigestCard input={digestInput} />
       </div>
 
       {/* Cards grid — 1 col mobile, 2 col desktop */}

@@ -4,6 +4,7 @@ import {
   persistentLocalCache,
 } from 'firebase/firestore';
 import { getAuth, GoogleAuthProvider } from 'firebase/auth';
+import { getFunctions } from 'firebase/functions';
 
 const firebaseConfig = {
   apiKey:            import.meta.env.VITE_FIREBASE_API_KEY,
@@ -27,6 +28,7 @@ export const db = initializeFirestore(app, {
   localCache: persistentLocalCache(),
 });
 export const auth = getAuth(app);
+export const functions = getFunctions(app, 'europe-west1');
 
 export const googleProvider = new GoogleAuthProvider();
 googleProvider.setCustomParameters({ prompt: 'select_account' });

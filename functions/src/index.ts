@@ -1,6 +1,8 @@
 import * as admin from 'firebase-admin';
 import { onSchedule } from 'firebase-functions/v2/scheduler';
 import { onDocumentDeleted } from 'firebase-functions/v2/firestore';
+import { onCall } from 'firebase-functions/v2/https';
+import { GoogleGenerativeAI } from '@google/generative-ai';
 
 admin.initializeApp();
 const db = admin.firestore();
@@ -91,5 +93,44 @@ export const onUserDeleted = onDocumentDeleted(
     }
 
     console.log(`onUserDeleted: cleaned up data for user ${userId}`);
+  }
+);
+
+// ─────────────────────────────────────────────────────────────────────────────
+// AI DIGEST
+//
+// Generates a 2-3 sentence Italian financial summary using Google Gemini.
+// GEMINI_API_KEY must be set via: firebase functions:secrets:set GEMINI_API_KEY
+// ─────────────────────────────────────────────────────────────────────────────
+
+export const generateDigest = onCall(
+  { secrets: ['GEMINI_API_KEY'], region: 'europe-west1', cors: true },
+  async (req) => {
+    const { income, expenses, investments, saved, topInsights } = req.data as {
+      income: number;
+      expenses: number;
+      investments: number;
+      saved: number;
+      topInsights: string[];
+    };
+
+    const apiKey = process.env.GEMINI_API_KEY;
+    if (!apiKey) throw new Error('GEMINI_API_KEY not configured');
+
+    const genAI = new GoogleGenerativeAI(apiKey);
+    const model = genAI.getGenerativeModel({ model: 'gemini-1.5-flash' });
+
+    const prompt =
+      `Sei l'assistente finanziario dell'app Sunny. ` +
+      `Scrivi esattamente 2-3 frasi in italiano sintetico e diretto che riassumono ` +
+      `la situazione finanziaria di questo mese. ` +
+      `Dati: entrate ${income}€, uscite ${expenses}€, investito ${investments}€, risparmio ${saved}€. ` +
+      `Insight principali: ${topInsights.slice(0, 5).join('; ')}. ` +
+      `Non usare markdown. Solo testo piano, frasi brevi, tono positivo e concreto.`;
+
+    const result = await model.generateContent(prompt);
+    const text = result.response.text().trim();
+    const sentences = text.split(/(?<=[.!?])\s+/).filter(Boolean).slice(0, 3);
+    return { sentences };
   }
 );
