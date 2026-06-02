@@ -1,6 +1,3 @@
-import { httpsCallable } from 'firebase/functions';
-import { functions } from '../../lib/firebase';
-
 export interface DigestInput {
   income: number;
   expenses: number;
@@ -9,16 +6,26 @@ export interface DigestInput {
   topInsights: string[];
 }
 
+// Plain HTTP call instead of httpsCallable: the Firebase callable protocol was
+// returning "internal" before our handler ran (project-level issue). A direct
+// fetch to the onRequest endpoint bypasses that layer entirely.
+const DIGEST_URL =
+  `https://europe-west1-${import.meta.env.VITE_FIREBASE_PROJECT_ID as string}.cloudfunctions.net/generateDigest`;
+
 export async function fetchDigest(input: DigestInput): Promise<string[]> {
   try {
-    const fn = httpsCallable<DigestInput, { sentences: string[] }>(functions, 'generateDigest');
-    const res = await fn(input);
-    const sentences = res.data.sentences;
+    const resp = await fetch(DIGEST_URL, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(input),
+    });
+    if (!resp.ok) return [`⚠️ DEBUG http=${resp.status}`];
+    const data = (await resp.json()) as { sentences?: string[] };
+    const sentences = data?.sentences;
     if (Array.isArray(sentences) && sentences.length > 0) return sentences;
     return buildRuleBasedDigest(input);
   } catch (err) {
     const msg = err instanceof Error ? err.message : String(err);
-    // TEMP: surface client-side call error so it's visible in the digest card
     return [`⚠️ DEBUG client: ${msg.slice(0, 200)}`];
   }
 }

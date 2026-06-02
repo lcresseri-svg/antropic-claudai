@@ -1,7 +1,7 @@
 import * as admin from 'firebase-admin';
 import { onSchedule } from 'firebase-functions/v2/scheduler';
 import { onDocumentDeleted } from 'firebase-functions/v2/firestore';
-import { onCall } from 'firebase-functions/v2/https';
+import { onRequest } from 'firebase-functions/v2/https';
 
 admin.initializeApp();
 const db = admin.firestore();
@@ -121,26 +121,21 @@ export const onUserDeleted = onDocumentDeleted(
 // GEMINI_API_KEY must be set via: firebase functions:secrets:set GEMINI_API_KEY
 // ─────────────────────────────────────────────────────────────────────────────
 
-export const generateDigest = onCall(
+export const generateDigest = onRequest(
+  // onRequest (plain HTTP) instead of onCall: the callable protocol was
+  // returning "internal" before our handler ran (project-level IAM/App Check
+  // issue). A plain HTTP endpoint avoids that layer entirely.
   { region: 'europe-west1', cors: true },
-  async (req) => {
-    // Entire body wrapped: any throw becomes a reported DEBUG line, never an
-    // uncatchable "internal". We call the Gemini REST API directly with the
-    // built-in fetch (Node 20) instead of the heavy @google/genai SDK, which
-    // was crashing the instance on cold start. The new AQ.* key format works on
-    // the native endpoint as long as the key is sent ONLY via header (sending it
-    // both as ?key= and header triggers "multiple authentication credentials").
+  async (req, res) => {
     const apiKey = process.env.GEMINI_API_KEY;
     try {
-      const { income, expenses, investments, saved, topInsights } = (req.data ?? {}) as {
-        income: number;
-        expenses: number;
-        investments: number;
-        saved: number;
-        topInsights: string[];
+      if (req.method !== 'POST') { res.status(405).json({ error: 'method not allowed' }); return; }
+
+      const { income, expenses, investments, saved, topInsights } = (req.body ?? {}) as {
+        income: number; expenses: number; investments: number; saved: number; topInsights: string[];
       };
 
-      if (!apiKey) return { sentences: [`DEBUG: GEMINI_API_KEY assente nell'ambiente`] };
+      if (!apiKey) { res.json({ sentences: [`DEBUG: GEMINI_API_KEY assente nell'ambiente`] }); return; }
 
       const prompt =
         `Sei l'assistente finanziario dell'app Sunny. ` +
@@ -150,7 +145,7 @@ export const generateDigest = onCall(
         `Insight principali: ${(topInsights ?? []).slice(0, 5).join('; ')}. ` +
         `Non usare markdown. Solo testo piano, frasi brevi, tono positivo e concreto.`;
 
-      const resp = await fetch(
+      const gemResp = await fetch(
         'https://generativelanguage.googleapis.com/v1beta/models/gemini-2.0-flash:generateContent',
         {
           method: 'POST',
@@ -159,25 +154,26 @@ export const generateDigest = onCall(
         },
       );
 
-      if (!resp.ok) {
-        const body = await resp.text();
-        console.error('Gemini REST non-2xx:', resp.status, body);
-        return { sentences: [`DEBUG http=${resp.status} keyLen=${apiKey.length}`, `body=${body.slice(0, 200)}`] };
+      if (!gemResp.ok) {
+        const body = await gemResp.text();
+        console.error('Gemini REST non-2xx:', gemResp.status, body);
+        res.json({ sentences: [`DEBUG http=${gemResp.status} keyLen=${apiKey.length}`, `body=${body.slice(0, 200)}`] });
+        return;
       }
 
-      const data = (await resp.json()) as {
+      const data = (await gemResp.json()) as {
         candidates?: { content?: { parts?: { text?: string }[] } }[];
       };
       const text = (data?.candidates?.[0]?.content?.parts?.[0]?.text ?? '').trim();
-      if (!text) return { sentences: [`DEBUG: risposta vuota`, `raw=${JSON.stringify(data).slice(0, 180)}`] };
+      if (!text) { res.json({ sentences: [`DEBUG: risposta vuota`, `raw=${JSON.stringify(data).slice(0, 180)}`] }); return; }
 
       const sentences = text.split(/(?<=[.!?])\s+/).filter(Boolean).slice(0, 3);
-      return { sentences };
+      res.json({ sentences });
     } catch (err) {
       const name = err instanceof Error ? err.name : 'Unknown';
       const msg = err instanceof Error ? err.message : String(err);
-      console.error('Gemini REST failed:', err);
-      return { sentences: [`DEBUG keyLen=${apiKey?.length ?? 0} ${name}`, `err=${msg.slice(0, 200)}`] };
+      console.error('generateDigest failed:', err);
+      res.json({ sentences: [`DEBUG keyLen=${apiKey?.length ?? 0} ${name}`, `err=${msg.slice(0, 200)}`] });
     }
   }
 );
