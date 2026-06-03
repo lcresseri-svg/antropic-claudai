@@ -81,7 +81,8 @@ export function SettingsProvider({ user, children }: { user: User | null; childr
       setInsightDepth((d.insightDepth as InsightDepth) ?? 'medium');
       setAiEnabled(d.aiEnabled ?? true);
     });
-  }, [user]);
+  // uid, not user object — avoids listener recreation on every token refresh.
+  }, [user?.uid]);
 
   // Each save function writes only its own field (merge: true) to avoid
   // stale-closure overwrites and race conditions with onSnapshot.

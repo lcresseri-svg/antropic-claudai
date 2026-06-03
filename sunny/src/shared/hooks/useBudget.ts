@@ -68,7 +68,8 @@ export function useBudget(user: User | null) {
       setBudget(next);
       try { localStorage.setItem(keyFor(user), JSON.stringify(next)); } catch { /* ignore */ }
     });
-  }, [user]);
+  // uid, not user object — avoids listener recreation on every token refresh.
+  }, [user?.uid]);
 
   const update = useCallback((patch: (prev: BudgetState) => BudgetState) => {
     setBudget(prev => {

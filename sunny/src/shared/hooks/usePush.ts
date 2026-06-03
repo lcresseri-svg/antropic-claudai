@@ -30,7 +30,8 @@ export function usePush(user: User | null) {
       Notification.permission === 'granted' &&
       hasLocalToken(),
     );
-  }, [user]);
+  // uid, not user object — avoids spurious resets on token refresh.
+  }, [user?.uid]);
 
   // Reminder preferences live in Firestore so they apply server-side.
   useEffect(() => {
@@ -39,7 +40,8 @@ export function usePush(user: User | null) {
       const d = snap.data();
       if (d?.reminders) setReminders({ ...DEFAULT_PREFS, ...(d.reminders as Partial<ReminderPrefs>) });
     });
-  }, [user]);
+  // uid, not user object — avoids listener recreation on every token refresh.
+  }, [user?.uid]);
 
   // Foreground notifications while the app is open.
   useEffect(() => {

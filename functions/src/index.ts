@@ -115,9 +115,14 @@ export const processRecurringTransactions = onSchedule(
   async () => {
     const today = new Date().toISOString().slice(0, 10);
 
-    // Find all recurring transaction templates that are due (date <= today)
+    // Read ONLY recurring templates (documents that have a `recurring` field).
+    // We intentionally do NOT filter by date here — that would force Firestore to
+    // scan every historical transaction just to find the handful of templates.
+    // Instead we let the `while (date <= today)` loop below skip future templates.
+    // The existing collectionGroup index on `recurring, date` covers this query.
     const snapshot = await db.collectionGroup('transactions')
-      .where('date', '<=', today)
+      .where('recurring', '!=', null)
+      .orderBy('recurring')
       .get();
 
     let created = 0;

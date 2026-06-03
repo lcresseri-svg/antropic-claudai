@@ -51,7 +51,10 @@ export function useTransactions(user: User | null, accounts: AccountDef[] = [], 
         setLoading(false);
       },
     );
-  }, [user]);
+  // Depend on uid, not the user object — the object reference changes on every
+  // token refresh, which would tear down and recreate the listener (and re-read
+  // all documents). The listener only needs to restart when the actual user changes.
+  }, [user?.uid]);
 
   const colRef = useCallback(() => collection(db, 'users', user!.uid, 'transactions'), [user]);
 
