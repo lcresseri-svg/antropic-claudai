@@ -1,5 +1,5 @@
 import { describe, it, expect } from 'vitest';
-import { suggestBudgets, seasonalHint, seasonalMonthlyAverage, forecastSavings } from './budgetUtils';
+import { suggestBudgets, seasonalHint, seasonalMonthlyAverage, seasonalVariableMonthly, forecastSavings } from './budgetUtils';
 import { Transaction, CategoryDef } from '../../types';
 
 const NOW = new Date('2026-12-15T12:00:00Z'); // December → seasonal gifts
@@ -60,16 +60,35 @@ describe('seasonalHint', () => {
   });
 });
 
-describe('forecastSavings', () => {
-  const MID = new Date('2026-12-16T12:00:00Z'); // ~half of December (31 days)
+describe('seasonalVariableMonthly', () => {
+  it('averages variable spend for the calendar month across years and counts them', () => {
+    // October (month 9): neither is the current (Dec) month, both years count.
+    const txs = [tx({ amount: 400, date: '2025-10-10' }), tx({ amount: 600, date: '2026-10-10' })];
+    const r = seasonalVariableMonthly(txs, 9, NOW);
+    expect(r.avg).toBe(500);
+    expect(r.years).toBe(2);
+  });
 
-  it('uses "spent so far + typical remaining" when history exists', () => {
+  it('excludes recurring-origin entries (seriesId / recurring)', () => {
+    const txs = [
+      tx({ amount: 500, date: '2025-10-10' }),
+      tx({ amount: 900, date: '2025-10-11', seriesId: 'abc' }), // recurring instance → excluded
+    ];
+    const r = seasonalVariableMonthly(txs, 9, NOW);
+    expect(r.avg).toBe(500);
+    expect(r.years).toBe(1);
+  });
+});
+
+describe('forecastSavings', () => {
+  const MID = new Date('2026-12-16T12:00:00Z'); // ~half of December (31 days), prog ≈ 0.516
+
+  it('projects spent-so-far + remaining variable when history exists', () => {
     const f = forecastSavings({
       monthlyIncome: 3000, monthlyExpenses: 800, monthlyInvestments: 0,
-      avgIncome: 3000, avgExpense: 1600, now: MID,
+      variableSpent: 800, recentVariableAvg: 1600, now: MID,
     });
-    // prog ≈ 16/31 ≈ 0.516 → projected ≈ 800 + 0.484*1600 ≈ 1574
-    expect(f.projectedExpenses).toBeGreaterThan(1500);
+    expect(f.projectedExpenses).toBeGreaterThan(1450);
     expect(f.projectedExpenses).toBeLessThan(1650);
     expect(f.savings).toBe(f.expectedIncome - f.projectedExpenses - f.expectedInvest);
   });
@@ -78,28 +97,72 @@ describe('forecastSavings', () => {
     const early = new Date('2026-12-02T12:00:00Z'); // day 2
     const f = forecastSavings({
       monthlyIncome: 0, monthlyExpenses: 50, monthlyInvestments: 0,
-      avgIncome: 3000, avgExpense: 1500, now: early,
+      variableSpent: 50, recentVariableAvg: 1500, now: early,
     });
-    // ≈ 50 + ~0.94*1500 ≈ 1460 — close to the typical month, NOT 50/0.06 ≈ 800+ inflated nonsense
     expect(f.projectedExpenses).toBeLessThan(1600);
     expect(f.projectedExpenses).toBeGreaterThan(1300);
   });
 
+  it('weights the seasonal signal more when more prior years back it (adaptive weights)', () => {
+    const base = {
+      monthlyIncome: 3000, monthlyExpenses: 500, monthlyInvestments: 0,
+      variableSpent: 500, recentVariableAvg: 1000, seasonalVariableAvg: 2000, now: MID,
+    };
+    const noSeasonal = forecastSavings({ ...base, seasonalYears: 0 }); // seasonal ignored
+    const withSeasonal = forecastSavings({ ...base, seasonalYears: 2 }); // full seasonal weight
+    expect(withSeasonal.projectedExpenses).toBeGreaterThan(noSeasonal.projectedExpenses);
+  });
+
+  it('adds upcoming recurring expenses explicitly, not just as a floor', () => {
+    const f = forecastSavings({
+      monthlyIncome: 3000, monthlyExpenses: 200, monthlyInvestments: 0,
+      variableSpent: 200, recentVariableAvg: 300, upcomingRecurring: 1000, now: MID,
+    });
+    // Old "floor" model would cap at ~200 + max(remaining, 1000) ≈ 1200.
+    // New model adds recurring on top of the variable estimate → clearly above.
+    expect(f.projectedExpenses).toBeGreaterThan(1300);
+  });
+
+  it('reacts to this month\'s actual pace (overspending pushes the forecast up)', () => {
+    const onTrack = forecastSavings({
+      monthlyIncome: 3000, monthlyExpenses: 500, monthlyInvestments: 0,
+      variableSpent: 500, recentVariableAvg: 1000, now: MID,
+    });
+    const overspending = forecastSavings({
+      monthlyIncome: 3000, monthlyExpenses: 1500, monthlyInvestments: 0,
+      variableSpent: 1500, recentVariableAvg: 1000, now: MID,
+    });
+    expect(overspending.projectedExpenses).toBeGreaterThan(onTrack.projectedExpenses);
+    // Reacts above the purely-historical estimate (1500 + 0.484*1000 ≈ 1984).
+    expect(overspending.projectedExpenses).toBeGreaterThan(2100);
+  });
+
   it('never projects less than already spent', () => {
+    const eom = new Date('2026-12-31T12:00:00Z'); // prog ≈ 1 → no remaining
     const f = forecastSavings({
       monthlyIncome: 2000, monthlyExpenses: 1800, monthlyInvestments: 0,
-      avgIncome: 2000, avgExpense: 500, now: MID,
+      variableSpent: 1800, recentVariableAvg: 500, now: eom,
     });
     expect(f.projectedExpenses).toBeGreaterThanOrEqual(1800);
   });
 
   it('falls back to a guarded run-rate without history', () => {
     const f = forecastSavings({
-      monthlyIncome: 2000, monthlyExpenses: 600, monthlyInvestments: 0, now: MID,
+      monthlyIncome: 2000, monthlyExpenses: 600, monthlyInvestments: 0,
+      variableSpent: 600, now: MID,
     });
     // prog ≈ 0.516 → 600 / 0.516 ≈ 1162
     expect(f.projectedExpenses).toBeGreaterThan(1050);
     expect(f.projectedExpenses).toBeLessThan(1300);
+  });
+
+  it('does not project from a tiny early-month pace without history', () => {
+    const early = new Date('2026-12-02T12:00:00Z'); // prog ≈ 0.06 < 0.15
+    const f = forecastSavings({
+      monthlyIncome: 2000, monthlyExpenses: 50, monthlyInvestments: 0,
+      variableSpent: 50, now: early,
+    });
+    expect(f.projectedExpenses).toBe(50);
   });
 });
 

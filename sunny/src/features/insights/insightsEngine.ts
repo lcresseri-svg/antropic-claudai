@@ -1,6 +1,6 @@
 import { Transaction, ownShare } from '../../types';
 import { formatCurrency, capitalize } from '../../utils';
-import { monthProgress, forecastSavings, seasonalMonthlyAverage } from '../budget/budgetUtils';
+import { monthProgress, forecastSavings, seasonalMonthlyAverage, seasonalVariableMonthly } from '../budget/budgetUtils';
 import { addPeriod, recurringMonthlyEquivalent } from '../../shared/recurrence';
 
 export type InsightCategory = 'alert' | 'forecast' | 'seasonal' | 'trend' | 'habit' | 'highlight';
@@ -92,6 +92,8 @@ function monthNameFromIndex(idx: number): string {
 export interface History {
   avgIncome: number;
   avgExpense: number;
+  /** Average monthly expense excluding recurring-origin entries (variable only). */
+  avgVariableExpense: number;
   avgInvest: number;
   months: number;
 }
@@ -101,17 +103,20 @@ export function history(transactions: Transaction[], windowN = 3, now: Date = ne
   for (let i = 1; i <= windowN; i++) keys.add(monthKey(i, now));
 
   const active = new Set<string>();
-  let inc = 0, exp = 0, inv = 0;
+  let inc = 0, exp = 0, varExp = 0, inv = 0;
   for (const t of transactions) {
     const k = t.date.slice(0, 7);
     if (!keys.has(k)) continue;
     active.add(k);
     if (t.type === 'income')     inc += t.amount;
-    else if (t.type === 'expense')    exp += ownShare(t);
+    else if (t.type === 'expense') {
+      exp += ownShare(t);
+      if (!t.seriesId && !t.recurring) varExp += ownShare(t); // variable (non-recurring)
+    }
     else if (t.type === 'investment') inv += t.amount;
   }
   const n = Math.max(1, active.size);
-  return { avgIncome: inc / n, avgExpense: exp / n, avgInvest: inv / n, months: active.size };
+  return { avgIncome: inc / n, avgExpense: exp / n, avgVariableExpense: varExp / n, avgInvest: inv / n, months: active.size };
 }
 
 export function projectExpenses(monthlyExpenses: number, now: Date = new Date()): number {
@@ -441,12 +446,11 @@ export function buildInsights(input: InsightInput): Insight[] {
   }
 
   // ── 2. FORECAST — End-of-month projection ────────────────────────────────
-  // Skip too early in the month: projecting from a few days' run-rate explodes
-  // the estimate and is misleading (a €50 spend on day 1 ≠ €1500 for the month).
-  if ((monthlyExpenses > 0 || monthlyIncome > 0) && prog > 0.15) {
-    // Seasonal baseline: average expense in this calendar month across prior years.
-    const seasonalCats = seasonalMonthlyAverage(transactions, now.getMonth(), now);
-    const seasonalAvgExpense = Object.values(seasonalCats).reduce((s, v) => s + v, 0);
+  // Show as soon as there's historical context; without it, wait until enough
+  // of the month has elapsed (projecting a few days' run-rate is misleading).
+  if ((monthlyExpenses > 0 || monthlyIncome > 0) && (h.avgVariableExpense > 0 || prog > 0.15)) {
+    // Seasonal baseline: variable spend in this calendar month across prior years.
+    const seasonalVar = seasonalVariableMonthly(transactions, now.getMonth(), now);
 
     // Upcoming recurring expenses: occurrences strictly after today up to month-end.
     let upcomingRecurring = 0;
@@ -468,25 +472,38 @@ export function buildInsights(input: InsightInput): Insight[] {
       }
     }
 
+    // Variable (non-recurring) spending already recorded this month.
+    const curKey = ym(now);
+    let variableSpent = 0;
+    for (const t of transactions) {
+      if (t.type !== 'expense' || t.date.slice(0, 7) !== curKey) continue;
+      if (t.seriesId || t.recurring) continue;
+      variableSpent += ownShare(t);
+    }
+
     const f = forecastSavings({
       monthlyIncome, monthlyExpenses, monthlyInvestments,
-      avgIncome: h.avgIncome, avgExpense: h.avgExpense, avgInvest: h.avgInvest,
-      seasonalAvgExpense, upcomingRecurring, now,
+      variableSpent,
+      recentVariableAvg: h.avgVariableExpense,
+      seasonalVariableAvg: seasonalVar.avg, seasonalYears: seasonalVar.years,
+      avgIncome: h.avgIncome, avgInvest: h.avgInvest,
+      upcomingRecurring, now,
     });
     const projExp = f.projectedExpenses, expInc = f.expectedIncome, expInv = f.expectedInvest;
     const forecast = f.savings;
     const basis    = h.months > 0 ? 'spese attuali e abitudini storiche' : 'ritmo attuale';
     const pctMonth = Math.round(prog * 100);
-    const hasHistory = h.avgExpense > 0 || seasonalAvgExpense > 0;
+    const avgVar = Math.round(h.avgVariableExpense);
+    const hasHistory = h.avgVariableExpense > 0 || seasonalVar.avg > 0;
     const howExp = hasHistory
-      ? `Parto da quanto hai già speso questo mese (${formatCurrency(monthlyExpenses)}) e stimo i giorni che restano (${100 - pctMonth}% del mese) con una media che combina il tuo andamento recente${seasonalAvgExpense > 0 ? ` (${formatCurrency(h.avgExpense)}/mese) e la tua storica di questo stesso mese in anni precedenti (${formatCurrency(Math.round(seasonalAvgExpense))})` : ` (${formatCurrency(h.avgExpense)}/mese)`}${upcomingRecurring > 0 ? `, assicurando che le ricorrenti già programmate (${formatCurrency(Math.round(upcomingRecurring))}) siano coperte` : ''}. Uscite stimate: ${formatCurrency(projExp)}.`
-      : `Riproietto quanto hai già speso (${formatCurrency(monthlyExpenses)}) sul resto del mese in base ai giorni passati (sei circa al ${pctMonth}%), arrivando a circa ${formatCurrency(projExp)}.`;
+      ? `Parto da quanto hai già speso questo mese (${formatCurrency(monthlyExpenses)}) e stimo i giorni che restano (${100 - pctMonth}% del mese) combinando la tua media di spesa variabile${seasonalVar.avg > 0 ? ` (${formatCurrency(avgVar)}/mese) con la storica di questo stesso mese negli anni precedenti (${formatCurrency(Math.round(seasonalVar.avg))})` : ` (${formatCurrency(avgVar)}/mese)`} con il ritmo effettivo di questo mese${upcomingRecurring > 0 ? `, poi aggiungo le spese ricorrenti ancora in arrivo (${formatCurrency(Math.round(upcomingRecurring))})` : ''}. Uscite stimate: ${formatCurrency(projExp)}.`
+      : `Riproietto quanto hai già speso (${formatCurrency(monthlyExpenses)}) sul resto del mese in base ai giorni passati (sei circa al ${pctMonth}%)${upcomingRecurring > 0 ? `, più le ricorrenti ancora in arrivo (${formatCurrency(Math.round(upcomingRecurring))})` : ''}, arrivando a circa ${formatCurrency(projExp)}.`;
     const howInc = h.avgIncome > 0
       ? ` Per le entrate uso la cifra più alta tra quanto hai già incassato (${formatCurrency(monthlyIncome)}) e quanto incassi di solito (${formatCurrency(h.avgIncome)}), perché lo stipendio di solito arriva tutto insieme.`
       : ` Per le entrate considero quanto hai già incassato (${formatCurrency(monthlyIncome)}).`;
     const forecastBasis = [
       h.months > 0 ? `media ultimi ${h.months} mesi` : null,
-      seasonalAvgExpense > 0 ? 'storico stesso mese anni precedenti' : null,
+      seasonalVar.avg > 0 ? 'storico stesso mese anni precedenti' : null,
       upcomingRecurring > 0 ? 'ricorrenti programmate' : null,
     ].filter(Boolean).join(' · ') || 'ritmo attuale';
     push(forecast >= 0

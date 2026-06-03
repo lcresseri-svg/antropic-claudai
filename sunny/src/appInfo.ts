@@ -1,4 +1,4 @@
-export const APP_VERSION = '1.8.8';
+export const APP_VERSION = '1.8.9';
 
 /**
  * Release channel. While in 'beta' the app is still under active development
@@ -15,6 +15,14 @@ export interface VersionEntry {
 
 /** Registro versioni mostrato in Impostazioni → Registro versioni. */
 export const VERSIONS: VersionEntry[] = [
+  {
+    version: '1.8.9', date: '2026-06-03', title: 'Previsione di fine mese più precisa',
+    changes: [
+      'Le spese previste ora distinguono spese variabili e ricorrenti: le ricorrenti ancora in arrivo (es. affitto non ancora pagato) vengono aggiunte esplicitamente, non più solo "coperte".',
+      'La stima reagisce al ritmo reale del mese: a inizio mese pesa la tua media, col passare dei giorni conta sempre più quanto stai spendendo davvero.',
+      'Il peso della stagionalità (stesso mese negli anni scorsi) cresce solo se ci sono abbastanza anni di dati, evitando che un singolo anno anomalo sbilanci la previsione.',
+    ],
+  },
   {
     version: '1.8.8', date: '2026-06-03', title: 'Impostazioni più ordinate e funzioni opzionali',
     changes: [

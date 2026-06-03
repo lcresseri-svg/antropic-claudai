@@ -113,18 +113,31 @@ export function suggestBudgets(
 }
 
 /**
- * Forecast end-of-month savings via a simple run-rate on expenses.
- * Income and investments are taken as-is (typically lump sums), expenses are
- * projected from the current daily pace.
+ * Average variable (non-recurring) expense for a given calendar month (0–11)
+ * across past years, plus how many prior years back it. The current (partial)
+ * month and recurring-origin transactions are excluded. Used as the seasonal
+ * signal in the end-of-month forecast.
  */
-export function predictedSavings(
-  monthlyIncome: number,
-  monthlyExpenses: number,
-  monthlyInvestments: number,
+export function seasonalVariableMonthly(
+  transactions: Transaction[],
+  monthIdx: number,
   now: Date = new Date(),
-): number {
-  const projectedExpenses = monthlyExpenses / monthProgress(now);
-  return Math.round(monthlyIncome - projectedExpenses - monthlyInvestments);
+): { avg: number; years: number } {
+  const curKey = now.toISOString().slice(0, 7);
+  const cutoff = new Date(now.getFullYear(), now.getMonth() - 18, 1);
+  const perYear: Record<number, number> = {};
+  for (const t of transactions) {
+    if (t.type !== 'expense') continue;
+    if (t.seriesId || t.recurring) continue; // variable spending only
+    if (t.date.slice(0, 7) === curKey) continue;
+    const d = new Date(t.date);
+    if (d < cutoff) continue; // only the last ~18 months
+    if (d.getMonth() !== monthIdx) continue;
+    perYear[d.getFullYear()] = (perYear[d.getFullYear()] ?? 0) + ownShare(t);
+  }
+  const vals = Object.values(perYear);
+  const years = vals.length;
+  return { avg: years ? vals.reduce((a, b) => a + b, 0) / years : 0, years };
 }
 
 export interface MonthForecast {
@@ -134,18 +147,27 @@ export interface MonthForecast {
   savings: number;
 }
 
+// Forecast tunables.
+const SEASONAL_MAX_WEIGHT = 0.4;   // max weight given to the seasonal signal
+const SEASONAL_FULL_YEARS = 2;     // years of history needed for full seasonal weight
+const EARLY_MONTH_MIN_PROG = 0.15; // below this, don't project from current pace alone
+
 /**
  * Single source of truth for the end-of-month forecast, used by BOTH the
  * Insights engine and the Budget screen so they never contradict each other.
  *
- * Expense model — multi-signal blend:
- *   1. Actuals so far (anchor — we can't end lower than what's spent)
- *   2. Remaining days × blended historical rate:
- *      - 65% weight on recent months (last ~3), 35% on same-month prior years
- *      - Falls back to whichever source is available
- *   3. Upcoming recurring expenses (known commitments still due this month)
- *      used as a floor on the remaining-days estimate, never added on top
- *      (recurring is presumed embedded in the historical rate)
+ * Expenses are split into VARIABLE and RECURRING, then projected as:
+ *   projected = spent_this_month + variable_remaining + recurring_remaining
+ *   (clamped: never below what's already been spent)
+ *
+ *   - variable_remaining = (1 − prog) × [ w·thisMonthPace + (1−w)·variableAvg ]
+ *       w = elapsed fraction of the month, so the estimate leans on the
+ *       historical average early on and increasingly on THIS month's actual
+ *       pace as days pass.
+ *   - variableAvg blends recent months with the same-month-prior-years average,
+ *       weighting the seasonal part only as far as real years of data back it.
+ *   - recurring_remaining = known recurring occurrences still due this month,
+ *       added explicitly (the variable averages exclude recurring entries).
  *
  * Income/investments use the higher of "already recorded" and "historical
  * average", since salaries/contributions usually land as a single lump sum.
@@ -154,40 +176,58 @@ export function forecastSavings(o: {
   monthlyIncome: number;
   monthlyExpenses: number;
   monthlyInvestments: number;
-  avgIncome?: number;
-  avgExpense?: number;
-  avgInvest?: number;
-  /** Average expense for this same calendar month in prior years. */
-  seasonalAvgExpense?: number;
+  /** Variable (non-recurring) expenses already recorded this month. */
+  variableSpent?: number;
+  /** Average monthly variable expense over recent months. */
+  recentVariableAvg?: number;
+  /** Average variable expense for this same calendar month in prior years. */
+  seasonalVariableAvg?: number;
+  /** Number of prior years backing seasonalVariableAvg (confidence). */
+  seasonalYears?: number;
   /** Sum of recurring expense occurrences still due this month (after today). */
   upcomingRecurring?: number;
+  avgIncome?: number;
+  avgInvest?: number;
   now?: Date;
 }): MonthForecast {
   const now = o.now ?? new Date();
   const prog = monthProgress(now);
-  const avgExpense = o.avgExpense ?? 0;
-  const seasonalAvg = o.seasonalAvgExpense ?? 0;
 
-  // Blend recent average with same-month-prior-years seasonal average.
-  let baseAvg: number;
-  if (avgExpense > 0 && seasonalAvg > 0) {
-    baseAvg = avgExpense * 0.65 + seasonalAvg * 0.35;
+  const recentVar = Math.max(0, o.recentVariableAvg ?? 0);
+  const seasVar = Math.max(0, o.seasonalVariableAvg ?? 0);
+  const seasYears = Math.max(0, o.seasonalYears ?? 0);
+
+  // (1) Adaptive blend: the seasonal weight grows with how many prior years
+  // back it (capped), and is zero when there's no seasonal signal.
+  let variableAvg: number;
+  if (recentVar > 0 && seasVar > 0) {
+    const sw = SEASONAL_MAX_WEIGHT * Math.min(1, seasYears / SEASONAL_FULL_YEARS);
+    variableAvg = recentVar * (1 - sw) + seasVar * sw;
   } else {
-    baseAvg = avgExpense > 0 ? avgExpense : seasonalAvg;
+    variableAvg = recentVar > 0 ? recentVar : seasVar;
   }
 
-  let projectedExpenses: number;
-  if (baseAvg > 0) {
-    const historicalRemaining = Math.max(0, 1 - prog) * baseAvg;
-    // Known committed spending still due this month — acts as a floor, not an
-    // addition, because recurring costs are already baked into the historical rate.
-    const knownRemaining = Math.max(0, o.upcomingRecurring ?? 0);
-    projectedExpenses = o.monthlyExpenses + Math.max(historicalRemaining, knownRemaining);
+  const variableSpent = Math.max(0, o.variableSpent ?? 0);
+  const paceMonthly = prog > 0 ? variableSpent / prog : 0;
+
+  let variableRemaining: number;
+  if (variableAvg > 0) {
+    // (3) Trust this month's actual pace more as the month progresses.
+    const w = Math.min(1, prog);
+    const projectedVariableMonthly = w * paceMonthly + (1 - w) * variableAvg;
+    variableRemaining = Math.max(0, 1 - prog) * projectedVariableMonthly;
   } else {
-    projectedExpenses = prog >= 0.15 ? o.monthlyExpenses / prog : o.monthlyExpenses;
+    // No variable history: project the current pace, but only once enough of
+    // the month has elapsed to be meaningful.
+    variableRemaining = prog >= EARLY_MONTH_MIN_PROG ? Math.max(0, 1 - prog) * paceMonthly : 0;
   }
-  // Can't end the month having spent less than you already have.
-  projectedExpenses = Math.round(Math.max(projectedExpenses, o.monthlyExpenses));
+
+  // (2) Known recurring commitments still due — added explicitly, not as a floor.
+  const recurringRemaining = Math.max(0, o.upcomingRecurring ?? 0);
+
+  const projectedExpenses = Math.round(
+    Math.max(o.monthlyExpenses + variableRemaining + recurringRemaining, o.monthlyExpenses),
+  );
 
   const expectedIncome = Math.round(Math.max(o.monthlyIncome, o.avgIncome ?? 0));
   const expectedInvest = Math.round(Math.max(o.monthlyInvestments, o.avgInvest ?? 0));
