@@ -154,7 +154,8 @@ export function listenForeground(): () => void {
       if (!title) return;
       const options: NotificationOptions = {
         body: n.body ?? d.body,
-        icon: '/icon.svg',
+        // No icon: iOS can't render SVG notification icons and drops them.
+        tag: 'sunny',
         data: { link: d.link ?? '/' },
       };
       const reg = await navigator.serviceWorker.getRegistration();

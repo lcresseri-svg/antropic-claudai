@@ -43,7 +43,6 @@ export function SettingsScreen({ user, transactions, onLogOut, onDeleteAll, onDe
   const [pushMsg, setPushMsg] = useState<string | null>(null);
   const [testMsg, setTestMsg] = useState<string | null>(null);
   const [testing, setTesting] = useState(false);
-  const [diag, setDiag] = useState<string | null>(null);
   const pushAllowed = canUsePush(user);
   const push = usePush(user);
   const [confirmDeleteAccount, setConfirmDeleteAccount] = useState(false);
@@ -288,28 +287,12 @@ export function SettingsScreen({ user, transactions, onLogOut, onDeleteAll, onDe
                           setTesting(true); setTestMsg(null);
                           const res = await push.test();
                           setTesting(false);
-                          setTestMsg(res.ok
-                            ? `✅ Server OK · dispositivi raggiunti: ${res.tokens ?? '?'}. Se non vedi la notifica, è un blocco lato iOS (vedi diagnostica).`
-                            : testReason(res.reason));
+                          setTestMsg(res.ok ? '✅ Notifica inviata' : testReason(res.reason));
                         }}
                         className="w-full py-3 rounded-xl bg-elevated text-gold text-sm font-semibold active:scale-[0.98] transition-transform">
                         {testing ? 'Invio…' : 'Invia notifica di prova'}
                       </button>
                       {testMsg && <p className="text-xs text-secondary px-1">{testMsg}</p>}
-
-                      <button
-                        onClick={async () => {
-                          const d = await push.diagnose();
-                          setDiag(
-                            `supporto: ${d.supported ? 'sì' : 'no'} · permesso: ${d.permission}\n` +
-                            `token salvato: ${d.hasToken ? 'sì' : 'NO'} (${d.tokenPreview})\n` +
-                            `service worker: ${d.swCount} (${d.swNames})`,
-                          );
-                        }}
-                        className="w-full py-2.5 rounded-xl bg-elevated text-secondary text-xs font-medium">
-                        Mostra diagnostica
-                      </button>
-                      {diag && <pre className="text-[11px] text-secondary px-1 whitespace-pre-wrap font-mono leading-relaxed">{diag}</pre>}
                     </div>
                   </>
                 )}

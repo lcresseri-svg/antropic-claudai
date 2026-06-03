@@ -44,10 +44,12 @@ async function sendToUser(
   // auto-displays it in the background — the reliable path on iOS PWAs, where
   // data-only messages + a custom handler are flaky. Keep `data.link` for the
   // foreground handler / click target.
+  // NB: no `icon` — iOS cannot render SVG notification icons (our only icon is
+  // an SVG) and silently drops it; without one, iOS falls back to the app icon.
   const resp = await admin.messaging().sendEachForMulticast({
     tokens,
     webpush: {
-      notification: { title, body, icon: `${APP_LINK}icon.svg`, tag: tag ?? 'sunny' },
+      notification: { title, body, tag: tag ?? 'sunny' },
       fcmOptions: { link: APP_LINK },
     },
     data: { link: APP_LINK },

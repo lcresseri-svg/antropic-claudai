@@ -1,4 +1,4 @@
-export const APP_VERSION = '1.8.1';
+export const APP_VERSION = '1.8.2';
 
 /**
  * Release channel. While in 'beta' the app is still under active development
@@ -15,6 +15,13 @@ export interface VersionEntry {
 
 /** Registro versioni mostrato in Impostazioni → Registro versioni. */
 export const VERSIONS: VersionEntry[] = [
+  {
+    version: '1.8.2', date: '2026-06-03', title: 'Notifiche, rifiniture',
+    changes: [
+      'Notifiche più pulite: rimossa l\'icona non supportata su iPhone (ora usa l\'icona dell\'app).',
+      'Impostazioni: rimosso il pannello di diagnostica delle notifiche, non più necessario.',
+    ],
+  },
   {
     version: '1.8.1', date: '2026-06-03', title: 'Notifiche su iPhone',
     changes: [
