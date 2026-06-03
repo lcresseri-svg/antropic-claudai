@@ -172,6 +172,30 @@ export const processRecurringTransactions = onSchedule(
   }
 );
 
+// Manual end-to-end test: sends a one-off notification to the caller's tokens.
+// HTTP (onRequest) so it can be triggered from the app's settings.
+export const sendTestPush = onRequest(
+  { region: 'europe-west1', cors: true },
+  async (req, res) => {
+    try {
+      if (req.method !== 'POST') { res.status(405).json({ ok: false, error: 'method-not-allowed' }); return; }
+      const { uid } = (req.body ?? {}) as { uid?: string };
+      if (!uid) { res.status(400).json({ ok: false, error: 'missing-uid' }); return; }
+
+      const ref = db.doc(`users/${uid}/meta/push`);
+      const snap = await ref.get();
+      const tokens = Object.keys((snap.data()?.tokens ?? {}) as Record<string, boolean>);
+      if (tokens.length === 0) { res.json({ ok: false, error: 'no-tokens' }); return; }
+
+      await sendToUser(uid, 'Notifica di prova ✅', 'Le notifiche di Sunny funzionano correttamente.', undefined, 'test');
+      res.json({ ok: true, tokens: tokens.length });
+    } catch (err) {
+      console.error('sendTestPush failed:', err);
+      res.status(500).json({ ok: false, error: String(err) });
+    }
+  }
+);
+
 // ─────────────────────────────────────────────────────────────────────────────
 // REMINDERS
 // ─────────────────────────────────────────────────────────────────────────────

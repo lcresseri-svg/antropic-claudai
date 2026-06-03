@@ -41,6 +41,8 @@ export function SettingsScreen({ user, transactions, onLogOut, onDeleteAll, onDe
   const [editing, setEditing] = useState<{ kind: 'category' | 'account'; draft: DefDraft; isNew: boolean; withKind?: boolean } | null>(null);
   const [confirmReset, setConfirmReset] = useState(false);
   const [pushMsg, setPushMsg] = useState<string | null>(null);
+  const [testMsg, setTestMsg] = useState<string | null>(null);
+  const [testing, setTesting] = useState(false);
   const pushAllowed = canUsePush(user);
   const push = usePush(user);
   const [confirmDeleteAccount, setConfirmDeleteAccount] = useState(false);
@@ -278,6 +280,20 @@ export function SettingsScreen({ user, transactions, onLogOut, onDeleteAll, onDe
                       on={push.reminders.monthly}
                       onToggle={() => push.setReminder('monthly', !push.reminders.monthly)}
                     />
+                    <div className="p-4">
+                      <button
+                        onClick={async () => {
+                          if (testing) return;
+                          setTesting(true); setTestMsg(null);
+                          const res = await push.test();
+                          setTesting(false);
+                          setTestMsg(res.ok ? '✅ Inviata! Dovrebbe arrivarti tra pochi secondi.' : testReason(res.reason));
+                        }}
+                        className="w-full py-3 rounded-xl bg-elevated text-gold text-sm font-semibold active:scale-[0.98] transition-transform">
+                        {testing ? 'Invio…' : 'Invia notifica di prova'}
+                      </button>
+                      {testMsg && <p className="text-xs text-secondary mt-2 px-1">{testMsg}</p>}
+                    </div>
                   </>
                 )}
               </>
@@ -669,6 +685,15 @@ function ToggleRow({ icon, label, sub, on, onToggle }: {
       </button>
     </div>
   );
+}
+
+function testReason(reason?: string): string {
+  switch (reason) {
+    case 'not-deployed': return 'Il server non è ancora pronto (deploy delle funzioni in corso). Riprova più tardi.';
+    case 'no-tokens':    return 'Nessun dispositivo registrato. Riattiva le notifiche e riprova.';
+    case 'network':      return 'Niente rete. Controlla la connessione e riprova.';
+    default:             return 'Invio non riuscito. Riprova tra poco.';
+  }
 }
 
 function pushReason(reason: string): string {

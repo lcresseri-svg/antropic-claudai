@@ -84,6 +84,26 @@ export async function disablePush(user: User): Promise<void> {
   }
 }
 
+const TEST_URL =
+  `https://europe-west1-${import.meta.env.VITE_FIREBASE_PROJECT_ID as string}.cloudfunctions.net/sendTestPush`;
+
+/** Ask the server to send a one-off test notification to this user's devices. */
+export async function sendTestNotification(user: User): Promise<{ ok: boolean; reason?: string }> {
+  try {
+    const resp = await fetch(TEST_URL, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ uid: user.uid }),
+    });
+    if (resp.status === 404) return { ok: false, reason: 'not-deployed' };
+    if (!resp.ok) return { ok: false, reason: `http-${resp.status}` };
+    const data = (await resp.json()) as { ok?: boolean; error?: string };
+    return data?.ok ? { ok: true } : { ok: false, reason: data?.error ?? 'error' };
+  } catch {
+    return { ok: false, reason: 'network' };
+  }
+}
+
 /** Show foreground messages (when the app/tab is in focus) as notifications. */
 export function listenForeground(): () => void {
   try {

@@ -3,7 +3,8 @@ import { doc, onSnapshot, setDoc } from 'firebase/firestore';
 import { User } from 'firebase/auth';
 import { db } from '../../lib/firebase';
 import {
-  pushSupported, enablePush, disablePush, hasLocalToken, listenForeground, EnableResult,
+  pushSupported, enablePush, disablePush, hasLocalToken, listenForeground,
+  sendTestNotification, EnableResult,
 } from '../push';
 
 export interface ReminderPrefs {
@@ -71,5 +72,10 @@ export function usePush(user: User | null) {
     setDoc(doc(db, 'users', user.uid, 'meta', 'push'), { reminders: next }, { merge: true });
   }, [user, reminders]);
 
-  return { supported, enabled, reminders, busy, error, enable, disable, setReminder };
+  const test = useCallback(async (): Promise<{ ok: boolean; reason?: string }> => {
+    if (!user) return { ok: false, reason: 'error' };
+    return sendTestNotification(user);
+  }, [user]);
+
+  return { supported, enabled, reminders, busy, error, enable, disable, setReminder, test };
 }

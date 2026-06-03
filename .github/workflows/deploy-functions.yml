@@ -42,14 +42,17 @@ jobs:
         env:
           GEMINI_API_KEY: ${{ secrets.GEMINI_API_KEY }}
 
-      # Delete the old callable function first: Firebase won't let you change
-      # a function from callable (onCall) to HTTPS (onRequest) in-place.
-      # The delete is best-effort (|| true) so it doesn't fail on first deploy.
-      - name: Delete old callable function
-        run: npx -y firebase-tools@latest functions:delete generateDigest --region europe-west1 --project sunny-a2a98 --non-interactive --force || true
+      # Deploy in two steps so the simple HTTP functions go live even if the
+      # scheduled/trigger functions need a one-time project-IAM grant by an
+      # owner (Cloud Scheduler / Pub/Sub / Eventarc service-agent roles).
 
-      # Deploy every function: the AI digest (HTTP), the daily recurring-tx
-      # processor, the user-cleanup trigger, and the push reminders (expense
-      # nudges + monthly summary).
-      - name: Deploy functions
-        run: npx -y firebase-tools@latest deploy --only functions --project sunny-a2a98 --non-interactive --force
+      # 1) HTTP functions — never need special IAM, deploy first so the AI
+      #    digest and the push self-test are always available.
+      - name: Deploy HTTP functions
+        run: npx -y firebase-tools@latest deploy --only functions:generateDigest,functions:sendTestPush --project sunny-a2a98 --non-interactive --force
+
+      # 2) Scheduled + trigger functions — require the service-agent IAM
+      #    bindings. If this step fails with an IAM error, an owner must grant
+      #    the roles once (see repo notes), then re-run this workflow.
+      - name: Deploy scheduled & trigger functions
+        run: npx -y firebase-tools@latest deploy --only functions:processRecurringTransactions,functions:remindLogExpenses,functions:sendMonthlySummary,functions:onUserDeleted --project sunny-a2a98 --non-interactive --force
