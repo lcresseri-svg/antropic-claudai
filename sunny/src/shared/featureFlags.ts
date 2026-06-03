@@ -17,13 +17,7 @@ export function canUseDetailedInvestments(user: User | null): boolean {
   return false;
 }
 
-// Push notifications (FCM): expense-logging reminders, recurring reminders,
-// monthly summary. Gated while in beta.
-const PUSH_UIDS: string[] = [
-  'qPtCOJGRrwOZ2EfjxMHwW6ZISXX2',
-];
-
+// Push notifications: available to all logged-in users.
 export function canUsePush(user: User | null): boolean {
-  if (!user) return false;
-  return !!user.uid && PUSH_UIDS.includes(user.uid);
+  return !!user;
 }

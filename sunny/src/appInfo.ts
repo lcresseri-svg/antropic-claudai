@@ -1,4 +1,4 @@
-export const APP_VERSION = '1.8.3';
+export const APP_VERSION = '1.8.4';
 
 /**
  * Release channel. While in 'beta' the app is still under active development
@@ -15,6 +15,13 @@ export interface VersionEntry {
 
 /** Registro versioni mostrato in Impostazioni → Registro versioni. */
 export const VERSIONS: VersionEntry[] = [
+  {
+    version: '1.8.4', date: '2026-06-03', title: 'Notifiche per tutti',
+    changes: [
+      'Le notifiche push sono ora disponibili per tutti gli utenti (non più solo in beta).',
+      'Su iPhone con l\'app installata sulla schermata Home: al primo avvio compare una proposta per attivare le notifiche con accesso diretto alle impostazioni.',
+    ],
+  },
   {
     version: '1.8.3', date: '2026-06-03', title: 'Notifiche su misura',
     changes: [

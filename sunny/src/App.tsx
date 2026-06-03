@@ -18,6 +18,8 @@ import { SeriesEditChoiceSheet } from './features/transactions/SeriesEditChoiceS
 import { ImportModal } from './features/transactions/ImportModal';
 import { BottomNav } from './shared/components/BottomNav';
 import { SideNav } from './shared/components/SideNav';
+import { PushPromoSheet } from './shared/components/PushPromoSheet';
+import { pushSupported, hasLocalToken } from './shared/push';
 
 function Loader({ phase }: { phase: string }) {
   const [secs, setSecs] = useState(0);
@@ -63,11 +65,37 @@ function Main({ user, onLogOut, onDeleteAccount }: {
   const [modalOpen, setModalOpen] = useState(false);
   const [importOpen, setImportOpen] = useState(false);
   const [settingsOpen, setSettingsOpen] = useState(false);
+  const [showPushPromo, setShowPushPromo] = useState(false);
 
   const isSettings = location.pathname.startsWith('/settings');
   const firstName = user.displayName?.split(' ')[0] ?? 'utente';
 
   useEffect(() => { window.scrollTo(0, 0); }, [location.pathname]);
+
+  // Show the push promo sheet once to iOS PWA users who haven't enabled push.
+  useEffect(() => {
+    const isIOS = /iPhone|iPad|iPod/.test(navigator.userAgent);
+    const isStandalone = window.matchMedia('(display-mode: standalone)').matches
+      || (navigator as unknown as { standalone?: boolean }).standalone === true;
+    if (!isIOS || !isStandalone) return;
+    const key = `sunny:pushPromo:${user.uid}`;
+    if (localStorage.getItem(key)) return;
+    const alreadyEnabled =
+      typeof Notification !== 'undefined' &&
+      Notification.permission === 'granted' &&
+      hasLocalToken();
+    if (alreadyEnabled) return;
+    let cancelled = false;
+    const t = setTimeout(() => {
+      pushSupported().then(ok => { if (!cancelled && ok) setShowPushPromo(true); });
+    }, 1500);
+    return () => { cancelled = true; clearTimeout(t); };
+  }, [user?.uid]);
+
+  const dismissPushPromo = () => {
+    try { localStorage.setItem(`sunny:pushPromo:${user.uid}`, '1'); } catch { /* ignore */ }
+    setShowPushPromo(false);
+  };
   const brand = `${greeting()}, ${firstName}`;
 
   // Virtual future occurrences of every recurring template — shown ahead of time
@@ -257,6 +285,11 @@ function Main({ user, onLogOut, onDeleteAccount }: {
         }}
       />
       <ImportModal open={importOpen} onClose={() => setImportOpen(false)} onImport={tx.addTransactions} />
+      <PushPromoSheet
+        open={showPushPromo}
+        onClose={dismissPushPromo}
+        onGoToSettings={() => { dismissPushPromo(); navigate('/settings'); }}
+      />
     </div>
   );
 }

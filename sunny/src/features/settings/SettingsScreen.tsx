@@ -3,7 +3,6 @@ import { useNavigate } from 'react-router-dom';
 import { User } from 'firebase/auth';
 import { CategoryDef, AccountDef, Transaction, TransactionType, TYPE_META, TYPE_ORDER } from '../../types';
 import { useSettings } from '../../shared/providers/settings';
-import { canUsePush } from '../../shared/featureFlags';
 import { usePush } from '../../shared/hooks/usePush';
 import { EditDefSheet, DefDraft } from './EditDefSheet';
 import { buildExportPayload, downloadJson, downloadCsv } from './dataExport';
@@ -43,7 +42,6 @@ export function SettingsScreen({ user, transactions, onLogOut, onDeleteAll, onDe
   const [pushMsg, setPushMsg] = useState<string | null>(null);
   const [testMsg, setTestMsg] = useState<string | null>(null);
   const [testing, setTesting] = useState(false);
-  const pushAllowed = canUsePush(user);
   const push = usePush(user);
   const [confirmDeleteAccount, setConfirmDeleteAccount] = useState(false);
   const [deletingAccount, setDeletingAccount] = useState(false);
@@ -241,7 +239,7 @@ export function SettingsScreen({ user, transactions, onLogOut, onDeleteAll, onDe
               on={aiEnabled}
               onToggle={() => saveAiEnabled(!aiEnabled)}
             />
-            {pushAllowed && (
+            {push.supported && (
               <>
                 <ToggleRow
                   icon="🔔" label="Notifiche push"
