@@ -12,21 +12,20 @@ export interface DigestInput {
 const DIGEST_URL =
   `https://europe-west1-${import.meta.env.VITE_FIREBASE_PROJECT_ID as string}.cloudfunctions.net/generateDigest`;
 
-export async function fetchDigest(input: DigestInput): Promise<string[]> {
+export async function fetchDigest(input: DigestInput, idToken: string): Promise<string[]> {
   try {
     const resp = await fetch(DIGEST_URL, {
       method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
+      headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${idToken}` },
       body: JSON.stringify(input),
     });
-    if (!resp.ok) return [`⚠️ DEBUG http=${resp.status}`];
+    if (!resp.ok) return buildRuleBasedDigest(input);
     const data = (await resp.json()) as { sentences?: string[] };
     const sentences = data?.sentences;
     if (Array.isArray(sentences) && sentences.length > 0) return sentences;
     return buildRuleBasedDigest(input);
-  } catch (err) {
-    const msg = err instanceof Error ? err.message : String(err);
-    return [`⚠️ DEBUG client: ${msg.slice(0, 200)}`];
+  } catch {
+    return buildRuleBasedDigest(input);
   }
 }
 
