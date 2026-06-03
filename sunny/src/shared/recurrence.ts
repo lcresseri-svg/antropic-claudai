@@ -101,3 +101,39 @@ export function recurringMonthlyEquivalent(
   }
   return total;
 }
+
+/**
+ * Sum of recurring expense occurrences strictly after `todayISO` and up to
+ * `monthEndISO`. Represents known committed spending in the days that remain
+ * in the current month. Used as a floor when projecting end-of-month expenses.
+ */
+export function upcomingRecurringThisMonth(
+  transactions: Transaction[],
+  todayISO: string,
+  monthEndISO: string,
+): number {
+  // Keep only the latest template per logical series.
+  const seriesMap = new Map<string, Transaction>();
+  for (const t of transactions) {
+    if (!t.recurring) continue;
+    const key = `${t.description}||${t.type}`;
+    const prev = seriesMap.get(key);
+    if (!prev || t.date > prev.date) seriesMap.set(key, t);
+  }
+  let total = 0;
+  for (const [, t] of seriesMap) {
+    if (t.type !== 'expense') continue;
+    const rule = t.recurring!;
+    if (rule.until && rule.until < todayISO) continue;
+    let d = addPeriod(t.date, rule.freq);
+    let guard = 500;
+    // Fast-forward to the first occurrence strictly after today.
+    while (d <= todayISO && --guard > 0) d = addPeriod(d, rule.freq);
+    let cap = 35; // guard against dense daily series
+    while (d <= monthEndISO && (!rule.until || d <= rule.until) && --cap > 0) {
+      total += t.amount;
+      d = addPeriod(d, rule.freq);
+    }
+  }
+  return total;
+}

@@ -9,6 +9,7 @@ interface Props {
   editing?: Transaction | null;
   groupTransfers?: Transaction[];
   seriesEdit?: boolean;
+  recentTransactions?: Transaction[];
   onClose: () => void;
   onSave: (deleteIds: string[], create: Omit<Transaction, 'id'>[]) => void;
 }
@@ -18,8 +19,8 @@ interface Reimb { amount: string; account: string }
 const today = () => new Date().toISOString().slice(0, 10);
 const yesterday = () => { const d = new Date(); d.setDate(d.getDate() - 1); return d.toISOString().slice(0, 10); };
 
-export function TransactionModal({ open, editing, groupTransfers = [], seriesEdit = false, onClose, onSave }: Props) {
-  const { categories, accounts, enableInvestments } = useSettings();
+export function TransactionModal({ open, editing, groupTransfers = [], seriesEdit = false, recentTransactions, onClose, onSave }: Props) {
+  const { categories, accounts, enableInvestments, detailedInvestments } = useSettings();
   const [type, setType] = useState<TransactionType>('expense');
   const [description, setDescription] = useState('');
   const [amount, setAmount] = useState('');
@@ -34,6 +35,7 @@ export function TransactionModal({ open, editing, groupTransfers = [], seriesEdi
   const [recurringFreq, setRecurringFreq] = useState<RecurrenceRule['freq']>('monthly');
   const [recurringUntil, setRecurringUntil] = useState('');
   const [fee, setFee] = useState('');
+  const [tfr, setTfr] = useState('');
 
   const [amountError, setAmountError] = useState(false);
   const [categoryTouched, setCategoryTouched] = useState(false);
@@ -61,13 +63,16 @@ export function TransactionModal({ open, editing, groupTransfers = [], seriesEdi
       setFee(editing.type === 'transfer'
         ? String(groupTransfers.find(t => t.type === 'expense')?.amount ?? '')
         : '');
+      setTfr(editing.tfr !== undefined ? String(editing.tfr) : '');
     } else {
+      const lastAcc = localStorage.getItem('sunny:lastAccount');
       setType('expense'); setDescription(''); setAmount(''); setDate(today());
-      setCategory(''); setAccount(accounts[0]?.id ?? '');
+      setCategory('');
+      setAccount((lastAcc && accounts.some(a => a.id === lastAcc)) ? lastAcc : (accounts[0]?.id ?? ''));
       setToAccount(accounts[1]?.id ?? ''); setNotes('');
       setIsShared(false); setReimbursements([]);
       setIsRecurring(false); setRecurringFreq('monthly'); setRecurringUntil('');
-      setFee('');
+      setFee(''); setTfr('');
     }
     setAmountError(false);
     setCategoryTouched(!!editing);
@@ -92,6 +97,18 @@ export function TransactionModal({ open, editing, groupTransfers = [], seriesEdi
     if (!typeCats.some(c => c.id === category)) setCategory(typeCats[0]?.id ?? '');
   }, [type, categories]);
 
+  // Detailed-investments extras (gated per user): a source-less investment and,
+  // for pension funds, the TFR portion of the contribution.
+  const canNoAccount = type === 'investment' && detailedInvestments;
+  const selCat = categories.find(c => c.id === category);
+  const isPensionInvest = type === 'investment' && detailedInvestments && selCat?.fundType === 'pension';
+
+  // An empty account is only valid for a source-less investment; otherwise snap
+  // back to a real account (e.g. after switching type away from investment).
+  useEffect(() => {
+    if (account === '' && !canNoAccount) setAccount(accounts[0]?.id ?? '');
+  }, [account, canNoAccount, accounts]);
+
   // Fallback description used when the field is left empty: the selected
   // category label (or the destination account for transfers).
   const defaultDesc = type === 'transfer'
@@ -107,8 +124,25 @@ export function TransactionModal({ open, editing, groupTransfers = [], seriesEdi
   const removeReimb = (i: number) =>
     setReimbursements(rs => rs.filter((_, j) => j !== i));
 
-  const submit = (e: React.FormEvent) => {
-    e.preventDefault();
+  const resetKeepContext = () => {
+    setDescription(''); setAmount(''); setNotes('');
+    setIsShared(false); setReimbursements([]);
+    setIsRecurring(false); setRecurringFreq('monthly'); setRecurringUntil('');
+    setFee(''); setTfr('');
+    setAmountError(false); setConfirmDelete(false); setShowMore(false);
+    setCategoryTouched(true); // keep type, category, account, date
+  };
+
+  const prefillFrom = (t: Transaction) => {
+    setType(t.type);
+    setCategory(t.category);
+    setCategoryTouched(true);
+    setAmount(String(t.amount));
+    setDescription(t.description);
+    if (t.account) setAccount(t.account);
+  };
+
+  const doSubmit = (keepOpen: boolean) => {
     const value = parseFloat(amount.replace(',', '.'));
     if (!value || value <= 0) { setAmountError(true); return; }
     setAmountError(false);
@@ -147,14 +181,19 @@ export function TransactionModal({ open, editing, groupTransfers = [], seriesEdi
           category, account, notes: notes.trim() || undefined, groupId, recurring, seriesId,
         });
       }
+      if (account) try { localStorage.setItem('sunny:lastAccount', account); } catch { /* ignore */ }
       onSave(deleteIds, create);
-      onClose();
+      if (keepOpen && !editing) { resetKeepContext(); } else { onClose(); }
       return;
     }
 
     const feeVal = type === 'transfer' ? parseFloat(fee.replace(',', '.')) : 0;
     const hasFee = feeVal > 0;
     const groupId = hasFee ? (editing?.groupId ?? crypto.randomUUID()) : undefined;
+
+    // TFR portion of a pension-fund contribution, capped at the amount.
+    const tfrRaw = isPensionInvest ? parseFloat(tfr.replace(',', '.')) : NaN;
+    const tfrClean = tfrRaw > 0 ? Math.min(tfrRaw, value) : undefined;
 
     const create: Omit<Transaction, 'id'>[] = [{
       type, description: desc, amount: value, date,
@@ -163,6 +202,7 @@ export function TransactionModal({ open, editing, groupTransfers = [], seriesEdi
       toAccount: type === 'transfer' ? toAccount : undefined,
       notes: notes.trim() || undefined,
       recurring, seriesId,
+      ...(type === 'investment' && tfrClean ? { tfr: tfrClean } : {}),
       ...(groupId ? { groupId } : {}),
     }];
     if (hasFee) {
@@ -171,8 +211,14 @@ export function TransactionModal({ open, editing, groupTransfers = [], seriesEdi
         amount: feeVal, date, category: 'altro', account, groupId: groupId!,
       });
     }
+    if (account) try { localStorage.setItem('sunny:lastAccount', account); } catch { /* ignore */ }
     onSave(deleteIds, create);
-    onClose();
+    if (keepOpen && !editing) { resetKeepContext(); } else { onClose(); }
+  };
+
+  const submit = (e: React.FormEvent) => {
+    e.preventDefault();
+    doSubmit(false);
   };
 
   if (!open) return null;
@@ -196,6 +242,27 @@ export function TransactionModal({ open, editing, groupTransfers = [], seriesEdi
               🔁 Stai modificando l'intera serie. Le modifiche valgono per le occorrenze future; le voci già registrate non cambiano.
             </p>
           )}
+
+          {/* Recent transactions chips — quick pre-fill for new transactions */}
+          {!editing && recentTransactions && recentTransactions.length > 0 && (
+            <div>
+              <p className="label-caps text-secondary mb-2 px-1">Recenti</p>
+              <div className="flex gap-2 overflow-x-auto scrollbar-hide pb-1 -mx-1 px-1">
+                {recentTransactions.map(t => {
+                  const c = categories.find(ct => ct.id === t.category);
+                  return (
+                    <button key={t.id} type="button" onClick={() => prefillFrom(t)}
+                      className="flex-shrink-0 flex items-center gap-1.5 px-3 py-1.5 rounded-full bg-elevated text-xs whitespace-nowrap active:bg-card-hover transition-colors">
+                      {c && <span>{c.icon}</span>}
+                      <span className="text-secondary max-w-[72px] truncate">{t.description || c?.label || ''}</span>
+                      <span className="text-primary balance-num">{formatCurrency(t.amount)}</span>
+                    </button>
+                  );
+                })}
+              </div>
+            </div>
+          )}
+
           {/* Type segmented */}
           <div className="grid gap-1.5 bg-surface rounded-2xl p-1" style={{ gridTemplateColumns: `repeat(${availableTypes.length}, 1fr)` }}>
             {availableTypes.map(t => (
@@ -272,10 +339,35 @@ export function TransactionModal({ open, editing, groupTransfers = [], seriesEdi
           ) : (
             <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
               <Field label="Conto">
-                <Select value={account} onChange={setAccount} options={accounts.map(a => ({ value: a.id, label: `${a.icon} ${a.label}` }))} />
+                <Select value={account} onChange={setAccount}
+                  options={[
+                    ...(canNoAccount ? [{ value: '', label: '🚫 Senza conto (TFR / datore)' }] : []),
+                    ...accounts.map(a => ({ value: a.id, label: `${a.icon} ${a.label}` })),
+                  ]} />
               </Field>
               <DateField date={date} td={td} yd={yd} setDate={setDate} />
             </div>
+          )}
+
+          {canNoAccount && account === '' && (
+            <p className="text-[11px] text-secondary -mt-1 px-1 leading-snug">
+              Questo versamento non esce da nessun conto: aumenta il capitale investito senza intaccare la liquidità.
+            </p>
+          )}
+
+          {/* TFR portion — pension-fund investments only */}
+          {isPensionInvest && (
+            <Field label="Di cui TFR (facoltativo)">
+              <div className="relative">
+                <span className="absolute left-4 top-1/2 -translate-y-1/2 text-secondary text-sm">€</span>
+                <input type="text" inputMode="decimal" placeholder="0,00" value={tfr}
+                  onChange={e => setTfr(e.target.value.replace(/[^\d.,]/g, ''))}
+                  className="w-full bg-elevated rounded-2xl pl-8 pr-4 py-3 text-primary placeholder:text-secondary/50 outline-none focus:ring-1 focus:ring-gold/40 balance-num" />
+              </div>
+              <p className="text-[11px] mt-1.5 px-1 text-secondary">
+                Quanta parte di questo versamento proviene dal TFR.
+              </p>
+            </Field>
           )}
 
           {/* Commission — transfers only */}
@@ -403,6 +495,13 @@ export function TransactionModal({ open, editing, groupTransfers = [], seriesEdi
             style={{ backgroundColor: TYPE_META[type].color }}>
             {editing ? 'Salva modifiche' : `Aggiungi ${TYPE_META[type].label.toLowerCase()}`}
           </button>
+
+          {!editing && (
+            <button type="button" onClick={() => doSubmit(true)}
+              className="w-full py-2.5 rounded-2xl text-sm font-medium text-secondary bg-elevated active:bg-card-hover transition-colors">
+              Salva e aggiungi un'altra
+            </button>
+          )}
 
           {editing && (
             confirmDelete

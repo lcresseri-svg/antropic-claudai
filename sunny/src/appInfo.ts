@@ -1,4 +1,4 @@
-export const APP_VERSION = '1.7.0';
+export const APP_VERSION = '1.8.8';
 
 /**
  * Release channel. While in 'beta' the app is still under active development
@@ -15,6 +15,115 @@ export interface VersionEntry {
 
 /** Registro versioni mostrato in Impostazioni → Registro versioni. */
 export const VERSIONS: VersionEntry[] = [
+  {
+    version: '1.8.8', date: '2026-06-03', title: 'Impostazioni più ordinate e funzioni opzionali',
+    changes: [
+      'Suggerimenti AI ora disattivati di default: attivali quando vuoi da Impostazioni → Generali (chi li aveva già attivati li mantiene).',
+      'Nuovo interruttore "Gestione budget": puoi nascondere il budget come già si fa con gli investimenti.',
+      'Con il budget disattivato la scheda resta comunque accessibile: spiega a cosa serve e con un tocco ti porta nelle impostazioni per riattivarlo.',
+      'Impostazioni → Generali riorganizzate per aree (Aspetto, Funzionalità, Analisi e AI, Notifiche) invece di un\'unica lista lunga.',
+    ],
+  },
+  {
+    version: '1.8.7', date: '2026-06-03', title: 'Categorie più semplici e aggiunta rapida',
+    changes: [
+      'Gestione categorie e conti più diretta: tocca una voce per modificarla subito (niente più passaggio da "Modifica") e usa "+ Aggiungi" sempre visibile sotto ogni sezione.',
+      'Nuovo pulsante "Riordina" dedicato al solo trascinamento, per separare le azioni e renderle più chiare.',
+      'Il foglio di modifica ora mostra un titolo (es. "Nuova categoria" / "Modifica conto") per orientarti meglio.',
+      'Modale nuova transazione: ricorda l\'ultimo conto usato e lo propone in automatico.',
+      'Nuovi chip "Recenti": le ultime 5 voci distinte compaiono sopra il form — un tocco pre-compila tutto.',
+      'Pulsante "Salva e aggiungi un\'altra": salva e lascia il modulo aperto mantenendo tipo, categoria e conto.',
+      'Raggruppa per (Per mese / Per conto / Per categoria) spostato nel popup filtri — la toolbar perde una riga.',
+    ],
+  },
+  {
+    version: '1.8.6', date: '2026-06-03', title: 'Previsioni più intelligenti',
+    changes: [
+      'Proiezione fine mese: ora incrocia media recente (ultimi 3 mesi), storico dello stesso mese in anni precedenti (stagionalità) e spese ricorrenti ancora da registrare questo mese.',
+      'Proiezione annuale: calcola le uscite mese per mese usando la media storica di ogni mese dell\'anno, così dicembre o agosto pesano correttamente; applica un pavimento sulle ricorrenti note.',
+      'Usa 6 mesi di storia (anziché 3) per la base della proiezione annuale, riducendo il bias stagionale del singolo trimestre.',
+    ],
+  },
+  {
+    version: '1.8.5', date: '2026-06-03', title: 'Correzioni',
+    changes: [
+      'Insight: non viene più segnalata la scadenza di un pagamento ricorrente se la ricorrenza termina prima della prossima occorrenza.',
+      'Modifica budget: corretta la "✕" di chiusura su iPhone quando la tastiera numerica è aperta.',
+    ],
+  },
+  {
+    version: '1.8.4', date: '2026-06-03', title: 'Notifiche per tutti',
+    changes: [
+      'Le notifiche push sono ora disponibili per tutti gli utenti (non più solo in beta).',
+      'Su iPhone con l\'app installata sulla schermata Home: al primo avvio compare una proposta per attivare le notifiche con accesso diretto alle impostazioni.',
+    ],
+  },
+  {
+    version: '1.8.3', date: '2026-06-03', title: 'Notifiche su misura',
+    changes: [
+      'Promemoria spese: ora arrivano comunque a metà giornata e la sera, anche se hai già registrato qualcosa.',
+      'Avviso voci ricorrenti: spostato alle 9:00.',
+      'Riepilogo mensile più ricco: tasso di risparmio in percentuale, peso di uscite e investimenti sulle entrate, numero di movimenti e un giudizio del mese.',
+    ],
+  },
+  {
+    version: '1.8.2', date: '2026-06-03', title: 'Notifiche, rifiniture',
+    changes: [
+      'Notifiche più pulite: rimossa l\'icona non supportata su iPhone (ora usa l\'icona dell\'app).',
+      'Impostazioni: rimosso il pannello di diagnostica delle notifiche, non più necessario.',
+    ],
+  },
+  {
+    version: '1.8.1', date: '2026-06-03', title: 'Notifiche su iPhone',
+    changes: [
+      'Correzione consegna notifiche su iPhone (PWA): ora vengono mostrate in modo affidabile sia ad app chiusa sia aperta.',
+    ],
+  },
+  {
+    version: '1.8.0', date: '2026-06-02', title: 'Notifiche push',
+    changes: [
+      'Notifiche push (Firebase Cloud Messaging): attivabili dalle impostazioni Generali.',
+      'Promemoria spese a metà giornata e alla sera, saltati automaticamente se hai già registrato qualcosa.',
+      'Avviso quando una voce ricorrente viene registrata automaticamente.',
+      'Riepilogo mensile a inizio mese con entrate, uscite e risparmio del mese precedente.',
+      'Su iPhone serve installare l\'app sulla schermata Home (iOS 16.4+) per ricevere le notifiche.',
+    ],
+  },
+  {
+    version: '1.7.4', date: '2026-06-02', title: 'Correzione categorie',
+    changes: [
+      'Risolto: aggiungendo una categoria dentro una sezione (Entrate, Investimenti…) veniva sempre creata come "Uscita". Ora mantiene il tipo corretto.',
+      'Aggiungendo una categoria di investimento da quella sezione ora compaiono anche tipo di fondo, TFR e capitale già investito.',
+      'Le categorie di spesa/entrata non mostrano più un campo "Saldo iniziale" che non le riguardava.',
+    ],
+  },
+  {
+    version: '1.7.3', date: '2026-06-02', title: 'Versamenti senza conto e TFR',
+    changes: [
+      'Investimenti: ora puoi registrare un versamento "senza conto di provenienza" (es. TFR o contributo del datore) che aumenta il capitale investito senza intaccare la liquidità.',
+      'Versamenti in un fondo pensionistico: puoi indicare quanta parte del singolo versamento è TFR.',
+      'Le statistiche del TFR tengono conto sia del capitale iniziale sia dei singoli versamenti.',
+    ],
+  },
+  {
+    version: '1.7.2', date: '2026-06-02', title: 'Investimenti dettagliati',
+    changes: [
+      'Budget ora sincronizzato sul cloud: obiettivi e limiti ti seguono su tutti i dispositivi (prima restavano sul singolo dispositivo).',
+      'Categorie di investimento: classificazione per tipo di fondo (Pensionistico, Obbligazionario, Azionario).',
+      'Fondi pensionistici: possibilità di indicare quanta parte del capitale è TFR.',
+      'Sezione Investimenti: nuovo grafico ad anello "Allocazione per tipo di fondo", con nota sulla quota di TFR.',
+    ],
+  },
+  {
+    version: '1.7.1', date: '2026-06-02', title: 'Budget e AI',
+    changes: [
+      'Spese pianificate: niente più "default" pari alle spese reali. Senza budget impostato il piano parte da €0 (i dati demo restano solo per chi non ha ancora movimenti).',
+      'Nuovo pulsante "Azzera budget" nella modifica budget per ripartire da zero in un tocco.',
+      'Impostazioni → Generali: nuovo interruttore "Suggerimenti AI". Se disattivato, la card sparisce e non viene fatta alcuna chiamata all\'API.',
+      'Riepilogo AI: modello Gemini aggiornato (2.5) e chiamata resa più affidabile.',
+      'Date dei movimenti: ora mostrano anche l\'anno.',
+    ],
+  },
   {
     version: '1.7.0', date: '2026-06-02', title: 'Ricorrenze a serie',
     changes: [

@@ -9,6 +9,17 @@ export const TYPE_META: Record<TransactionType, { label: string; color: string }
 
 export const TYPE_ORDER: TransactionType[] = ['expense', 'income', 'investment', 'transfer'];
 
+/** Classification of an investment fund (detailed-investments mode). */
+export type FundType = 'pension' | 'bond' | 'equity';
+
+export const FUND_TYPE_META: Record<FundType, { label: string; color: string; icon: string }> = {
+  pension: { label: 'Fondo pensionistico', color: '#8FB0A0', icon: '🛡️' },
+  bond:    { label: 'Obbligazionario',      color: '#88B0C0', icon: '🏛️' },
+  equity:  { label: 'Azionario',            color: '#E6B95C', icon: '📈' },
+};
+
+export const FUND_TYPE_ORDER: FundType[] = ['pension', 'bond', 'equity'];
+
 /** User-editable category. Stored in Firestore per user. */
 export interface CategoryDef {
   id: string;
@@ -17,6 +28,8 @@ export interface CategoryDef {
   color: string;  // hex
   kind: TransactionType;
   initialBalance?: number; // investment categories only: capital already invested before Sunny
+  fundType?: FundType;     // investment categories only: fund classification (detailed mode)
+  tfrAmount?: number;      // pension funds only: portion of capital that is TFR
 }
 
 /** User-editable account. */
@@ -36,7 +49,8 @@ export interface Transaction {
   amount: number;        // always positive
   type: TransactionType;
   category: string;      // CategoryDef.id
-  account: string;       // AccountDef.id
+  account: string;       // AccountDef.id — may be '' for a source-less investment (e.g. TFR / employer contribution)
+  tfr?: number;          // investment into a pension fund only: portion of this contribution that is TFR
   toAccount?: string;    // AccountDef.id — transfers only
   notes?: string;
   shared?: number;       // others' part of a shared expense; counted as movement, not spending

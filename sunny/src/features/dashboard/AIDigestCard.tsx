@@ -7,14 +7,14 @@ interface Props {
 }
 
 export function AIDigestCard({ input }: Props) {
-  const { insightDepth } = useSettings();
+  const { insightDepth, aiEnabled } = useSettings();
   const [sentences, setSentences] = useState<string[] | null>(null);
   const [visible, setVisible] = useState(false);
   const cacheRef = useRef<{ key: string; sentences: string[] } | null>(null);
   const inputKey = JSON.stringify(input);
 
   useEffect(() => {
-    if (input.income === 0 && input.expenses === 0) return;
+    if (!aiEnabled || input.income === 0 && input.expenses === 0) return;
 
     if (cacheRef.current?.key === inputKey) {
       setSentences(cacheRef.current.sentences);
@@ -33,7 +33,7 @@ export function AIDigestCard({ input }: Props) {
   // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [inputKey]);
 
-  if (insightDepth === 'minimal') return null;
+  if (!aiEnabled || insightDepth === 'minimal') return null;
   if (input.income === 0 && input.expenses === 0) return null;
 
   return (

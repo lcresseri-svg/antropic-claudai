@@ -20,6 +20,8 @@ interface Props {
   onSetCategory: (catId: string, n: number) => void;
   onSetIncome: (catId: string, n: number) => void;
   onSetInvestment: (catId: string, n: number) => void;
+  hasBudget?: boolean;
+  onResetAll?: () => void;
   onClose: () => void;
 }
 
@@ -35,15 +37,20 @@ export function BudgetEditSheet({
   open, expenseCategories, incomeCategories, investmentCategories,
   savingsTarget, categoryBudgets, incomeBudgets, investmentBudgets,
   defaultTab = 'expenses', focusCategory,
-  onSetTarget, onSetCategory, onSetIncome, onSetInvestment, onClose,
+  onSetTarget, onSetCategory, onSetIncome, onSetInvestment, hasBudget, onResetAll, onClose,
 }: Props) {
   const [tab, setTab] = useState<Tab>(defaultTab);
   const [customTarget, setCustomTarget] = useState('');
+  const [confirmReset, setConfirmReset] = useState(false);
+  // Bumped on reset to remount the uncontrolled inputs so they show the
+  // cleared (empty) values instead of their stale defaultValue.
+  const [resetKey, setResetKey] = useState(0);
 
   useEffect(() => {
     if (!open) return;
     setTab(defaultTab);
     setCustomTarget(TARGET_PRESETS.includes(savingsTarget) ? '' : String(savingsTarget));
+    setConfirmReset(false);
   }, [open, defaultTab, savingsTarget]);
 
   useEscapeKey(onClose, open);
@@ -61,7 +68,10 @@ export function BudgetEditSheet({
         {/* Header */}
         <div className="flex items-center justify-between px-6 pt-6 pb-3 shrink-0">
           <h3 className="text-base font-semibold text-primary">Modifica budget</h3>
-          <button onClick={onClose}
+          {/* onPointerDown (not onClick): on iOS, tapping with the number keyboard
+              open dismisses it and shifts this bottom-anchored sheet, so the click
+              lands off the moved button. Pointer-down fires before that shift. */}
+          <button onPointerDown={onClose}
             className="w-8 h-8 rounded-full bg-elevated flex items-center justify-center text-secondary text-sm">✕</button>
         </div>
 
@@ -115,6 +125,7 @@ export function BudgetEditSheet({
               <p className="label-caps text-secondary mb-1">Entrate mensili previste</p>
               <p className="text-[11px] text-secondary/60 mb-4 px-0.5">Quanto ti aspetti di ricevere per ogni fonte questo mese.</p>
               <CategoryInputList
+                key={`inc-${resetKey}`}
                 categories={incomeCategories}
                 budgets={incomeBudgets}
                 focusId={focusCategory ?? null}
@@ -130,6 +141,7 @@ export function BudgetEditSheet({
             <>
               <p className="label-caps text-secondary mb-3">Limite mensile per categoria</p>
               <CategoryInputList
+                key={`exp-${resetKey}`}
                 categories={expenseCategories}
                 budgets={categoryBudgets}
                 focusId={focusCategory ?? null}
@@ -143,6 +155,7 @@ export function BudgetEditSheet({
               <p className="label-caps text-secondary mb-1">Investimenti mensili pianificati</p>
               <p className="text-[11px] text-secondary/60 mb-4 px-0.5">Quanto vuoi destinare a ogni tipo di investimento questo mese.</p>
               <CategoryInputList
+                key={`inv-${resetKey}`}
                 categories={investmentCategories}
                 budgets={investmentBudgets}
                 focusId={focusCategory ?? null}
@@ -158,6 +171,22 @@ export function BudgetEditSheet({
             className="w-full mt-6 py-3 rounded-xl glass-cta-gold text-sm font-semibold">
             Fine
           </button>
+
+          {hasBudget && onResetAll && (
+            confirmReset ? (
+              <button
+                onClick={() => { onResetAll(); setResetKey(k => k + 1); setConfirmReset(false); }}
+                className="w-full mt-2 py-3 rounded-xl text-sm font-semibold text-[#E08B8B] bg-[#E08B8B]/15">
+                Conferma: azzera tutto il budget
+              </button>
+            ) : (
+              <button
+                onClick={() => setConfirmReset(true)}
+                className="w-full mt-2 py-3 rounded-xl text-sm font-medium text-secondary bg-elevated">
+                Azzera budget
+              </button>
+            )
+          )}
         </div>
       </div>
     </div>

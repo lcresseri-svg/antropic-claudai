@@ -11,6 +11,7 @@ import { Dashboard } from './features/dashboard/Dashboard';
 import { InvestmentsScreen } from './features/dashboard/InvestmentsScreen';
 import { InsightsScreen } from './features/insights/InsightsScreen';
 import { BudgetScreen } from './features/budget/BudgetScreen';
+import { BudgetDisabled } from './features/budget/BudgetDisabled';
 import { TransactionList } from './features/transactions/TransactionList';
 import { SettingsScreen } from './features/settings/SettingsScreen';
 import { TransactionModal } from './features/transactions/TransactionModal';
@@ -18,6 +19,8 @@ import { SeriesEditChoiceSheet } from './features/transactions/SeriesEditChoiceS
 import { ImportModal } from './features/transactions/ImportModal';
 import { BottomNav } from './shared/components/BottomNav';
 import { SideNav } from './shared/components/SideNav';
+import { PushPromoSheet } from './shared/components/PushPromoSheet';
+import { pushSupported, hasLocalToken } from './shared/push';
 
 function Loader({ phase }: { phase: string }) {
   const [secs, setSecs] = useState(0);
@@ -55,7 +58,7 @@ function Main({ user, onLogOut, onDeleteAccount }: {
 }) {
   const navigate = useNavigate();
   const location = useLocation();
-  const { accounts, categories, includeInvestments, enableInvestments } = useSettings();
+  const { accounts, categories, includeInvestments, enableInvestments, enableBudget } = useSettings();
   const tx = useTransactions(user, accounts, includeInvestments, categories, enableInvestments);
   const [editing, setEditing] = useState<Transaction | null>(null);
   const [seriesEdit, setSeriesEdit] = useState(false);
@@ -63,9 +66,37 @@ function Main({ user, onLogOut, onDeleteAccount }: {
   const [modalOpen, setModalOpen] = useState(false);
   const [importOpen, setImportOpen] = useState(false);
   const [settingsOpen, setSettingsOpen] = useState(false);
+  const [showPushPromo, setShowPushPromo] = useState(false);
 
   const isSettings = location.pathname.startsWith('/settings');
   const firstName = user.displayName?.split(' ')[0] ?? 'utente';
+
+  useEffect(() => { window.scrollTo(0, 0); }, [location.pathname]);
+
+  // Show the push promo sheet once to iOS PWA users who haven't enabled push.
+  useEffect(() => {
+    const isIOS = /iPhone|iPad|iPod/.test(navigator.userAgent);
+    const isStandalone = window.matchMedia('(display-mode: standalone)').matches
+      || (navigator as unknown as { standalone?: boolean }).standalone === true;
+    if (!isIOS || !isStandalone) return;
+    const key = `sunny:pushPromo:${user.uid}`;
+    if (localStorage.getItem(key)) return;
+    const alreadyEnabled =
+      typeof Notification !== 'undefined' &&
+      Notification.permission === 'granted' &&
+      hasLocalToken();
+    if (alreadyEnabled) return;
+    let cancelled = false;
+    const t = setTimeout(() => {
+      pushSupported().then(ok => { if (!cancelled && ok) setShowPushPromo(true); });
+    }, 1500);
+    return () => { cancelled = true; clearTimeout(t); };
+  }, [user?.uid]);
+
+  const dismissPushPromo = () => {
+    try { localStorage.setItem(`sunny:pushPromo:${user.uid}`, '1'); } catch { /* ignore */ }
+    setShowPushPromo(false);
+  };
   const brand = `${greeting()}, ${firstName}`;
 
   // Virtual future occurrences of every recurring template — shown ahead of time
@@ -112,6 +143,20 @@ function Main({ user, onLogOut, onDeleteAccount }: {
 
   const handleSave = (deleteIds: string[], create: Omit<Transaction, 'id'>[]) =>
     tx.replaceGroup(deleteIds, create);
+
+  const recentTransactions = useMemo(() => {
+    const seen = new Set<string>();
+    return tx.transactions
+      .filter(t => !t.recurring && !t.projected)
+      .sort((a, b) => b.date.localeCompare(a.date))
+      .filter(t => {
+        const k = `${t.description}|${t.category}`;
+        if (seen.has(k)) return false;
+        seen.add(k);
+        return true;
+      })
+      .slice(0, 5);
+  }, [tx.transactions]);
 
   return (
     <div className="min-h-screen md:flex">
@@ -204,12 +249,16 @@ function Main({ user, onLogOut, onDeleteAccount }: {
             } />
             <Route path="/budget" element={
               <div className="pt-4 md:pt-6">
-                <BudgetScreen
-                  user={user}
-                  transactions={tx.transactions}
-                  monthlyIncome={tx.monthlyIncome} monthlyExpenses={tx.monthlyExpenses}
-                  monthlyInvestments={tx.monthlyInvestments} categoryTotals={tx.categoryTotals}
-                />
+                {enableBudget ? (
+                  <BudgetScreen
+                    user={user}
+                    transactions={tx.transactions}
+                    monthlyIncome={tx.monthlyIncome} monthlyExpenses={tx.monthlyExpenses}
+                    monthlyInvestments={tx.monthlyInvestments} categoryTotals={tx.categoryTotals}
+                  />
+                ) : (
+                  <BudgetDisabled onActivate={() => navigate('/settings?section=generali')} />
+                )}
               </div>
             } />
             <Route path="/transactions" element={
@@ -239,6 +288,7 @@ function Main({ user, onLogOut, onDeleteAccount }: {
 
       <TransactionModal
         open={modalOpen} editing={editing} groupTransfers={groupTransfers} seriesEdit={seriesEdit}
+        recentTransactions={recentTransactions}
         onClose={() => setModalOpen(false)}
         onSave={handleSave}
       />
@@ -255,6 +305,11 @@ function Main({ user, onLogOut, onDeleteAccount }: {
         }}
       />
       <ImportModal open={importOpen} onClose={() => setImportOpen(false)} onImport={tx.addTransactions} />
+      <PushPromoSheet
+        open={showPushPromo}
+        onClose={dismissPushPromo}
+        onGoToSettings={() => { dismissPushPromo(); navigate('/settings'); }}
+      />
     </div>
   );
 }

@@ -138,16 +138,14 @@ export interface MonthForecast {
  * Single source of truth for the end-of-month forecast, used by BOTH the
  * Insights engine and the Budget screen so they never contradict each other.
  *
- * Expense model — "actuals so far + typical spending for the days that remain":
- *   projected = spentSoFar + (1 − monthProgress) × avgMonthlyExpense
- *
- * This is a confidence-weighted blend: at the start of the month the estimate
- * is essentially the historical average (we trust history); as days pass it
- * leans on what you've actually spent, and at month end it equals the real
- * total. Crucially it still reacts to an unusual month, because any over- or
- * under-spend so far is carried through in full — unlike a naive run-rate
- * (spent ÷ elapsed-fraction) it never explodes from a single early purchase.
- * With no history we fall back to a guarded run-rate.
+ * Expense model — multi-signal blend:
+ *   1. Actuals so far (anchor — we can't end lower than what's spent)
+ *   2. Remaining days × blended historical rate:
+ *      - 65% weight on recent months (last ~3), 35% on same-month prior years
+ *      - Falls back to whichever source is available
+ *   3. Upcoming recurring expenses (known commitments still due this month)
+ *      used as a floor on the remaining-days estimate, never added on top
+ *      (recurring is presumed embedded in the historical rate)
  *
  * Income/investments use the higher of "already recorded" and "historical
  * average", since salaries/contributions usually land as a single lump sum.
@@ -159,15 +157,32 @@ export function forecastSavings(o: {
   avgIncome?: number;
   avgExpense?: number;
   avgInvest?: number;
+  /** Average expense for this same calendar month in prior years. */
+  seasonalAvgExpense?: number;
+  /** Sum of recurring expense occurrences still due this month (after today). */
+  upcomingRecurring?: number;
   now?: Date;
 }): MonthForecast {
   const now = o.now ?? new Date();
   const prog = monthProgress(now);
   const avgExpense = o.avgExpense ?? 0;
+  const seasonalAvg = o.seasonalAvgExpense ?? 0;
+
+  // Blend recent average with same-month-prior-years seasonal average.
+  let baseAvg: number;
+  if (avgExpense > 0 && seasonalAvg > 0) {
+    baseAvg = avgExpense * 0.65 + seasonalAvg * 0.35;
+  } else {
+    baseAvg = avgExpense > 0 ? avgExpense : seasonalAvg;
+  }
 
   let projectedExpenses: number;
-  if (avgExpense > 0) {
-    projectedExpenses = o.monthlyExpenses + Math.max(0, 1 - prog) * avgExpense;
+  if (baseAvg > 0) {
+    const historicalRemaining = Math.max(0, 1 - prog) * baseAvg;
+    // Known committed spending still due this month — acts as a floor, not an
+    // addition, because recurring costs are already baked into the historical rate.
+    const knownRemaining = Math.max(0, o.upcomingRecurring ?? 0);
+    projectedExpenses = o.monthlyExpenses + Math.max(historicalRemaining, knownRemaining);
   } else {
     projectedExpenses = prog >= 0.15 ? o.monthlyExpenses / prog : o.monthlyExpenses;
   }

@@ -1,6 +1,6 @@
 import { useMemo } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { Transaction } from '../../types';
+import { Transaction, FundType, FUND_TYPE_META, FUND_TYPE_ORDER } from '../../types';
 import { useSettings } from '../../shared/providers/settings';
 import { formatCurrency, formatDate, formatMonthShort, capitalize } from '../../utils';
 import { Donut } from './Donut';
@@ -15,7 +15,7 @@ interface Props {
 
 export function InvestmentsScreen({ investmentByCategory, investmentTotal, monthlyInvestments, trend, transactions }: Props) {
   const navigate = useNavigate();
-  const { getCat, getAcc, categories } = useSettings();
+  const { getCat, getAcc, categories, detailedInvestments } = useSettings();
 
   const investTx = useMemo(
     () => transactions.filter(t => t.type === 'investment').sort((a, b) => b.date.localeCompare(a.date)),
@@ -49,6 +49,34 @@ export function InvestmentsScreen({ investmentByCategory, investmentTotal, month
   }, [categories, investmentByCategory, getCat]);
 
   const segments = rows.filter(r => r.value > 0).map(r => ({ label: r.label, value: r.value, color: r.color, icon: r.icon }));
+
+  // Allocation by fund type (pension / bond / equity) — detailed mode only.
+  // Values reuse the per-category capital already computed (initial + flows).
+  const fundAlloc = useMemo(() => {
+    const byType: Record<FundType, number> = { pension: 0, bond: 0, equity: 0 };
+    const pensionCatIds = new Set<string>();
+    let tfrTotal = 0;
+    for (const c of categories) {
+      if (c.kind !== 'investment' || !c.fundType) continue;
+      byType[c.fundType] += investmentByCategory[c.id] ?? 0;
+      if (c.fundType === 'pension') {
+        pensionCatIds.add(c.id);
+        if (c.tfrAmount) tfrTotal += c.tfrAmount; // TFR within the pre-Sunny capital
+      }
+    }
+    // TFR declared on individual pension-fund contributions.
+    for (const t of transactions) {
+      if (t.type === 'investment' && t.tfr && pensionCatIds.has(t.category)) tfrTotal += t.tfr;
+    }
+    const classifiedTotal = byType.pension + byType.bond + byType.equity;
+    return { byType, tfrTotal, classifiedTotal };
+  }, [categories, investmentByCategory, transactions]);
+
+  const fundSegments = FUND_TYPE_ORDER
+    .filter(ft => fundAlloc.byType[ft] > 0)
+    .map(ft => ({ label: FUND_TYPE_META[ft].label, value: fundAlloc.byType[ft], color: FUND_TYPE_META[ft].color, icon: FUND_TYPE_META[ft].icon }));
+
+  const showFundDonut = detailedInvestments && fundAlloc.classifiedTotal > 0;
 
   const maxMonth = Math.max(1, ...trend.map(t => t.invest));
 
@@ -108,6 +136,46 @@ export function InvestmentsScreen({ investmentByCategory, investmentTotal, month
                   })}
                 </ul>
               </div>
+            </div>
+          )}
+
+          {/* Donut by fund type (detailed-investments mode) */}
+          {showFundDonut && (
+            <div className="glass-card rounded-2xl p-5">
+              <p className="label-caps text-secondary mb-4">Allocazione per tipo di fondo</p>
+              <div className="flex items-center gap-5 flex-wrap">
+                <Donut segments={fundSegments} centerLabel="Investito" size={140} />
+                <ul className="flex-1 space-y-3 min-w-[180px]">
+                  {FUND_TYPE_ORDER.filter(ft => fundAlloc.byType[ft] > 0).map(ft => {
+                    const value = fundAlloc.byType[ft];
+                    const pct = fundAlloc.classifiedTotal > 0 ? Math.round((value / fundAlloc.classifiedTotal) * 100) : 0;
+                    return (
+                      <li key={ft} className="flex items-center gap-2.5 min-w-0">
+                        <span className="w-2.5 h-2.5 rounded-full flex-shrink-0" style={{ backgroundColor: FUND_TYPE_META[ft].color }} />
+                        <div className="flex-1 min-w-0">
+                          <p className="text-[13px] text-primary truncate">{FUND_TYPE_META[ft].icon} {FUND_TYPE_META[ft].label}</p>
+                          <p className="text-[11px] text-secondary">{pct}%</p>
+                        </div>
+                        <span className="text-[13px] font-semibold text-primary balance-num flex-shrink-0">{formatCurrency(value)}</span>
+                      </li>
+                    );
+                  })}
+                </ul>
+              </div>
+              {fundAlloc.tfrTotal > 0 && (
+                <div className="mt-4 rounded-xl px-3.5 py-3 flex items-start gap-2.5" style={{ backgroundColor: 'rgba(143,176,160,0.12)' }}>
+                  <span className="text-base flex-shrink-0">🛡️</span>
+                  <p className="text-[12px] text-secondary leading-snug">
+                    Di questo totale, <span className="font-semibold text-primary balance-num">{formatCurrency(fundAlloc.tfrTotal)}</span> proviene dal <span className="font-medium text-primary">TFR</span>
+                    {investmentTotal > 0 && (
+                      <> — il <span className="font-medium text-primary">{Math.round((fundAlloc.tfrTotal / investmentTotal) * 100)}%</span> del capitale totale investito</>
+                    )}
+                    {fundAlloc.byType.pension > 0 && (
+                      <> ({Math.round((fundAlloc.tfrTotal / fundAlloc.byType.pension) * 100)}% del fondo pensionistico)</>
+                    )}.
+                  </p>
+                </div>
+              )}
             </div>
           )}
 

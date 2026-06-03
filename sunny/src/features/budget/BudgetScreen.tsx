@@ -5,8 +5,9 @@ import { useSettings } from '../../shared/providers/settings';
 import { useBudget } from '../../shared/hooks/useBudget';
 import {
   suggestBudgets, forecastSavings, generateBudgetInsights, seasonalHint,
-  DEMO_CATEGORY_SPEND, DEMO_CATEGORY_BUDGETS,
+  seasonalMonthlyAverage, DEMO_CATEGORY_SPEND, DEMO_CATEGORY_BUDGETS,
 } from './budgetUtils';
+import { upcomingRecurringThisMonth } from '../../shared/recurrence';
 import { history } from '../insights/insightsEngine';
 import { SavingsGoalCard } from './SavingsGoalCard';
 import { SuggestedBudgetCard } from './SuggestedBudgetCard';
@@ -35,7 +36,7 @@ export function BudgetScreen({
   const { categories, enableInvestments } = useSettings();
   const {
     budget, setSavingsTarget, setCategoryBudget, setIncomeBudget, setInvestmentBudget,
-    acceptSuggestion, hasBudget,
+    acceptSuggestion, resetAll, hasBudget,
   } = useBudget(user);
 
   const [editOpen, setEditOpen] = useState(false);
@@ -86,10 +87,18 @@ export function BudgetScreen({
   // never contradict each other.
   const predicted = useMemo(() => {
     if (isLearning) return 420;
+    const now = new Date();
     const h = history(transactions, 3);
+    const seasonal = seasonalMonthlyAverage(transactions, now.getMonth(), now);
+    const seasonalAvgExpense = Object.values(seasonal).reduce((s, v) => s + v, 0);
+    const today = now.toISOString().slice(0, 10);
+    const lastDay = new Date(now.getFullYear(), now.getMonth() + 1, 0).getDate();
+    const monthEnd = `${now.toISOString().slice(0, 7)}-${String(lastDay).padStart(2, '0')}`;
+    const upcomingRecurring = upcomingRecurringThisMonth(transactions, today, monthEnd);
     return forecastSavings({
       monthlyIncome, monthlyExpenses, monthlyInvestments,
       avgIncome: h.avgIncome, avgExpense: h.avgExpense, avgInvest: h.avgInvest,
+      seasonalAvgExpense, upcomingRecurring,
     }).savings;
   }, [isLearning, transactions, monthlyIncome, monthlyExpenses, monthlyInvestments]);
 
@@ -99,13 +108,16 @@ export function BudgetScreen({
 
   const plannedExpenses = useMemo(() => {
     const sum = Object.values(activeExpBudgets).reduce((s, v) => s + v, 0);
-    return sum > 0 ? sum : monthlyExpenses;
-  }, [activeExpBudgets, monthlyExpenses]);
+    // Only fall back to actual spending in demo mode (no real transactions).
+    // When the user has real data but hasn't set a budget, show 0 — actual
+    // spending is "what happened", not "what was planned".
+    return sum > 0 ? sum : (isLearning ? monthlyExpenses : 0);
+  }, [activeExpBudgets, monthlyExpenses, isLearning]);
 
   const plannedInvestments = useMemo(() => {
     const sum = Object.values(activeInvBudgets).reduce((s, v) => s + v, 0);
-    return sum > 0 ? sum : monthlyInvestments;
-  }, [activeInvBudgets, monthlyInvestments]);
+    return sum > 0 ? sum : (isLearning ? monthlyInvestments : 0);
+  }, [activeInvBudgets, monthlyInvestments, isLearning]);
 
   // Seasonal heads-up: a category that historically spikes this calendar month.
   const season = useMemo(() => (isLearning ? null : seasonalHint(transactions)), [isLearning, transactions]);
@@ -232,6 +244,8 @@ export function BudgetScreen({
         onSetCategory={setCategoryBudget}
         onSetIncome={setIncomeBudget}
         onSetInvestment={setInvestmentBudget}
+        hasBudget={hasBudget}
+        onResetAll={resetAll}
         onClose={() => setEditOpen(false)}
       />
     </div>

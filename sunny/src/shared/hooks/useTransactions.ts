@@ -51,7 +51,10 @@ export function useTransactions(user: User | null, accounts: AccountDef[] = [], 
         setLoading(false);
       },
     );
-  }, [user]);
+  // Depend on uid, not the user object — the object reference changes on every
+  // token refresh, which would tear down and recreate the listener (and re-read
+  // all documents). The listener only needs to restart when the actual user changes.
+  }, [user?.uid]);
 
   const colRef = useCallback(() => collection(db, 'users', user!.uid, 'transactions'), [user]);
 
@@ -157,7 +160,9 @@ export function useTransactions(user: User | null, accounts: AccountDef[] = [], 
       if (a.initialBalance) accountBalances[a.id] = a.initialBalance;
     }
     for (const t of transactions) {
-      const bal = (id: string, delta: number) => { accountBalances[id] = (accountBalances[id] ?? 0) + delta; };
+      // Ignore an empty account id: a source-less investment (TFR / employer
+      // contribution) adds to invested capital without drawing from any account.
+      const bal = (id: string, delta: number) => { if (!id) return; accountBalances[id] = (accountBalances[id] ?? 0) + delta; };
       if (t.type === 'income') bal(t.account, t.amount);
       else if (t.type === 'investment') bal(t.account, -t.amount);
       else if (t.type === 'expense') bal(t.account, -ownShare(t));
