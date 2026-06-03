@@ -241,6 +241,17 @@ export const remindLogExpenses = onSchedule(
   }
 );
 
+// TEMPORARY: one-off 14:00 test — remove after confirming delivery.
+export const testPush14 = onSchedule(
+  { schedule: '0 14 * * *', timeZone: 'Europe/Rome', region: 'europe-west1' },
+  async () => {
+    const users = await usersWithReminder('logExpenses');
+    for (const userId of users) {
+      await sendToUser(userId, 'Test 14:00 🔔', 'Le notifiche schedulate funzionano correttamente.', undefined, 'test-14');
+    }
+  }
+);
+
 // Start-of-month summary of the previous month — 09:00 on the 1st.
 export const sendMonthlySummary = onSchedule(
   { schedule: '0 9 1 * *', timeZone: 'Europe/Rome', region: 'europe-west1' },
