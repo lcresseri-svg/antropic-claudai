@@ -68,7 +68,10 @@ export function BudgetEditSheet({
         {/* Header */}
         <div className="flex items-center justify-between px-6 pt-6 pb-3 shrink-0">
           <h3 className="text-base font-semibold text-primary">Modifica budget</h3>
-          <button onClick={onClose}
+          {/* onPointerDown (not onClick): on iOS, tapping with the number keyboard
+              open dismisses it and shifts this bottom-anchored sheet, so the click
+              lands off the moved button. Pointer-down fires before that shift. */}
+          <button onPointerDown={onClose}
             className="w-8 h-8 rounded-full bg-elevated flex items-center justify-center text-secondary text-sm">✕</button>
         </div>
 

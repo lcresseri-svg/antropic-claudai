@@ -1,4 +1,4 @@
-export const APP_VERSION = '1.8.4';
+export const APP_VERSION = '1.8.5';
 
 /**
  * Release channel. While in 'beta' the app is still under active development
@@ -15,6 +15,13 @@ export interface VersionEntry {
 
 /** Registro versioni mostrato in Impostazioni → Registro versioni. */
 export const VERSIONS: VersionEntry[] = [
+  {
+    version: '1.8.5', date: '2026-06-03', title: 'Correzioni',
+    changes: [
+      'Insight: non viene più segnalata la scadenza di un pagamento ricorrente se la ricorrenza termina prima della prossima occorrenza.',
+      'Modifica budget: corretta la "✕" di chiusura su iPhone quando la tastiera numerica è aperta.',
+    ],
+  },
   {
     version: '1.8.4', date: '2026-06-03', title: 'Notifiche per tutti',
     changes: [

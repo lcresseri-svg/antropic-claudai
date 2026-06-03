@@ -300,6 +300,8 @@ export function buildInsights(input: InsightInput): Insight[] {
     const rule = t.recurring!;
     if (rule.until && rule.until < today) continue;
     const nextDue = addPeriod(t.date, rule.freq);
+    // Don't announce an occurrence that falls after the series' end date.
+    if (rule.until && nextDue > rule.until) continue;
     const days = daysUntil(nextDue, now);
     if (days > 14 || days < -7) continue;
     const freqLabel = rule.freq === 'daily' ? 'giorno' : rule.freq === 'weekly' ? 'settimana' : rule.freq === 'monthly' ? 'mese' : 'anno';
