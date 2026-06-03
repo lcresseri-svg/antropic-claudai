@@ -3,12 +3,14 @@ import { Transaction, TransactionType, TYPE_META, TYPE_ORDER, RecurrenceRule } f
 import { formatCurrency, formatDate, guessCategory } from '../../utils';
 import { useSettings } from '../../shared/providers/settings';
 import { useEscapeKey } from '../../shared/hooks/useEscapeKey';
+import { haptic } from '../../shared/utils/haptics';
 
 interface Props {
   open: boolean;
   editing?: Transaction | null;
   groupTransfers?: Transaction[];
   seriesEdit?: boolean;
+  recentTransactions?: Transaction[];
   onClose: () => void;
   onSave: (deleteIds: string[], create: Omit<Transaction, 'id'>[]) => void;
 }
@@ -18,7 +20,7 @@ interface Reimb { amount: string; account: string }
 const today = () => new Date().toISOString().slice(0, 10);
 const yesterday = () => { const d = new Date(); d.setDate(d.getDate() - 1); return d.toISOString().slice(0, 10); };
 
-export function TransactionModal({ open, editing, groupTransfers = [], seriesEdit = false, onClose, onSave }: Props) {
+export function TransactionModal({ open, editing, groupTransfers = [], seriesEdit = false, recentTransactions, onClose, onSave }: Props) {
   const { categories, accounts, enableInvestments, detailedInvestments } = useSettings();
   const [type, setType] = useState<TransactionType>('expense');
   const [description, setDescription] = useState('');
@@ -64,8 +66,10 @@ export function TransactionModal({ open, editing, groupTransfers = [], seriesEdi
         : '');
       setTfr(editing.tfr !== undefined ? String(editing.tfr) : '');
     } else {
+      const lastAcc = localStorage.getItem('sunny:lastAccount');
       setType('expense'); setDescription(''); setAmount(''); setDate(today());
-      setCategory(''); setAccount(accounts[0]?.id ?? '');
+      setCategory('');
+      setAccount((lastAcc && accounts.some(a => a.id === lastAcc)) ? lastAcc : (accounts[0]?.id ?? ''));
       setToAccount(accounts[1]?.id ?? ''); setNotes('');
       setIsShared(false); setReimbursements([]);
       setIsRecurring(false); setRecurringFreq('monthly'); setRecurringUntil('');
@@ -121,8 +125,25 @@ export function TransactionModal({ open, editing, groupTransfers = [], seriesEdi
   const removeReimb = (i: number) =>
     setReimbursements(rs => rs.filter((_, j) => j !== i));
 
-  const submit = (e: React.FormEvent) => {
-    e.preventDefault();
+  const resetKeepContext = () => {
+    setDescription(''); setAmount(''); setNotes('');
+    setIsShared(false); setReimbursements([]);
+    setIsRecurring(false); setRecurringFreq('monthly'); setRecurringUntil('');
+    setFee(''); setTfr('');
+    setAmountError(false); setConfirmDelete(false); setShowMore(false);
+    setCategoryTouched(true); // keep type, category, account, date
+  };
+
+  const prefillFrom = (t: Transaction) => {
+    setType(t.type);
+    setCategory(t.category);
+    setCategoryTouched(true);
+    setAmount(String(t.amount));
+    setDescription(t.description);
+    if (t.account) setAccount(t.account);
+  };
+
+  const doSubmit = (keepOpen: boolean) => {
     const value = parseFloat(amount.replace(',', '.'));
     if (!value || value <= 0) { setAmountError(true); return; }
     setAmountError(false);
@@ -161,8 +182,9 @@ export function TransactionModal({ open, editing, groupTransfers = [], seriesEdi
           category, account, notes: notes.trim() || undefined, groupId, recurring, seriesId,
         });
       }
+      if (account) try { localStorage.setItem('sunny:lastAccount', account); } catch { /* ignore */ }
       onSave(deleteIds, create);
-      onClose();
+      if (keepOpen && !editing) { resetKeepContext(); haptic.medium(); } else { onClose(); }
       return;
     }
 
@@ -190,8 +212,14 @@ export function TransactionModal({ open, editing, groupTransfers = [], seriesEdi
         amount: feeVal, date, category: 'altro', account, groupId: groupId!,
       });
     }
+    if (account) try { localStorage.setItem('sunny:lastAccount', account); } catch { /* ignore */ }
     onSave(deleteIds, create);
-    onClose();
+    if (keepOpen && !editing) { resetKeepContext(); haptic.medium(); } else { onClose(); }
+  };
+
+  const submit = (e: React.FormEvent) => {
+    e.preventDefault();
+    doSubmit(false);
   };
 
   if (!open) return null;
@@ -215,6 +243,27 @@ export function TransactionModal({ open, editing, groupTransfers = [], seriesEdi
               🔁 Stai modificando l'intera serie. Le modifiche valgono per le occorrenze future; le voci già registrate non cambiano.
             </p>
           )}
+
+          {/* Recent transactions chips — quick pre-fill for new transactions */}
+          {!editing && recentTransactions && recentTransactions.length > 0 && (
+            <div>
+              <p className="label-caps text-secondary mb-2 px-1">Recenti</p>
+              <div className="flex gap-2 overflow-x-auto scrollbar-hide pb-1 -mx-1 px-1">
+                {recentTransactions.map(t => {
+                  const c = categories.find(ct => ct.id === t.category);
+                  return (
+                    <button key={t.id} type="button" onClick={() => prefillFrom(t)}
+                      className="flex-shrink-0 flex items-center gap-1.5 px-3 py-1.5 rounded-full bg-elevated text-xs whitespace-nowrap active:bg-card-hover transition-colors">
+                      {c && <span>{c.icon}</span>}
+                      <span className="text-secondary max-w-[72px] truncate">{t.description || c?.label || ''}</span>
+                      <span className="text-primary balance-num">{formatCurrency(t.amount)}</span>
+                    </button>
+                  );
+                })}
+              </div>
+            </div>
+          )}
+
           {/* Type segmented */}
           <div className="grid gap-1.5 bg-surface rounded-2xl p-1" style={{ gridTemplateColumns: `repeat(${availableTypes.length}, 1fr)` }}>
             {availableTypes.map(t => (
@@ -447,6 +496,13 @@ export function TransactionModal({ open, editing, groupTransfers = [], seriesEdi
             style={{ backgroundColor: TYPE_META[type].color }}>
             {editing ? 'Salva modifiche' : `Aggiungi ${TYPE_META[type].label.toLowerCase()}`}
           </button>
+
+          {!editing && (
+            <button type="button" onClick={() => doSubmit(true)}
+              className="w-full py-2.5 rounded-2xl text-sm font-medium text-secondary bg-elevated active:bg-card-hover transition-colors">
+              Salva e aggiungi un'altra
+            </button>
+          )}
 
           {editing && (
             confirmDelete

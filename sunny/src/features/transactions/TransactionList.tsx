@@ -4,12 +4,14 @@ import { formatCurrency, formatDate, formatMonthLong, capitalize } from '../../u
 import { useSettings } from '../../shared/providers/settings';
 import { TransactionRow } from './TransactionRow';
 import { OptionSheet } from '../../shared/components/OptionSheet';
+import { haptic } from '../../shared/utils/haptics';
 
 interface Props {
   transactions: Transaction[];
   projected?: Transaction[]; // virtual future occurrences — display only
   onEdit: (tx: Transaction) => void;
   onDelete: (id: string) => void;
+  onDuplicate?: (tx: Transaction) => void;
   onBulkUpdate: (ids: string[], patch: TransactionPatch) => void;
   onBulkDelete: (ids: string[]) => void;
   onAdd: () => void;
@@ -59,7 +61,7 @@ function projectedCutoffISO(v: ProjView, now: Date): string | null {
   return d.toISOString().slice(0, 10);
 }
 
-export function TransactionList({ transactions, projected = [], onEdit, onDelete, onBulkUpdate, onBulkDelete, onAdd }: Props) {
+export function TransactionList({ transactions, projected = [], onEdit, onDelete, onDuplicate, onBulkUpdate, onBulkDelete, onAdd }: Props) {
   const { categories, accounts, getAcc, getCat } = useSettings();
   const [search, setSearch] = useState('');
   const [typeFilter, setTypeFilter] = useState<TransactionType | 'all'>('all');
@@ -204,7 +206,7 @@ export function TransactionList({ transactions, projected = [], onEdit, onDelete
     exitSelect();
   };
 
-  const filterActive = period !== 'all' || sortKey !== 'date' || sortDir !== 'desc' || projView !== PROJ_DEFAULT;
+  const filterActive = period !== 'all' || sortKey !== 'date' || sortDir !== 'desc' || projView !== PROJ_DEFAULT || groupMode !== 'month';
   const periodLabel = PERIOD_OPTS.find(o => o.value === period)!.label;
   const projLabel = PROJ_OPTS.find(o => o.value === projView)!.label;
   const dirLabels: [SortDir, string][] = sortKey === 'amount'
@@ -307,6 +309,23 @@ export function TransactionList({ transactions, projected = [], onEdit, onDelete
                       </div>
                     </>
                   )}
+
+                  <p className="label-caps text-secondary mb-2 mt-3 px-1">Raggruppa per</p>
+                  <div className="space-y-1">
+                    {([['month', 'Per mese'], ['account', 'Per conto'], ['category', 'Per categoria']] as [GroupMode, string][]).map(([m, lbl]) => (
+                      <button key={m} onClick={() => { changeGroup(m); setFilterOpen(false); }}
+                        className={`w-full flex items-center justify-between px-3 py-2 rounded-xl text-sm transition-colors ${
+                          groupMode === m ? 'bg-gold/10 text-gold font-medium' : 'text-primary hover:bg-card'
+                        }`}>
+                        {lbl}
+                        {groupMode === m && (
+                          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
+                            <path d="M20 6 9 17l-5-5"/>
+                          </svg>
+                        )}
+                      </button>
+                    ))}
+                  </div>
                 </div>
               </>
             )}
@@ -337,34 +356,28 @@ export function TransactionList({ transactions, projected = [], onEdit, onDelete
           </div>
         )}
 
-        {/* Type filter — capsule pills */}
-        <div className="flex gap-1.5 overflow-x-auto scrollbar-hide -mx-1 px-1">
-          <PillBtn active={typeFilter === 'all'} onClick={() => setTypeFilter('all')}>Tutte</PillBtn>
-          {usedTypes.map(t => (
-            <PillBtn key={t} active={typeFilter === t} dot={TYPE_META[t].color}
-              onClick={() => setTypeFilter(typeFilter === t ? 'all' : t)}>
-              {TYPE_META[t].label}
-            </PillBtn>
-          ))}
-        </div>
-
-        {/* Group + select */}
-        <div className="flex items-center justify-between gap-2">
-          <div className="flex gap-1.5 overflow-x-auto scrollbar-hide -mx-1 px-1">
-            {(['month', 'account', 'category'] as GroupMode[]).map(m => (
-              <PillBtn key={m} active={groupMode === m} onClick={() => changeGroup(m)}>
-                {m === 'month' ? 'Per mese' : m === 'account' ? 'Per conto' : 'Per categoria'}
+        {/* Type filter + action buttons — one row */}
+        <div className="flex items-center gap-2">
+          <div className="flex gap-1.5 overflow-x-auto scrollbar-hide flex-1 -mx-1 px-1">
+            <PillBtn active={typeFilter === 'all'} onClick={() => setTypeFilter('all')}>Tutte</PillBtn>
+            {usedTypes.map(t => (
+              <PillBtn key={t} active={typeFilter === t} dot={TYPE_META[t].color}
+                onClick={() => setTypeFilter(typeFilter === t ? 'all' : t)}>
+                {TYPE_META[t].label}
               </PillBtn>
             ))}
           </div>
           <div className="flex items-center gap-1 flex-shrink-0">
             {groups.length > 1 && (
-              <button onClick={toggleAll} className="text-xs font-medium text-secondary hover:text-primary px-2 py-1.5">
+              <button onClick={toggleAll}
+                className="text-xs font-medium text-secondary px-2 py-1.5 active:bg-card-hover rounded-lg transition-colors">
                 {allCollapsed ? 'Espandi' : 'Comprimi'}
               </button>
             )}
-            <button onClick={() => selectMode ? exitSelect() : setSelectMode(true)}
-              className="text-xs font-medium text-gold px-2 py-1.5">
+            <button onClick={() => {
+              if (selectMode) exitSelect();
+              else { setSelectMode(true); haptic.select(); }
+            }} className="text-xs font-medium text-gold px-2 py-1.5 active:bg-card-hover rounded-lg transition-colors">
               {selectMode ? 'Annulla' : 'Seleziona'}
             </button>
           </div>
@@ -417,7 +430,15 @@ export function TransactionList({ transactions, projected = [], onEdit, onDelete
                   {txs.map(tx => (
                     <TransactionRow key={tx.id} tx={tx}
                       selectable={selectMode && !tx.projected} selected={selected.has(tx.id)}
-                      onToggle={toggle} onClick={onEdit} />
+                      onToggle={toggle} onClick={onEdit}
+                      onDelete={!tx.projected ? onDelete : undefined}
+                      onDuplicate={!tx.projected ? onDuplicate : undefined}
+                      onEnterSelect={!tx.projected ? (id) => {
+                        setSelectMode(true);
+                        setSelected(new Set([id]));
+                        haptic.select();
+                      } : undefined}
+                    />
                   ))}
                 </div>
               )}
@@ -463,7 +484,7 @@ function PillBtn({ children, active, dot, onClick }: { children: React.ReactNode
   return (
     <button onClick={onClick}
       className={`flex items-center gap-1.5 px-3.5 py-1.5 rounded-full text-xs font-semibold whitespace-nowrap transition-colors ${
-        active ? 'bg-gold/10 text-gold' : 'text-secondary hover:text-primary'
+        active ? 'bg-gold/10 text-gold' : 'text-secondary hover:text-primary active:bg-card-hover'
       }`}>
       {dot && <span className="w-1.5 h-1.5 rounded-full flex-shrink-0" style={{ backgroundColor: dot }} />}
       {children}
