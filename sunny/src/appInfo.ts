@@ -16,11 +16,11 @@ export interface VersionEntry {
 /** Registro versioni mostrato in Impostazioni → Registro versioni. */
 export const VERSIONS: VersionEntry[] = [
   {
-    version: '1.8.7', date: '2026-06-03', title: 'Gesti, velocità e pulizia',
+    version: '1.8.7', date: '2026-06-03', title: 'Categorie più semplici e aggiunta rapida',
     changes: [
-      'Swipe sinistra su un movimento: rivela il pulsante Elimina (tocco per confermare). Swipe destra: duplica il movimento con data odierna.',
-      'Long-press (500 ms) su una riga: entra direttamente in modalità selezione con quella voce già spuntata.',
-      'Feedback tattile su azioni chiave: eliminazione, selezione, duplica (Android/Chrome).',
+      'Gestione categorie e conti più diretta: tocca una voce per modificarla subito (niente più passaggio da "Modifica") e usa "+ Aggiungi" sempre visibile sotto ogni sezione.',
+      'Nuovo pulsante "Riordina" dedicato al solo trascinamento, per separare le azioni e renderle più chiare.',
+      'Il foglio di modifica ora mostra un titolo (es. "Nuova categoria" / "Modifica conto") per orientarti meglio.',
       'Modale nuova transazione: ricorda l\'ultimo conto usato e lo propone in automatico.',
       'Nuovi chip "Recenti": le ultime 5 voci distinte compaiono sopra il form — un tocco pre-compila tutto.',
       'Pulsante "Salva e aggiungi un\'altra": salva e lascia il modulo aperto mantenendo tipo, categoria e conto.',

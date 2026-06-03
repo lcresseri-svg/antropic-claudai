@@ -3,7 +3,6 @@ import { Transaction, TransactionType, TYPE_META, TYPE_ORDER, RecurrenceRule } f
 import { formatCurrency, formatDate, guessCategory } from '../../utils';
 import { useSettings } from '../../shared/providers/settings';
 import { useEscapeKey } from '../../shared/hooks/useEscapeKey';
-import { haptic } from '../../shared/utils/haptics';
 
 interface Props {
   open: boolean;
@@ -184,7 +183,7 @@ export function TransactionModal({ open, editing, groupTransfers = [], seriesEdi
       }
       if (account) try { localStorage.setItem('sunny:lastAccount', account); } catch { /* ignore */ }
       onSave(deleteIds, create);
-      if (keepOpen && !editing) { resetKeepContext(); haptic.medium(); } else { onClose(); }
+      if (keepOpen && !editing) { resetKeepContext(); } else { onClose(); }
       return;
     }
 
@@ -214,7 +213,7 @@ export function TransactionModal({ open, editing, groupTransfers = [], seriesEdi
     }
     if (account) try { localStorage.setItem('sunny:lastAccount', account); } catch { /* ignore */ }
     onSave(deleteIds, create);
-    if (keepOpen && !editing) { resetKeepContext(); haptic.medium(); } else { onClose(); }
+    if (keepOpen && !editing) { resetKeepContext(); } else { onClose(); }
   };
 
   const submit = (e: React.FormEvent) => {

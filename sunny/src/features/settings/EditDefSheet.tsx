@@ -61,6 +61,11 @@ export function EditDefSheet({ open, draft, withKind, canDelete, showFundType, o
   const showBalance = (!isCategory && !draft.isInvestment) || isInvestmentCategory;
   const showFunds = isInvestmentCategory && !!showFundType;
 
+  const noun = isCategory ? 'categoria' : 'conto';
+  const sheetTitle = canDelete
+    ? `Modifica ${noun}`
+    : `${isCategory ? 'Nuova' : 'Nuovo'} ${noun}`;
+
   const save = () => {
     if (!label.trim()) return;
     const parsedBalance = initialBalance !== '' ? parseFloat(initialBalance) : undefined;
@@ -81,6 +86,8 @@ export function EditDefSheet({ open, draft, withKind, canDelete, showFundType, o
       onClick={e => { if (e.target === e.currentTarget) onClose(); }}>
       <div className="absolute inset-0 bg-black/60 backdrop-blur-sm animate-fade-in-fast" />
       <div className="relative w-full max-w-md glass-elevated rounded-3xl p-6 shadow-float animate-sheet-up max-h-[90vh] overflow-y-auto scrollbar-hide">
+        <h2 className="text-base font-semibold text-primary mb-4">{sheetTitle}</h2>
+        <p className="text-xs font-medium text-secondary mb-2 px-1">Nome e icona</p>
         <div className="flex items-center gap-3 mb-5">
           <span className="w-12 h-12 rounded-full flex items-center justify-center text-xl" style={{ backgroundColor: color + '22' }}>{icon}</span>
           <input value={label} onChange={e => setLabel(e.target.value)} placeholder="Nome" maxLength={24} autoFocus

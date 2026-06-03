@@ -143,24 +143,6 @@ function Main({ user, onLogOut, onDeleteAccount }: {
   const handleSave = (deleteIds: string[], create: Omit<Transaction, 'id'>[]) =>
     tx.replaceGroup(deleteIds, create);
 
-  // Swipe-delete: removes the transaction and any sibling docs sharing the same groupId
-  // (e.g. fee or storno transfers linked to a shared expense or a transfer with commission).
-  const handleSwipeDelete = (id: string) => {
-    const t = tx.transactions.find(x => x.id === id);
-    if (!t) return;
-    const idsToDelete = t.groupId
-      ? tx.transactions.filter(x => x.groupId === t.groupId).map(x => x.id)
-      : [id];
-    handleSave(idsToDelete, []);
-  };
-
-  // Swipe-right duplicate: creates a standalone copy with today's date,
-  // stripping recurrence, series linkage, group membership and the projected flag.
-  const handleDuplicate = (t: Transaction) => {
-    const { id: _id, seriesId: _sid, recurring: _rec, projected: _prj, groupId: _gid, ...rest } = t;
-    handleSave([], [{ ...rest, date: new Date().toISOString().slice(0, 10) }]);
-  };
-
   const recentTransactions = useMemo(() => {
     const seen = new Set<string>();
     return tx.transactions
@@ -279,7 +261,7 @@ function Main({ user, onLogOut, onDeleteAccount }: {
                 <h1 className="text-2xl font-bold text-primary tracking-[-0.03em] mb-6">Movimenti</h1>
                 <TransactionList
                   transactions={tx.transactions} projected={projected}
-                  onEdit={openEdit} onDelete={handleSwipeDelete} onDuplicate={handleDuplicate}
+                  onEdit={openEdit} onDelete={tx.deleteTransaction}
                   onBulkUpdate={tx.updateTransactions} onBulkDelete={tx.deleteTransactions}
                   onAdd={openAdd}
                 />

@@ -427,12 +427,12 @@ export function SettingsScreen({ user, transactions, onLogOut, onDeleteAll, onDe
                   editMode={false} selected={false}
                   showHandle={editMode}
                   isDragging={a.id === draggingId}
-                  onClick={editMode ? () => openAccount(a) : undefined}
+                  onClick={editMode ? undefined : () => openAccount(a)}
                   onHandlePointerDown={editMode ? (y) => startDrag('accounts', accounts.indexOf(a), y) : undefined}
                 />
               ))}
             </div>
-            {editMode && (
+            {!editMode && (
               <button onClick={() => openAccount()}
                 className="w-full py-3 rounded-2xl bg-card text-gold text-sm font-semibold active:bg-card-hover">
                 + Aggiungi conto
@@ -458,21 +458,21 @@ export function SettingsScreen({ user, transactions, onLogOut, onDeleteAll, onDe
                   </div>
                   {items.length > 0 && (
                     <div className="bg-card rounded-2xl divide-y divide-divider">
-                      {items.map((c, idx) => (
+                      {items.map((c) => (
                         <ManageRow key={c.id} icon={c.icon} color={c.color} label={c.label}
                           editMode={false} selected={false}
                           showHandle={editMode}
                           isDragging={c.id === draggingId}
-                          onClick={editMode ? () => openCategory(c) : undefined}
+                          onClick={editMode ? undefined : () => openCategory(c)}
                           onHandlePointerDown={editMode ? (y) => startDrag(k, baseItems.indexOf(c), y) : undefined}
                         />
                       ))}
                     </div>
                   )}
-                  {editMode && (
+                  {!editMode && (
                     <button onClick={() => openCategory(undefined, k)}
                       className="w-full mt-2 py-3 rounded-2xl bg-card text-gold text-sm font-semibold active:bg-card-hover">
-                      + Aggiungi
+                      + Aggiungi {TYPE_META[k].label.toLowerCase()}
                     </button>
                   )}
                 </div>
@@ -594,7 +594,7 @@ function ManageHeader({ title, editMode, onBack, onToggleEdit, hideEdit, deleteC
       )}
       {!hideEdit && (
         <button onClick={onToggleEdit} className="text-sm font-medium text-gold px-1">
-          {editMode ? 'Fine' : 'Modifica'}
+          {editMode ? 'Fine' : 'Riordina'}
         </button>
       )}
     </div>

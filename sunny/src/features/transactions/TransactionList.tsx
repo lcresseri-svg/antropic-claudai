@@ -4,14 +4,12 @@ import { formatCurrency, formatDate, formatMonthLong, capitalize } from '../../u
 import { useSettings } from '../../shared/providers/settings';
 import { TransactionRow } from './TransactionRow';
 import { OptionSheet } from '../../shared/components/OptionSheet';
-import { haptic } from '../../shared/utils/haptics';
 
 interface Props {
   transactions: Transaction[];
   projected?: Transaction[]; // virtual future occurrences — display only
   onEdit: (tx: Transaction) => void;
   onDelete: (id: string) => void;
-  onDuplicate?: (tx: Transaction) => void;
   onBulkUpdate: (ids: string[], patch: TransactionPatch) => void;
   onBulkDelete: (ids: string[]) => void;
   onAdd: () => void;
@@ -61,7 +59,7 @@ function projectedCutoffISO(v: ProjView, now: Date): string | null {
   return d.toISOString().slice(0, 10);
 }
 
-export function TransactionList({ transactions, projected = [], onEdit, onDelete, onDuplicate, onBulkUpdate, onBulkDelete, onAdd }: Props) {
+export function TransactionList({ transactions, projected = [], onEdit, onDelete, onBulkUpdate, onBulkDelete, onAdd }: Props) {
   const { categories, accounts, getAcc, getCat } = useSettings();
   const [search, setSearch] = useState('');
   const [typeFilter, setTypeFilter] = useState<TransactionType | 'all'>('all');
@@ -374,10 +372,8 @@ export function TransactionList({ transactions, projected = [], onEdit, onDelete
                 {allCollapsed ? 'Espandi' : 'Comprimi'}
               </button>
             )}
-            <button onClick={() => {
-              if (selectMode) exitSelect();
-              else { setSelectMode(true); haptic.select(); }
-            }} className="text-xs font-medium text-gold px-2 py-1.5 active:bg-card-hover rounded-lg transition-colors">
+            <button onClick={() => selectMode ? exitSelect() : setSelectMode(true)}
+              className="text-xs font-medium text-gold px-2 py-1.5 active:bg-card-hover rounded-lg transition-colors">
               {selectMode ? 'Annulla' : 'Seleziona'}
             </button>
           </div>
@@ -430,15 +426,7 @@ export function TransactionList({ transactions, projected = [], onEdit, onDelete
                   {txs.map(tx => (
                     <TransactionRow key={tx.id} tx={tx}
                       selectable={selectMode && !tx.projected} selected={selected.has(tx.id)}
-                      onToggle={toggle} onClick={onEdit}
-                      onDelete={!tx.projected ? onDelete : undefined}
-                      onDuplicate={!tx.projected ? onDuplicate : undefined}
-                      onEnterSelect={!tx.projected ? (id) => {
-                        setSelectMode(true);
-                        setSelected(new Set([id]));
-                        haptic.select();
-                      } : undefined}
-                    />
+                      onToggle={toggle} onClick={onEdit} />
                   ))}
                 </div>
               )}
