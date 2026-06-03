@@ -1,4 +1,4 @@
-export const APP_VERSION = '1.8.7';
+export const APP_VERSION = '1.8.8';
 
 /**
  * Release channel. While in 'beta' the app is still under active development
@@ -15,6 +15,15 @@ export interface VersionEntry {
 
 /** Registro versioni mostrato in Impostazioni → Registro versioni. */
 export const VERSIONS: VersionEntry[] = [
+  {
+    version: '1.8.8', date: '2026-06-03', title: 'Impostazioni più ordinate e funzioni opzionali',
+    changes: [
+      'Suggerimenti AI ora disattivati di default: attivali quando vuoi da Impostazioni → Generali (chi li aveva già attivati li mantiene).',
+      'Nuovo interruttore "Gestione budget": puoi nascondere il budget come già si fa con gli investimenti.',
+      'Con il budget disattivato la scheda resta comunque accessibile: spiega a cosa serve e con un tocco ti porta nelle impostazioni per riattivarlo.',
+      'Impostazioni → Generali riorganizzate per aree (Aspetto, Funzionalità, Analisi e AI, Notifiche) invece di un\'unica lista lunga.',
+    ],
+  },
   {
     version: '1.8.7', date: '2026-06-03', title: 'Categorie più semplici e aggiunta rapida',
     changes: [

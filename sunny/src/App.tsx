@@ -11,6 +11,7 @@ import { Dashboard } from './features/dashboard/Dashboard';
 import { InvestmentsScreen } from './features/dashboard/InvestmentsScreen';
 import { InsightsScreen } from './features/insights/InsightsScreen';
 import { BudgetScreen } from './features/budget/BudgetScreen';
+import { BudgetDisabled } from './features/budget/BudgetDisabled';
 import { TransactionList } from './features/transactions/TransactionList';
 import { SettingsScreen } from './features/settings/SettingsScreen';
 import { TransactionModal } from './features/transactions/TransactionModal';
@@ -57,7 +58,7 @@ function Main({ user, onLogOut, onDeleteAccount }: {
 }) {
   const navigate = useNavigate();
   const location = useLocation();
-  const { accounts, categories, includeInvestments, enableInvestments } = useSettings();
+  const { accounts, categories, includeInvestments, enableInvestments, enableBudget } = useSettings();
   const tx = useTransactions(user, accounts, includeInvestments, categories, enableInvestments);
   const [editing, setEditing] = useState<Transaction | null>(null);
   const [seriesEdit, setSeriesEdit] = useState(false);
@@ -248,12 +249,16 @@ function Main({ user, onLogOut, onDeleteAccount }: {
             } />
             <Route path="/budget" element={
               <div className="pt-4 md:pt-6">
-                <BudgetScreen
-                  user={user}
-                  transactions={tx.transactions}
-                  monthlyIncome={tx.monthlyIncome} monthlyExpenses={tx.monthlyExpenses}
-                  monthlyInvestments={tx.monthlyInvestments} categoryTotals={tx.categoryTotals}
-                />
+                {enableBudget ? (
+                  <BudgetScreen
+                    user={user}
+                    transactions={tx.transactions}
+                    monthlyIncome={tx.monthlyIncome} monthlyExpenses={tx.monthlyExpenses}
+                    monthlyInvestments={tx.monthlyInvestments} categoryTotals={tx.categoryTotals}
+                  />
+                ) : (
+                  <BudgetDisabled onActivate={() => navigate('/settings?section=generali')} />
+                )}
               </div>
             } />
             <Route path="/transactions" element={

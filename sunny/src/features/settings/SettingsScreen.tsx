@@ -1,5 +1,5 @@
 import { useState, useEffect, useRef } from 'react';
-import { useNavigate } from 'react-router-dom';
+import { useNavigate, useLocation } from 'react-router-dom';
 import { User } from 'firebase/auth';
 import { CategoryDef, AccountDef, Transaction, TransactionType, TYPE_META, TYPE_ORDER } from '../../types';
 import { useSettings } from '../../shared/providers/settings';
@@ -35,7 +35,8 @@ function reorder<T>(arr: T[], from: number, to: number): T[] {
 
 export function SettingsScreen({ user, transactions, onLogOut, onDeleteAll, onDeleteAccount }: Props) {
   const navigate = useNavigate();
-  const { categories, accounts, theme, includeInvestments, enableInvestments, insightDepth, aiEnabled, detailedInvestments, saveCategories, saveAccounts, saveTheme, saveIncludeInvestments, saveEnableInvestments, saveInsightDepth, saveAiEnabled } = useSettings();
+  const location = useLocation();
+  const { categories, accounts, theme, includeInvestments, enableInvestments, enableBudget, insightDepth, aiEnabled, detailedInvestments, saveCategories, saveAccounts, saveTheme, saveIncludeInvestments, saveEnableInvestments, saveEnableBudget, saveInsightDepth, saveAiEnabled } = useSettings();
   const [sub, setSub] = useState<Sub>('menu');
   const [editing, setEditing] = useState<{ kind: 'category' | 'account'; draft: DefDraft; isNew: boolean; withKind?: boolean } | null>(null);
   const [confirmReset, setConfirmReset] = useState(false);
@@ -48,6 +49,14 @@ export function SettingsScreen({ user, transactions, onLogOut, onDeleteAll, onDe
   const [deleteError, setDeleteError] = useState<string | null>(null);
   const [editMode, setEditMode] = useState(false);
   const [drag, setDrag] = useState<DragState | null>(null);
+
+  // Deep-link support: e.g. /settings?section=generali jumps straight to a
+  // sub-section (used by the "Attiva budget" shortcut on the disabled screen).
+  useEffect(() => {
+    const s = new URLSearchParams(location.search).get('section');
+    const valid: Sub[] = ['generali', 'gestione', 'dati', 'accounts', 'categories', 'info', 'versioni'];
+    if (s && (valid as string[]).includes(s)) setSub(s as Sub);
+  }, [location.search]);
 
   const exportJson = () => downloadJson(buildExportPayload(user, categories, accounts, transactions));
   const exportCsv = () => downloadCsv(transactions);
@@ -212,35 +221,79 @@ export function SettingsScreen({ user, transactions, onLogOut, onDeleteAll, onDe
       {sub === 'generali' && (
         <>
           <ManageHeader title="Generali" editMode={false} onBack={exitToMenu} onToggleEdit={() => {}} hideEdit />
-          <div className="bg-card rounded-2xl divide-y divide-divider md:max-w-xl">
-            <ToggleRow
-              icon="🌙" label="Tema scuro"
-              sub={theme === 'dark' ? 'Attivo' : 'Non attivo'}
-              on={theme === 'dark'}
-              onToggle={() => saveTheme(theme === 'dark' ? 'light' : 'dark')}
-            />
-            <ToggleRow
-              icon="📊" label="Gestione investimenti"
-              sub={enableInvestments ? 'Investi e tieni traccia del tuo portafoglio' : 'Investimenti nascosti da tutta l\'app'}
-              on={enableInvestments}
-              onToggle={() => saveEnableInvestments(!enableInvestments)}
-            />
-            {enableInvestments && (
+          <div className="space-y-5 md:max-w-xl">
+
+            <SettingsGroup title="Aspetto">
               <ToggleRow
-                icon="📈" label="Includi investito nel patrimonio"
-                sub={includeInvestments ? 'Il patrimonio comprende il capitale investito' : 'Il patrimonio mostra solo la liquidità'}
-                on={includeInvestments}
-                onToggle={() => saveIncludeInvestments(!includeInvestments)}
+                icon="🌙" label="Tema scuro"
+                sub={theme === 'dark' ? 'Attivo' : 'Non attivo'}
+                on={theme === 'dark'}
+                onToggle={() => saveTheme(theme === 'dark' ? 'light' : 'dark')}
               />
-            )}
-            <ToggleRow
-              icon="✨" label="Suggerimenti AI"
-              sub={aiEnabled ? 'Riepilogo mensile generato da Gemini' : 'Disattivato — nessuna chiamata all\'API'}
-              on={aiEnabled}
-              onToggle={() => saveAiEnabled(!aiEnabled)}
-            />
+            </SettingsGroup>
+
+            <SettingsGroup title="Funzionalità">
+              <ToggleRow
+                icon="📊" label="Gestione investimenti"
+                sub={enableInvestments ? 'Investi e tieni traccia del tuo portafoglio' : 'Investimenti nascosti da tutta l\'app'}
+                on={enableInvestments}
+                onToggle={() => saveEnableInvestments(!enableInvestments)}
+              />
+              {enableInvestments && (
+                <ToggleRow
+                  icon="📈" label="Includi investito nel patrimonio"
+                  sub={includeInvestments ? 'Il patrimonio comprende il capitale investito' : 'Il patrimonio mostra solo la liquidità'}
+                  on={includeInvestments}
+                  onToggle={() => saveIncludeInvestments(!includeInvestments)}
+                />
+              )}
+              <ToggleRow
+                icon="🎯" label="Gestione budget"
+                sub={enableBudget ? 'Obiettivi, limiti di spesa e previsioni' : 'Budget nascosto — la scheda resta per riattivarlo'}
+                on={enableBudget}
+                onToggle={() => saveEnableBudget(!enableBudget)}
+              />
+            </SettingsGroup>
+
+            <SettingsGroup title="Analisi e AI">
+              <ToggleRow
+                icon="✨" label="Suggerimenti AI"
+                sub={aiEnabled ? 'Riepilogo mensile generato da Gemini' : 'Disattivato — nessuna chiamata all\'API'}
+                on={aiEnabled}
+                onToggle={() => saveAiEnabled(!aiEnabled)}
+              />
+              <div className="p-4">
+                <div className="flex items-start gap-3.5 mb-3">
+                  <span className="text-2xl mt-0.5">🔍</span>
+                  <div>
+                    <p className="text-sm font-medium text-primary">Livello di analisi</p>
+                    <p className="text-xs text-secondary mt-0.5">
+                      {insightDepth === 'minimal'
+                        ? 'Solo scadenze ricorrenti'
+                        : insightDepth === 'medium'
+                        ? 'Previsioni e confronti principali'
+                        : 'Analisi completa con trend e statistiche'}
+                    </p>
+                  </div>
+                </div>
+                <div className="flex rounded-xl bg-elevated p-0.5 gap-0.5">
+                  {(['minimal', 'medium', 'advanced'] as const).map(d => (
+                    <button
+                      key={d}
+                      onClick={() => saveInsightDepth(d)}
+                      className={`flex-1 py-2 rounded-[10px] text-[13px] font-medium transition-colors ${
+                        insightDepth === d ? 'bg-gold text-bg' : 'text-secondary active:text-primary'
+                      }`}
+                    >
+                      {d === 'minimal' ? 'Minimal' : d === 'medium' ? 'Media' : 'Smanettone'}
+                    </button>
+                  ))}
+                </div>
+              </div>
+            </SettingsGroup>
+
             {push.supported && (
-              <>
+              <SettingsGroup title="Notifiche">
                 <ToggleRow
                   icon="🔔" label="Notifiche push"
                   sub={
@@ -294,36 +347,8 @@ export function SettingsScreen({ user, transactions, onLogOut, onDeleteAll, onDe
                     </div>
                   </>
                 )}
-              </>
+              </SettingsGroup>
             )}
-            <div className="p-4">
-              <div className="flex items-start gap-3.5 mb-3">
-                <span className="text-2xl mt-0.5">🔍</span>
-                <div>
-                  <p className="text-sm font-medium text-primary">Livello di analisi</p>
-                  <p className="text-xs text-secondary mt-0.5">
-                    {insightDepth === 'minimal'
-                      ? 'Solo scadenze ricorrenti'
-                      : insightDepth === 'medium'
-                      ? 'Previsioni e confronti principali'
-                      : 'Analisi completa con trend e statistiche'}
-                  </p>
-                </div>
-              </div>
-              <div className="flex rounded-xl bg-elevated p-0.5 gap-0.5">
-                {(['minimal', 'medium', 'advanced'] as const).map(d => (
-                  <button
-                    key={d}
-                    onClick={() => saveInsightDepth(d)}
-                    className={`flex-1 py-2 rounded-[10px] text-[13px] font-medium transition-colors ${
-                      insightDepth === d ? 'bg-gold text-bg' : 'text-secondary active:text-primary'
-                    }`}
-                  >
-                    {d === 'minimal' ? 'Minimal' : d === 'medium' ? 'Media' : 'Smanettone'}
-                  </button>
-                ))}
-              </div>
-            </div>
           </div>
         </>
       )}
@@ -645,6 +670,15 @@ function InfoBlock({ icon, title, children }: { icon: string; title: string; chi
         <p className="text-sm font-semibold text-primary mb-1">{title}</p>
         <p className="text-[13px] text-secondary leading-relaxed">{children}</p>
       </div>
+    </div>
+  );
+}
+
+function SettingsGroup({ title, children }: { title: string; children: React.ReactNode }) {
+  return (
+    <div>
+      <p className="label-caps text-secondary mb-2 px-1">{title}</p>
+      <div className="bg-card rounded-2xl divide-y divide-divider overflow-hidden">{children}</div>
     </div>
   );
 }

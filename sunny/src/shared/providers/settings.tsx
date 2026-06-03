@@ -17,6 +17,7 @@ interface SettingsValue {
   theme: Theme;
   includeInvestments: boolean; // count invested capital in net worth
   enableInvestments: boolean;  // show/hide entire investments feature
+  enableBudget: boolean;       // show/hide the budget feature
   insightDepth: InsightDepth;
   aiEnabled: boolean;
   detailedInvestments: boolean; // per-user gated: fund-type classification + TFR
@@ -27,6 +28,7 @@ interface SettingsValue {
   saveTheme: (t: Theme) => void;
   saveIncludeInvestments: (v: boolean) => void;
   saveEnableInvestments: (v: boolean) => void;
+  saveEnableBudget: (v: boolean) => void;
   saveInsightDepth: (v: InsightDepth) => void;
   saveAiEnabled: (v: boolean) => void;
 }
@@ -41,8 +43,9 @@ export function SettingsProvider({ user, children }: { user: User | null; childr
   const [theme, setTheme] = useState<Theme>('dark');
   const [includeInvestments, setIncludeInvestments] = useState(true);
   const [enableInvestments, setEnableInvestments] = useState(true);
+  const [enableBudget, setEnableBudget] = useState(true);
   const [insightDepth, setInsightDepth] = useState<InsightDepth>('medium');
-  const [aiEnabled, setAiEnabled] = useState(true);
+  const [aiEnabled, setAiEnabled] = useState(false);
 
   // Apply theme class to <html> immediately when state changes
   useEffect(() => {
@@ -56,8 +59,9 @@ export function SettingsProvider({ user, children }: { user: User | null; childr
       setTheme('dark');
       setIncludeInvestments(true);
       setEnableInvestments(true);
+      setEnableBudget(true);
       setInsightDepth('medium');
-      setAiEnabled(true);
+      setAiEnabled(false);
       return;
     }
     const ref = doc(db, 'users', user.uid, 'meta', 'settings');
@@ -78,8 +82,9 @@ export function SettingsProvider({ user, children }: { user: User | null; childr
       setTheme((d.theme as Theme) ?? 'dark');
       setIncludeInvestments(d.includeInvestments ?? true);
       setEnableInvestments(d.enableInvestments ?? true);
+      setEnableBudget(d.enableBudget ?? true);
       setInsightDepth((d.insightDepth as InsightDepth) ?? 'medium');
-      setAiEnabled(d.aiEnabled ?? true);
+      setAiEnabled(d.aiEnabled ?? false);
     });
   // uid, not user object — avoids listener recreation on every token refresh.
   }, [user?.uid]);
@@ -116,6 +121,11 @@ export function SettingsProvider({ user, children }: { user: User | null; childr
     if (user) setDoc(settingsRef(), { enableInvestments: v }, MERGE);
   }, [user, settingsRef]);
 
+  const saveEnableBudget = useCallback((v: boolean) => {
+    setEnableBudget(v);
+    if (user) setDoc(settingsRef(), { enableBudget: v }, MERGE);
+  }, [user, settingsRef]);
+
   const saveInsightDepth = useCallback((v: InsightDepth) => {
     setInsightDepth(v);
     if (user) setDoc(settingsRef(), { insightDepth: v }, MERGE);
@@ -138,7 +148,7 @@ export function SettingsProvider({ user, children }: { user: User | null; childr
   );
 
   return (
-    <SettingsContext.Provider value={{ categories, accounts, theme, includeInvestments, enableInvestments, insightDepth, aiEnabled, detailedInvestments, getCat, getAcc, saveCategories, saveAccounts, saveTheme, saveIncludeInvestments, saveEnableInvestments, saveInsightDepth, saveAiEnabled }}>
+    <SettingsContext.Provider value={{ categories, accounts, theme, includeInvestments, enableInvestments, enableBudget, insightDepth, aiEnabled, detailedInvestments, getCat, getAcc, saveCategories, saveAccounts, saveTheme, saveIncludeInvestments, saveEnableInvestments, saveEnableBudget, saveInsightDepth, saveAiEnabled }}>
       {children}
     </SettingsContext.Provider>
   );
