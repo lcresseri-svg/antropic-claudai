@@ -89,7 +89,7 @@ async function usersWithReminder(key: 'logExpenses' | 'recurring' | 'monthly'): 
 //
 // Convention: a Transaction with `recurring` set is a TEMPLATE.
 // Its `date` field = date of the NEXT occurrence (always in the future after
-// the function runs). Each day at 06:00 the function finds all templates
+// the function runs). Each day at 09:00 the function finds all templates
 // where `date <= today` and materializes EVERY due occurrence (catch-up loop),
 // stamping each instance with the template's `seriesId` so the client can
 // later edit/manage the whole series. The template's date is then advanced to
@@ -111,7 +111,7 @@ function addPeriod(dateStr: string, freq: Freq): string {
 }
 
 export const processRecurringTransactions = onSchedule(
-  { schedule: '0 6 * * *', timeZone: 'Europe/Rome', memory: '256MiB', region: 'europe-west1' },
+  { schedule: '0 9 * * *', timeZone: 'Europe/Rome', memory: '256MiB', region: 'europe-west1' },
   async () => {
     const today = new Date().toISOString().slice(0, 10);
 
@@ -214,7 +214,6 @@ export const sendTestPush = onRequest(
 export const remindLogExpenses = onSchedule(
   { schedule: '0 13,21 * * *', timeZone: 'Europe/Rome', region: 'europe-west1' },
   async () => {
-    const today = new Date().toISOString().slice(0, 10);
     const hourRome = Number(
       new Intl.DateTimeFormat('en-GB', { timeZone: 'Europe/Rome', hour: '2-digit', hour12: false }).format(new Date()),
     );
@@ -222,11 +221,8 @@ export const remindLogExpenses = onSchedule(
 
     const users = await usersWithReminder('logExpenses');
     for (const userId of users) {
-      // Skip if they've already logged an expense today.
-      const todays = await db.collection(`users/${userId}/transactions`).where('date', '==', today).get();
-      const hasExpense = todays.docs.some(d => (d.data() as { type?: string }).type === 'expense');
-      if (hasExpense) continue;
-
+      // Always send — the reminder is a nudge to review/confirm the day,
+      // regardless of whether something was already logged.
       await sendToUser(
         userId,
         evening ? 'Spese di oggi 🌙' : 'Promemoria spese ☀️',
@@ -255,21 +251,36 @@ export const sendMonthlySummary = onSchedule(
         .where('date', '<=', `${ym}-31`)
         .get();
 
-      let income = 0, expenses = 0, investments = 0;
+      let income = 0, expenses = 0, investments = 0, txCount = 0;
       snap.forEach(d => {
         const t = d.data() as { type?: string; amount?: number; shared?: number };
         const amount = Number(t.amount) || 0;
         if (t.type === 'income') income += amount;
-        else if (t.type === 'expense') expenses += amount - (Number(t.shared) || 0);
-        else if (t.type === 'investment') investments += amount;
+        else if (t.type === 'expense') { expenses += amount - (Number(t.shared) || 0); txCount++; }
+        else if (t.type === 'investment') { investments += amount; txCount++; }
+        else txCount++;
       });
       if (income === 0 && expenses === 0 && investments === 0) continue;
 
       const saved = income - expenses - investments;
+      // Percentages teased relative to income (the natural "how much did I keep?").
+      const pct = (n: number) => (income > 0 ? Math.round((n / income) * 100) : 0);
+      const savedPct = pct(saved);
+      const invPct = pct(investments);
+      const expPct = pct(expenses);
+
+      // Lead with the most motivating number: the savings rate.
+      const verdict =
+        savedPct >= 30 ? 'Mese da fuoriclasse 🔥'
+        : savedPct >= 15 ? 'Bel risparmio 💪'
+        : savedPct > 0 ? 'In positivo 🙂'
+        : 'Mese in rosso 👀';
+
       await sendToUser(
         userId,
-        'Riepilogo del mese 📊',
-        `Entrate ${euro(income)} · Uscite ${euro(expenses)} · Risparmio ${euro(saved)}`,
+        `Riepilogo del mese 📊 — ${verdict}`,
+        `Hai messo da parte ${euro(saved)}, il ${savedPct}% delle entrate.\n` +
+        `Entrate ${euro(income)} · Uscite ${euro(expenses)} (${expPct}%) · Investito ${euro(investments)} (${invPct}%) · ${txCount} movimenti.`,
         'monthly',
         'monthly',
       );

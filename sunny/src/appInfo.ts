@@ -1,4 +1,4 @@
-export const APP_VERSION = '1.8.2';
+export const APP_VERSION = '1.8.3';
 
 /**
  * Release channel. While in 'beta' the app is still under active development
@@ -15,6 +15,14 @@ export interface VersionEntry {
 
 /** Registro versioni mostrato in Impostazioni → Registro versioni. */
 export const VERSIONS: VersionEntry[] = [
+  {
+    version: '1.8.3', date: '2026-06-03', title: 'Notifiche su misura',
+    changes: [
+      'Promemoria spese: ora arrivano comunque a metà giornata e la sera, anche se hai già registrato qualcosa.',
+      'Avviso voci ricorrenti: spostato alle 9:00.',
+      'Riepilogo mensile più ricco: tasso di risparmio in percentuale, peso di uscite e investimenti sulle entrate, numero di movimenti e un giudizio del mese.',
+    ],
+  },
   {
     version: '1.8.2', date: '2026-06-03', title: 'Notifiche, rifiniture',
     changes: [
