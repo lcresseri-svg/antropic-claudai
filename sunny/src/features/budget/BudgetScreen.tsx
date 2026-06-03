@@ -5,8 +5,9 @@ import { useSettings } from '../../shared/providers/settings';
 import { useBudget } from '../../shared/hooks/useBudget';
 import {
   suggestBudgets, forecastSavings, generateBudgetInsights, seasonalHint,
-  DEMO_CATEGORY_SPEND, DEMO_CATEGORY_BUDGETS,
+  seasonalMonthlyAverage, DEMO_CATEGORY_SPEND, DEMO_CATEGORY_BUDGETS,
 } from './budgetUtils';
+import { upcomingRecurringThisMonth } from '../../shared/recurrence';
 import { history } from '../insights/insightsEngine';
 import { SavingsGoalCard } from './SavingsGoalCard';
 import { SuggestedBudgetCard } from './SuggestedBudgetCard';
@@ -86,10 +87,18 @@ export function BudgetScreen({
   // never contradict each other.
   const predicted = useMemo(() => {
     if (isLearning) return 420;
+    const now = new Date();
     const h = history(transactions, 3);
+    const seasonal = seasonalMonthlyAverage(transactions, now.getMonth(), now);
+    const seasonalAvgExpense = Object.values(seasonal).reduce((s, v) => s + v, 0);
+    const today = now.toISOString().slice(0, 10);
+    const lastDay = new Date(now.getFullYear(), now.getMonth() + 1, 0).getDate();
+    const monthEnd = `${now.toISOString().slice(0, 7)}-${String(lastDay).padStart(2, '0')}`;
+    const upcomingRecurring = upcomingRecurringThisMonth(transactions, today, monthEnd);
     return forecastSavings({
       monthlyIncome, monthlyExpenses, monthlyInvestments,
       avgIncome: h.avgIncome, avgExpense: h.avgExpense, avgInvest: h.avgInvest,
+      seasonalAvgExpense, upcomingRecurring,
     }).savings;
   }, [isLearning, transactions, monthlyIncome, monthlyExpenses, monthlyInvestments]);
 

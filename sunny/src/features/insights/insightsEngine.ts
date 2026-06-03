@@ -1,6 +1,6 @@
 import { Transaction, ownShare } from '../../types';
 import { formatCurrency, capitalize } from '../../utils';
-import { monthProgress, forecastSavings } from '../budget/budgetUtils';
+import { monthProgress, forecastSavings, seasonalMonthlyAverage } from '../budget/budgetUtils';
 import { addPeriod, recurringMonthlyEquivalent } from '../../shared/recurrence';
 
 export type InsightCategory = 'alert' | 'forecast' | 'seasonal' | 'trend' | 'habit' | 'highlight';
@@ -178,6 +178,29 @@ function linearSlope(arr: number[]): number {
     den += (i - meanX) ** 2;
   }
   return den ? num / den : 0;
+}
+
+/**
+ * Seasonality-adjusted 12-month expense estimate. For each of the next 12
+ * calendar months we look up the historical average expense in that same
+ * month across prior years (via seasonalMonthlyAverage). Where prior-year
+ * data exists we use it; where it's missing we fall back to recentMonthlyAvg.
+ * This naturally captures months that are historically heavier (e.g. December)
+ * or lighter (e.g. January) without needing an explicit multiplier.
+ */
+function seasonalAnnualExpense(
+  transactions: Transaction[],
+  recentMonthlyAvg: number,
+  now: Date,
+): number {
+  let total = 0;
+  for (let i = 1; i <= 12; i++) {
+    const monthIdx = (now.getMonth() + i) % 12;
+    const cats = seasonalMonthlyAverage(transactions, monthIdx, now);
+    const monthEst = Object.values(cats).reduce((s, v) => s + v, 0);
+    total += monthEst > 0 ? monthEst : recentMonthlyAvg;
+  }
+  return total;
 }
 
 // ── Seasonality (year-over-year) ──────────────────────────────────────────────
@@ -421,33 +444,64 @@ export function buildInsights(input: InsightInput): Insight[] {
   // Skip too early in the month: projecting from a few days' run-rate explodes
   // the estimate and is misleading (a €50 spend on day 1 ≠ €1500 for the month).
   if ((monthlyExpenses > 0 || monthlyIncome > 0) && prog > 0.15) {
+    // Seasonal baseline: average expense in this calendar month across prior years.
+    const seasonalCats = seasonalMonthlyAverage(transactions, now.getMonth(), now);
+    const seasonalAvgExpense = Object.values(seasonalCats).reduce((s, v) => s + v, 0);
+
+    // Upcoming recurring expenses: occurrences strictly after today up to month-end.
+    let upcomingRecurring = 0;
+    {
+      const lastDay = new Date(now.getFullYear(), now.getMonth() + 1, 0).getDate();
+      const monthEnd = `${ym(now)}-${String(lastDay).padStart(2, '0')}`;
+      for (const [, t] of seriesMap) {
+        if (t.type !== 'expense') continue;
+        const rule = t.recurring!;
+        if (rule.until && rule.until < today) continue;
+        let d = addPeriod(t.date, rule.freq);
+        let guard = 500;
+        while (d <= today && --guard > 0) d = addPeriod(d, rule.freq);
+        let cap = 35;
+        while (d <= monthEnd && (!rule.until || d <= rule.until) && --cap > 0) {
+          upcomingRecurring += t.amount;
+          d = addPeriod(d, rule.freq);
+        }
+      }
+    }
+
     const f = forecastSavings({
       monthlyIncome, monthlyExpenses, monthlyInvestments,
-      avgIncome: h.avgIncome, avgExpense: h.avgExpense, avgInvest: h.avgInvest, now,
+      avgIncome: h.avgIncome, avgExpense: h.avgExpense, avgInvest: h.avgInvest,
+      seasonalAvgExpense, upcomingRecurring, now,
     });
     const projExp = f.projectedExpenses, expInc = f.expectedIncome, expInv = f.expectedInvest;
     const forecast = f.savings;
     const basis    = h.months > 0 ? 'spese attuali e abitudini storiche' : 'ritmo attuale';
     const pctMonth = Math.round(prog * 100);
-    const howExp = h.avgExpense > 0
-      ? `Parto da quanto hai già speso questo mese (${formatCurrency(monthlyExpenses)}) e aggiungo quanto spendi di solito nei giorni che restano: di norma spendi circa ${formatCurrency(h.avgExpense)} al mese e manca circa il ${100 - pctMonth}% del mese, quindi stimo intorno a ${formatCurrency(projExp)} di uscite a fine mese.`
+    const hasHistory = h.avgExpense > 0 || seasonalAvgExpense > 0;
+    const howExp = hasHistory
+      ? `Parto da quanto hai già speso questo mese (${formatCurrency(monthlyExpenses)}) e stimo i giorni che restano (${100 - pctMonth}% del mese) con una media che combina il tuo andamento recente${seasonalAvgExpense > 0 ? ` (${formatCurrency(h.avgExpense)}/mese) e la tua storica di questo stesso mese in anni precedenti (${formatCurrency(Math.round(seasonalAvgExpense))})` : ` (${formatCurrency(h.avgExpense)}/mese)`}${upcomingRecurring > 0 ? `, assicurando che le ricorrenti già programmate (${formatCurrency(Math.round(upcomingRecurring))}) siano coperte` : ''}. Uscite stimate: ${formatCurrency(projExp)}.`
       : `Riproietto quanto hai già speso (${formatCurrency(monthlyExpenses)}) sul resto del mese in base ai giorni passati (sei circa al ${pctMonth}%), arrivando a circa ${formatCurrency(projExp)}.`;
     const howInc = h.avgIncome > 0
       ? ` Per le entrate uso la cifra più alta tra quanto hai già incassato (${formatCurrency(monthlyIncome)}) e quanto incassi di solito (${formatCurrency(h.avgIncome)}), perché lo stipendio di solito arriva tutto insieme.`
       : ` Per le entrate considero quanto hai già incassato (${formatCurrency(monthlyIncome)}).`;
+    const forecastBasis = [
+      h.months > 0 ? `media ultimi ${h.months} mesi` : null,
+      seasonalAvgExpense > 0 ? 'storico stesso mese anni precedenti' : null,
+      upcomingRecurring > 0 ? 'ricorrenti programmate' : null,
+    ].filter(Boolean).join(' · ') || 'ritmo attuale';
     push(forecast >= 0
       ? { icon: '🔮', category: 'forecast', title: `Fine mese stimato: +${formatCurrency(forecast)}`, detail: `Risparmio proiettato su ${basis}`, accent: ACCENT.good,
           explain: {
             what: 'Stima di quanto ti resterà a fine mese se mantieni questo ritmo.',
             how: `${howExp}${howInc} Il risparmio stimato è quello che resta: entrate previste, meno le uscite previste, meno gli investimenti.`,
-            basis: 'Mese corrente + media degli ultimi mesi attivi.',
+            basis: forecastBasis,
             chart: { labels: ['Entrate', 'Uscite stim.', 'Investito'], values: [Math.round(expInc), projExp, Math.round(expInv)], format: 'currency', highlightIndex: 0 },
           } }
       : { icon: '🔮', category: 'forecast', title: `Fine mese stimato: −${formatCurrency(-forecast)}`, detail: `Le uscite supererebbero le entrate su ${basis}`, accent: ACCENT.warn,
           explain: {
             what: 'A questo ritmo chiuderesti il mese in negativo.',
             how: `${howExp}${howInc} Mettendo insieme entrate previste, uscite previste e investimenti, il conto finale risulta negativo.`,
-            basis: 'Mese corrente + media degli ultimi mesi attivi.',
+            basis: forecastBasis,
             chart: { labels: ['Entrate', 'Uscite stim.', 'Investito'], values: [Math.round(expInc), projExp, Math.round(expInv)], format: 'currency', highlightIndex: 1 },
           } }, 'medium');
   }
@@ -614,29 +668,47 @@ export function buildInsights(input: InsightInput): Insight[] {
 
   // ── 12. TREND — Annual projection ─────────────────────────────────────────
   if (h.months >= 2 && h.avgIncome > 0) {
-    // Floor expenses/investments at the known recurring commitments so the
-    // long-term outlook never under-counts fixed costs. Using max() (rather
-    // than adding) avoids double-counting: if the historical average already
-    // exceeds the recurring total, recurring is presumably included in it.
     const recExp = recurringMonthlyEquivalent(transactions, 'expense', today);
     const recInv = recurringMonthlyEquivalent(transactions, 'investment', today);
-    const monthlyExp = Math.max(h.avgExpense, recExp);
-    const monthlyInv = Math.max(h.avgInvest, recInv);
-    const usesRecurring = recExp > h.avgExpense || recInv > h.avgInvest;
 
-    const yrSav = Math.round((h.avgIncome - monthlyExp - monthlyInv) * 12);
-    const yrInv = Math.round(monthlyInv * 12);
+    // Use the 6-month average as the base when we have enough data — it spans
+    // more calendar months, so seasonal peaks and troughs cancel out better
+    // than a 3-month window that might sit inside a single seasonal quarter.
+    const baseExp = h6.months >= 4 ? h6.avgExpense : h.avgExpense;
+    const baseInv = h6.months >= 4 ? h6.avgInvest : h.avgInvest;
+    const baseWindowLabel = h6.months >= 4 ? '6' : '3';
+
+    // Seasonality-adjusted 12-month expense total: for each upcoming calendar
+    // month we look at that month's historical average across prior years.
+    // Where prior-year data is missing we fall back to the recent monthly base.
+    const yrExpSeasonal = seasonalAnnualExpense(transactions, baseExp, now);
+
+    // Final annual expense estimate: best of (seasonal profile, recent-avg ×12,
+    // recurring floor ×12). Using max() avoids double-counting — recurring costs
+    // are already embedded in both the historical avg and the seasonal profile.
+    const yrExpFull = Math.max(yrExpSeasonal, baseExp * 12, recExp * 12);
+    const yrInvFull = Math.max(baseInv * 12, recInv * 12);
+
+    const yrSav = Math.round(h.avgIncome * 12 - yrExpFull - yrInvFull);
+    const yrInv = Math.round(yrInvFull);
+
+    const usesSeasonality = yrExpSeasonal > baseExp * 12;
+    const usesRecurring   = recExp * 12 > Math.max(yrExpSeasonal, baseExp * 12);
+    const annualBasis = [
+      `medie ultimi ${baseWindowLabel} mesi`,
+      usesSeasonality ? 'stagionalità anno su anno' : null,
+      usesRecurring   ? 'ricorrenti attive' : null,
+    ].filter(Boolean).join(' · ');
+
     push({
       icon: '🗓️', category: 'trend',
       title: `Proiezione annuale: ${yrSav >= 0 ? '+' : '−'}${formatCurrency(Math.abs(yrSav))} risparmiati`,
       detail: `+ ${formatCurrency(yrInv)} investiti · totale ${formatCurrency(Math.abs(yrSav) + yrInv)}`,
       accent: yrSav >= 0 ? ACCENT.good : ACCENT.warn,
       explain: {
-        what: 'Quanto accumuleresti in un anno mantenendo le medie attuali e tenendo conto delle spese ricorrenti previste.',
-        how: `(Entrate − Uscite − Investimenti) mensili × 12 per il risparmio; investimenti × 12 per il capitale investito. Per uscite e investimenti uso il maggiore tra la media storica e le ricorrenze già programmate, così gli impegni fissi non vengono sottostimati.`,
-        basis: usesRecurring
-          ? 'Medie ultimi 3 mesi + ricorrenti attive (riportate al mese).'
-          : 'Medie sugli ultimi 3 mesi con dati.',
+        what: 'Quanto accumuleresti nei prossimi 12 mesi tenendo conto della stagionalità delle spese e delle ricorrenti note.',
+        how: `Stimo le uscite mese per mese per i prossimi 12 mesi: per ogni mese uso la media storica di quel mese in anni precedenti (es. dicembre storicamente più caro). Dove manca la storica uso la media recente (ultimi ${baseWindowLabel} mesi). Applico poi un pavimento sulle ricorrenti già programmate così gli impegni fissi non vengono mai sottostimati. Per gli investimenti stesso approccio. Le entrate annuali sono la media mensile × 12.`,
+        basis: annualBasis,
         chart: { labels: ['Risparmio/anno', 'Investito/anno'], values: [yrSav, yrInv], format: 'currency' },
       },
     });

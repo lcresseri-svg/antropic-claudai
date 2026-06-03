@@ -1,4 +1,4 @@
-export const APP_VERSION = '1.8.5';
+export const APP_VERSION = '1.8.6';
 
 /**
  * Release channel. While in 'beta' the app is still under active development
@@ -15,6 +15,14 @@ export interface VersionEntry {
 
 /** Registro versioni mostrato in Impostazioni → Registro versioni. */
 export const VERSIONS: VersionEntry[] = [
+  {
+    version: '1.8.6', date: '2026-06-03', title: 'Previsioni più intelligenti',
+    changes: [
+      'Proiezione fine mese: ora incrocia media recente (ultimi 3 mesi), storico dello stesso mese in anni precedenti (stagionalità) e spese ricorrenti ancora da registrare questo mese.',
+      'Proiezione annuale: calcola le uscite mese per mese usando la media storica di ogni mese dell\'anno, così dicembre o agosto pesano correttamente; applica un pavimento sulle ricorrenti note.',
+      'Usa 6 mesi di storia (anziché 3) per la base della proiezione annuale, riducendo il bias stagionale del singolo trimestre.',
+    ],
+  },
   {
     version: '1.8.5', date: '2026-06-03', title: 'Correzioni',
     changes: [
