@@ -88,7 +88,7 @@ const TEST_URL =
   `https://europe-west1-${import.meta.env.VITE_FIREBASE_PROJECT_ID as string}.cloudfunctions.net/sendTestPush`;
 
 /** Ask the server to send a one-off test notification to this user's devices. */
-export async function sendTestNotification(user: User): Promise<{ ok: boolean; reason?: string }> {
+export async function sendTestNotification(user: User): Promise<{ ok: boolean; reason?: string; tokens?: number }> {
   try {
     const resp = await fetch(TEST_URL, {
       method: 'POST',
@@ -97,11 +97,47 @@ export async function sendTestNotification(user: User): Promise<{ ok: boolean; r
     });
     if (resp.status === 404) return { ok: false, reason: 'not-deployed' };
     if (!resp.ok) return { ok: false, reason: `http-${resp.status}` };
-    const data = (await resp.json()) as { ok?: boolean; error?: string };
-    return data?.ok ? { ok: true } : { ok: false, reason: data?.error ?? 'error' };
+    const data = (await resp.json()) as { ok?: boolean; error?: string; tokens?: number };
+    return data?.ok ? { ok: true, tokens: data.tokens } : { ok: false, reason: data?.error ?? 'error' };
   } catch {
     return { ok: false, reason: 'network' };
   }
+}
+
+export interface PushDiagnostics {
+  supported: boolean;
+  permission: string;
+  hasToken: boolean;
+  tokenPreview: string;
+  swCount: number;
+  swNames: string;
+}
+
+/** Snapshot of the device-side push state, for troubleshooting. */
+export async function getDiagnostics(): Promise<PushDiagnostics> {
+  const supported = await pushSupported();
+  const permission = typeof Notification !== 'undefined' ? Notification.permission : 'n/d';
+  let token = '';
+  try { token = localStorage.getItem(LOCAL_TOKEN_KEY) ?? ''; } catch { /* ignore */ }
+  let swCount = 0;
+  let swNames = '—';
+  try {
+    const regs = await navigator.serviceWorker.getRegistrations();
+    swCount = regs.length;
+    const names = regs
+      .map(r => (r.active?.scriptURL ?? r.installing?.scriptURL ?? r.waiting?.scriptURL ?? ''))
+      .map(u => u.split('/').pop()?.split('?')[0] ?? '')
+      .filter(Boolean);
+    if (names.length) swNames = names.join(', ');
+  } catch { /* ignore */ }
+  return {
+    supported,
+    permission,
+    hasToken: !!token,
+    tokenPreview: token ? `${token.slice(0, 10)}…${token.slice(-4)}` : '—',
+    swCount,
+    swNames,
+  };
 }
 
 /** Show foreground messages (when the app/tab is in focus) as notifications.

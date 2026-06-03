@@ -4,7 +4,7 @@ import { User } from 'firebase/auth';
 import { db } from '../../lib/firebase';
 import {
   pushSupported, enablePush, disablePush, hasLocalToken, listenForeground,
-  sendTestNotification, EnableResult,
+  sendTestNotification, getDiagnostics, EnableResult, PushDiagnostics,
 } from '../push';
 
 export interface ReminderPrefs {
@@ -72,10 +72,12 @@ export function usePush(user: User | null) {
     setDoc(doc(db, 'users', user.uid, 'meta', 'push'), { reminders: next }, { merge: true });
   }, [user, reminders]);
 
-  const test = useCallback(async (): Promise<{ ok: boolean; reason?: string }> => {
+  const test = useCallback(async (): Promise<{ ok: boolean; reason?: string; tokens?: number }> => {
     if (!user) return { ok: false, reason: 'error' };
     return sendTestNotification(user);
   }, [user]);
 
-  return { supported, enabled, reminders, busy, error, enable, disable, setReminder, test };
+  const diagnose = useCallback((): Promise<PushDiagnostics> => getDiagnostics(), []);
+
+  return { supported, enabled, reminders, busy, error, enable, disable, setReminder, test, diagnose };
 }
