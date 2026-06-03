@@ -1,4 +1,4 @@
-export const APP_VERSION = '1.8.0';
+export const APP_VERSION = '1.8.1';
 
 /**
  * Release channel. While in 'beta' the app is still under active development
@@ -15,6 +15,12 @@ export interface VersionEntry {
 
 /** Registro versioni mostrato in Impostazioni → Registro versioni. */
 export const VERSIONS: VersionEntry[] = [
+  {
+    version: '1.8.1', date: '2026-06-03', title: 'Notifiche su iPhone',
+    changes: [
+      'Correzione consegna notifiche su iPhone (PWA): ora vengono mostrate in modo affidabile sia ad app chiusa sia aperta.',
+    ],
+  },
   {
     version: '1.8.0', date: '2026-06-02', title: 'Notifiche push',
     changes: [

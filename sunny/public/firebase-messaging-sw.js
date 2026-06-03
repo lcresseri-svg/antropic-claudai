@@ -1,9 +1,13 @@
 /* Firebase Cloud Messaging service worker.
  *
  * The page registers this SW with the (public) Firebase config passed as query
- * params, so it can initialize without access to the build-time env. We send
- * data-only messages from the server and build the notification here, to avoid
- * the double-display you get when a payload carries a top-level `notification`.
+ * params, so it can initialize without access to the build-time env.
+ *
+ * We send messages with a `webpush.notification` payload; simply initializing
+ * messaging here lets the FCM SDK auto-display them in the background. This is
+ * the most reliable path across platforms, including iOS PWAs (where a custom
+ * data-only handler + the Notification constructor are unreliable). Clicks are
+ * handled by FCM via `webpush.fcmOptions.link`.
  */
 importScripts('https://www.gstatic.com/firebasejs/10.12.2/firebase-app-compat.js');
 importScripts('https://www.gstatic.com/firebasejs/10.12.2/firebase-messaging-compat.js');
@@ -18,28 +22,6 @@ firebase.initializeApp({
   appId: params.get('appId'),
 });
 
-const messaging = firebase.messaging();
-
-messaging.onBackgroundMessage(payload => {
-  const d = payload.data || {};
-  self.registration.showNotification(d.title || 'Sunny', {
-    body: d.body || '',
-    icon: '/icon.svg',
-    badge: '/icon.svg',
-    tag: d.tag || 'sunny',
-    data: { link: d.link || '/' },
-  });
-});
-
-self.addEventListener('notificationclick', event => {
-  event.notification.close();
-  const link = (event.notification.data && event.notification.data.link) || '/';
-  event.waitUntil(
-    self.clients.matchAll({ type: 'window', includeUncontrolled: true }).then(list => {
-      for (const client of list) {
-        if ('focus' in client) { client.navigate(link); return client.focus(); }
-      }
-      if (self.clients.openWindow) return self.clients.openWindow(link);
-    }),
-  );
-});
+// Initializing messaging registers the default background handler that
+// auto-displays incoming `webpush.notification` messages.
+firebase.messaging();

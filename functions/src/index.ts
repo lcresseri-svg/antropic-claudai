@@ -40,10 +40,17 @@ async function sendToUser(
   const tokens = Object.keys((data.tokens ?? {}) as Record<string, boolean>);
   if (tokens.length === 0) return;
 
+  // Send the notification via webpush.notification so the FCM service worker
+  // auto-displays it in the background — the reliable path on iOS PWAs, where
+  // data-only messages + a custom handler are flaky. Keep `data.link` for the
+  // foreground handler / click target.
   const resp = await admin.messaging().sendEachForMulticast({
     tokens,
-    data: { title, body, link: APP_LINK, tag: tag ?? 'sunny' },
-    webpush: { fcmOptions: { link: APP_LINK } },
+    webpush: {
+      notification: { title, body, icon: `${APP_LINK}icon.svg`, tag: tag ?? 'sunny' },
+      fcmOptions: { link: APP_LINK },
+    },
+    data: { link: APP_LINK },
   });
 
   const updates: Record<string, unknown> = {};

@@ -104,14 +104,27 @@ export async function sendTestNotification(user: User): Promise<{ ok: boolean; r
   }
 }
 
-/** Show foreground messages (when the app/tab is in focus) as notifications. */
+/** Show foreground messages (when the app/tab is in focus) as notifications.
+ *  Foreground messages are never auto-displayed by FCM, so we show them here —
+ *  via the service worker registration, which (unlike the Notification
+ *  constructor) works inside iOS PWAs. */
 export function listenForeground(): () => void {
   try {
     const messaging = getMessaging();
-    return onMessage(messaging, payload => {
+    return onMessage(messaging, async payload => {
+      const n = payload.notification ?? {};
       const d = payload.data ?? {};
-      if (Notification.permission === 'granted' && d.title) {
-        new Notification(d.title, { body: d.body, icon: '/icon.svg' });
+      const title = n.title ?? d.title;
+      if (!title) return;
+      const options: NotificationOptions = {
+        body: n.body ?? d.body,
+        icon: '/icon.svg',
+        data: { link: d.link ?? '/' },
+      };
+      const reg = await navigator.serviceWorker.getRegistration();
+      if (reg) await reg.showNotification(title, options);
+      else if ('Notification' in window && Notification.permission === 'granted') {
+        new Notification(title, options);
       }
     });
   } catch {
