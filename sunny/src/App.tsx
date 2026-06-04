@@ -20,6 +20,7 @@ import { BudgetDisabled } from './features/budget/BudgetDisabled';
 import { TransactionList } from './features/transactions/TransactionList';
 import { SettingsScreen } from './features/settings/SettingsScreen';
 import { AICoachScreen } from './features/aiCoach/AICoachScreen';
+import { AICoachWidget } from './features/aiCoach/AICoachWidget';
 import { TransactionModal } from './features/transactions/TransactionModal';
 import { SeriesEditChoiceSheet } from './features/transactions/SeriesEditChoiceSheet';
 import { ImportModal } from './features/transactions/ImportModal';
@@ -347,6 +348,8 @@ function Main({ user, onLogOut, onDeleteAccount }: {
         {/* Mobile-only bottom nav */}
         {!isSettings && <BottomNav onAdd={openAdd} />}
       </div>
+
+      {isAdminUser(user) && <AICoachWidget />}
 
       <TransactionModal
         open={modalOpen} editing={editing} groupTransfers={groupTransfers} seriesEdit={seriesEdit}
