@@ -133,7 +133,7 @@ function addPeriod(dateStr: string, freq: Freq): string {
 }
 
 export const processRecurringTransactions = onSchedule(
-  { schedule: '0 9 * * *', timeZone: 'Europe/Rome', memory: '256MiB', region: 'europe-west1' },
+  { schedule: '0 0 * * *', timeZone: 'Europe/Rome', memory: '256MiB', region: 'europe-west1' },
   async () => {
     const today = new Date().toISOString().slice(0, 10);
 
