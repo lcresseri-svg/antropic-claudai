@@ -52,6 +52,14 @@ export function SettingsScreen({ user, transactions, onLogOut, onDeleteAll, onDe
   const [editMode, setEditMode] = useState(false);
   const [drag, setDrag] = useState<DragState | null>(null);
 
+  // When switching settings sub-screen, jump back to the top so the header (with
+  // the back arrow) is always in view — otherwise, returning from a long
+  // sub-screen leaves you scrolled down with no visible way back.
+  useEffect(() => {
+    window.scrollTo({ top: 0 });
+    document.scrollingElement?.scrollTo({ top: 0 });
+  }, [sub]);
+
   // Deep-link support: e.g. /settings?section=generali jumps straight to a
   // sub-section (used by the "Attiva budget" shortcut on the disabled screen).
   useEffect(() => {
