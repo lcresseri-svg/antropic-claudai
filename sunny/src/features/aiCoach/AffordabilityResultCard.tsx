@@ -7,60 +7,72 @@ interface Props {
   onReset: () => void;
 }
 
-const verdictConfig = {
-  yes: { label: 'Sì, puoi permettertelo', color: 'text-[#6FCF97]', bg: 'bg-[#6FCF97]/10', border: 'border-[#6FCF97]/25', icon: '✓' },
-  maybe: { label: 'Forse, con qualche aggiustamento', color: 'text-gold', bg: 'bg-gold/8', border: 'border-gold/25', icon: '~' },
-  no: { label: 'Non ancora, ma ci puoi arrivare', color: 'text-[#E08B8B]', bg: 'bg-[#E08B8B]/10', border: 'border-[#E08B8B]/25', icon: '✕' },
-};
-
 function fmt(n: number): string {
   return new Intl.NumberFormat('it-IT', { style: 'currency', currency: 'EUR', maximumFractionDigits: 0 }).format(n);
 }
 
 export function AffordabilityResultCard({ result, categories, onReset }: Props) {
-  const vc = verdictConfig[result.verdict];
   const getCat = (id: string) => categories.find(c => c.id === id);
+
+  // Headline tone: green if it fits this month, gold otherwise.
+  const fits = result.fitsThisMonth;
+  const accent = fits
+    ? { color: 'text-[#6FCF97]', bg: 'bg-[#6FCF97]/10', border: 'border-[#6FCF97]/25' }
+    : { color: 'text-gold', bg: 'bg-gold/8', border: 'border-gold/25' };
+
+  const headline = fits
+    ? 'Te lo puoi togliere già questo mese'
+    : result.readyBy
+    ? `Raggiungibile verso ${result.readyBy}`
+    : result.monthlySaving <= 0
+    ? 'Servono dei tagli per accumulare'
+    : 'Meglio spalmarlo su più mesi';
 
   return (
     <div className="space-y-4 animate-fade-in-fast">
-      {/* Verdict banner */}
-      <div className={`rounded-2xl px-4 py-4 border ${vc.bg} ${vc.border}`}>
-        <div className="flex items-center gap-3 mb-2">
-          <span className={`w-7 h-7 rounded-full flex items-center justify-center text-sm font-bold ${vc.bg} ${vc.color} border ${vc.border}`}>
-            {vc.icon}
-          </span>
-          <p className={`font-semibold text-sm ${vc.color}`}>{vc.label}</p>
-        </div>
-        <p className="text-sm text-primary leading-relaxed">{result.advice}</p>
+      {/* AI narrative — the star of the card */}
+      <div className={`rounded-2xl px-4 py-4 border ${accent.bg} ${accent.border}`}>
+        <p className={`font-semibold text-sm mb-2 ${accent.color}`}>{headline}</p>
+        <p className="text-sm text-primary leading-relaxed whitespace-pre-line">{result.advice}</p>
       </div>
 
       {/* Numbers */}
       <div className="grid grid-cols-2 gap-3">
-        <Stat label="Risparmio mensile previsto" value={fmt(result.projectedMonthlySaving)} />
+        <Stat label="Risparmio mensile stimato" value={fmt(result.monthlySaving)} />
+        {fits ? (
+          <Stat label="Ti resterebbe questo mese" value={fmt(result.leftoverIfBought)} accent="text-[#6FCF97]" />
+        ) : (
+          result.monthOvershoot > 0 && (
+            <Stat label="Sforamento se compri ora" value={fmt(result.monthOvershoot)} accent="text-[#E08B8B]" />
+          )
+        )}
+        {!fits && result.monthsToAfford !== null && (
+          <Stat label="Mesi al ritmo attuale" value={`~${result.monthsToAfford}`} />
+        )}
+        {!fits && result.monthsToAffordWithCuts !== null && result.monthsToAffordWithCuts !== result.monthsToAfford && (
+          <Stat label="Mesi tagliando le spese" value={`~${result.monthsToAffordWithCuts}`} accent="text-gold" />
+        )}
         {result.requiredMonthly !== null && (
-          <Stat label="Necessario al mese" value={fmt(result.requiredMonthly)} />
-        )}
-        {result.gap !== null && result.gap > 0 && (
-          <Stat label="Gap mensile" value={fmt(result.gap)} accent="text-[#E08B8B]" />
-        )}
-        {result.daysLeft !== null && (
-          <Stat label="Giorni rimasti" value={String(Math.round(result.daysLeft))} />
+          <Stat
+            label="Per la tua scadenza"
+            value={`${fmt(result.requiredMonthly)}/mese`}
+            accent={result.targetFeasible ? 'text-[#6FCF97]' : 'text-[#E08B8B]'}
+          />
         )}
       </div>
 
       {/* Suggested cuts */}
-      {result.topCuts.length > 0 && (
+      {!fits && result.topCuts.length > 0 && (
         <div className="rounded-2xl bg-card border border-divider px-4 py-3.5">
-          <p className="text-xs text-secondary font-medium mb-3">Categorie con più margine di taglio</p>
+          <p className="text-xs text-secondary font-medium mb-3">Dove puoi liberare margine</p>
           <div className="space-y-2">
             {result.topCuts.map(cut => {
               const cat = getCat(cut.categoryId);
+              const label = cat ? `${cat.icon} ${cat.label}` : cut.label;
               return (
                 <div key={cut.categoryId} className="flex items-center justify-between">
-                  <span className="text-sm text-primary">
-                    {cat ? `${cat.icon} ${cat.label}` : cut.categoryId}
-                  </span>
-                  <span className="text-sm text-secondary font-medium">{fmt(cut.amount)}</span>
+                  <span className="text-sm text-primary">{label}</span>
+                  <span className="text-sm text-secondary font-medium">{fmt(cut.amount)}/mese</span>
                 </div>
               );
             })}
