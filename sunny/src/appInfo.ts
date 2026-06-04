@@ -1,4 +1,4 @@
-export const APP_VERSION = '1.9.4';
+export const APP_VERSION = '1.9.5';
 
 /**
  * Release channel. While in 'beta' the app is still under active development
@@ -15,6 +15,13 @@ export interface VersionEntry {
 
 /** Registro versioni mostrato in Impostazioni → Registro versioni. */
 export const VERSIONS: VersionEntry[] = [
+  {
+    version: '1.9.5', date: '2026-06-04', title: 'Previsti estesi a tutti i tipi di movimento',
+    changes: [
+      'Qualsiasi movimento con data futura — entrata, uscita, investimento, trasferimento, spesa condivisa, ricorrente che inizia nel futuro — appare come "Programmato" e rispetta il filtro orizzonte (5 giorni, 30 giorni, ecc.).',
+      'Nessun previsto entra nei saldi, nelle statistiche di periodo o negli insight come "già avvenuto": tutto rimane coerente finché la data non arriva.',
+    ],
+  },
   {
     version: '1.9.4', date: '2026-06-04', title: 'Previsti coerenti ovunque',
     changes: [
