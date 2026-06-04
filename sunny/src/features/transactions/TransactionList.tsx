@@ -100,9 +100,17 @@ export function TransactionList({ transactions, projected = [], onEdit, onDelete
     const now = new Date();
     const cutoff = periodCutoff(period, now);
     const projCut = projectedCutoffISO(projView, now);
+
+    // Future-dated one-off "previsti" are real documents that live in
+    // `transactions`, but for display they're forecasts just like the synthetic
+    // recurring projections — so they obey the very same horizon filter
+    // (5gg / 30gg / 3 mesi / tutti / nascondi). Realized rows always show.
+    const realized = transactions.filter(t => !isPending(t, TODAY_ISO));
+    const pendingOneOffs = transactions.filter(t => isPending(t, TODAY_ISO));
+    const withinHorizon = (t: Transaction) => !projCut || t.date <= projCut;
     const visibleProjected = projView === 'off'
       ? []
-      : projected.filter(p => !projCut || p.date <= projCut);
+      : [...projected, ...pendingOneOffs].filter(withinHorizon);
 
     // Search across everything the user can see: description, notes, category &
     // account names (incl. transfer destination), type, date (ISO + "2 giu 2026"
@@ -130,7 +138,7 @@ export function TransactionList({ transactions, projected = [], onEdit, onDelete
       return hay.includes(q);
     };
 
-    return [...transactions, ...visibleProjected]
+    return [...realized, ...visibleProjected]
       .filter(t => typeFilter === 'all' || t.type === typeFilter)
       .filter(t => !cutoff || new Date(t.date) >= cutoff)
       .filter(matches)
@@ -208,6 +216,9 @@ export function TransactionList({ transactions, projected = [], onEdit, onDelete
   const exitSelect = () => { setSelectMode(false); setSelected(new Set()); setConfirmDelete(false); };
 
   const usedTypes = TYPE_ORDER.filter(t => transactions.some(tx => tx.type === t));
+  // There are forecasts to govern if we have recurring projections OR any
+  // future-dated one-off "previsti" — both feed the "Previsti" horizon filter.
+  const hasUpcoming = projected.length > 0 || transactions.some(t => isPending(t, TODAY_ISO));
   const ids = [...selected];
 
   const applyPatch = (patch: TransactionPatch) => {
@@ -299,7 +310,7 @@ export function TransactionList({ transactions, projected = [], onEdit, onDelete
                     ))}
                   </div>
 
-                  {projected.length > 0 && (
+                  {hasUpcoming && (
                     <>
                       <p className="label-caps text-secondary mb-1.5 mt-2.5 px-1">Previsti</p>
                       <div className="space-y-1">
