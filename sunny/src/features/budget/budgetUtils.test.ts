@@ -123,6 +123,21 @@ describe('forecastByCategory', () => {
     expect(out.viaggi).toBeUndefined();
   });
 
+  it('does not over-react to a single early-month purchase (quadratic pace ramp)', () => {
+    const earlyDec = new Date('2026-12-04T12:00:00Z'); // prog ≈ 0.11, only a few days in
+    const txs = [
+      tx({ category: 'spesa', amount: 300, date: '2026-09-10' }),
+      tx({ category: 'spesa', amount: 300, date: '2026-10-10' }),
+      tx({ category: 'spesa', amount: 300, date: '2026-11-10' }),
+      tx({ category: 'spesa', amount: 100, date: '2026-12-02' }), // one early purchase
+    ];
+    const out = forecastByCategory(txs, ['spesa'], earlyDec);
+    // A linear pace weight would treat day-2 spending as "3x over pace" and
+    // balloon the estimate; the quadratic ramp keeps it anchored near the habit.
+    expect(out.spesa).toBeGreaterThan(280);
+    expect(out.spesa).toBeLessThan(400);
+  });
+
   it('reacts to a category running hot this month (pace pushes the projection up)', () => {
     const hist = [
       tx({ category: 'spesa', amount: 300, date: '2026-09-10' }),
