@@ -22,6 +22,7 @@ interface SettingsValue {
   aiEnabled: boolean;
   aiCoachWidgetEnabled: boolean;
   detailedInvestments: boolean; // per-user gated: fund-type classification + TFR
+  settingsLoaded: boolean;      // true after first Firestore snapshot resolves
   getCat: (id: string) => CategoryDef;
   getAcc: (id: string) => AccountDef;
   saveCategories: (c: CategoryDef[]) => void;
@@ -49,6 +50,7 @@ export function SettingsProvider({ user, children }: { user: User | null; childr
   const [insightDepth, setInsightDepth] = useState<InsightDepth>('medium');
   const [aiEnabled, setAiEnabled] = useState(false);
   const [aiCoachWidgetEnabled, setAiCoachWidgetEnabled] = useState(true);
+  const [settingsLoaded, setSettingsLoaded] = useState(false);
 
   // Apply theme class to <html> immediately when state changes
   useEffect(() => {
@@ -66,8 +68,10 @@ export function SettingsProvider({ user, children }: { user: User | null; childr
       setInsightDepth('medium');
       setAiEnabled(false);
       setAiCoachWidgetEnabled(true);
+      setSettingsLoaded(false);
       return;
     }
+    setSettingsLoaded(false);
     const ref = doc(db, 'users', user.uid, 'meta', 'settings');
     return onSnapshot(ref, snap => {
       if (!snap.exists()) {
@@ -77,6 +81,7 @@ export function SettingsProvider({ user, children }: { user: User | null; childr
         // so we never blow away fields we didn't include.
         if (!snap.metadata.fromCache) {
           setDoc(ref, { categories: DEFAULT_CATEGORIES, accounts: DEFAULT_ACCOUNTS, theme: 'dark' }, MERGE);
+          setSettingsLoaded(true);
         }
         return;
       }
@@ -90,6 +95,7 @@ export function SettingsProvider({ user, children }: { user: User | null; childr
       setInsightDepth((d.insightDepth as InsightDepth) ?? 'medium');
       setAiEnabled(d.aiEnabled ?? false);
       setAiCoachWidgetEnabled(d.aiCoachWidgetEnabled ?? true);
+      setSettingsLoaded(true);
     });
   // uid, not user object — avoids listener recreation on every token refresh.
   }, [user?.uid]);
@@ -158,7 +164,7 @@ export function SettingsProvider({ user, children }: { user: User | null; childr
   );
 
   return (
-    <SettingsContext.Provider value={{ categories, accounts, theme, includeInvestments, enableInvestments, enableBudget, insightDepth, aiEnabled, aiCoachWidgetEnabled, detailedInvestments, getCat, getAcc, saveCategories, saveAccounts, saveTheme, saveIncludeInvestments, saveEnableInvestments, saveEnableBudget, saveInsightDepth, saveAiEnabled, saveAiCoachWidgetEnabled }}>
+    <SettingsContext.Provider value={{ categories, accounts, theme, includeInvestments, enableInvestments, enableBudget, insightDepth, aiEnabled, aiCoachWidgetEnabled, detailedInvestments, settingsLoaded, getCat, getAcc, saveCategories, saveAccounts, saveTheme, saveIncludeInvestments, saveEnableInvestments, saveEnableBudget, saveInsightDepth, saveAiEnabled, saveAiCoachWidgetEnabled }}>
       {children}
     </SettingsContext.Provider>
   );
