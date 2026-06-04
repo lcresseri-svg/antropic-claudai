@@ -10,7 +10,6 @@ export function AffordabilityForm({ onSubmit, loading }: Props) {
   const [itemName, setItemName] = useState('');
   const [cost, setCost] = useState('');
   const [targetDate, setTargetDate] = useState('');
-  const [alreadySaved, setAlreadySaved] = useState('');
 
   const today = new Date().toISOString().slice(0, 10);
 
@@ -22,7 +21,6 @@ export function AffordabilityForm({ onSubmit, loading }: Props) {
       itemName: itemName.trim(),
       cost: c,
       targetDate: targetDate || undefined,
-      alreadySaved: alreadySaved ? parseFloat(alreadySaved.replace(',', '.')) || 0 : undefined,
     });
   };
 
@@ -41,34 +39,19 @@ export function AffordabilityForm({ onSubmit, loading }: Props) {
         />
       </div>
 
-      <div className="grid grid-cols-2 gap-3">
-        <div>
-          <label className="block text-xs text-secondary mb-1.5 font-medium">Costo totale (€)</label>
-          <input
-            type="number"
-            value={cost}
-            onChange={e => setCost(e.target.value)}
-            placeholder="1200"
-            min="1"
-            step="any"
-            className="w-full bg-card border border-divider rounded-xl px-3.5 py-2.5 text-sm text-primary placeholder:text-secondary/50 focus:outline-none focus:border-gold/40 transition-colors"
-            required
-            disabled={loading}
-          />
-        </div>
-        <div>
-          <label className="block text-xs text-secondary mb-1.5 font-medium">Già accantonati (€)</label>
-          <input
-            type="number"
-            value={alreadySaved}
-            onChange={e => setAlreadySaved(e.target.value)}
-            placeholder="0"
-            min="0"
-            step="any"
-            className="w-full bg-card border border-divider rounded-xl px-3.5 py-2.5 text-sm text-primary placeholder:text-secondary/50 focus:outline-none focus:border-gold/40 transition-colors"
-            disabled={loading}
-          />
-        </div>
+      <div>
+        <label className="block text-xs text-secondary mb-1.5 font-medium">Costo totale (€)</label>
+        <input
+          type="number"
+          value={cost}
+          onChange={e => setCost(e.target.value)}
+          placeholder="1200"
+          min="1"
+          step="any"
+          className="w-full bg-card border border-divider rounded-xl px-3.5 py-2.5 text-sm text-primary placeholder:text-secondary/50 focus:outline-none focus:border-gold/40 transition-colors"
+          required
+          disabled={loading}
+        />
       </div>
 
       <div>

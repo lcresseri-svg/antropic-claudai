@@ -386,24 +386,27 @@ export const generateAffordabilityAdvice = onRequest(
 
       // ── Check aiEnabled in settings ───────────────────────────────────────
       const settingsSnap = await db.doc(`users/${uid}/meta/settings`).get();
-      const settings = (settingsSnap.data() ?? {}) as { aiEnabled?: boolean };
+      const settings = (settingsSnap.data() ?? {}) as { aiEnabled?: boolean; categories?: { id: string; label: string }[] };
       if (settings.aiEnabled === false) {
         res.status(403).json({ ok: false, error: 'ai-disabled' });
         return;
       }
 
       // ── Parse request body ────────────────────────────────────────────────
-      const { itemName, cost, targetDate, alreadySaved, priority } = (req.body ?? {}) as {
+      const { itemName, cost, targetDate, priority } = (req.body ?? {}) as {
         itemName: string;
         cost: number;
         targetDate?: string;
-        alreadySaved?: number;
         priority?: 'low' | 'medium' | 'high';
       };
       if (!itemName || !cost || cost <= 0) {
         res.status(400).json({ ok: false, error: 'invalid-request' });
         return;
       }
+
+      // Category id → label map (for naming categories in the advice).
+      const catDefs = settings.categories ?? [];
+      const catLabel = (id: string) => catDefs.find(c => c.id === id)?.label ?? id;
 
       // ── Read last 90 days of transactions ─────────────────────────────────
       const cutoff = new Date(); cutoff.setDate(cutoff.getDate() - 90);
@@ -456,30 +459,55 @@ export const generateAffordabilityAdvice = onRequest(
       const projectedInc = Math.max(income, avgInc);
       const projectedMonthlySaving = Math.round(projectedInc - projectedExp);
 
-      // ── Calculate affordability ───────────────────────────────────────────
-      const already = Math.max(0, Number(alreadySaved) || 0);
-      const remaining = Math.max(0, cost - already);
-      let monthsNeeded: number | null = null;
-      let daysLeft: number | null = null;
+      // ── Affordability over time (no "already saved" input) ────────────────
+      // We never ask how much the user already has. We reason purely on the
+      // saving pace: how many MONTHS of normal saving it takes to cover the
+      // cost, and how that shortens if a slice of variable spending is trimmed.
+      const safeSaving = Math.max(0, projectedMonthlySaving);
 
-      if (targetDate) {
-        const target = new Date(targetDate);
-        daysLeft = Math.max(1, Math.ceil((target.getTime() - Date.now()) / 86400000));
-        monthsNeeded = daysLeft / 30.4;
-      }
-
-      const requiredMonthly = monthsNeeded && monthsNeeded > 0 ? remaining / monthsNeeded : null;
-      const gap = requiredMonthly !== null ? requiredMonthly - Math.max(0, projectedMonthlySaving) : null;
-      const canAfford = gap === null ? null : gap <= 0;
-      const verdict: 'yes' | 'maybe' | 'no' =
-        canAfford === true ? 'yes' :
-        canAfford === false && gap !== null && gap < projectedMonthlySaving * 0.4 ? 'maybe' : 'no';
-
-      // Top variable spending categories to suggest cuts
+      // Top variable spending categories — candidates to trim.
       const topCuts = Object.entries(catSpend)
         .sort((a, b) => b[1] - a[1])
         .slice(0, 3)
-        .map(([id, v]) => ({ categoryId: id, amount: Math.round(v) }));
+        .map(([id, v]) => ({ categoryId: id, label: catLabel(id), amount: Math.round(v) }));
+
+      // Realistic accelerated pace: assume ~30% can be shaved off the top
+      // variable categories and redirected to the goal.
+      const monthlyCutPotential = Math.round(topCuts.reduce((s, c) => s + c.amount * 0.3, 0));
+      const acceleratedSaving = safeSaving + monthlyCutPotential;
+
+      const monthsToAfford = safeSaving > 0 ? Math.ceil(cost / safeSaving) : null;
+      const monthsToAffordWithCuts = acceleratedSaving > 0 ? Math.ceil(cost / acceleratedSaving) : null;
+
+      // Small-purchase threshold: if a single month's saving covers the cost,
+      // it fits THIS month without pushing the budget into the red. Otherwise
+      // `monthOvershoot` is how much buying it all now would overshoot by.
+      const fitsThisMonth = safeSaving > 0 && cost <= safeSaving;
+      const monthOvershoot = safeSaving > 0 ? Math.max(0, Math.round(cost - safeSaving)) : Math.round(cost);
+      const leftoverIfBought = fitsThisMonth ? Math.round(safeSaving - cost) : 0;
+
+      // Project the calendar month you'd reach the goal (Italian month name).
+      const MONTHS_IT = ['gennaio', 'febbraio', 'marzo', 'aprile', 'maggio', 'giugno',
+        'luglio', 'agosto', 'settembre', 'ottobre', 'novembre', 'dicembre'];
+      const targetMonthName = (months: number | null): string | null => {
+        if (months === null) return null;
+        const d = new Date(nowDate.getFullYear(), nowDate.getMonth() + months, 1);
+        return `${MONTHS_IT[d.getMonth()]} ${d.getFullYear()}`;
+      };
+      const readyByWithCuts = targetMonthName(monthsToAffordWithCuts);
+      const readyByPace = targetMonthName(monthsToAfford);
+
+      // Optional deadline: feasibility judged against the accelerated pace.
+      let daysLeft: number | null = null;
+      let requiredMonthly: number | null = null;
+      let targetFeasible: boolean | null = null;
+      if (targetDate) {
+        const target = new Date(targetDate);
+        daysLeft = Math.max(1, Math.ceil((target.getTime() - Date.now()) / 86400000));
+        const monthsAvailable = daysLeft / 30.4;
+        requiredMonthly = Math.round(cost / monthsAvailable);
+        targetFeasible = requiredMonthly <= acceleratedSaving;
+      }
 
       // ── Call Gemini for the Italian narrative ─────────────────────────────
       if (!apiKey) {
@@ -488,30 +516,56 @@ export const generateAffordabilityAdvice = onRequest(
         return;
       }
 
-      const periodStr = daysLeft !== null
-        ? `entro ${Math.round(daysLeft)} giorni`
-        : 'senza scadenza definita';
-      const savingStr = projectedMonthlySaving > 0
-        ? `risparmio mensile previsto di ${Math.round(projectedMonthlySaving)}€`
-        : `spesa mensile prevista superiore alle entrate di ${Math.round(Math.abs(projectedMonthlySaving))}€`;
+      // Build a compact, factual brief; let the model phrase it freely.
+      const facts: string[] = [];
+      facts.push(`Acquisto: "${itemName}", costo ${Math.round(cost)}€.`);
+      facts.push(safeSaving > 0
+        ? `Risparmio mensile stimato a ritmo attuale: ~${safeSaving}€.`
+        : `Al ritmo attuale il mese chiude in pari o in negativo (~${projectedMonthlySaving}€): senza tagli non si accumula nulla.`);
+      if (fitsThisMonth) {
+        facts.push(`SPESA PICCOLA: una sola mensilità di risparmio la copre. Comprandola subito chiuderesti comunque il mese con circa ${leftoverIfBought}€ da parte. Si può fare entro questo mese senza andare in rosso.`);
+      } else if (safeSaving > 0) {
+        facts.push(`SPESA IMPORTANTE: comprandola tutta questo mese sforeresti di circa ${monthOvershoot}€ (andresti in negativo). Meglio diluire su più mesi.`);
+      }
+      if (!fitsThisMonth && monthsToAfford !== null) {
+        facts.push(`Mantenendo le abitudini servono circa ${monthsToAfford} mesi (pronto verso ${readyByPace}).`);
+      }
+      if (topCuts.length > 0) {
+        const cutsStr = topCuts.map(c => `${c.label} (~${c.amount}€/mese)`).join(', ');
+        facts.push(`Categorie variabili più alte di questo mese: ${cutsStr}.`);
+      }
+      if (!fitsThisMonth && monthsToAffordWithCuts !== null && monthsToAffordWithCuts !== monthsToAfford) {
+        facts.push(`Tagliando ~30% su quelle categorie (~${monthlyCutPotential}€/mese in più) i mesi scendono a circa ${monthsToAffordWithCuts} (pronto verso ${readyByWithCuts}).`);
+      }
+      if (targetDate && requiredMonthly !== null) {
+        facts.push(`L'utente vorrebbe entro ${daysLeft} giorni: servirebbero ${requiredMonthly}€/mese, ${targetFeasible ? 'raggiungibile con qualche taglio' : 'difficile a meno di tagli importanti o di allungare i tempi'}.`);
+      }
+
       const prompt =
-        `Sei l'assistente finanziario dell'app Sunny. L'utente chiede: ` +
-        `"Posso permettermi ${itemName} da ${Math.round(cost)}€ ${periodStr}?" ` +
-        `Dati finanziari: ${savingStr}, ` +
-        (already > 0 ? `già accantonati ${Math.round(already)}€, ` : '') +
-        (requiredMonthly !== null ? `serve risparmiare ${Math.round(requiredMonthly)}€/mese, ` : '') +
-        `verdetto interno: "${verdict}". ` +
-        `Rispondi in 2-3 frasi brevi in italiano, tono diretto e concreto, senza markdown. ` +
-        `Se il verdetto è "yes": conferma e dai un consiglio pratico. ` +
-        `Se "maybe": spiega il gap e suggerisci dove tagliare. ` +
-        `Se "no": sii onesto ma propositivo (es. allungare l'orizzonte temporale).`;
+        `Sei il coach finanziario dell'app Sunny: amichevole, schietto e concreto. ` +
+        `L'utente vuole sapere se può permettersi un acquisto. NON chiedere mai quanto ha già da parte.\n\n` +
+        `Regola sul periodo:\n` +
+        `- Se la spesa è PICCOLA (una mensilità di risparmio la copre senza mandarlo in rosso), ` +
+        `dillo: si può fare già questo mese, e accenna a quanto gli resterebbe da parte.\n` +
+        `- Se la spesa è IMPORTANTE (lo farebbe sforare), NON forzare il rientro nel mese: ` +
+        `ragiona su più mesi, di' per quanti mesi conviene accantonare e quale spesa ridurre, ` +
+        `stimando il periodo (es. "verso ottobre") in cui ci arriva.\n\n` +
+        `Dati (usali, non elencarli meccanicamente):\n- ${facts.join('\n- ')}\n\n` +
+        `Scrivi in italiano, 2-4 frasi, tono colloquiale e vario (cambia ogni volta apertura, ritmo e ` +
+        `struttura: a volte parti dal verdetto, a volte dal consiglio, a volte da una domanda retorica). ` +
+        `Cita 1-2 categorie per nome quando suggerisci tagli. Niente markdown, niente elenchi puntati, ` +
+        `niente formule fisse o frasi-template. Dai una risposta che suoni umana e su misura.`;
 
       const gemResp = await fetch(
         'https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash:generateContent',
         {
           method: 'POST',
           headers: { 'Content-Type': 'application/json', 'x-goog-api-key': apiKey },
-          body: JSON.stringify({ contents: [{ parts: [{ text: prompt }] }] }),
+          body: JSON.stringify({
+            contents: [{ parts: [{ text: prompt }] }],
+            // High temperature + topP for genuinely varied, non-templated replies.
+            generationConfig: { temperature: 1.15, topP: 0.95, maxOutputTokens: 400 },
+          }),
         },
       );
       if (!gemResp.ok) {
@@ -531,10 +585,15 @@ export const generateAffordabilityAdvice = onRequest(
 
       res.json({
         ok: true,
-        verdict,
-        projectedMonthlySaving: Math.round(projectedMonthlySaving),
-        requiredMonthly: requiredMonthly !== null ? Math.round(requiredMonthly) : null,
-        gap: gap !== null ? Math.round(gap) : null,
+        monthlySaving: Math.round(projectedMonthlySaving),
+        fitsThisMonth,
+        monthOvershoot: fitsThisMonth ? 0 : monthOvershoot,
+        leftoverIfBought,
+        monthsToAfford,
+        monthsToAffordWithCuts,
+        readyBy: readyByWithCuts ?? readyByPace,
+        requiredMonthly,
+        targetFeasible,
         daysLeft,
         topCuts,
         advice,
