@@ -6,7 +6,7 @@ import { useTransactions } from './shared/hooks/useTransactions';
 import { SettingsProvider, useSettings } from './shared/providers/settings';
 import { Transaction } from './types';
 import { greeting } from './utils';
-import { buildProjectedOccurrences, isPending } from './shared/recurrence';
+import { buildProjectedOccurrences } from './shared/recurrence';
 import { db } from './lib/firebase';
 import { useOnboarding } from './features/onboarding/useOnboarding';
 import { OnboardingScreen } from './features/onboarding/OnboardingScreen';
@@ -200,23 +200,6 @@ function Main({ user, onLogOut, onDeleteAccount }: {
   const handleSave = (deleteIds: string[], create: Omit<Transaction, 'id'>[]) =>
     tx.replaceGroup(deleteIds, create);
 
-  const recentTransactions = useMemo(() => {
-    const seen = new Set<string>();
-    const todayISO = new Date().toISOString().slice(0, 10);
-    return tx.transactions
-      // "Recenti" = realized entries only — skip templates, synthetic projections
-      // and future-dated "previsti" (those haven't happened yet).
-      .filter(t => !t.recurring && !t.projected && !isPending(t, todayISO))
-      .sort((a, b) => b.date.localeCompare(a.date))
-      .filter(t => {
-        const k = `${t.description}|${t.category}`;
-        if (seen.has(k)) return false;
-        seen.add(k);
-        return true;
-      })
-      .slice(0, 5);
-  }, [tx.transactions]);
-
   return (
     <div className="min-h-screen md:flex">
       {/* Global backdrop for settings dropdown — outside the header stacking context */}
@@ -356,7 +339,6 @@ function Main({ user, onLogOut, onDeleteAccount }: {
 
       <TransactionModal
         open={modalOpen} editing={editing} groupTransfers={groupTransfers} seriesEdit={seriesEdit}
-        recentTransactions={recentTransactions}
         onClose={() => setModalOpen(false)}
         onSave={handleSave}
       />

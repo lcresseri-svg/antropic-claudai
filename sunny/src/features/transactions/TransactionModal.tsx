@@ -10,7 +10,6 @@ interface Props {
   editing?: Transaction | null;
   groupTransfers?: Transaction[];
   seriesEdit?: boolean;
-  recentTransactions?: Transaction[];
   onClose: () => void;
   onSave: (deleteIds: string[], create: Omit<Transaction, 'id'>[]) => void;
 }
@@ -20,7 +19,7 @@ interface Reimb { amount: string; account: string }
 const today = () => new Date().toISOString().slice(0, 10);
 const yesterday = () => { const d = new Date(); d.setDate(d.getDate() - 1); return d.toISOString().slice(0, 10); };
 
-export function TransactionModal({ open, editing, groupTransfers = [], seriesEdit = false, recentTransactions, onClose, onSave }: Props) {
+export function TransactionModal({ open, editing, groupTransfers = [], seriesEdit = false, onClose, onSave }: Props) {
   const { categories, accounts, enableInvestments, detailedInvestments } = useSettings();
   const [type, setType] = useState<TransactionType>('expense');
   const [description, setDescription] = useState('');
@@ -134,15 +133,6 @@ export function TransactionModal({ open, editing, groupTransfers = [], seriesEdi
     setCategoryTouched(true); // keep type, category, account, date
   };
 
-  const prefillFrom = (t: Transaction) => {
-    setType(t.type);
-    setCategory(t.category);
-    setCategoryTouched(true);
-    setAmount(String(t.amount));
-    setDescription(t.description);
-    if (t.account) setAccount(t.account);
-  };
-
   const doSubmit = (keepOpen: boolean) => {
     const value = parseFloat(amount.replace(',', '.'));
     if (!value || value <= 0) { setAmountError(true); return; }
@@ -250,26 +240,6 @@ export function TransactionModal({ open, editing, groupTransfers = [], seriesEdi
             <p className="text-[11px] text-secondary bg-elevated rounded-xl px-3 py-2 leading-snug">
               🔁 Stai modificando l'intera serie. Le modifiche valgono per le occorrenze future; le voci già registrate non cambiano.
             </p>
-          )}
-
-          {/* Recent transactions chips — quick pre-fill for new transactions */}
-          {!editing && recentTransactions && recentTransactions.length > 0 && (
-            <div>
-              <p className="label-caps text-secondary mb-2 px-1">Recenti</p>
-              <div className="flex gap-2 overflow-x-auto scrollbar-hide pb-1 -mx-1 px-1">
-                {recentTransactions.map(t => {
-                  const c = categories.find(ct => ct.id === t.category);
-                  return (
-                    <button key={t.id} type="button" onClick={() => prefillFrom(t)}
-                      className="flex-shrink-0 flex items-center gap-1.5 px-3 py-1.5 rounded-full bg-elevated text-xs whitespace-nowrap active:bg-card-hover transition-colors">
-                      {c && <span>{c.icon}</span>}
-                      <span className="text-secondary max-w-[72px] truncate">{t.description || c?.label || ''}</span>
-                      <span className="text-primary balance-num">{formatCurrency(t.amount)}</span>
-                    </button>
-                  );
-                })}
-              </div>
-            </div>
           )}
 
           {/* Type segmented */}

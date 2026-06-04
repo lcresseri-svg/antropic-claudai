@@ -1,4 +1,4 @@
-export const APP_VERSION = '1.9.8';
+export const APP_VERSION = '1.9.9';
 
 /**
  * Release channel. While in 'beta' the app is still under active development
@@ -15,6 +15,12 @@ export interface VersionEntry {
 
 /** Registro versioni mostrato in Impostazioni → Registro versioni. */
 export const VERSIONS: VersionEntry[] = [
+  {
+    version: '1.9.9', date: '2026-06-04', title: 'Rimossi i suggerimenti "Recenti"',
+    changes: [
+      'Rimossi i chip "Recenti" dal modulo di aggiunta transazione.',
+    ],
+  },
   {
     version: '1.9.8', date: '2026-06-04', title: 'Ricorrenti retroattive contano subito come fatte',
     changes: [
