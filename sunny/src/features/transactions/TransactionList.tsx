@@ -75,12 +75,17 @@ export function TransactionList({ transactions, projected = [], onEdit, onDelete
   const [picker, setPicker] = useState<'category' | 'account' | null>(null);
   const [confirmDelete, setConfirmDelete] = useState(false);
 
-  // Esc chiude il pannello filtri
+  // Esc chiude il pannello filtri; finché è aperto blocca lo scroll di sfondo.
   useEffect(() => {
     if (!filterOpen) return;
     const onKey = (e: KeyboardEvent) => { if (e.key === 'Escape') setFilterOpen(false); };
     window.addEventListener('keydown', onKey);
-    return () => window.removeEventListener('keydown', onKey);
+    const prevOverflow = document.body.style.overflow;
+    document.body.style.overflow = 'hidden';
+    return () => {
+      window.removeEventListener('keydown', onKey);
+      document.body.style.overflow = prevOverflow;
+    };
   }, [filterOpen]);
 
   const filtered = useMemo(() => {
@@ -248,8 +253,8 @@ export function TransactionList({ transactions, projected = [], onEdit, onDelete
             {filterOpen && (
               <>
                 <div className="fixed inset-0 z-40" onClick={() => setFilterOpen(false)} />
-                <div className="absolute right-0 mt-2 w-60 z-50 glass-elevated rounded-2xl shadow-float p-3 animate-fade-in-fast">
-                  <p className="label-caps text-secondary mb-2 px-1">Ordina per</p>
+                <div className="absolute right-0 mt-2 w-56 z-50 glass-elevated rounded-2xl shadow-float p-2.5 max-h-[70dvh] overflow-y-auto overscroll-contain animate-fade-in-fast">
+                  <p className="label-caps text-secondary mb-1.5 px-1">Ordina per</p>
                   <div className="flex gap-1 bg-card rounded-xl p-1 mb-2">
                     {([['date', 'Data'], ['amount', 'Importo']] as [SortKey, string][]).map(([key, lbl]) => (
                       <button key={key} onClick={() => setSortKey(key)}
@@ -260,7 +265,7 @@ export function TransactionList({ transactions, projected = [], onEdit, onDelete
                       </button>
                     ))}
                   </div>
-                  <div className="flex gap-1 bg-card rounded-xl p-1 mb-3">
+                  <div className="flex gap-1 bg-card rounded-xl p-1 mb-2.5">
                     {dirLabels.map(([dir, lbl]) => (
                       <button key={dir} onClick={() => setSortDir(dir)}
                         className={`flex-1 px-2 py-1.5 rounded-lg text-xs font-medium transition-colors ${
@@ -270,11 +275,11 @@ export function TransactionList({ transactions, projected = [], onEdit, onDelete
                       </button>
                     ))}
                   </div>
-                  <p className="label-caps text-secondary mb-2 px-1">Periodo</p>
+                  <p className="label-caps text-secondary mb-1.5 px-1">Periodo</p>
                   <div className="space-y-1">
                     {PERIOD_OPTS.map(opt => (
                       <button key={opt.value} onClick={() => { setPeriod(opt.value); setFilterOpen(false); }}
-                        className={`w-full flex items-center justify-between px-3 py-2 rounded-xl text-sm transition-colors ${
+                        className={`w-full flex items-center justify-between px-3 py-1.5 rounded-xl text-[13px] transition-colors ${
                           period === opt.value ? 'bg-gold/10 text-gold font-medium' : 'text-primary hover:bg-card'
                         }`}>
                         {opt.label}
@@ -289,11 +294,11 @@ export function TransactionList({ transactions, projected = [], onEdit, onDelete
 
                   {projected.length > 0 && (
                     <>
-                      <p className="label-caps text-secondary mb-2 mt-3 px-1">Previsti</p>
+                      <p className="label-caps text-secondary mb-1.5 mt-2.5 px-1">Previsti</p>
                       <div className="space-y-1">
                         {PROJ_OPTS.map(opt => (
                           <button key={opt.value} onClick={() => { setProjView(opt.value); setFilterOpen(false); }}
-                            className={`w-full flex items-center justify-between px-3 py-2 rounded-xl text-sm transition-colors ${
+                            className={`w-full flex items-center justify-between px-3 py-1.5 rounded-xl text-[13px] transition-colors ${
                               projView === opt.value ? 'bg-gold/10 text-gold font-medium' : 'text-primary hover:bg-card'
                             }`}>
                             {opt.label}
@@ -308,11 +313,11 @@ export function TransactionList({ transactions, projected = [], onEdit, onDelete
                     </>
                   )}
 
-                  <p className="label-caps text-secondary mb-2 mt-3 px-1">Raggruppa per</p>
+                  <p className="label-caps text-secondary mb-1.5 mt-2.5 px-1">Raggruppa per</p>
                   <div className="space-y-1">
                     {([['month', 'Per mese'], ['account', 'Per conto'], ['category', 'Per categoria']] as [GroupMode, string][]).map(([m, lbl]) => (
                       <button key={m} onClick={() => { changeGroup(m); setFilterOpen(false); }}
-                        className={`w-full flex items-center justify-between px-3 py-2 rounded-xl text-sm transition-colors ${
+                        className={`w-full flex items-center justify-between px-3 py-1.5 rounded-xl text-[13px] transition-colors ${
                           groupMode === m ? 'bg-gold/10 text-gold font-medium' : 'text-primary hover:bg-card'
                         }`}>
                         {lbl}

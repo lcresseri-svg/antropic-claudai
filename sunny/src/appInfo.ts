@@ -1,4 +1,4 @@
-export const APP_VERSION = '1.8.10';
+export const APP_VERSION = '1.8.11';
 
 /**
  * Release channel. While in 'beta' the app is still under active development
@@ -15,6 +15,13 @@ export interface VersionEntry {
 
 /** Registro versioni mostrato in Impostazioni → Registro versioni. */
 export const VERSIONS: VersionEntry[] = [
+  {
+    version: '1.8.11', date: '2026-06-04', title: 'Rifiniture filtri e confronti',
+    changes: [
+      'Pannello filtri più compatto: ora scorre internamente se le voci sono tante e, mentre è aperto, la lista dietro resta ferma (niente più scorrimento accidentale).',
+      'Confronto "anno su anno" più affidabile: non compare più nei primi giorni del mese, quando con poche spese registrate produceva variazioni irrealistiche; quando appare usa una proiezione stabilizzata sulle tue abitudini.',
+    ],
+  },
   {
     version: '1.8.10', date: '2026-06-04', title: 'Previsione più robusta e per categoria',
     changes: [
