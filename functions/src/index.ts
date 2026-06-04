@@ -157,37 +157,44 @@ export const processRecurringTransactions = onSchedule(
 
       // Extract userId from Firestore path: users/{userId}/transactions/{txId}
       const userId = doc.ref.path.split('/')[1];
-      const txsRef = db.collection(`users/${userId}/transactions`);
 
-      // Stable series id linking this template to every instance it spawns.
-      // Backfill from the template's own doc id for legacy templates.
-      const seriesId = (tx.seriesId as string | undefined) ?? doc.id;
+      try {
+        const txsRef = db.collection(`users/${userId}/transactions`);
 
-      // Instance copy: drop the recurring rule and the stored id; keep seriesId.
-      const { recurring: _r, id: _id, ...instanceData } = tx;
-      const batch = db.batch();
+        // Stable series id linking this template to every instance it spawns.
+        // Backfill from the template's own doc id for legacy templates.
+        const seriesId = (tx.seriesId as string | undefined) ?? doc.id;
 
-      // CATCH-UP: materialize EVERY missed occurrence (date <= today) in one run,
-      // not just the next one, so a template that fell behind (or whose `until`
-      // already passed) still produces all its due instances. Guard caps runaway.
-      let date = tx.date as string;
-      let guard = 400;
-      let advanced = false;
-      while (date <= today && (!recurring.until || date <= recurring.until) && guard-- > 0) {
-        const newRef = txsRef.doc();
-        // Override date: each catch-up instance lands on its own occurrence date,
-        // not the template's original (first) date carried in instanceData.
-        batch.set(newRef, { ...instanceData, id: newRef.id, seriesId, date });
-        date = addPeriod(date, recurring.freq);
-        advanced = true;
-        created++;
-        createdByUser[userId] = (createdByUser[userId] ?? 0) + 1;
-      }
+        // Instance copy: drop the recurring rule and the stored id; keep seriesId.
+        const { recurring: _r, id: _id, ...instanceData } = tx;
+        const batch = db.batch();
 
-      if (advanced) {
-        // Advance the template to its next future occurrence; backfill seriesId.
-        batch.update(doc.ref, { date, seriesId });
-        await batch.commit();
+        // CATCH-UP: materialize EVERY missed occurrence (date <= today) in one run,
+        // not just the next one, so a template that fell behind (or whose `until`
+        // already passed) still produces all its due instances. Guard caps runaway.
+        let date = tx.date as string;
+        let guard = 400;
+        let advanced = false;
+        while (date <= today && (!recurring.until || date <= recurring.until) && guard-- > 0) {
+          const newRef = txsRef.doc();
+          // Override date: each catch-up instance lands on its own occurrence date,
+          // not the template's original (first) date carried in instanceData.
+          batch.set(newRef, { ...instanceData, id: newRef.id, seriesId, date });
+          date = addPeriod(date, recurring.freq);
+          advanced = true;
+          created++;
+          createdByUser[userId] = (createdByUser[userId] ?? 0) + 1;
+        }
+
+        if (advanced) {
+          // Advance the template to its next future occurrence; backfill seriesId.
+          batch.update(doc.ref, { date, seriesId });
+          await batch.commit();
+        } else if (recurring.until && date > recurring.until) {
+          console.log(`processRecurringTransactions: template ${doc.id} (user ${userId}) has expired (until=${recurring.until})`);
+        }
+      } catch (err) {
+        console.error(`processRecurringTransactions: failed for template ${doc.id} (user ${userId}):`, err);
       }
     }
 

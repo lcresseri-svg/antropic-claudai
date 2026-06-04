@@ -52,6 +52,13 @@ jobs:
         env:
           GEMINI_API_KEY: ${{ secrets.GEMINI_API_KEY }}
 
+      # 0) Firestore indexes — required by processRecurringTransactions
+      #    (collectionGroup query on `recurring` field needs the composite index).
+      #    Idempotent: safe to re-deploy on every push.
+      - name: Deploy Firestore indexes
+        if: github.event_name == 'push'
+        run: npx -y firebase-tools@latest deploy --only firestore:indexes --project sunny-a2a98 --non-interactive --force
+
       # Deploy in two steps so the simple HTTP functions go live even if the
       # scheduled/trigger functions need a one-time project-IAM grant by an
       # owner (Cloud Scheduler / Pub/Sub / Eventarc service-agent roles).

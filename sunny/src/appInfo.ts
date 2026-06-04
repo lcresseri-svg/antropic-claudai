@@ -1,4 +1,4 @@
-export const APP_VERSION = '1.8.12';
+export const APP_VERSION = '1.8.13';
 
 /**
  * Release channel. While in 'beta' the app is still under active development
@@ -15,6 +15,13 @@ export interface VersionEntry {
 
 /** Registro versioni mostrato in Impostazioni → Registro versioni. */
 export const VERSIONS: VersionEntry[] = [
+  {
+    version: '1.8.13', date: '2026-06-04', title: 'Fix transazioni ricorrenti',
+    changes: [
+      'Corretto un bug per cui il fallimento di un singolo template ricorrente poteva bloccare silenziosamente la materializzazione di tutte le voci successive nella stessa esecuzione giornaliera.',
+      'Il deploy ora include sempre gli indici Firestore necessari alla ricerca dei template ricorrenti, evitando errori silenziosi se l\'indice non era stato mai deployato.',
+    ],
+  },
   {
     version: '1.8.12', date: '2026-06-04', title: 'Onboarding guidato per nuovi utenti',
     changes: [
