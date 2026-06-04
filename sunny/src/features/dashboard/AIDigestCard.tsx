@@ -1,6 +1,7 @@
 import { useState, useEffect, useRef } from 'react';
 import { useSettings } from '../../shared/providers/settings';
-import { fetchDigest, DigestInput } from './aiDigest';
+import { auth } from '../../lib/firebase';
+import { fetchDigest, buildRuleBasedDigest, DigestInput } from './aiDigest';
 
 interface Props {
   input: DigestInput;
@@ -25,11 +26,15 @@ export function AIDigestCard({ input }: Props) {
     setSentences(null);
     setVisible(false);
 
-    fetchDigest(input).then(s => {
+    (async () => {
+      // Send a Firebase ID token so the (now authenticated) endpoint accepts the
+      // request; if there's no signed-in user, fall back to the local digest.
+      const idToken = await auth.currentUser?.getIdToken().catch(() => undefined);
+      const s = idToken ? await fetchDigest(input, idToken) : buildRuleBasedDigest(input);
       cacheRef.current = { key: inputKey, sentences: s };
       setSentences(s);
       requestAnimationFrame(() => setVisible(true));
-    });
+    })();
   // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [inputKey]);
 

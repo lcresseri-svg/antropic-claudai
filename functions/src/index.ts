@@ -8,6 +8,28 @@ const db = admin.firestore();
 
 const APP_LINK = 'https://sunny-a2a98.web.app/';
 
+// Origins allowed to call the HTTP endpoints. Replaces the previous `cors: true`
+// (which let any site invoke the functions). localhost is kept for local dev.
+const ALLOWED_ORIGINS: (string | RegExp)[] = [
+  'https://sunny-a2a98.web.app',
+  'https://sunny-a2a98.firebaseapp.com',
+  /^http:\/\/localhost:\d+$/,
+];
+
+/** Verify the Firebase ID token in the `Authorization: Bearer <token>` header.
+ *  Returns the authenticated uid, or null when the token is missing/invalid.
+ *  HTTP endpoints must reject (401) when this returns null. */
+async function verifyBearer(authHeader?: string): Promise<string | null> {
+  const m = (authHeader ?? '').match(/^Bearer (.+)$/);
+  if (!m) return null;
+  try {
+    const decoded = await admin.auth().verifyIdToken(m[1]);
+    return decoded.uid;
+  } catch {
+    return null;
+  }
+}
+
 // ─────────────────────────────────────────────────────────────────────────────
 // PUSH NOTIFICATIONS (FCM)
 //
@@ -189,12 +211,14 @@ export const processRecurringTransactions = onSchedule(
 // Manual end-to-end test: sends a one-off notification to the caller's tokens.
 // HTTP (onRequest) so it can be triggered from the app's settings.
 export const sendTestPush = onRequest(
-  { region: 'europe-west1', cors: true },
+  { region: 'europe-west1', cors: ALLOWED_ORIGINS },
   async (req, res) => {
     try {
       if (req.method !== 'POST') { res.status(405).json({ ok: false, error: 'method-not-allowed' }); return; }
-      const { uid } = (req.body ?? {}) as { uid?: string };
-      if (!uid) { res.status(400).json({ ok: false, error: 'missing-uid' }); return; }
+      // Derive the target user from the verified token — never trust a body uid,
+      // otherwise anyone could spam test pushes to any account.
+      const uid = await verifyBearer(req.headers.authorization);
+      if (!uid) { res.status(401).json({ ok: false, error: 'unauthorized' }); return; }
 
       const ref = db.doc(`users/${uid}/meta/push`);
       const snap = await ref.get();
@@ -330,17 +354,22 @@ export const generateDigest = onRequest(
   // onRequest (plain HTTP) instead of onCall: the callable protocol was
   // returning "internal" before our handler ran (project-level IAM/App Check
   // issue). A plain HTTP endpoint avoids that layer entirely.
-  { region: 'europe-west1', cors: true },
+  { region: 'europe-west1', cors: ALLOWED_ORIGINS },
   async (req, res) => {
     const apiKey = process.env.GEMINI_API_KEY;
     try {
       if (req.method !== 'POST') { res.status(405).json({ error: 'method not allowed' }); return; }
 
+      // Require a valid signed-in user: prevents anonymous abuse of the endpoint
+      // (and of the paid Gemini quota).
+      const uid = await verifyBearer(req.headers.authorization);
+      if (!uid) { res.status(401).json({ error: 'unauthorized' }); return; }
+
       const { income, expenses, investments, saved, topInsights } = (req.body ?? {}) as {
         income: number; expenses: number; investments: number; saved: number; topInsights: string[];
       };
 
-      if (!apiKey) { res.json({ sentences: [`DEBUG: GEMINI_API_KEY assente nell'ambiente`] }); return; }
+      if (!apiKey) { console.error('generateDigest: GEMINI_API_KEY missing'); res.status(503).json({ error: 'unavailable' }); return; }
 
       const prompt =
        `Sei l'assistente finanziario dell'app Sunny. ` +
@@ -363,8 +392,8 @@ export const generateDigest = onRequest(
 
       if (!gemResp.ok) {
         const body = await gemResp.text();
-        console.error('Gemini REST non-2xx:', gemResp.status, body);
-        res.json({ sentences: [`DEBUG http=${gemResp.status} keyLen=${apiKey.length}`, `body=${body.slice(0, 200)}`] });
+        console.error('Gemini REST non-2xx:', gemResp.status, body.slice(0, 300));
+        res.status(502).json({ error: 'unavailable' });
         return;
       }
 
@@ -372,15 +401,13 @@ export const generateDigest = onRequest(
         candidates?: { content?: { parts?: { text?: string }[] } }[];
       };
       const text = (data?.candidates?.[0]?.content?.parts?.[0]?.text ?? '').trim();
-      if (!text) { res.json({ sentences: [`DEBUG: risposta vuota`, `raw=${JSON.stringify(data).slice(0, 180)}`] }); return; }
+      if (!text) { console.error('generateDigest: empty Gemini response'); res.status(502).json({ error: 'unavailable' }); return; }
 
       const sentences = text.split(/(?<=[.!?])\s+/).filter(Boolean).slice(0, 3);
       res.json({ sentences });
     } catch (err) {
-      const name = err instanceof Error ? err.name : 'Unknown';
-      const msg = err instanceof Error ? err.message : String(err);
       console.error('generateDigest failed:', err);
-      res.json({ sentences: [`DEBUG keyLen=${apiKey?.length ?? 0} ${name}`, `err=${msg.slice(0, 200)}`] });
+      res.status(500).json({ error: 'unavailable' });
     }
   }
 );

@@ -1,11 +1,11 @@
 import { useState, useMemo } from 'react';
 import { User } from 'firebase/auth';
-import { Transaction } from '../../types';
+import { Transaction, ownShare } from '../../types';
 import { useSettings } from '../../shared/providers/settings';
 import { useBudget } from '../../shared/hooks/useBudget';
 import {
   suggestBudgets, forecastSavings, generateBudgetInsights, seasonalHint,
-  seasonalMonthlyAverage, DEMO_CATEGORY_SPEND, DEMO_CATEGORY_BUDGETS,
+  seasonalVariableMonthly, forecastByCategory, DEMO_CATEGORY_SPEND, DEMO_CATEGORY_BUDGETS,
 } from './budgetUtils';
 import { upcomingRecurringThisMonth } from '../../shared/recurrence';
 import { history } from '../insights/insightsEngine';
@@ -77,6 +77,13 @@ export function BudgetScreen({
     return suggestBudgets(transactions, expenseCats);
   }, [isLearning, transactions, expenseCats]);
 
+  // End-of-month projection per expense category (variable spend only; same
+  // adaptive engine as the global forecast). Empty in demo mode.
+  const projectedSpend = useMemo(() => {
+    if (isLearning) return {};
+    return forecastByCategory(transactions, expenseCats.map(c => c.id));
+  }, [isLearning, transactions, expenseCats]);
+
   // Planned income: sum of income budgets if set, otherwise actual monthly income
   const plannedIncome = useMemo(() => {
     const sum = Object.values(budget.incomeBudgets).reduce((s, v) => s + v, 0);
@@ -89,16 +96,25 @@ export function BudgetScreen({
     if (isLearning) return 420;
     const now = new Date();
     const h = history(transactions, 3);
-    const seasonal = seasonalMonthlyAverage(transactions, now.getMonth(), now);
-    const seasonalAvgExpense = Object.values(seasonal).reduce((s, v) => s + v, 0);
+    const seasonalVar = seasonalVariableMonthly(transactions, now.getMonth(), now);
     const today = now.toISOString().slice(0, 10);
+    const curKey = now.toISOString().slice(0, 7);
     const lastDay = new Date(now.getFullYear(), now.getMonth() + 1, 0).getDate();
-    const monthEnd = `${now.toISOString().slice(0, 7)}-${String(lastDay).padStart(2, '0')}`;
+    const monthEnd = `${curKey}-${String(lastDay).padStart(2, '0')}`;
     const upcomingRecurring = upcomingRecurringThisMonth(transactions, today, monthEnd);
+    let variableSpent = 0;
+    for (const t of transactions) {
+      if (t.type !== 'expense' || t.date.slice(0, 7) !== curKey) continue;
+      if (t.seriesId || t.recurring) continue;
+      variableSpent += ownShare(t);
+    }
     return forecastSavings({
       monthlyIncome, monthlyExpenses, monthlyInvestments,
-      avgIncome: h.avgIncome, avgExpense: h.avgExpense, avgInvest: h.avgInvest,
-      seasonalAvgExpense, upcomingRecurring,
+      variableSpent,
+      recentVariableAvg: h.avgVariableExpense,
+      seasonalVariableAvg: seasonalVar.avg, seasonalYears: seasonalVar.years,
+      avgIncome: h.avgIncome, avgInvest: h.avgInvest,
+      upcomingRecurring,
     }).savings;
   }, [isLearning, transactions, monthlyIncome, monthlyExpenses, monthlyInvestments]);
 
@@ -203,6 +219,7 @@ export function BudgetScreen({
         spend={expenseSpend}
         budgets={activeExpBudgets}
         mode="expense"
+        projected={projectedSpend}
         onEditCategory={id => openEdit('expenses', id)}
       />
 

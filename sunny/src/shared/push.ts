@@ -90,10 +90,11 @@ const TEST_URL =
 /** Ask the server to send a one-off test notification to this user's devices. */
 export async function sendTestNotification(user: User): Promise<{ ok: boolean; reason?: string; tokens?: number }> {
   try {
+    const idToken = await user.getIdToken();
     const resp = await fetch(TEST_URL, {
       method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ uid: user.uid }),
+      headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${idToken}` },
+      body: '{}',
     });
     if (resp.status === 404) return { ok: false, reason: 'not-deployed' };
     if (!resp.ok) return { ok: false, reason: `http-${resp.status}` };

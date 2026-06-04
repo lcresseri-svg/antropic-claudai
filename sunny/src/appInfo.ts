@@ -1,4 +1,4 @@
-export const APP_VERSION = '1.8.8';
+export const APP_VERSION = '1.8.11';
 
 /**
  * Release channel. While in 'beta' the app is still under active development
@@ -15,6 +15,29 @@ export interface VersionEntry {
 
 /** Registro versioni mostrato in Impostazioni → Registro versioni. */
 export const VERSIONS: VersionEntry[] = [
+  {
+    version: '1.8.11', date: '2026-06-04', title: 'Rifiniture filtri e confronti',
+    changes: [
+      'Pannello filtri più compatto: ora scorre internamente se le voci sono tante e, mentre è aperto, la lista dietro resta ferma (niente più scorrimento accidentale).',
+      'Confronto "anno su anno" più affidabile: non compare più nei primi giorni del mese, quando con poche spese registrate produceva variazioni irrealistiche; quando appare usa una proiezione stabilizzata sulle tue abitudini.',
+    ],
+  },
+  {
+    version: '1.8.10', date: '2026-06-04', title: 'Previsione più robusta e per categoria',
+    changes: [
+      'Le spese anomale (un acquisto grosso e occasionale) non gonfiano più la media: ora un singolo mese fuori scala viene smussato, così la previsione resta stabile.',
+      'A metà mese, se non hai ancora registrato spese variabili, la stima non crolla più verso lo zero: resta ancorata alle tue abitudini finché non arrivano dati reali del mese.',
+      'Nuova stima di fine mese per ogni categoria di spesa: sotto ogni voce del budget vedi "Stima fine mese ~€…" e un avviso se supererà il limite impostato.',
+    ],
+  },
+  {
+    version: '1.8.9', date: '2026-06-03', title: 'Previsione di fine mese più precisa',
+    changes: [
+      'Le spese previste ora distinguono spese variabili e ricorrenti: le ricorrenti ancora in arrivo (es. affitto non ancora pagato) vengono aggiunte esplicitamente, non più solo "coperte".',
+      'La stima reagisce al ritmo reale del mese: a inizio mese pesa la tua media, col passare dei giorni conta sempre più quanto stai spendendo davvero.',
+      'Il peso della stagionalità (stesso mese negli anni scorsi) cresce solo se ci sono abbastanza anni di dati, evitando che un singolo anno anomalo sbilanci la previsione.',
+    ],
+  },
   {
     version: '1.8.8', date: '2026-06-03', title: 'Impostazioni più ordinate e funzioni opzionali',
     changes: [

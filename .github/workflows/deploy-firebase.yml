@@ -2,7 +2,10 @@ name: Deploy Sunny to Firebase Hosting
 
 on:
   push:
-    branches: [main, claude/sunny-finance-mvp-HRtWy]
+    branches: [main]
+    paths: ['sunny/**', 'firebase.json', '.github/workflows/deploy-firebase.yml']
+  pull_request:
+    branches: [main]
     paths: ['sunny/**', 'firebase.json', '.github/workflows/deploy-firebase.yml']
   workflow_dispatch:
 
@@ -38,7 +41,11 @@ jobs:
           VITE_FIREBASE_APP_ID: "1:1059291331006:web:f62698cd6f0c6da1caa1ef"
           VITE_FIREBASE_VAPID_KEY: ${{ secrets.VITE_FIREBASE_VAPID_KEY }}
 
+      # Deploy to the live channel only on push to main. On pull_request the job
+      # runs build + test as a CI check but never deploys (no prod deploy from
+      # feature branches).
       - uses: FirebaseExtended/action-hosting-deploy@v0
+        if: github.event_name == 'push'
         with:
           repoToken: ${{ secrets.GITHUB_TOKEN }}
           firebaseServiceAccount: ${{ secrets.FIREBASE_SERVICE_ACCOUNT }}

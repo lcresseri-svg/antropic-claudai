@@ -2,7 +2,13 @@ name: Deploy Sunny Cloud Functions
 
 on:
   push:
-    branches: [main, claude/sunny-finance-mvp-HRtWy]
+    branches: [main]
+    paths:
+      - 'functions/**'
+      - 'firebase.json'
+      - '.github/workflows/deploy-functions.yml'
+  pull_request:
+    branches: [main]
     paths:
       - 'functions/**'
       - 'firebase.json'
@@ -29,7 +35,10 @@ jobs:
 
       # Authenticates the Firebase CLI: writes the service-account key and sets
       # GOOGLE_APPLICATION_CREDENTIALS, which firebase-tools picks up automatically.
+      # Auth + deploy only on push to main. On pull_request the job builds the
+      # functions as a CI check but never authenticates or deploys.
       - id: auth
+        if: github.event_name == 'push'
         uses: google-github-actions/auth@v3
         with:
           credentials_json: ${{ secrets.FIREBASE_SERVICE_ACCOUNT }}
@@ -38,6 +47,7 @@ jobs:
       # deploy bakes it as a runtime environment variable. The file is created
       # fresh in CI, is gitignored, and never committed.
       - name: Write Gemini API key to .env
+        if: github.event_name == 'push'
         run: printf 'GEMINI_API_KEY=%s\n' "$GEMINI_API_KEY" > functions/.env
         env:
           GEMINI_API_KEY: ${{ secrets.GEMINI_API_KEY }}
@@ -49,10 +59,12 @@ jobs:
       # 1) HTTP functions — never need special IAM, deploy first so the AI
       #    digest and the push self-test are always available.
       - name: Deploy HTTP functions
+        if: github.event_name == 'push'
         run: npx -y firebase-tools@latest deploy --only functions:generateDigest,functions:sendTestPush --project sunny-a2a98 --non-interactive --force
 
       # 2) Scheduled + trigger functions — require the service-agent IAM
       #    bindings. If this step fails with an IAM error, an owner must grant
       #    the roles once (see repo notes), then re-run this workflow.
       - name: Deploy scheduled & trigger functions
+        if: github.event_name == 'push'
         run: npx -y firebase-tools@latest deploy --only functions:processRecurringTransactions,functions:remindLogExpenses,functions:sendMonthlySummary,functions:onUserDeleted --project sunny-a2a98 --non-interactive --force

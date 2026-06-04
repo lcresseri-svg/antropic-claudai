@@ -12,6 +12,8 @@ interface Props {
   onEditCategory: (catId: string) => void;
   title?: string;
   mode?: ListMode;
+  /** Optional end-of-month projection per category (expense mode only). */
+  projected?: Record<string, number>;
 }
 
 function statusFor(actual: number, planned: number, mode: ListMode): CategoryStatus {
@@ -47,7 +49,7 @@ const INCOME_LABEL: Record<CategoryStatus, string> = {
 
 export function CategoryBudgetList({
   categories, spend, budgets, onEditCategory,
-  title, mode = 'expense',
+  title, mode = 'expense', projected,
 }: Props) {
   const defaultTitle =
     mode === 'income' ? 'Entrate previste' :
@@ -72,6 +74,11 @@ export function CategoryBudgetList({
           const status = statusFor(actual, planned, mode);
           const pct = planned > 0 ? Math.round((actual / planned) * 100) : 0;
           const color = barColorFor(status, cat.color, mode);
+          const proj = mode === 'expense' ? (projected?.[cat.id] ?? 0) : 0;
+          // Only surface a forecast when it adds information (meaningfully above
+          // what's already been spent this month).
+          const showProj = proj - actual >= 5;
+          const projOverBudget = planned > 0 && proj > planned;
           return (
             <li key={cat.id}>
               <button onClick={() => onEditCategory(cat.id)} className="w-full text-left">
@@ -97,6 +104,12 @@ export function CategoryBudgetList({
                     <span className="text-[11px] text-secondary balance-num">{pct}%</span>
                   )}
                 </div>
+                {showProj && (
+                  <p className="text-[11px] text-secondary mt-1">
+                    Stima fine mese ~<span className="balance-num">{formatCurrency(proj)}</span>
+                    {projOverBudget && <span className="text-gold"> · sopra il budget</span>}
+                  </p>
+                )}
               </button>
             </li>
           );
