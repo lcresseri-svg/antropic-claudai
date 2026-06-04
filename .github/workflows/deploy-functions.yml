@@ -59,6 +59,14 @@ jobs:
         if: github.event_name == 'push'
         run: npx -y firebase-tools@latest deploy --only firestore:indexes --project sunny-a2a98 --non-interactive --force
 
+      # Clean up obsolete functions that were removed from source. Because the
+      # deploy steps below use `--only functions:<names>`, deleting a function
+      # from the code does NOT undeploy it — Cloud Scheduler keeps firing it.
+      # `functions:delete` is idempotent here via `|| true` (no-op once gone).
+      - name: Delete obsolete functions
+        if: github.event_name == 'push'
+        run: npx -y firebase-tools@latest functions:delete testPush14 --project sunny-a2a98 --region europe-west1 --force || true
+
       # Deploy in two steps so the simple HTTP functions go live even if the
       # scheduled/trigger functions need a one-time project-IAM grant by an
       # owner (Cloud Scheduler / Pub/Sub / Eventarc service-agent roles).
