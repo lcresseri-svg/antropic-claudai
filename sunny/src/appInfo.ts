@@ -1,4 +1,4 @@
-export const APP_VERSION = '1.9.2';
+export const APP_VERSION = '1.9.3';
 
 /**
  * Release channel. While in 'beta' the app is still under active development
@@ -15,6 +15,17 @@ export interface VersionEntry {
 
 /** Registro versioni mostrato in Impostazioni → Registro versioni. */
 export const VERSIONS: VersionEntry[] = [
+  {
+    version: '1.9.3', date: '2026-06-04', title: 'AI Coach: widget, previsti e prompt arricchito',
+    changes: [
+      'AI Coach disponibile ovunque come widget flottante (in basso a destra, come WhatsApp): accessibile in qualsiasi schermata senza abbandonare quello che stai facendo.',
+      'Il widget AI è indipendente dall\'interruttore "Suggerimenti AI": puoi usarlo anche a suggerimenti disattivati.',
+      'Il prompt inviato a Gemini ora include investimenti, budget pianificato e spese previste — risposta molto più precisa e contestualizzata.',
+      'Transazioni con data futura: vengono trattate come "previste" (escluse dai saldi realizzati, incluse nelle previsioni) e si materializzano automaticamente quando arriva il loro giorno.',
+      'Navbar ridisegnata: pill flottante più grande con icona + etichetta per ogni voce, posizione e proporzioni simili a WhatsApp.',
+      'Impostazioni (admin): nuovo interruttore per nascondere il widget AI Coach.',
+    ],
+  },
   {
     version: '1.9.2', date: '2026-06-04', title: 'AI Coach — "Posso permettermelo?"',
     changes: [
