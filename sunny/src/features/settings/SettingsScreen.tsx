@@ -5,6 +5,7 @@ import { CategoryDef, AccountDef, Transaction, TransactionType, TYPE_META, TYPE_
 import { useSettings } from '../../shared/providers/settings';
 import { usePush } from '../../shared/hooks/usePush';
 import { EditDefSheet, DefDraft } from './EditDefSheet';
+import { FeedbackSheet } from '../feedback/FeedbackSheet';
 import { buildExportPayload, downloadJson, downloadCsv } from './dataExport';
 import { APP_VERSION, APP_CHANNEL, VERSIONS } from '../../appInfo';
 
@@ -40,6 +41,7 @@ export function SettingsScreen({ user, transactions, onLogOut, onDeleteAll, onDe
   const [sub, setSub] = useState<Sub>('menu');
   const [editing, setEditing] = useState<{ kind: 'category' | 'account'; draft: DefDraft; isNew: boolean; withKind?: boolean } | null>(null);
   const [confirmReset, setConfirmReset] = useState(false);
+  const [feedbackOpen, setFeedbackOpen] = useState(false);
   const [pushMsg, setPushMsg] = useState<string | null>(null);
   const [testMsg, setTestMsg] = useState<string | null>(null);
   const [testing, setTesting] = useState(false);
@@ -204,6 +206,7 @@ export function SettingsScreen({ user, transactions, onLogOut, onDeleteAll, onDe
             <Row icon="🗂️" color="#6FA8DC" label="Gestione" sub="Conti e categorie" onClick={() => enterSub('gestione')} />
             <Row icon="💾" color="#8A9270" label="Dati" sub="Esporta, elimina" onClick={() => enterSub('dati')} />
             <Row icon="ℹ️" color="#88B0C0" label="Come funziona" sub="Calcoli e formule" onClick={() => enterSub('info')} />
+            <Row icon="💬" color="#E6B95C" label="Lascia un feedback" sub="Problemi, idee, suggerimenti" onClick={() => setFeedbackOpen(true)} />
           </div>
 
           <div className="text-center pt-2 space-y-1.5">
@@ -596,6 +599,8 @@ export function SettingsScreen({ user, transactions, onLogOut, onDeleteAll, onDe
         onDelete={remove}
         onClose={() => setEditing(null)}
       />
+
+      <FeedbackSheet open={feedbackOpen} user={user} onClose={() => setFeedbackOpen(false)} />
     </div>
   );
 }

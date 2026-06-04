@@ -25,6 +25,15 @@ service cloud.firestore {
       }
     }
 
+    // User feedback: any signed-in user can submit a feedback document stamped
+    // with their own uid; only the admin may read them back. No updates/deletes.
+    match /feedback/{fid} {
+      allow create: if request.auth != null
+        && request.resource.data.userId == request.auth.uid;
+      allow read: if request.auth != null
+        && request.auth.uid == 'qPtCOJGRrwOZ2EfjxMHwW6ZISXX2';
+    }
+
     // Deny everything else by default
     match /{document=**} {
       allow read, write: if false;

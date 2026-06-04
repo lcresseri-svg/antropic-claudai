@@ -6,12 +6,14 @@ on:
     paths:
       - 'functions/**'
       - 'firebase.json'
+      - 'firestore.rules'
       - '.github/workflows/deploy-functions.yml'
   pull_request:
     branches: [main]
     paths:
       - 'functions/**'
       - 'firebase.json'
+      - 'firestore.rules'
       - '.github/workflows/deploy-functions.yml'
   workflow_dispatch:
 
@@ -59,6 +61,12 @@ jobs:
         if: github.event_name == 'push'
         run: npx -y firebase-tools@latest deploy --only firestore:indexes --project sunny-a2a98 --non-interactive --force
 
+      # 0b) Firestore security rules — feedback collection needs its create/read
+      #     rule live. Idempotent: safe to re-deploy on every push.
+      - name: Deploy Firestore rules
+        if: github.event_name == 'push'
+        run: npx -y firebase-tools@latest deploy --only firestore:rules --project sunny-a2a98 --non-interactive --force
+
       # Clean up obsolete functions that were removed from source. Because the
       # deploy steps below use `--only functions:<names>`, deleting a function
       # from the code does NOT undeploy it — Cloud Scheduler keeps firing it.
@@ -82,4 +90,4 @@ jobs:
       #    the roles once (see repo notes), then re-run this workflow.
       - name: Deploy scheduled & trigger functions
         if: github.event_name == 'push'
-        run: npx -y firebase-tools@latest deploy --only functions:processRecurringTransactions,functions:remindLogExpenses,functions:sendMonthlySummary,functions:onUserDeleted --project sunny-a2a98 --non-interactive --force
+        run: npx -y firebase-tools@latest deploy --only functions:processRecurringTransactions,functions:remindLogExpenses,functions:sendMonthlySummary,functions:onUserDeleted,functions:onFeedbackCreated --project sunny-a2a98 --non-interactive --force
