@@ -14,6 +14,9 @@ interface Props {
   mode?: ListMode;
   /** Optional end-of-month projection per category (expense mode only). */
   projected?: Record<string, number>;
+  /** "Programmato": committed-but-not-yet-spent this month, per category
+   *  (future-dated + upcoming recurring). Occupies budget alongside `spend`. */
+  scheduled?: Record<string, number>;
 }
 
 function statusFor(actual: number, planned: number, mode: ListMode): CategoryStatus {
@@ -49,7 +52,7 @@ const INCOME_LABEL: Record<CategoryStatus, string> = {
 
 export function CategoryBudgetList({
   categories, spend, budgets, onEditCategory,
-  title, mode = 'expense', projected,
+  title, mode = 'expense', projected, scheduled,
 }: Props) {
   const defaultTitle =
     mode === 'income' ? 'Entrate previste' :
@@ -57,9 +60,9 @@ export function CategoryBudgetList({
     'Budget per categoria';
 
   const rows = categories
-    .map(c => ({ cat: c, actual: spend[c.id] ?? 0, planned: budgets[c.id] ?? 0 }))
-    .filter(r => r.planned > 0 || r.actual > 0)
-    .sort((a, b) => b.actual - a.actual);
+    .map(c => ({ cat: c, actual: spend[c.id] ?? 0, planned: budgets[c.id] ?? 0, sched: scheduled?.[c.id] ?? 0 }))
+    .filter(r => r.planned > 0 || r.actual > 0 || r.sched > 0)
+    .sort((a, b) => (b.actual + b.sched) - (a.actual + a.sched));
 
   if (rows.length === 0) return null;
 
@@ -70,10 +73,14 @@ export function CategoryBudgetList({
     <div className="glass-card rounded-2xl p-5">
       <p className="label-caps text-secondary mb-4">{title ?? defaultTitle}</p>
       <ul className="space-y-4">
-        {rows.map(({ cat, actual, planned }) => {
+        {rows.map(({ cat, actual, planned, sched }) => {
           const status = statusFor(actual, planned, mode);
           const pct = planned > 0 ? Math.round((actual / planned) * 100) : 0;
           const color = barColorFor(status, cat.color, mode);
+          // "Programmato": committed but not yet spent. It eats into the budget,
+          // so flag when spent + scheduled together will exceed the limit.
+          const committed = actual + sched;
+          const schedOverBudget = mode === 'expense' && planned > 0 && committed > planned && actual <= planned;
           const proj = mode === 'expense' ? (projected?.[cat.id] ?? 0) : 0;
           // Only surface a forecast when it adds information (meaningfully above
           // what's already been spent this month).
@@ -91,7 +98,7 @@ export function CategoryBudgetList({
                     {planned > 0 && <span className="text-secondary font-normal"> / {formatCurrency(planned)}</span>}
                   </span>
                 </div>
-                <ProgressBar value={actual} max={planned > 0 ? planned : actual} color={color} />
+                <ProgressBar value={actual} max={planned > 0 ? planned : committed} color={color} pending={sched} />
                 <div className="flex items-center justify-between mt-2">
                   <span className={`text-[11px] ${
                     mode === 'expense'
@@ -104,6 +111,16 @@ export function CategoryBudgetList({
                     <span className="text-[11px] text-secondary balance-num">{pct}%</span>
                   )}
                 </div>
+                {sched > 0 && (
+                  <p className="text-[11px] mt-1 flex items-center gap-1.5">
+                    <span className="inline-block w-2.5 h-2.5 rounded-[3px] flex-shrink-0"
+                      style={{ backgroundColor: color, opacity: 0.4, backgroundImage: 'repeating-linear-gradient(45deg, rgba(255,255,255,0.4) 0 1.5px, transparent 1.5px 3.5px)' }} />
+                    <span className="text-secondary">
+                      <span className="balance-num">{formatCurrency(sched)}</span> programmati, non ancora spesi
+                      {schedOverBudget && <span className="text-gold"> · oltre il budget</span>}
+                    </span>
+                  </p>
+                )}
                 {showProj && (
                   <p className="text-[11px] text-secondary mt-1">
                     Stima fine mese ~<span className="balance-num">{formatCurrency(proj)}</span>

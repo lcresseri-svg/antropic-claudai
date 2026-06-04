@@ -68,11 +68,15 @@ export function BudgetEditSheet({
         {/* Header */}
         <div className="flex items-center justify-between px-6 pt-6 pb-3 shrink-0">
           <h3 className="text-base font-semibold text-primary">Modifica budget</h3>
-          {/* onPointerDown (not onClick): on iOS, tapping with the number keyboard
-              open dismisses it and shifts this bottom-anchored sheet, so the click
-              lands off the moved button. Pointer-down fires before that shift. */}
-          <button onPointerDown={onClose}
-            className="w-8 h-8 rounded-full bg-elevated flex items-center justify-center text-secondary text-sm">✕</button>
+          {/* Closing is finicky on iOS: with the number keyboard open, the tap
+              first dismisses it and shifts this bottom-anchored sheet, so a normal
+              click lands off the moved button. We fire on pointer-down (before the
+              shift) and preventDefault so focus isn't stolen mid-tap; a click
+              fallback covers any device that doesn't deliver pointer events. */}
+          <button type="button" aria-label="Chiudi"
+            onPointerDown={e => { e.preventDefault(); onClose(); }}
+            onClick={onClose}
+            className="w-10 h-10 -mr-1.5 rounded-full bg-elevated flex items-center justify-center text-secondary text-base active:scale-90 transition-transform">✕</button>
         </div>
 
         {/* Tabs */}
