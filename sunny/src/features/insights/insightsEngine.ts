@@ -617,11 +617,20 @@ export function buildInsights(input: InsightInput): Insight[] {
   }
 
   // ── 8. SEASONAL — Same month last year (total expenses) ───────────────────
+  // Only compare once enough of the month has elapsed so the simple run-rate
+  // extrapolation is stable. Showing it on day 2 with 3 recorded expenses
+  // produces wildly misleading "−52%" numbers.
   {
     const lyKey = `${now.getFullYear() - 1}-${String(now.getMonth() + 1).padStart(2, '0')}`;
     const ly = monthStats(transactions, lyKey);
-    if (ly.expense > 100 && (monthlyExpenses > 0 || prog > 0.4)) {
-      const proj = projectExpenses(monthlyExpenses, now);
+    if (ly.expense > 100 && monthlyExpenses > 0 && prog > 0.4) {
+      // Use a history-blended projection when available: as the month progresses
+      // the run-rate gets more weight; early in the comparison window the
+      // historical average acts as a stabiliser.
+      const runRate = projectExpenses(monthlyExpenses, now);
+      const proj = h.avgExpense > 0
+        ? Math.round(prog * runRate + (1 - prog) * h.avgExpense)
+        : runRate;
       const delta = pct(proj - ly.expense, ly.expense);
       if (Math.abs(delta) >= 12) {
         const up = delta > 0;
