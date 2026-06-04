@@ -20,6 +20,7 @@ interface SettingsValue {
   enableBudget: boolean;       // show/hide the budget feature
   insightDepth: InsightDepth;
   aiEnabled: boolean;
+  aiCoachWidgetEnabled: boolean;
   detailedInvestments: boolean; // per-user gated: fund-type classification + TFR
   getCat: (id: string) => CategoryDef;
   getAcc: (id: string) => AccountDef;
@@ -31,6 +32,7 @@ interface SettingsValue {
   saveEnableBudget: (v: boolean) => void;
   saveInsightDepth: (v: InsightDepth) => void;
   saveAiEnabled: (v: boolean) => void;
+  saveAiCoachWidgetEnabled: (v: boolean) => void;
 }
 
 const SettingsContext = createContext<SettingsValue | null>(null);
@@ -46,6 +48,7 @@ export function SettingsProvider({ user, children }: { user: User | null; childr
   const [enableBudget, setEnableBudget] = useState(true);
   const [insightDepth, setInsightDepth] = useState<InsightDepth>('medium');
   const [aiEnabled, setAiEnabled] = useState(false);
+  const [aiCoachWidgetEnabled, setAiCoachWidgetEnabled] = useState(true);
 
   // Apply theme class to <html> immediately when state changes
   useEffect(() => {
@@ -62,6 +65,7 @@ export function SettingsProvider({ user, children }: { user: User | null; childr
       setEnableBudget(true);
       setInsightDepth('medium');
       setAiEnabled(false);
+      setAiCoachWidgetEnabled(true);
       return;
     }
     const ref = doc(db, 'users', user.uid, 'meta', 'settings');
@@ -85,6 +89,7 @@ export function SettingsProvider({ user, children }: { user: User | null; childr
       setEnableBudget(d.enableBudget ?? true);
       setInsightDepth((d.insightDepth as InsightDepth) ?? 'medium');
       setAiEnabled(d.aiEnabled ?? false);
+      setAiCoachWidgetEnabled(d.aiCoachWidgetEnabled ?? true);
     });
   // uid, not user object — avoids listener recreation on every token refresh.
   }, [user?.uid]);
@@ -136,6 +141,11 @@ export function SettingsProvider({ user, children }: { user: User | null; childr
     if (user) setDoc(settingsRef(), { aiEnabled: v }, MERGE);
   }, [user, settingsRef]);
 
+  const saveAiCoachWidgetEnabled = useCallback((v: boolean) => {
+    setAiCoachWidgetEnabled(v);
+    if (user) setDoc(settingsRef(), { aiCoachWidgetEnabled: v }, MERGE);
+  }, [user, settingsRef]);
+
   const detailedInvestments = canUseDetailedInvestments(user);
 
   const getCat = useCallback(
@@ -148,7 +158,7 @@ export function SettingsProvider({ user, children }: { user: User | null; childr
   );
 
   return (
-    <SettingsContext.Provider value={{ categories, accounts, theme, includeInvestments, enableInvestments, enableBudget, insightDepth, aiEnabled, detailedInvestments, getCat, getAcc, saveCategories, saveAccounts, saveTheme, saveIncludeInvestments, saveEnableInvestments, saveEnableBudget, saveInsightDepth, saveAiEnabled }}>
+    <SettingsContext.Provider value={{ categories, accounts, theme, includeInvestments, enableInvestments, enableBudget, insightDepth, aiEnabled, aiCoachWidgetEnabled, detailedInvestments, getCat, getAcc, saveCategories, saveAccounts, saveTheme, saveIncludeInvestments, saveEnableInvestments, saveEnableBudget, saveInsightDepth, saveAiEnabled, saveAiCoachWidgetEnabled }}>
       {children}
     </SettingsContext.Provider>
   );
