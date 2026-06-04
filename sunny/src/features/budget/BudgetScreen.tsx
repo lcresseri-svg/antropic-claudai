@@ -47,27 +47,31 @@ export function BudgetScreen({
   const incomeCats     = useMemo(() => categories.filter(c => c.kind === 'income'),     [categories]);
   const investmentCats = useMemo(() => categories.filter(c => c.kind === 'investment'), [categories]);
 
-  // Income totals by category (current month)
+  const todayISO = useMemo(() => new Date().toISOString().slice(0, 10), []);
+
+  // Income totals by category (current month, realized only — future-dated excluded)
   const incomeCategoryTotals = useMemo(() => {
     const out: Record<string, number> = {};
     for (const t of transactions) {
       if (t.type !== 'income') continue;
       if (t.date.slice(0, 7) !== currentMonth) continue;
+      if (t.date > todayISO) continue;
       out[t.category] = (out[t.category] ?? 0) + t.amount;
     }
     return out;
-  }, [transactions]);
+  }, [transactions, todayISO]);
 
-  // Investment totals by category (current month)
+  // Investment totals by category (current month, realized only — future-dated excluded)
   const investmentCategoryTotals = useMemo(() => {
     const out: Record<string, number> = {};
     for (const t of transactions) {
       if (t.type !== 'investment') continue;
       if (t.date.slice(0, 7) !== currentMonth) continue;
+      if (t.date > todayISO) continue;
       out[t.category] = (out[t.category] ?? 0) + t.amount;
     }
     return out;
-  }, [transactions]);
+  }, [transactions, todayISO]);
 
   const isLearning = transactions.length === 0;
   const expenseSpend = isLearning ? DEMO_CATEGORY_SPEND : categoryTotals;

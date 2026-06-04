@@ -85,20 +85,23 @@ export function buildProjectedOccurrences(
 }
 
 /**
- * A real, NON-recurring transaction dated in the future is a PLANNED ("previsto")
- * movement: it shows under "Programmato", is excluded from realized totals and
- * account balances, and is folded into the end-of-month forecast. It needs no
- * Cloud Function to materialize — it is already a stored document, so it simply
- * starts counting as realized the day its date arrives (date <= today).
+ * Any real document dated in the future is a PLANNED ("previsto") movement:
+ * shown as "Programmato", excluded from realized totals/balances, folded into
+ * forecasts. This covers ALL types (expense, income, investment, transfer) and
+ * ALL flavours (one-off, shared, future-starting recurring series).
+ *
+ * Recurring templates with a past/today date are NOT pending — they represent a
+ * started series whose first occurrence has already been realized.
+ * Synthetic projected rows (projected: true) are display-only and never pending.
  */
 export function isPending(t: Transaction, todayISO: string): boolean {
-  return !t.recurring && !t.projected && t.date > todayISO;
+  return !t.projected && t.date > todayISO;
 }
 
 /**
  * Sum of PLANNED (future, non-recurring) expense own-shares dated strictly after
- * `todayISO` and up to `monthEndISO`. Mirrors `upcomingRecurringThisMonth` for
- * one-off scheduled expenses, so the forecast treats them the same way.
+ * `todayISO` and up to `monthEndISO`. Recurring templates are excluded — their
+ * upcoming occurrences are already counted by the separate upcomingRecurring loop.
  */
 export function upcomingPlannedThisMonth(
   transactions: Transaction[],
@@ -108,6 +111,7 @@ export function upcomingPlannedThisMonth(
   let total = 0;
   for (const t of transactions) {
     if (t.type !== 'expense') continue;
+    if (t.recurring) continue; // handled by upcomingRecurring loop, not here
     if (!isPending(t, todayISO)) continue;
     if (t.seriesId) continue; // realized recurring instances are not "planned"
     if (t.date > monthEndISO) continue;
