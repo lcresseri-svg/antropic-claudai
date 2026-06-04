@@ -114,7 +114,7 @@ function Main({ user, onLogOut, onDeleteAccount }: {
 }) {
   const navigate = useNavigate();
   const location = useLocation();
-  const { accounts, categories, includeInvestments, enableInvestments, enableBudget } = useSettings();
+  const { accounts, categories, includeInvestments, enableInvestments, enableBudget, aiCoachWidgetEnabled } = useSettings();
   const tx = useTransactions(user, accounts, includeInvestments, categories, enableInvestments);
   const [editing, setEditing] = useState<Transaction | null>(null);
   const [seriesEdit, setSeriesEdit] = useState(false);
@@ -349,7 +349,7 @@ function Main({ user, onLogOut, onDeleteAccount }: {
         {!isSettings && <BottomNav onAdd={openAdd} />}
       </div>
 
-      {isAdminUser(user) && <AICoachWidget />}
+      {isAdminUser(user) && aiCoachWidgetEnabled && <AICoachWidget />}
 
       <TransactionModal
         open={modalOpen} editing={editing} groupTransfers={groupTransfers} seriesEdit={seriesEdit}

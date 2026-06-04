@@ -36,7 +36,7 @@ function reorder<T>(arr: T[], from: number, to: number): T[] {
 export function SettingsScreen({ user, transactions, onLogOut, onDeleteAll, onDeleteAccount }: Props) {
   const navigate = useNavigate();
   const location = useLocation();
-  const { categories, accounts, theme, includeInvestments, enableInvestments, enableBudget, insightDepth, aiEnabled, detailedInvestments, saveCategories, saveAccounts, saveTheme, saveIncludeInvestments, saveEnableInvestments, saveEnableBudget, saveInsightDepth, saveAiEnabled } = useSettings();
+  const { categories, accounts, theme, includeInvestments, enableInvestments, enableBudget, insightDepth, aiEnabled, aiCoachWidgetEnabled, detailedInvestments, saveCategories, saveAccounts, saveTheme, saveIncludeInvestments, saveEnableInvestments, saveEnableBudget, saveInsightDepth, saveAiEnabled, saveAiCoachWidgetEnabled } = useSettings();
   const [sub, setSub] = useState<Sub>('menu');
   const [editing, setEditing] = useState<{ kind: 'category' | 'account'; draft: DefDraft; isNew: boolean; withKind?: boolean } | null>(null);
   const [confirmReset, setConfirmReset] = useState(false);
@@ -262,6 +262,14 @@ export function SettingsScreen({ user, transactions, onLogOut, onDeleteAll, onDe
                 on={aiEnabled}
                 onToggle={() => saveAiEnabled(!aiEnabled)}
               />
+              {detailedInvestments && (
+                <ToggleRow
+                  icon="🤖" label="AI Coach (bottone chat)"
+                  sub={aiCoachWidgetEnabled ? 'Bottone flottante visibile in tutte le schermate' : 'Bottone nascosto'}
+                  on={aiCoachWidgetEnabled}
+                  onToggle={() => saveAiCoachWidgetEnabled(!aiCoachWidgetEnabled)}
+                />
+              )}
               <div className="p-4">
                 <div className="flex items-start gap-3.5 mb-3">
                   <span className="text-2xl mt-0.5">🔍</span>
