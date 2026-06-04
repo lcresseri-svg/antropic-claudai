@@ -1,6 +1,6 @@
 import { Transaction, ownShare } from '../../types';
 import { formatCurrency, capitalize } from '../../utils';
-import { monthProgress, forecastSavings, seasonalMonthlyAverage, seasonalVariableMonthly } from '../budget/budgetUtils';
+import { monthProgress, forecastSavings, seasonalMonthlyAverage, seasonalVariableMonthly, robustAvg } from '../budget/budgetUtils';
 import { addPeriod, recurringMonthlyEquivalent } from '../../shared/recurrence';
 
 export type InsightCategory = 'alert' | 'forecast' | 'seasonal' | 'trend' | 'habit' | 'highlight';
@@ -103,7 +103,8 @@ export function history(transactions: Transaction[], windowN = 3, now: Date = ne
   for (let i = 1; i <= windowN; i++) keys.add(monthKey(i, now));
 
   const active = new Set<string>();
-  let inc = 0, exp = 0, varExp = 0, inv = 0;
+  let inc = 0, exp = 0, inv = 0;
+  const varByMonth: Record<string, number> = {};   // variable spend per month in window
   for (const t of transactions) {
     const k = t.date.slice(0, 7);
     if (!keys.has(k)) continue;
@@ -111,12 +112,15 @@ export function history(transactions: Transaction[], windowN = 3, now: Date = ne
     if (t.type === 'income')     inc += t.amount;
     else if (t.type === 'expense') {
       exp += ownShare(t);
-      if (!t.seriesId && !t.recurring) varExp += ownShare(t); // variable (non-recurring)
+      if (!t.seriesId && !t.recurring) varByMonth[k] = (varByMonth[k] ?? 0) + ownShare(t); // variable (non-recurring)
     }
     else if (t.type === 'investment') inv += t.amount;
   }
   const n = Math.max(1, active.size);
-  return { avgIncome: inc / n, avgExpense: exp / n, avgVariableExpense: varExp / n, avgInvest: inv / n, months: active.size };
+  // Variable average across active months, winsorizing a single outlier month
+  // (e.g. a one-off big purchase) so it doesn't inflate the forecast baseline.
+  const avgVariableExpense = robustAvg([...active].map(k => varByMonth[k] ?? 0));
+  return { avgIncome: inc / n, avgExpense: exp / n, avgVariableExpense, avgInvest: inv / n, months: active.size };
 }
 
 export function projectExpenses(monthlyExpenses: number, now: Date = new Date()): number {

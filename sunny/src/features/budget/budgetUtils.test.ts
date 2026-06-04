@@ -1,5 +1,5 @@
 import { describe, it, expect } from 'vitest';
-import { suggestBudgets, seasonalHint, seasonalMonthlyAverage, seasonalVariableMonthly, forecastSavings } from './budgetUtils';
+import { suggestBudgets, seasonalHint, seasonalMonthlyAverage, seasonalVariableMonthly, forecastSavings, forecastByCategory, robustAvg } from './budgetUtils';
 import { Transaction, CategoryDef } from '../../types';
 
 const NOW = new Date('2026-12-15T12:00:00Z'); // December → seasonal gifts
@@ -80,6 +80,62 @@ describe('seasonalVariableMonthly', () => {
   });
 });
 
+describe('robustAvg', () => {
+  it('uses a plain mean with two values or fewer (not enough data for outlier detection)', () => {
+    expect(robustAvg([100, 200])).toBe(150);
+    expect(robustAvg([500])).toBe(500);
+  });
+
+  it('winsorizes a single high outlier so it does not dominate the average', () => {
+    // median of [400,600,5000] is 600 → cap 1500; 5000 is clamped to 1500.
+    // (400 + 600 + 1500) / 3 ≈ 833, far below the naive mean of 2000.
+    expect(robustAvg([400, 600, 5000])).toBeCloseTo(833.33, 1);
+  });
+
+  it('keeps zero months as real (low-spend) months, not outliers', () => {
+    // Only non-zero values feed the median, but zeros still count in the divisor.
+    expect(robustAvg([0, 0, 1000])).toBeCloseTo(333.33, 1);
+  });
+
+  it('returns 0 for an empty array', () => {
+    expect(robustAvg([])).toBe(0);
+  });
+});
+
+describe('forecastByCategory', () => {
+  const NOW_DEC = new Date('2026-12-15T12:00:00Z'); // prog ≈ 0.484
+
+  it('projects a category from its variable history above what is spent so far', () => {
+    const txs = [
+      tx({ category: 'spesa', amount: 300, date: '2026-09-10' }),
+      tx({ category: 'spesa', amount: 300, date: '2026-10-10' }),
+      tx({ category: 'spesa', amount: 300, date: '2026-11-10' }),
+      tx({ category: 'spesa', amount: 100, date: '2026-12-08' }), // this month so far
+    ];
+    const out = forecastByCategory(txs, ['spesa'], NOW_DEC);
+    expect(out.spesa).toBeGreaterThan(150); // climbs back toward the ~300/mo habit
+    expect(out.spesa).toBeLessThan(320);
+  });
+
+  it('omits categories with no variable history (does not guess)', () => {
+    const txs = [tx({ category: 'viaggi', amount: 50, date: '2026-12-08' })];
+    const out = forecastByCategory(txs, ['viaggi'], NOW_DEC);
+    expect(out.viaggi).toBeUndefined();
+  });
+
+  it('reacts to a category running hot this month (pace pushes the projection up)', () => {
+    const hist = [
+      tx({ category: 'spesa', amount: 300, date: '2026-09-10' }),
+      tx({ category: 'spesa', amount: 300, date: '2026-10-10' }),
+      tx({ category: 'spesa', amount: 300, date: '2026-11-10' }),
+    ];
+    const steady = forecastByCategory([...hist, tx({ category: 'spesa', amount: 100, date: '2026-12-08' })], ['spesa'], NOW_DEC);
+    const hot    = forecastByCategory([...hist, tx({ category: 'spesa', amount: 800, date: '2026-12-08' })], ['spesa'], NOW_DEC);
+    expect(hot.spesa).toBeGreaterThan(steady.spesa!);
+    expect(hot.spesa).toBeGreaterThan(800); // never below what's already spent
+  });
+});
+
 describe('forecastSavings', () => {
   const MID = new Date('2026-12-16T12:00:00Z'); // ~half of December (31 days), prog ≈ 0.516
 
@@ -91,6 +147,19 @@ describe('forecastSavings', () => {
     expect(f.projectedExpenses).toBeGreaterThan(1450);
     expect(f.projectedExpenses).toBeLessThan(1650);
     expect(f.savings).toBe(f.expectedIncome - f.projectedExpenses - f.expectedInvest);
+  });
+
+  it('leans on history mid-month when nothing variable is recorded yet (no false "quiet month")', () => {
+    // Mid-month with €0 variable spent: a naive pace would project ~0. The
+    // pace-reliability guard recognises "no data yet" and keeps the estimate
+    // anchored to the historical average instead of collapsing to zero.
+    const f = forecastSavings({
+      monthlyIncome: 3000, monthlyExpenses: 0, monthlyInvestments: 0,
+      variableSpent: 0, recentVariableAvg: 1000, now: MID,
+    });
+    // ~ (1 − prog) × variableAvg ≈ 0.484 × 1000 ≈ 484, not ~0.
+    expect(f.projectedExpenses).toBeGreaterThan(420);
+    expect(f.projectedExpenses).toBeLessThan(560);
   });
 
   it('does not explode early in the month thanks to the historical blend', () => {

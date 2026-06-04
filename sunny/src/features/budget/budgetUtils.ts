@@ -12,6 +12,25 @@ function daysInMonth(now: Date): number {
   return new Date(now.getFullYear(), now.getMonth() + 1, 0).getDate();
 }
 
+/**
+ * Average of an array, winsorizing values above 2.5× the median of non-zero
+ * entries. With ≤2 values uses a plain mean (not enough data to detect outliers).
+ * Exported so the insights engine can apply it to its per-month variable expense
+ * accumulator without duplicating the logic.
+ */
+export function robustAvg(values: number[]): number {
+  if (values.length === 0) return 0;
+  const n = values.length;
+  if (n <= 2) return values.reduce((s, v) => s + v, 0) / n;
+  // Winsorize using the median of non-zero values so zeros aren't treated as outliers.
+  const nonZero = values.filter(v => v > 0);
+  if (nonZero.length === 0) return 0;
+  const sorted = [...nonZero].sort((a, b) => a - b);
+  const median = sorted[Math.floor(sorted.length / 2)];
+  const cap = median * 2.5;
+  return values.map(v => Math.min(v, cap)).reduce((s, v) => s + v, 0) / n;
+}
+
 /** Fraction of the current month already elapsed (0–1, never 0). */
 export function monthProgress(now: Date): number {
   return Math.min(1, now.getDate() / daysInMonth(now));
@@ -137,7 +156,7 @@ export function seasonalVariableMonthly(
   }
   const vals = Object.values(perYear);
   const years = vals.length;
-  return { avg: years ? vals.reduce((a, b) => a + b, 0) / years : 0, years };
+  return { avg: years ? robustAvg(vals) : 0, years };
 }
 
 export interface MonthForecast {
@@ -212,9 +231,18 @@ export function forecastSavings(o: {
 
   let variableRemaining: number;
   if (variableAvg > 0) {
-    // (3) Trust this month's actual pace more as the month progresses.
+    // (3) Trust this month's actual pace more as the month progresses,
+    // but only when the pace is plausible (spending is at least roughly
+    // on track). A pace near zero mid-month more likely means "no data
+    // yet" than "extremely light month", so we scale down its influence
+    // proportionally to how much has actually been spent vs expected.
     const w = Math.min(1, prog);
-    const projectedVariableMonthly = w * paceMonthly + (1 - w) * variableAvg;
+    const expectedSpentSoFar = prog * variableAvg;
+    const paceReliability = expectedSpentSoFar > 0
+      ? Math.min(1, variableSpent / expectedSpentSoFar)
+      : 1;
+    const effectiveW = w * paceReliability;
+    const projectedVariableMonthly = effectiveW * paceMonthly + (1 - effectiveW) * variableAvg;
     variableRemaining = Math.max(0, 1 - prog) * projectedVariableMonthly;
   } else {
     // No variable history: project the current pace, but only once enough of
@@ -309,6 +337,121 @@ function euro(n: number): string {
 
 function round10ish(n: number): number {
   return Math.round(n / 5) * 5; // round to nearest 5 for nudge amounts
+}
+
+/**
+ * Per-category end-of-month projection.
+ *
+ * Returns a map of { categoryId → projected total spend by end of month }.
+ * Only categories with a variable spending history are included; categories
+ * with only recurring entries (or no history at all) are omitted so the UI
+ * shows nothing rather than a misleading number.
+ *
+ * Uses the same adaptive blend logic as `forecastSavings` (recent 3-month
+ * robust avg + seasonal signal + paceReliability), computed per category in
+ * a single pass over the transaction list.
+ */
+export function forecastByCategory(
+  transactions: Transaction[],
+  categoryIds: string[],
+  now: Date = new Date(),
+): Record<string, number> {
+  const curKey = now.toISOString().slice(0, 7);
+  const prog = monthProgress(now);
+  const monthIdx = now.getMonth();
+  const cutoff18 = new Date(now.getFullYear(), now.getMonth() - 18, 1);
+
+  const recentKeys: string[] = [1, 2, 3].map(i => {
+    const d = new Date(now.getFullYear(), now.getMonth() - i, 1);
+    return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}`;
+  });
+  const recentKeySet = new Set(recentKeys);
+  const catIdSet = new Set(categoryIds);
+
+  // One-pass collection across all relevant transactions.
+  const totalSpentCurr: Record<string, number> = {};
+  const variableSpentCurr: Record<string, number> = {};
+  const recentVarByMonthCat: Record<string, Record<string, number>> = {};
+  const seasonalVarByYearCat: Record<string, Record<number, number>> = {};
+  const activeRecentMonths = new Set<string>();  // months with any expense in recent window
+
+  for (const t of transactions) {
+    if (t.type !== 'expense') continue;
+    const tKey = t.date.slice(0, 7);
+
+    if (tKey === curKey) {
+      if (catIdSet.has(t.category)) {
+        totalSpentCurr[t.category] = (totalSpentCurr[t.category] ?? 0) + ownShare(t);
+        if (!t.seriesId && !t.recurring) {
+          variableSpentCurr[t.category] = (variableSpentCurr[t.category] ?? 0) + ownShare(t);
+        }
+      }
+      continue;
+    }
+
+    if (t.seriesId || t.recurring) continue;  // variable history only
+
+    const d = new Date(t.date);
+    if (d < cutoff18) continue;
+
+    if (recentKeySet.has(tKey)) {
+      activeRecentMonths.add(tKey);
+      if (catIdSet.has(t.category)) {
+        const catMap = (recentVarByMonthCat[t.category] ??= {});
+        catMap[tKey] = (catMap[tKey] ?? 0) + ownShare(t);
+      }
+    }
+
+    if (d.getMonth() === monthIdx && catIdSet.has(t.category)) {
+      const catMap = (seasonalVarByYearCat[t.category] ??= {});
+      catMap[d.getFullYear()] = (catMap[d.getFullYear()] ?? 0) + ownShare(t);
+    }
+  }
+
+  const result: Record<string, number> = {};
+  const nActiveMonths = Math.max(1, activeRecentMonths.size);
+
+  for (const catId of categoryIds) {
+    const totalSpent = totalSpentCurr[catId] ?? 0;
+    const variableSpent = variableSpentCurr[catId] ?? 0;
+
+    // Recent variable avg: per-month totals (0 for active months with no spending in this category),
+    // normalized over active months in the window so lumpy categories get a lower average.
+    const monthlyVarTotals = [...activeRecentMonths].map(k => recentVarByMonthCat[catId]?.[k] ?? 0);
+    const recentVarAvg = monthlyVarTotals.length > 0
+      ? robustAvg(monthlyVarTotals.concat(Array(nActiveMonths - monthlyVarTotals.length).fill(0)))
+      : 0;
+
+    // Seasonal variable avg for this calendar month across prior years.
+    const seasVals = Object.values(seasonalVarByYearCat[catId] ?? {});
+    const seasAvg = seasVals.length > 0 ? robustAvg(seasVals) : 0;
+    const seasYears = seasVals.length;
+
+    // Adaptive blend (same constants as forecastSavings).
+    let variableAvg: number;
+    if (recentVarAvg > 0 && seasAvg > 0) {
+      const sw = SEASONAL_MAX_WEIGHT * Math.min(1, seasYears / SEASONAL_FULL_YEARS);
+      variableAvg = recentVarAvg * (1 - sw) + seasAvg * sw;
+    } else {
+      variableAvg = recentVarAvg > 0 ? recentVarAvg : seasAvg;
+    }
+
+    if (variableAvg === 0) continue;  // no history → omit, don't guess
+
+    const paceMonthly = prog > 0 ? variableSpent / prog : 0;
+    const expectedSpentSoFar = prog * variableAvg;
+    const paceReliability = expectedSpentSoFar > 0
+      ? Math.min(1, variableSpent / expectedSpentSoFar)
+      : 1;
+    const effectiveW = Math.min(1, prog) * paceReliability;
+    const projectedVariableMonthly = effectiveW * paceMonthly + (1 - effectiveW) * variableAvg;
+    const variableRemaining = Math.max(0, 1 - prog) * projectedVariableMonthly;
+
+    const projected = Math.round(Math.max(totalSpent + variableRemaining, totalSpent));
+    if (projected > 0) result[catId] = projected;
+  }
+
+  return result;
 }
 
 // ── Demo data ────────────────────────────────────────────────────────────────

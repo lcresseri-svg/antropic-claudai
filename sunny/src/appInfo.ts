@@ -1,4 +1,4 @@
-export const APP_VERSION = '1.8.9';
+export const APP_VERSION = '1.8.10';
 
 /**
  * Release channel. While in 'beta' the app is still under active development
@@ -15,6 +15,14 @@ export interface VersionEntry {
 
 /** Registro versioni mostrato in Impostazioni → Registro versioni. */
 export const VERSIONS: VersionEntry[] = [
+  {
+    version: '1.8.10', date: '2026-06-04', title: 'Previsione più robusta e per categoria',
+    changes: [
+      'Le spese anomale (un acquisto grosso e occasionale) non gonfiano più la media: ora un singolo mese fuori scala viene smussato, così la previsione resta stabile.',
+      'A metà mese, se non hai ancora registrato spese variabili, la stima non crolla più verso lo zero: resta ancorata alle tue abitudini finché non arrivano dati reali del mese.',
+      'Nuova stima di fine mese per ogni categoria di spesa: sotto ogni voce del budget vedi "Stima fine mese ~€…" e un avviso se supererà il limite impostato.',
+    ],
+  },
   {
     version: '1.8.9', date: '2026-06-03', title: 'Previsione di fine mese più precisa',
     changes: [

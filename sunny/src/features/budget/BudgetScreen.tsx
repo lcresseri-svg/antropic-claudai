@@ -5,7 +5,7 @@ import { useSettings } from '../../shared/providers/settings';
 import { useBudget } from '../../shared/hooks/useBudget';
 import {
   suggestBudgets, forecastSavings, generateBudgetInsights, seasonalHint,
-  seasonalVariableMonthly, DEMO_CATEGORY_SPEND, DEMO_CATEGORY_BUDGETS,
+  seasonalVariableMonthly, forecastByCategory, DEMO_CATEGORY_SPEND, DEMO_CATEGORY_BUDGETS,
 } from './budgetUtils';
 import { upcomingRecurringThisMonth } from '../../shared/recurrence';
 import { history } from '../insights/insightsEngine';
@@ -75,6 +75,13 @@ export function BudgetScreen({
   const suggested = useMemo(() => {
     if (isLearning) return DEMO_CATEGORY_BUDGETS;
     return suggestBudgets(transactions, expenseCats);
+  }, [isLearning, transactions, expenseCats]);
+
+  // End-of-month projection per expense category (variable spend only; same
+  // adaptive engine as the global forecast). Empty in demo mode.
+  const projectedSpend = useMemo(() => {
+    if (isLearning) return {};
+    return forecastByCategory(transactions, expenseCats.map(c => c.id));
   }, [isLearning, transactions, expenseCats]);
 
   // Planned income: sum of income budgets if set, otherwise actual monthly income
@@ -212,6 +219,7 @@ export function BudgetScreen({
         spend={expenseSpend}
         budgets={activeExpBudgets}
         mode="expense"
+        projected={projectedSpend}
         onEditCategory={id => openEdit('expenses', id)}
       />
 
