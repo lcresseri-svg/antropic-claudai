@@ -5,6 +5,7 @@ import {
 } from 'firebase/firestore';
 import { User } from 'firebase/auth';
 import { AccountDef, CategoryDef, Transaction, TransactionPatch, ownShare } from '../../types';
+import { isPending } from '../recurrence';
 import { db } from '../../lib/firebase';
 
 // Recursively drop `undefined` values — Firestore rejects writes that contain
@@ -120,12 +121,16 @@ export function useTransactions(user: User | null, accounts: AccountDef[] = [], 
   const derived = useMemo(() => {
     const now = new Date();
     const cm = now.getMonth(), cy = now.getFullYear();
+    const todayISO = now.toISOString().slice(0, 10);
     const inCurrentMonth = (d: string) => {
       const x = new Date(d);
       return x.getMonth() === cm && x.getFullYear() === cy;
     };
 
-    const monthTx = transactions.filter(t => inCurrentMonth(t.date));
+    // Planned (future, non-recurring) movements are forecasts, not realized cash
+    // flow: keep them out of month totals, balances and trend until their date.
+    const realized = transactions.filter(t => !isPending(t, todayISO));
+    const monthTx = realized.filter(t => inCurrentMonth(t.date));
 
     const monthlyIncome = monthTx.filter(t => t.type === 'income').reduce((s, t) => s + t.amount, 0);
     const monthlyExpenses = monthTx.filter(t => t.type === 'expense').reduce((s, t) => s + ownShare(t), 0);
@@ -146,12 +151,12 @@ export function useTransactions(user: User | null, accounts: AccountDef[] = [], 
           investmentInitial += c.initialBalance;
         }
       }
-      for (const t of transactions) {
+      for (const t of realized) {
         if (t.type !== 'investment') continue;
         investmentByCategory[t.category] = (investmentByCategory[t.category] ?? 0) + t.amount;
       }
       investmentTotal =
-        transactions.filter(t => t.type === 'investment').reduce((s, t) => s + t.amount, 0) + investmentInitial;
+        realized.filter(t => t.type === 'investment').reduce((s, t) => s + t.amount, 0) + investmentInitial;
     }
 
     // Per-account balance (initial balance + cash flow through the account)
@@ -159,7 +164,7 @@ export function useTransactions(user: User | null, accounts: AccountDef[] = [], 
     for (const a of accounts) {
       if (a.initialBalance) accountBalances[a.id] = a.initialBalance;
     }
-    for (const t of transactions) {
+    for (const t of realized) {
       // Ignore an empty account id: a source-less investment (TFR / employer
       // contribution) adds to invested capital without drawing from any account.
       const bal = (id: string, delta: number) => { if (!id) return; accountBalances[id] = (accountBalances[id] ?? 0) + delta; };
@@ -192,7 +197,7 @@ export function useTransactions(user: User | null, accounts: AccountDef[] = [], 
       const key = `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}`;
       trend.push({ key, income: 0, expense: 0, invest: 0 });
     }
-    for (const t of transactions) {
+    for (const t of realized) {
       const key = t.date.slice(0, 7);
       const slot = trend.find(s => s.key === key);
       if (!slot) continue;
@@ -201,7 +206,7 @@ export function useTransactions(user: User | null, accounts: AccountDef[] = [], 
       else if (t.type === 'investment' && enableInvestments) slot.invest += t.amount;
     }
 
-    const recent = [...transactions]
+    const recent = [...realized]
       .sort((a, b) => new Date(b.date).getTime() - new Date(a.date).getTime())
       .slice(0, 20);
 

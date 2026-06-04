@@ -357,6 +357,7 @@ export function forecastByCategory(
   now: Date = new Date(),
 ): Record<string, number> {
   const curKey = now.toISOString().slice(0, 7);
+  const todayISO = now.toISOString().slice(0, 10);
   const prog = monthProgress(now);
   const monthIdx = now.getMonth();
   const cutoff18 = new Date(now.getFullYear(), now.getMonth() - 18, 1);
@@ -371,6 +372,7 @@ export function forecastByCategory(
   // One-pass collection across all relevant transactions.
   const totalSpentCurr: Record<string, number> = {};
   const variableSpentCurr: Record<string, number> = {};
+  const plannedCurr: Record<string, number> = {};  // future-dated one-offs this month
   const recentVarByMonthCat: Record<string, Record<string, number>> = {};
   const seasonalVarByYearCat: Record<string, Record<number, number>> = {};
   const activeRecentMonths = new Set<string>();  // months with any expense in recent window
@@ -381,6 +383,12 @@ export function forecastByCategory(
 
     if (tKey === curKey) {
       if (catIdSet.has(t.category)) {
+        // Planned (future-dated, non-recurring) expense: committed but not yet
+        // spent — tracked separately so it doesn't distort the current pace.
+        if (!t.seriesId && !t.recurring && t.date > todayISO) {
+          plannedCurr[t.category] = (plannedCurr[t.category] ?? 0) + ownShare(t);
+          continue;
+        }
         totalSpentCurr[t.category] = (totalSpentCurr[t.category] ?? 0) + ownShare(t);
         if (!t.seriesId && !t.recurring) {
           variableSpentCurr[t.category] = (variableSpentCurr[t.category] ?? 0) + ownShare(t);
@@ -414,6 +422,7 @@ export function forecastByCategory(
   for (const catId of categoryIds) {
     const totalSpent = totalSpentCurr[catId] ?? 0;
     const variableSpent = variableSpentCurr[catId] ?? 0;
+    const planned = plannedCurr[catId] ?? 0;
 
     // Recent variable avg: per-month totals (0 for active months with no spending in this category),
     // normalized over active months in the window so lumpy categories get a lower average.
@@ -436,7 +445,11 @@ export function forecastByCategory(
       variableAvg = recentVarAvg > 0 ? recentVarAvg : seasAvg;
     }
 
-    if (variableAvg === 0) continue;  // no history → omit, don't guess
+    if (variableAvg === 0) {
+      // No history to project from, but a planned expense is still committed.
+      if (planned > 0) result[catId] = Math.round(totalSpent + planned);
+      continue;
+    }
 
     const paceMonthly = prog > 0 ? variableSpent / prog : 0;
     const expectedSpentSoFar = prog * variableAvg;
@@ -447,7 +460,8 @@ export function forecastByCategory(
     const projectedVariableMonthly = effectiveW * paceMonthly + (1 - effectiveW) * variableAvg;
     const variableRemaining = Math.max(0, 1 - prog) * projectedVariableMonthly;
 
-    const projected = Math.round(Math.max(totalSpent + variableRemaining, totalSpent));
+    // Planned one-offs are committed on top of the pace-based projection.
+    const projected = Math.round(Math.max(totalSpent + variableRemaining + planned, totalSpent + planned));
     if (projected > 0) result[catId] = projected;
   }
 

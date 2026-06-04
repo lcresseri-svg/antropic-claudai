@@ -1,4 +1,4 @@
-import { Transaction, Freq } from '../types';
+import { Transaction, Freq, ownShare } from '../types';
 
 // Monthly-equivalent multipliers — kept identical to the original "fixed cost
 // load" insight so refactors don't shift existing numbers.
@@ -82,6 +82,38 @@ export function buildProjectedOccurrences(
     out.push(...projectOccurrences(t, fromISO, toISO, opts));
   }
   return out;
+}
+
+/**
+ * A real, NON-recurring transaction dated in the future is a PLANNED ("previsto")
+ * movement: it shows under "Programmato", is excluded from realized totals and
+ * account balances, and is folded into the end-of-month forecast. It needs no
+ * Cloud Function to materialize — it is already a stored document, so it simply
+ * starts counting as realized the day its date arrives (date <= today).
+ */
+export function isPending(t: Transaction, todayISO: string): boolean {
+  return !t.recurring && !t.projected && t.date > todayISO;
+}
+
+/**
+ * Sum of PLANNED (future, non-recurring) expense own-shares dated strictly after
+ * `todayISO` and up to `monthEndISO`. Mirrors `upcomingRecurringThisMonth` for
+ * one-off scheduled expenses, so the forecast treats them the same way.
+ */
+export function upcomingPlannedThisMonth(
+  transactions: Transaction[],
+  todayISO: string,
+  monthEndISO: string,
+): number {
+  let total = 0;
+  for (const t of transactions) {
+    if (t.type !== 'expense') continue;
+    if (!isPending(t, todayISO)) continue;
+    if (t.seriesId) continue; // realized recurring instances are not "planned"
+    if (t.date > monthEndISO) continue;
+    total += ownShare(t);
+  }
+  return total;
 }
 
 /**

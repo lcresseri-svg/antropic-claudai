@@ -575,6 +575,11 @@ function DateField({ date, td, yd, setDate }: { date: string; td: string; yd: st
         <input type="date" value={date} onChange={e => setDate(e.target.value)}
           className="flex-1 min-w-0 bg-elevated rounded-xl px-3 py-2 text-primary text-xs outline-none focus:ring-1 focus:ring-gold/40" />
       </div>
+      {date > td && (
+        <p className="text-[11px] text-secondary mt-2 flex items-center gap-1">
+          🗓️ Data futura: sarà un movimento previsto e verrà conteggiato automaticamente alla data scelta.
+        </p>
+      )}
     </Field>
   );
 }
