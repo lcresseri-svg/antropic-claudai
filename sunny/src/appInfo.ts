@@ -1,4 +1,4 @@
-export const APP_VERSION = '1.9.13';
+export const APP_VERSION = '1.9.14';
 
 /**
  * Release channel. While in 'beta' the app is still under active development
@@ -15,6 +15,12 @@ export interface VersionEntry {
 
 /** Registro versioni mostrato in Impostazioni → Registro versioni. */
 export const VERSIONS: VersionEntry[] = [
+  {
+    version: '1.9.14', date: '2026-06-04', title: 'Impostazioni: torna in cima cambiando sezione',
+    changes: [
+      'Aprendo o chiudendo una sezione delle Impostazioni la pagina torna in cima, così la freccia "indietro" è sempre visibile senza dover scorrere.',
+    ],
+  },
   {
     version: '1.9.13', date: '2026-06-04', title: 'Lascia un feedback',
     changes: [
