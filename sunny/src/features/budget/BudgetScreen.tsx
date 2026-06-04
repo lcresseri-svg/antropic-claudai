@@ -47,31 +47,28 @@ export function BudgetScreen({
   const incomeCats     = useMemo(() => categories.filter(c => c.kind === 'income'),     [categories]);
   const investmentCats = useMemo(() => categories.filter(c => c.kind === 'investment'), [categories]);
 
-  const todayISO = useMemo(() => new Date().toISOString().slice(0, 10), []);
-
-  // Income totals by category (current month, realized only — future-dated excluded)
+  // Income totals by category (current month). The Budget is a planning view, so
+  // it counts the "programmato" too: realized + future-dated movements this month.
   const incomeCategoryTotals = useMemo(() => {
     const out: Record<string, number> = {};
     for (const t of transactions) {
       if (t.type !== 'income') continue;
       if (t.date.slice(0, 7) !== currentMonth) continue;
-      if (t.date > todayISO) continue;
       out[t.category] = (out[t.category] ?? 0) + t.amount;
     }
     return out;
-  }, [transactions, todayISO]);
+  }, [transactions]);
 
-  // Investment totals by category (current month, realized only — future-dated excluded)
+  // Investment totals by category (current month, realized + programmato).
   const investmentCategoryTotals = useMemo(() => {
     const out: Record<string, number> = {};
     for (const t of transactions) {
       if (t.type !== 'investment') continue;
       if (t.date.slice(0, 7) !== currentMonth) continue;
-      if (t.date > todayISO) continue;
       out[t.category] = (out[t.category] ?? 0) + t.amount;
     }
     return out;
-  }, [transactions, todayISO]);
+  }, [transactions]);
 
   const isLearning = transactions.length === 0;
   const expenseSpend = isLearning ? DEMO_CATEGORY_SPEND : categoryTotals;
@@ -110,6 +107,12 @@ export function BudgetScreen({
     // already been spent, never as already-realized.
     const upcomingRecurring = upcomingRecurringThisMonth(transactions, today, monthEnd)
       + upcomingPlannedThisMonth(transactions, today, monthEnd);
+    // Same treatment for income and investments (programmato): recurring due +
+    // planned one-offs still to come this month.
+    const upcomingIncome = upcomingRecurringThisMonth(transactions, today, monthEnd, 'income')
+      + upcomingPlannedThisMonth(transactions, today, monthEnd, 'income');
+    const upcomingInvest = upcomingRecurringThisMonth(transactions, today, monthEnd, 'investment')
+      + upcomingPlannedThisMonth(transactions, today, monthEnd, 'investment');
     let variableSpent = 0;
     for (const t of transactions) {
       if (t.type !== 'expense' || t.date.slice(0, 7) !== curKey) continue;
@@ -123,7 +126,7 @@ export function BudgetScreen({
       recentVariableAvg: h.avgVariableExpense,
       seasonalVariableAvg: seasonalVar.avg, seasonalYears: seasonalVar.years,
       avgIncome: h.avgIncome, avgInvest: h.avgInvest,
-      upcomingRecurring,
+      upcomingRecurring, upcomingIncome, upcomingInvest,
     }).savings;
   }, [isLearning, transactions, monthlyIncome, monthlyExpenses, monthlyInvestments]);
 

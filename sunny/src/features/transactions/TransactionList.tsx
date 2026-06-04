@@ -293,6 +293,22 @@ export function TransactionList({ transactions, projected = [], onEdit, onDelete
                       </button>
                     ))}
                   </div>
+                  <p className="label-caps text-secondary mb-1.5 px-1">Raggruppa per</p>
+                  <div className="space-y-1 mb-2.5">
+                    {([['month', 'Per mese'], ['account', 'Per conto'], ['category', 'Per categoria']] as [GroupMode, string][]).map(([m, lbl]) => (
+                      <button key={m} onClick={() => { changeGroup(m); setFilterOpen(false); }}
+                        className={`w-full flex items-center justify-between px-3 py-1.5 rounded-xl text-[13px] transition-colors ${
+                          groupMode === m ? 'bg-gold/10 text-gold font-medium' : 'text-primary hover:bg-card'
+                        }`}>
+                        {lbl}
+                        {groupMode === m && (
+                          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
+                            <path d="M20 6 9 17l-5-5"/>
+                          </svg>
+                        )}
+                      </button>
+                    ))}
+                  </div>
                   <p className="label-caps text-secondary mb-1.5 px-1">Periodo</p>
                   <div className="space-y-1">
                     {PERIOD_OPTS.map(opt => (
@@ -330,23 +346,6 @@ export function TransactionList({ transactions, projected = [], onEdit, onDelete
                       </div>
                     </>
                   )}
-
-                  <p className="label-caps text-secondary mb-1.5 mt-2.5 px-1">Raggruppa per</p>
-                  <div className="space-y-1">
-                    {([['month', 'Per mese'], ['account', 'Per conto'], ['category', 'Per categoria']] as [GroupMode, string][]).map(([m, lbl]) => (
-                      <button key={m} onClick={() => { changeGroup(m); setFilterOpen(false); }}
-                        className={`w-full flex items-center justify-between px-3 py-1.5 rounded-xl text-[13px] transition-colors ${
-                          groupMode === m ? 'bg-gold/10 text-gold font-medium' : 'text-primary hover:bg-card'
-                        }`}>
-                        {lbl}
-                        {groupMode === m && (
-                          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
-                            <path d="M20 6 9 17l-5-5"/>
-                          </svg>
-                        )}
-                      </button>
-                    ))}
-                  </div>
                 </div>
               </>
             )}
