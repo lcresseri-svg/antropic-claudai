@@ -6,7 +6,7 @@ import { useTransactions } from './shared/hooks/useTransactions';
 import { SettingsProvider, useSettings } from './shared/providers/settings';
 import { Transaction } from './types';
 import { greeting } from './utils';
-import { buildProjectedOccurrences } from './shared/recurrence';
+import { buildProjectedOccurrences, isPending } from './shared/recurrence';
 import { db } from './lib/firebase';
 import { useOnboarding } from './features/onboarding/useOnboarding';
 import { OnboardingScreen } from './features/onboarding/OnboardingScreen';
@@ -202,8 +202,11 @@ function Main({ user, onLogOut, onDeleteAccount }: {
 
   const recentTransactions = useMemo(() => {
     const seen = new Set<string>();
+    const todayISO = new Date().toISOString().slice(0, 10);
     return tx.transactions
-      .filter(t => !t.recurring && !t.projected)
+      // "Recenti" = realized entries only — skip templates, synthetic projections
+      // and future-dated "previsti" (those haven't happened yet).
+      .filter(t => !t.recurring && !t.projected && !isPending(t, todayISO))
       .sort((a, b) => b.date.localeCompare(a.date))
       .filter(t => {
         const k = `${t.description}|${t.category}`;

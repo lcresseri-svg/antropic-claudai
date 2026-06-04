@@ -1,7 +1,7 @@
 import { Transaction, ownShare } from '../../types';
 import { formatCurrency, capitalize } from '../../utils';
 import { monthProgress, forecastSavings, seasonalMonthlyAverage, seasonalVariableMonthly, robustAvg } from '../budget/budgetUtils';
-import { addPeriod, recurringMonthlyEquivalent, upcomingPlannedThisMonth } from '../../shared/recurrence';
+import { addPeriod, recurringMonthlyEquivalent, upcomingPlannedThisMonth, isPending } from '../../shared/recurrence';
 
 export type InsightCategory = 'alert' | 'forecast' | 'seasonal' | 'trend' | 'habit' | 'highlight';
 
@@ -283,9 +283,13 @@ export interface InsightInput {
 }
 
 export function buildInsights(input: InsightInput): Insight[] {
-  const { transactions, monthlyIncome, monthlyExpenses, monthlyInvestments, getCat } = input;
+  const { transactions: allTx, monthlyIncome, monthlyExpenses, monthlyInvestments, getCat } = input;
   const now    = input.now ?? new Date();
   const today  = now.toISOString().slice(0, 10);
+  // Realized = everything except future-dated one-off "previsti" (those are
+  // forecasts, not actuals). All backward-looking slices below run on `realized`;
+  // the only forward-looking call that needs the planned items uses `allTx`.
+  const transactions = allTx.filter(t => !isPending(t, today));
   const curMon = monthKey(0, now);
   const prog   = monthProgress(now);
   const out: Insight[] = [];
@@ -475,7 +479,8 @@ export function buildInsights(input: InsightInput): Insight[] {
         }
       }
       // Planned one-off (future-dated) expenses still to come this month.
-      upcomingRecurring += upcomingPlannedThisMonth(transactions, today, monthEnd);
+      // Uses the full set — these are exactly the "previsti" excluded from `transactions`.
+      upcomingRecurring += upcomingPlannedThisMonth(allTx, today, monthEnd);
     }
 
     // Variable (non-recurring) spending already recorded this month. Planned

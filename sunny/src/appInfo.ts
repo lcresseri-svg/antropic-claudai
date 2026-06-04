@@ -1,4 +1,4 @@
-export const APP_VERSION = '1.9.3';
+export const APP_VERSION = '1.9.4';
 
 /**
  * Release channel. While in 'beta' the app is still under active development
@@ -15,6 +15,14 @@ export interface VersionEntry {
 
 /** Registro versioni mostrato in Impostazioni → Registro versioni. */
 export const VERSIONS: VersionEntry[] = [
+  {
+    version: '1.9.4', date: '2026-06-04', title: 'Previsti coerenti ovunque',
+    changes: [
+      'Le spese con data futura ("previste") seguono ora in Movimenti la stessa logica di trasparenza delle ricorrenti programmate: rispettano il filtro orizzonte (prossimi 5 giorni, 30 giorni, 3 mesi, tutti o nascondi) invece di essere sempre visibili.',
+      'Coerenza in tutta l\'app: i previsti non gonfiano più nessun numero "reale" — saldi, statistiche del periodo, insight e dashboard contano solo ciò che è già avvenuto, mentre le previsioni di fine mese continuano a includerli.',
+      'I chip "Recenti" nel form di aggiunta non propongono più una spesa futura non ancora avvenuta.',
+    ],
+  },
   {
     version: '1.9.3', date: '2026-06-04', title: 'AI Coach: widget, previsti e prompt arricchito',
     changes: [
