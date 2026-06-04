@@ -1,4 +1,4 @@
-export const APP_VERSION = '1.9.12';
+export const APP_VERSION = '1.9.13';
 
 /**
  * Release channel. While in 'beta' the app is still under active development
@@ -15,6 +15,12 @@ export interface VersionEntry {
 
 /** Registro versioni mostrato in Impostazioni → Registro versioni. */
 export const VERSIONS: VersionEntry[] = [
+  {
+    version: '1.9.13', date: '2026-06-04', title: 'Lascia un feedback',
+    changes: [
+      'Nuova sezione "Lascia un feedback" in Impostazioni: segnala un problema, proponi un\'idea o dicci cosa è poco chiaro, con un testo libero facoltativo.',
+    ],
+  },
   {
     version: '1.9.12', date: '2026-06-04', title: 'Budget: stato "programmato" + fix chiusura',
     changes: [
