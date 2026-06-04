@@ -13,6 +13,14 @@ export interface CutSuggestion {
 
 export interface AffordabilityResult {
   monthlySaving: number;
+  /** Projected monthly income / expenses / investments (cross-referenced). */
+  monthlyIncome?: number;
+  monthlyExpenses?: number;
+  monthlyInvestments?: number;
+  /** Already-committed outflows this month (recurring + planned). */
+  upcomingCommitted?: number;
+  /** User's monthly savings goal, if set. */
+  savingsTarget?: number;
   /** Cost fits within a single month's saving (small purchase). */
   fitsThisMonth: boolean;
   /** If not fitting: how much buying it all now overshoots the month by. */

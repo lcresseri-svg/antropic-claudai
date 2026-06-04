@@ -39,6 +39,15 @@ export function AffordabilityResultCard({ result, categories, onReset }: Props) 
       {/* Numbers */}
       <div className="grid grid-cols-2 gap-3">
         <Stat label="Risparmio mensile stimato" value={fmt(result.monthlySaving)} />
+        {result.monthlyInvestments !== undefined && result.monthlyInvestments > 0 && (
+          <Stat label="Investimenti/mese (leva)" value={fmt(result.monthlyInvestments)} accent="text-gold" />
+        )}
+        {result.upcomingCommitted !== undefined && result.upcomingCommitted > 0 && (
+          <Stat label="Già impegnato questo mese" value={fmt(result.upcomingCommitted)} />
+        )}
+        {result.savingsTarget !== undefined && result.savingsTarget > 0 && (
+          <Stat label="Obiettivo di risparmio" value={fmt(result.savingsTarget)} />
+        )}
         {fits ? (
           <Stat label="Ti resterebbe questo mese" value={fmt(result.leftoverIfBought)} accent="text-[#6FCF97]" />
         ) : (
