@@ -1,7 +1,7 @@
 import { Transaction, ownShare } from '../../types';
 import { formatCurrency, capitalize } from '../../utils';
 import { monthProgress, forecastSavings, seasonalMonthlyAverage, seasonalVariableMonthly, robustAvg } from '../budget/budgetUtils';
-import { addPeriod, recurringMonthlyEquivalent, upcomingPlannedThisMonth, isPending } from '../../shared/recurrence';
+import { addPeriod, recurringMonthlyEquivalent, upcomingPlannedThisMonth, upcomingRecurringThisMonth, isPending } from '../../shared/recurrence';
 
 export type InsightCategory = 'alert' | 'forecast' | 'seasonal' | 'trend' | 'habit' | 'highlight';
 
@@ -460,28 +460,18 @@ export function buildInsights(input: InsightInput): Insight[] {
     // Seasonal baseline: variable spend in this calendar month across prior years.
     const seasonalVar = seasonalVariableMonthly(transactions, now.getMonth(), now);
 
-    // Upcoming recurring expenses: occurrences strictly after today up to month-end.
-    let upcomingRecurring = 0;
-    {
-      const lastDay = new Date(now.getFullYear(), now.getMonth() + 1, 0).getDate();
-      const monthEnd = `${ym(now)}-${String(lastDay).padStart(2, '0')}`;
-      for (const [, t] of seriesMap) {
-        if (t.type !== 'expense') continue;
-        const rule = t.recurring!;
-        if (rule.until && rule.until < today) continue;
-        let d = addPeriod(t.date, rule.freq);
-        let guard = 500;
-        while (d <= today && --guard > 0) d = addPeriod(d, rule.freq);
-        let cap = 35;
-        while (d <= monthEnd && (!rule.until || d <= rule.until) && --cap > 0) {
-          upcomingRecurring += t.amount;
-          d = addPeriod(d, rule.freq);
-        }
-      }
-      // Planned one-off (future-dated) expenses still to come this month.
-      // Uses the full set — these are exactly the "previsti" excluded from `transactions`.
-      upcomingRecurring += upcomingPlannedThisMonth(allTx, today, monthEnd);
-    }
+    // Upcoming committed movements still to come this month (after today): both
+    // recurring occurrences (incl. a series that STARTS this month) and planned
+    // one-off "previsti". Computed on the full set `allTx` so future-starting
+    // recurring templates — which are excluded from `realized` — are still seen.
+    const lastDay = new Date(now.getFullYear(), now.getMonth() + 1, 0).getDate();
+    const monthEnd = `${ym(now)}-${String(lastDay).padStart(2, '0')}`;
+    const upcomingRecurring = upcomingRecurringThisMonth(allTx, today, monthEnd)
+      + upcomingPlannedThisMonth(allTx, today, monthEnd);
+    const upcomingIncome = upcomingRecurringThisMonth(allTx, today, monthEnd, 'income')
+      + upcomingPlannedThisMonth(allTx, today, monthEnd, 'income');
+    const upcomingInvest = upcomingRecurringThisMonth(allTx, today, monthEnd, 'investment')
+      + upcomingPlannedThisMonth(allTx, today, monthEnd, 'investment');
 
     // Variable (non-recurring) spending already recorded this month. Planned
     // future-dated one-offs are excluded here — they're in upcomingRecurring.
@@ -500,7 +490,7 @@ export function buildInsights(input: InsightInput): Insight[] {
       recentVariableAvg: h.avgVariableExpense,
       seasonalVariableAvg: seasonalVar.avg, seasonalYears: seasonalVar.years,
       avgIncome: h.avgIncome, avgInvest: h.avgInvest,
-      upcomingRecurring, now,
+      upcomingRecurring, upcomingIncome, upcomingInvest, now,
     });
     const projExp = f.projectedExpenses, expInc = f.expectedIncome, expInv = f.expectedInvest;
     const forecast = f.savings;

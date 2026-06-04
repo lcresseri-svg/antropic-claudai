@@ -99,18 +99,19 @@ export function isPending(t: Transaction, todayISO: string): boolean {
 }
 
 /**
- * Sum of PLANNED (future, non-recurring) expense own-shares dated strictly after
- * `todayISO` and up to `monthEndISO`. Recurring templates are excluded — their
- * upcoming occurrences are already counted by the separate upcomingRecurring loop.
+ * Sum of PLANNED (future, non-recurring) own-shares of a given type, dated
+ * strictly after `todayISO` and up to `monthEndISO`. Recurring templates are
+ * excluded — their upcoming occurrences are counted by upcomingRecurringThisMonth.
  */
 export function upcomingPlannedThisMonth(
   transactions: Transaction[],
   todayISO: string,
   monthEndISO: string,
+  type: Transaction['type'] = 'expense',
 ): number {
   let total = 0;
   for (const t of transactions) {
-    if (t.type !== 'expense') continue;
+    if (t.type !== type) continue;
     if (t.recurring) continue; // handled by upcomingRecurring loop, not here
     if (!isPending(t, todayISO)) continue;
     if (t.seriesId) continue; // realized recurring instances are not "planned"
@@ -139,14 +140,16 @@ export function recurringMonthlyEquivalent(
 }
 
 /**
- * Sum of recurring expense occurrences strictly after `todayISO` and up to
- * `monthEndISO`. Represents known committed spending in the days that remain
- * in the current month. Used as a floor when projecting end-of-month expenses.
+ * Sum of recurring occurrences of a given type strictly after `todayISO` and up
+ * to `monthEndISO`. Represents known committed movements in the days that remain
+ * in the current month. Includes a series whose first occurrence (the template's
+ * own date) is itself still in the future this month.
  */
 export function upcomingRecurringThisMonth(
   transactions: Transaction[],
   todayISO: string,
   monthEndISO: string,
+  type: Transaction['type'] = 'expense',
 ): number {
   // Keep only the latest template per logical series.
   const seriesMap = new Map<string, Transaction>();
@@ -158,12 +161,13 @@ export function upcomingRecurringThisMonth(
   }
   let total = 0;
   for (const [, t] of seriesMap) {
-    if (t.type !== 'expense') continue;
+    if (t.type !== type) continue;
     const rule = t.recurring!;
     if (rule.until && rule.until < todayISO) continue;
-    let d = addPeriod(t.date, rule.freq);
+    // Start at the template's own date so a future-starting series counts its
+    // first occurrence; fast-forward past any occurrence already realized (<= today).
+    let d = t.date;
     let guard = 500;
-    // Fast-forward to the first occurrence strictly after today.
     while (d <= todayISO && --guard > 0) d = addPeriod(d, rule.freq);
     let cap = 35; // guard against dense daily series
     while (d <= monthEndISO && (!rule.until || d <= rule.until) && --cap > 0) {

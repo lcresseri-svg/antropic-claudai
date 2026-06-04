@@ -205,6 +205,10 @@ export function forecastSavings(o: {
   seasonalYears?: number;
   /** Sum of recurring expense occurrences still due this month (after today). */
   upcomingRecurring?: number;
+  /** Known income still to come this month (recurring due + planned one-offs). */
+  upcomingIncome?: number;
+  /** Known investments still to come this month (recurring due + planned one-offs). */
+  upcomingInvest?: number;
   avgIncome?: number;
   avgInvest?: number;
   now?: Date;
@@ -257,8 +261,14 @@ export function forecastSavings(o: {
     Math.max(o.monthlyExpenses + variableRemaining + recurringRemaining, o.monthlyExpenses),
   );
 
-  const expectedIncome = Math.round(Math.max(o.monthlyIncome, o.avgIncome ?? 0));
-  const expectedInvest = Math.round(Math.max(o.monthlyInvestments, o.avgInvest ?? 0));
+  // Known committed inflows/investments this month = realized so far + still to
+  // come (recurring + planned). Floored at the historical average so a quiet
+  // early month doesn't underproject. The max avoids double-counting recurring
+  // income that history already reflects.
+  const committedIncome = o.monthlyIncome + Math.max(0, o.upcomingIncome ?? 0);
+  const committedInvest = o.monthlyInvestments + Math.max(0, o.upcomingInvest ?? 0);
+  const expectedIncome = Math.round(Math.max(committedIncome, o.avgIncome ?? 0));
+  const expectedInvest = Math.round(Math.max(committedInvest, o.avgInvest ?? 0));
   const savings = expectedIncome - projectedExpenses - expectedInvest;
   return { expectedIncome, projectedExpenses, expectedInvest, savings };
 }

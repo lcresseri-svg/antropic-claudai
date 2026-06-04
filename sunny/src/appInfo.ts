@@ -1,4 +1,4 @@
-export const APP_VERSION = '1.9.5';
+export const APP_VERSION = '1.9.6';
 
 /**
  * Release channel. While in 'beta' the app is still under active development
@@ -15,6 +15,15 @@ export interface VersionEntry {
 
 /** Registro versioni mostrato in Impostazioni → Registro versioni. */
 export const VERSIONS: VersionEntry[] = [
+  {
+    version: '1.9.6', date: '2026-06-04', title: 'Budget e previsioni considerano il programmato',
+    changes: [
+      'Budget: entrate e investimenti previsti del mese ora includono anche i movimenti programmati (ricorrenti in arrivo e voci con data futura), non solo quelli già avvenuti.',
+      'Previsione di fine mese (Budget e Insight): conta anche entrate e investimenti programmati ancora in arrivo, oltre alle spese — risparmio stimato più realistico.',
+      'Corretto il caso di una serie ricorrente che inizia nel futuro: la sua prima occorrenza ora viene conteggiata nelle previsioni.',
+      'Filtro Movimenti: "Raggruppa per" spostato in alto, subito dopo "Ordina per".',
+    ],
+  },
   {
     version: '1.9.5', date: '2026-06-04', title: 'Previsti estesi a tutti i tipi di movimento',
     changes: [
