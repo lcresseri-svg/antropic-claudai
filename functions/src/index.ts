@@ -407,56 +407,116 @@ export const generateAffordabilityAdvice = onRequest(
       const catDefs = settings.categories ?? [];
       const catLabel = (id: string) => catDefs.find(c => c.id === id)?.label ?? id;
 
-      // ── Read last 90 days of transactions ─────────────────────────────────
+      // ── Read transactions (last 90 days through the future) + budget ──────
+      // No upper bound: the query also returns future-dated planned one-offs and
+      // recurring templates (their `date` is the next, future occurrence).
       const cutoff = new Date(); cutoff.setDate(cutoff.getDate() - 90);
       const cutoffStr = cutoff.toISOString().slice(0, 10);
-      const txSnap = await db.collection(`users/${uid}/transactions`)
-        .where('date', '>=', cutoffStr)
-        .get();
+      const [txSnap, budgetSnap] = await Promise.all([
+        db.collection(`users/${uid}/transactions`).where('date', '>=', cutoffStr).get(),
+        db.doc(`users/${uid}/meta/budget`).get(),
+      ]);
 
-      type TxDoc = { type?: string; amount?: number; shared?: number; category?: string; date?: string; seriesId?: string; recurring?: unknown };
+      type TxDoc = {
+        type?: string; amount?: number; shared?: number; category?: string;
+        date?: string; seriesId?: string; recurring?: { freq?: Freq; until?: string };
+      };
       const txs = txSnap.docs.map(d => d.data() as TxDoc);
+      const budget = (budgetSnap.data() ?? {}) as {
+        savingsTarget?: number;
+        categoryBudgets?: Record<string, number>;
+        incomeBudgets?: Record<string, number>;
+        investmentBudgets?: Record<string, number>;
+      };
+      const ownShareOf = (t: TxDoc) => (Number(t.amount) || 0) - (Number(t.shared) || 0);
 
-      // ── Compute projected monthly saving (simplified forecastSavings) ─────
       const nowDate = new Date();
-      const monthStart = nowDate.toISOString().slice(0, 7); // YYYY-MM
-      let income = 0, expenses = 0;
-      const catSpend: Record<string, number> = {};
+      const todayISO = nowDate.toISOString().slice(0, 10);
+      const monthStart = todayISO.slice(0, 7); // YYYY-MM
+      const lastDay = new Date(nowDate.getFullYear(), nowDate.getMonth() + 1, 0).getDate();
+      const monthEnd = `${monthStart}-${String(lastDay).padStart(2, '0')}`;
+
+      // Current month, split into REALIZED (date <= today) and UPCOMING (date > today).
+      let incomeRealized = 0, expRealized = 0, investRealized = 0;
+      let upcomingPlannedExp = 0;       // future-dated one-off expenses this month
+      let upcomingPlannedInvest = 0;    // future-dated one-off investments this month
+      const catSpend: Record<string, number> = {};   // realized variable spend by category
       for (const t of txs) {
         if (t.date?.slice(0, 7) !== monthStart) continue;
-        const amt = Number(t.amount) || 0;
-        if (t.type === 'income') income += amt;
-        else if (t.type === 'expense') {
-          const own = amt - (Number(t.shared) || 0);
-          expenses += own;
-          if (t.category) catSpend[t.category] = (catSpend[t.category] ?? 0) + own;
+        const isFuture = (t.date ?? '') > todayISO;
+        const isRecurringTemplate = !!t.recurring;
+        const own = ownShareOf(t);
+        if (t.type === 'income') {
+          if (!isFuture && !isRecurringTemplate) incomeRealized += Number(t.amount) || 0;
+        } else if (t.type === 'expense') {
+          if (isRecurringTemplate) continue; // handled via the recurring projection below
+          if (isFuture) { upcomingPlannedExp += own; }
+          else {
+            expRealized += own;
+            if (!t.seriesId && t.category) catSpend[t.category] = (catSpend[t.category] ?? 0) + own;
+          }
+        } else if (t.type === 'investment') {
+          if (isRecurringTemplate) continue;
+          if (isFuture) upcomingPlannedInvest += Number(t.amount) || 0;
+          else investRealized += Number(t.amount) || 0;
         }
       }
 
-      // Recent 3-month variable average for projection
-      const recentMonths: Record<string, number> = {};
+      // Upcoming RECURRING occurrences (expense & investment) still due this month.
+      let upcomingRecurringExp = 0, upcomingRecurringInvest = 0;
+      for (const t of txs) {
+        const rule = t.recurring;
+        if (!rule?.freq) continue;
+        if (rule.until && rule.until < todayISO) continue;
+        let d = t.date ?? todayISO;
+        let guard = 500;
+        while (d <= todayISO && --guard > 0) d = addPeriod(d, rule.freq);
+        let cap = 40;
+        while (d <= monthEnd && (!rule.until || d <= rule.until) && --cap > 0) {
+          if (t.type === 'expense') upcomingRecurringExp += ownShareOf(t);
+          else if (t.type === 'investment') upcomingRecurringInvest += Number(t.amount) || 0;
+          d = addPeriod(d, rule.freq);
+        }
+      }
+
+      // Recent (prior months) averages: variable expense, income, investment.
+      const recentVarExp: Record<string, number> = {};
       const recentIncome: Record<string, number> = {};
+      const recentInvest: Record<string, number> = {};
       for (const t of txs) {
         const mo = t.date?.slice(0, 7);
         if (!mo || mo === monthStart) continue;
+        if ((t.date ?? '') > todayISO) continue; // ignore future when averaging history
         if (t.type === 'expense' && !t.seriesId && !t.recurring) {
-          recentMonths[mo] = (recentMonths[mo] ?? 0) + (Number(t.amount) || 0) - (Number(t.shared) || 0);
-        }
-        if (t.type === 'income') {
+          recentVarExp[mo] = (recentVarExp[mo] ?? 0) + ownShareOf(t);
+        } else if (t.type === 'income' && !t.recurring) {
           recentIncome[mo] = (recentIncome[mo] ?? 0) + (Number(t.amount) || 0);
+        } else if (t.type === 'investment' && !t.recurring) {
+          recentInvest[mo] = (recentInvest[mo] ?? 0) + (Number(t.amount) || 0);
         }
       }
-      const recentExpVals = Object.values(recentMonths);
-      const recentIncVals = Object.values(recentIncome);
-      const avg = (arr: number[]) => arr.length ? arr.reduce((a, b) => a + b, 0) / arr.length : 0;
-      const avgVarExp = avg(recentExpVals);
-      const avgInc = avg(recentIncVals);
+      const avg = (o: Record<string, number>) => {
+        const v = Object.values(o); return v.length ? v.reduce((a, b) => a + b, 0) / v.length : 0;
+      };
+      const avgVarExp = avg(recentVarExp);
+      const avgInc = avg(recentIncome);
+      const avgInvest = avg(recentInvest);
 
-      const daysInMonth = new Date(nowDate.getFullYear(), nowDate.getMonth() + 1, 0).getDate();
-      const prog = Math.min(1, nowDate.getDate() / daysInMonth);
-      const projectedExp = prog > 0 ? expenses + Math.max(0, 1 - prog) * (avgVarExp > 0 ? avgVarExp : expenses / prog) : expenses;
-      const projectedInc = Math.max(income, avgInc);
-      const projectedMonthlySaving = Math.round(projectedInc - projectedExp);
+      const prog = Math.min(1, nowDate.getDate() / lastDay);
+      const variableRemaining = Math.max(0, 1 - prog) * (avgVarExp > 0 ? avgVarExp : (prog > 0 ? expRealized / prog : 0));
+
+      const projectedInc = Math.round(Math.max(incomeRealized, avgInc));
+      const projectedExp = Math.round(expRealized + variableRemaining + upcomingRecurringExp + upcomingPlannedExp);
+      const projectedInvest = Math.round(Math.max(investRealized, avgInvest) + upcomingRecurringInvest + upcomingPlannedInvest);
+
+      // Savings = income − expenses − investments (investments are money set aside,
+      // so they reduce free cash; they're also a lever the user can pause).
+      const projectedMonthlySaving = projectedInc - projectedExp - projectedInvest;
+
+      // Budget context.
+      const savingsTarget = Math.max(0, Number(budget.savingsTarget) || 0);
+      const plannedExpBudget = Object.values(budget.categoryBudgets ?? {}).reduce((s, v) => s + (Number(v) || 0), 0);
+      const upcomingCommitted = Math.round(upcomingRecurringExp + upcomingPlannedExp);
 
       // ── Affordability over time (no "already saved" input) ────────────────
       // We never ask how much the user already has. We reason purely on the
@@ -515,45 +575,61 @@ export const generateAffordabilityAdvice = onRequest(
         return;
       }
 
-      // Build a compact, factual brief; let the model phrase it freely.
+      // Build a compact, factual brief that CROSS-REFERENCES the whole picture:
+      // income, expenses, investments, budget targets and already-committed
+      // (recurring + planned) outflows. Let the model phrase it freely.
       const facts: string[] = [];
-      facts.push(`Acquisto: "${itemName}", costo ${Math.round(cost)}€.`);
-      facts.push(safeSaving > 0
-        ? `Risparmio mensile stimato a ritmo attuale: ~${safeSaving}€.`
-        : `Al ritmo attuale il mese chiude in pari o in negativo (~${projectedMonthlySaving}€): senza tagli non si accumula nulla.`);
-      if (fitsThisMonth) {
-        facts.push(`SPESA PICCOLA: una sola mensilità di risparmio la copre. Comprandola subito chiuderesti comunque il mese con circa ${leftoverIfBought}€ da parte. Si può fare entro questo mese senza andare in rosso.`);
-      } else if (safeSaving > 0) {
-        facts.push(`SPESA IMPORTANTE: comprandola tutta questo mese sforeresti di circa ${monthOvershoot}€ (andresti in negativo). Meglio diluire su più mesi.`);
+      facts.push(`Acquisto richiesto: "${itemName}", costo ${Math.round(cost)}€.`);
+      facts.push(`Quadro mensile stimato — entrate ~${projectedInc}€, uscite ~${projectedExp}€, investimenti ~${projectedInvest}€, quindi risparmio netto ~${projectedMonthlySaving}€.`);
+      if (projectedInvest > 0) {
+        facts.push(`Degli investimenti, ~${projectedInvest}€/mese: sono una leva: l'utente potrebbe ridurli o sospenderli temporaneamente per liberare liquidità verso questo acquisto.`);
       }
-      if (!fitsThisMonth && monthsToAfford !== null) {
-        facts.push(`Mantenendo le abitudini servono circa ${monthsToAfford} mesi (pronto verso ${readyByPace}).`);
+      if (upcomingCommitted > 0) {
+        facts.push(`Da qui a fine mese ci sono già spese impegnate per ~${upcomingCommitted}€ (ricorrenti ~${Math.round(upcomingRecurringExp)}€ + previste/programmate ~${Math.round(upcomingPlannedExp)}€): tienine conto, riducono il margine residuo del mese.`);
+      }
+      if (savingsTarget > 0) {
+        const vsTarget = projectedMonthlySaving - savingsTarget;
+        facts.push(`Obiettivo di risparmio mensile impostato: ${savingsTarget}€. Al ritmo attuale ${vsTarget >= 0 ? `lo supera di ~${vsTarget}€` : `manca di ~${Math.abs(vsTarget)}€`}. Se l'acquisto erode il risparmio sotto l'obiettivo, segnalalo.`);
+      }
+      if (plannedExpBudget > 0) {
+        facts.push(`Budget di spesa pianificato dall'utente: ~${Math.round(plannedExpBudget)}€/mese complessivi sulle categorie.`);
+      }
+      if (safeSaving <= 0) {
+        facts.push(`Attenzione: a ritmo attuale il mese non genera risparmio (~${projectedMonthlySaving}€): senza tagli o senza sospendere gli investimenti non si accumula nulla.`);
+      }
+      if (fitsThisMonth) {
+        facts.push(`SPESA PICCOLA: una mensilità di risparmio la copre. Comprandola subito chiuderesti il mese con ~${leftoverIfBought}€ da parte. Fattibile entro il mese senza andare in rosso.`);
+      } else if (safeSaving > 0) {
+        facts.push(`SPESA IMPORTANTE: comprandola tutta ora sforeresti di ~${monthOvershoot}€. Meglio diluire su più mesi.`);
+        if (monthsToAfford !== null) facts.push(`A ritmo attuale servono ~${monthsToAfford} mesi (pronto verso ${readyByPace}).`);
       }
       if (topCuts.length > 0) {
         const cutsStr = topCuts.map(c => `${c.label} (~${c.amount}€/mese)`).join(', ');
-        facts.push(`Categorie variabili più alte di questo mese: ${cutsStr}.`);
+        facts.push(`Categorie variabili più alte del mese (dove tagliare): ${cutsStr}.`);
       }
       if (!fitsThisMonth && monthsToAffordWithCuts !== null && monthsToAffordWithCuts !== monthsToAfford) {
-        facts.push(`Tagliando ~30% su quelle categorie (~${monthlyCutPotential}€/mese in più) i mesi scendono a circa ${monthsToAffordWithCuts} (pronto verso ${readyByWithCuts}).`);
+        facts.push(`Tagliando ~30% su quelle categorie (~${monthlyCutPotential}€/mese in più) i mesi scendono a ~${monthsToAffordWithCuts} (pronto verso ${readyByWithCuts}).`);
       }
       if (targetDate && requiredMonthly !== null) {
-        facts.push(`L'utente vorrebbe entro ${daysLeft} giorni: servirebbero ${requiredMonthly}€/mese, ${targetFeasible ? 'raggiungibile con qualche taglio' : 'difficile a meno di tagli importanti o di allungare i tempi'}.`);
+        facts.push(`Scadenza voluta: entro ${daysLeft} giorni → servirebbero ${requiredMonthly}€/mese, ${targetFeasible ? 'raggiungibile con qualche taglio o pausa investimenti' : 'difficile senza tagli importanti o senza allungare i tempi'}.`);
       }
 
       const prompt =
         `Sei il coach finanziario dell'app Sunny: amichevole, schietto e concreto. ` +
         `L'utente vuole sapere se può permettersi un acquisto. NON chiedere mai quanto ha già da parte.\n\n` +
+        `Incrocia TUTTO il quadro: entrate, uscite, investimenti, obiettivo di risparmio, budget e ` +
+        `spese già impegnate (ricorrenti e previste). Le leve per liberare liquidità sono due: ` +
+        `ridurre le spese variabili E/O sospendere temporaneamente gli investimenti — valuta quale ha più senso.\n\n` +
         `Regola sul periodo:\n` +
         `- Se la spesa è PICCOLA (una mensilità di risparmio la copre senza mandarlo in rosso), ` +
-        `dillo: si può fare già questo mese, e accenna a quanto gli resterebbe da parte.\n` +
-        `- Se la spesa è IMPORTANTE (lo farebbe sforare), NON forzare il rientro nel mese: ` +
-        `ragiona su più mesi, di' per quanti mesi conviene accantonare e quale spesa ridurre, ` +
-        `stimando il periodo (es. "verso ottobre") in cui ci arriva.\n\n` +
+        `dillo: si può fare già questo mese, e accenna a quanto gli resterebbe.\n` +
+        `- Se la spesa è IMPORTANTE (lo farebbe sforare), NON forzare il rientro nel mese: ragiona su più ` +
+        `mesi, di' per quanti mesi accantonare, cosa ridurre (o se vale la pena rallentare gli investimenti), ` +
+        `e stima il periodo (es. "verso ottobre") in cui ci arriva.\n\n` +
         `Dati (usali, non elencarli meccanicamente):\n- ${facts.join('\n- ')}\n\n` +
         `Scrivi in italiano, 2-4 frasi, tono colloquiale e vario (cambia ogni volta apertura, ritmo e ` +
-        `struttura: a volte parti dal verdetto, a volte dal consiglio, a volte da una domanda retorica). ` +
-        `Cita 1-2 categorie per nome quando suggerisci tagli. Niente markdown, niente elenchi puntati, ` +
-        `niente formule fisse o frasi-template. Dai una risposta che suoni umana e su misura.`;
+        `struttura). Cita per nome 1-2 categorie o leve concrete. Niente markdown, niente elenchi puntati, ` +
+        `niente formule fisse. Dai una risposta che suoni umana e su misura.`;
 
       const gemResp = await fetch(
         'https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash:generateContent',
@@ -585,6 +661,11 @@ export const generateAffordabilityAdvice = onRequest(
       res.json({
         ok: true,
         monthlySaving: Math.round(projectedMonthlySaving),
+        monthlyIncome: projectedInc,
+        monthlyExpenses: projectedExp,
+        monthlyInvestments: projectedInvest,
+        upcomingCommitted,
+        savingsTarget,
         fitsThisMonth,
         monthOvershoot: fitsThisMonth ? 0 : monthOvershoot,
         leftoverIfBought,
