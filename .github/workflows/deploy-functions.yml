@@ -75,7 +75,7 @@ jobs:
       #    digest and the push self-test are always available.
       - name: Deploy HTTP functions
         if: github.event_name == 'push'
-        run: npx -y firebase-tools@latest deploy --only functions:generateDigest,functions:sendTestPush --project sunny-a2a98 --non-interactive --force
+        run: npx -y firebase-tools@latest deploy --only functions:generateDigest,functions:sendTestPush,functions:generateAffordabilityAdvice --project sunny-a2a98 --non-interactive --force
 
       # 2) Scheduled + trigger functions — require the service-agent IAM
       #    bindings. If this step fails with an IAM error, an owner must grant
