@@ -351,6 +351,203 @@ export const onUserDeleted = onDocumentDeleted(
 );
 
 // ─────────────────────────────────────────────────────────────────────────────
+// AI COACH — "Posso permettermi…?"
+//
+// Checks affordability of a purchase given the user's financial situation.
+// Rate-limited to MAX_AI_CALLS_PER_DAY per user per UTC day (no token waste).
+// Rate limit state lives in users/{uid}/meta/aiCoach:
+//   { dailyCount: number; lastResetDay: string }  (YYYY-MM-DD UTC)
+// ─────────────────────────────────────────────────────────────────────────────
+
+const ADMIN_UID = 'qPtCOJGRrwOZ2EfjxMHwW6ZISXX2';
+const MAX_AI_CALLS_PER_DAY = 20;
+
+export const generateAffordabilityAdvice = onRequest(
+  { region: 'europe-west1', cors: ALLOWED_ORIGINS },
+  async (req, res) => {
+    const apiKey = process.env.GEMINI_API_KEY;
+    try {
+      if (req.method !== 'POST') { res.status(405).json({ ok: false, error: 'method-not-allowed' }); return; }
+
+      const uid = await verifyBearer(req.headers.authorization);
+      if (!uid) { res.status(401).json({ ok: false, error: 'unauthorized' }); return; }
+      if (uid !== ADMIN_UID) { res.status(403).json({ ok: false, error: 'forbidden' }); return; }
+
+      // ── Rate limit check (before any Firestore or Gemini reads) ──────────
+      const today = new Date().toISOString().slice(0, 10); // YYYY-MM-DD UTC
+      const rateLimitRef = db.doc(`users/${uid}/meta/aiCoach`);
+      const rateLimitSnap = await rateLimitRef.get();
+      const rl = (rateLimitSnap.data() ?? {}) as { dailyCount?: number; lastResetDay?: string };
+      const currentCount = (rl.lastResetDay === today) ? (rl.dailyCount ?? 0) : 0;
+      if (currentCount >= MAX_AI_CALLS_PER_DAY) {
+        res.status(429).json({ ok: false, error: 'rate-limit', remaining: 0 });
+        return;
+      }
+
+      // ── Check aiEnabled in settings ───────────────────────────────────────
+      const settingsSnap = await db.doc(`users/${uid}/meta/settings`).get();
+      const settings = (settingsSnap.data() ?? {}) as { aiEnabled?: boolean };
+      if (settings.aiEnabled === false) {
+        res.status(403).json({ ok: false, error: 'ai-disabled' });
+        return;
+      }
+
+      // ── Parse request body ────────────────────────────────────────────────
+      const { itemName, cost, targetDate, alreadySaved, priority } = (req.body ?? {}) as {
+        itemName: string;
+        cost: number;
+        targetDate?: string;
+        alreadySaved?: number;
+        priority?: 'low' | 'medium' | 'high';
+      };
+      if (!itemName || !cost || cost <= 0) {
+        res.status(400).json({ ok: false, error: 'invalid-request' });
+        return;
+      }
+
+      // ── Read last 90 days of transactions ─────────────────────────────────
+      const cutoff = new Date(); cutoff.setDate(cutoff.getDate() - 90);
+      const cutoffStr = cutoff.toISOString().slice(0, 10);
+      const txSnap = await db.collection(`users/${uid}/transactions`)
+        .where('date', '>=', cutoffStr)
+        .get();
+
+      type TxDoc = { type?: string; amount?: number; shared?: number; category?: string; date?: string; seriesId?: string; recurring?: unknown };
+      const txs = txSnap.docs.map(d => d.data() as TxDoc);
+
+      // ── Compute projected monthly saving (simplified forecastSavings) ─────
+      const nowDate = new Date();
+      const monthStart = nowDate.toISOString().slice(0, 7); // YYYY-MM
+      let income = 0, expenses = 0;
+      const catSpend: Record<string, number> = {};
+      for (const t of txs) {
+        if (t.date?.slice(0, 7) !== monthStart) continue;
+        const amt = Number(t.amount) || 0;
+        if (t.type === 'income') income += amt;
+        else if (t.type === 'expense') {
+          const own = amt - (Number(t.shared) || 0);
+          expenses += own;
+          if (t.category) catSpend[t.category] = (catSpend[t.category] ?? 0) + own;
+        }
+      }
+
+      // Recent 3-month variable average for projection
+      const recentMonths: Record<string, number> = {};
+      const recentIncome: Record<string, number> = {};
+      for (const t of txs) {
+        const mo = t.date?.slice(0, 7);
+        if (!mo || mo === monthStart) continue;
+        if (t.type === 'expense' && !t.seriesId && !t.recurring) {
+          recentMonths[mo] = (recentMonths[mo] ?? 0) + (Number(t.amount) || 0) - (Number(t.shared) || 0);
+        }
+        if (t.type === 'income') {
+          recentIncome[mo] = (recentIncome[mo] ?? 0) + (Number(t.amount) || 0);
+        }
+      }
+      const recentExpVals = Object.values(recentMonths);
+      const recentIncVals = Object.values(recentIncome);
+      const avg = (arr: number[]) => arr.length ? arr.reduce((a, b) => a + b, 0) / arr.length : 0;
+      const avgVarExp = avg(recentExpVals);
+      const avgInc = avg(recentIncVals);
+
+      const daysInMonth = new Date(nowDate.getFullYear(), nowDate.getMonth() + 1, 0).getDate();
+      const prog = Math.min(1, nowDate.getDate() / daysInMonth);
+      const projectedExp = prog > 0 ? expenses + Math.max(0, 1 - prog) * (avgVarExp > 0 ? avgVarExp : expenses / prog) : expenses;
+      const projectedInc = Math.max(income, avgInc);
+      const projectedMonthlySaving = Math.round(projectedInc - projectedExp);
+
+      // ── Calculate affordability ───────────────────────────────────────────
+      const already = Math.max(0, Number(alreadySaved) || 0);
+      const remaining = Math.max(0, cost - already);
+      let monthsNeeded: number | null = null;
+      let daysLeft: number | null = null;
+
+      if (targetDate) {
+        const target = new Date(targetDate);
+        daysLeft = Math.max(1, Math.ceil((target.getTime() - Date.now()) / 86400000));
+        monthsNeeded = daysLeft / 30.4;
+      }
+
+      const requiredMonthly = monthsNeeded && monthsNeeded > 0 ? remaining / monthsNeeded : null;
+      const gap = requiredMonthly !== null ? requiredMonthly - Math.max(0, projectedMonthlySaving) : null;
+      const canAfford = gap === null ? null : gap <= 0;
+      const verdict: 'yes' | 'maybe' | 'no' =
+        canAfford === true ? 'yes' :
+        canAfford === false && gap !== null && gap < projectedMonthlySaving * 0.4 ? 'maybe' : 'no';
+
+      // Top variable spending categories to suggest cuts
+      const topCuts = Object.entries(catSpend)
+        .sort((a, b) => b[1] - a[1])
+        .slice(0, 3)
+        .map(([id, v]) => ({ categoryId: id, amount: Math.round(v) }));
+
+      // ── Call Gemini for the Italian narrative ─────────────────────────────
+      if (!apiKey) {
+        console.error('generateAffordabilityAdvice: GEMINI_API_KEY missing');
+        res.status(503).json({ ok: false, error: 'unavailable' });
+        return;
+      }
+
+      const periodStr = daysLeft !== null
+        ? `entro ${Math.round(daysLeft)} giorni`
+        : 'senza scadenza definita';
+      const savingStr = projectedMonthlySaving > 0
+        ? `risparmio mensile previsto di ${Math.round(projectedMonthlySaving)}€`
+        : `spesa mensile prevista superiore alle entrate di ${Math.round(Math.abs(projectedMonthlySaving))}€`;
+      const prompt =
+        `Sei l'assistente finanziario dell'app Sunny. L'utente chiede: ` +
+        `"Posso permettermi ${itemName} da ${Math.round(cost)}€ ${periodStr}?" ` +
+        `Dati finanziari: ${savingStr}, ` +
+        (already > 0 ? `già accantonati ${Math.round(already)}€, ` : '') +
+        (requiredMonthly !== null ? `serve risparmiare ${Math.round(requiredMonthly)}€/mese, ` : '') +
+        `verdetto interno: "${verdict}". ` +
+        `Rispondi in 2-3 frasi brevi in italiano, tono diretto e concreto, senza markdown. ` +
+        `Se il verdetto è "yes": conferma e dai un consiglio pratico. ` +
+        `Se "maybe": spiega il gap e suggerisci dove tagliare. ` +
+        `Se "no": sii onesto ma propositivo (es. allungare l'orizzonte temporale).`;
+
+      const gemResp = await fetch(
+        'https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash:generateContent',
+        {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json', 'x-goog-api-key': apiKey },
+          body: JSON.stringify({ contents: [{ parts: [{ text: prompt }] }] }),
+        },
+      );
+      if (!gemResp.ok) {
+        const body = await gemResp.text();
+        console.error('Gemini REST non-2xx:', gemResp.status, body.slice(0, 300));
+        res.status(502).json({ ok: false, error: 'unavailable' });
+        return;
+      }
+      const gemData = (await gemResp.json()) as {
+        candidates?: { content?: { parts?: { text?: string }[] } }[];
+      };
+      const advice = (gemData?.candidates?.[0]?.content?.parts?.[0]?.text ?? '').trim();
+
+      // ── Update rate limit counter ─────────────────────────────────────────
+      const newCount = currentCount + 1;
+      await rateLimitRef.set({ dailyCount: newCount, lastResetDay: today }, { merge: true });
+
+      res.json({
+        ok: true,
+        verdict,
+        projectedMonthlySaving: Math.round(projectedMonthlySaving),
+        requiredMonthly: requiredMonthly !== null ? Math.round(requiredMonthly) : null,
+        gap: gap !== null ? Math.round(gap) : null,
+        daysLeft,
+        topCuts,
+        advice,
+        remaining: MAX_AI_CALLS_PER_DAY - newCount,
+      });
+    } catch (err) {
+      console.error('generateAffordabilityAdvice failed:', err);
+      res.status(500).json({ ok: false, error: 'internal' });
+    }
+  }
+);
+
+// ─────────────────────────────────────────────────────────────────────────────
 // AI DIGEST
 //
 // Generates a 2-3 sentence Italian financial summary using Google Gemini.

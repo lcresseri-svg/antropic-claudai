@@ -21,3 +21,7 @@ export function canUseDetailedInvestments(user: User | null): boolean {
 export function canUsePush(user: User | null): boolean {
   return !!user;
 }
+
+export function isAdminUser(user: User | null): boolean {
+  return canUseDetailedInvestments(user);
+}

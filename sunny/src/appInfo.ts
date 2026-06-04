@@ -1,4 +1,4 @@
-export const APP_VERSION = '1.8.13';
+export const APP_VERSION = '1.9.2';
 
 /**
  * Release channel. While in 'beta' the app is still under active development
@@ -15,6 +15,14 @@ export interface VersionEntry {
 
 /** Registro versioni mostrato in Impostazioni → Registro versioni. */
 export const VERSIONS: VersionEntry[] = [
+  {
+    version: '1.9.2', date: '2026-06-04', title: 'AI Coach — "Posso permettermelo?"',
+    changes: [
+      'Nuova sezione AI Coach (admin): inserisci un acquisto e ricevi una valutazione AI su misura basata sulle tue finanze reali.',
+      'L\'analisi calcola il risparmio mensile previsto, il gap rispetto all\'obiettivo e suggerisce le categorie con più margine di taglio.',
+      'Rate limit integrato: massimo 20 analisi al giorno (ripristino a mezzanotte UTC) — nessun token sprecato.',
+    ],
+  },
   {
     version: '1.8.13', date: '2026-06-04', title: 'Fix transazioni ricorrenti',
     changes: [
