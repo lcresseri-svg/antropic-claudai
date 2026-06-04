@@ -25,22 +25,28 @@ function stripUndefined<T>(obj: T): T {
 export function useTransactions(user: User | null, accounts: AccountDef[] = [], includeInvestments = true, categories: CategoryDef[] = [], enableInvestments = true) {
   const [transactions, setTransactions] = useState<Transaction[]>([]);
   const [loading, setLoading] = useState(true);
+  const [synced, setSynced] = useState(false); // true once a SERVER snapshot (not cache) lands
   const [error, setError] = useState<string | null>(null);
 
   useEffect(() => {
     if (!user) {
       setTransactions([]);
       setLoading(false);
+      setSynced(false);
       return;
     }
     setError(null);
+    setSynced(false);
     const col = collection(db, 'users', user.uid, 'transactions');
     const q = query(col, orderBy('date', 'desc'));
-    return onSnapshot(q,
+    return onSnapshot(q, { includeMetadataChanges: true },
       snap => {
         setTransactions(snap.docs.map(d => ({ id: d.id, ...(d.data() as Omit<Transaction, 'id'>) })));
         setError(null);
         setLoading(false);
+        // Only mark "synced" on server-confirmed data — running the recurring
+        // catch-up on a stale local cache could duplicate what the server holds.
+        if (!snap.metadata.fromCache) setSynced(true);
       },
       err => {
         console.error('Firestore listen error:', err.code, err.message);
@@ -79,6 +85,19 @@ export function useTransactions(user: User | null, accounts: AccountDef[] = [], 
     const batch = writeBatch(db);
     deleteIds.forEach(id => batch.delete(doc(db, 'users', user.uid, 'transactions', id)));
     create.forEach(tx => batch.set(doc(colRef()), stripUndefined(tx)));
+    batch.commit();
+  }, [user, colRef]);
+
+  // Materialize overdue recurring occurrences in one atomic batch: create the
+  // realized instances and advance their templates to the next future date.
+  const materializeRecurring = useCallback((
+    creates: Omit<Transaction, 'id'>[],
+    advance: { id: string; date: string; seriesId: string }[],
+  ) => {
+    if (!user || (creates.length === 0 && advance.length === 0)) return;
+    const batch = writeBatch(db);
+    creates.forEach(tx => batch.set(doc(colRef()), stripUndefined(tx)));
+    advance.forEach(a => batch.update(doc(db, 'users', user.uid, 'transactions', a.id), { date: a.date, seriesId: a.seriesId }));
     batch.commit();
   }, [user, colRef]);
 
@@ -218,8 +237,8 @@ export function useTransactions(user: User | null, accounts: AccountDef[] = [], 
   }, [transactions, accounts, includeInvestments, categories, enableInvestments]);
 
   return {
-    transactions, loading, error,
-    addTransaction, addTransactions, replaceGroup,
+    transactions, loading, synced, error,
+    addTransaction, addTransactions, replaceGroup, materializeRecurring,
     updateTransaction, updateTransactions,
     deleteTransaction, deleteTransactions, deleteAll,
     ...derived,

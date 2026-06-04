@@ -39,11 +39,15 @@ html.light {
   --c-card-hover: 250 250 248;
   --c-elevated:   255 255 255;
   --c-primary:    26 26 26;
-  --c-secondary:  138 138 138;
-  --c-gold:       160 122 55;
-  --c-green:      61 122 54;
-  --c-red:        176 64 64;
-  --c-divider:    235 235 235;
+  /* Secondary text: ~5:1 on white / ~4.7:1 on the warm bg (WCAG AA), where the
+     old 138 grey sat at ~3.2:1 and read washed out. */
+  --c-secondary:  108 108 108;
+  /* Gold accent darkened so gold TEXT clears AA (~4.5:1) instead of ~3.9:1. */
+  --c-gold:       150 112 44;
+  --c-green:      54 116 48;
+  --c-red:        178 58 58;
+  /* Dividers a touch more present so cards/rows have sensible structure. */
+  --c-divider:    228 227 224;
 
   --accent-green: #3D7A36;
   --accent-gold:  #A07A37;
@@ -157,3 +161,15 @@ html.light input[type="date"],
 html.light select {
   color-scheme: light;
 }
+
+/* Light-mode legibility: a few accent colours are hard-coded for DARK
+   backgrounds and read washed-out on white (e.g. #E08B8B coral at ~2.5:1).
+   Re-point those specific text colours to AA-contrast equivalents in light
+   mode only — dark mode keeps the exact same hex. Higher specificity
+   (html.light …) wins over the Tailwind arbitrary-value utility. */
+html.light .text-\[\#E08B8B\],
+html.light .text-\[\#C0605A\]     { color: rgb(var(--c-red)); }
+html.light .text-\[\#E08B8B\]\/70 { color: rgb(var(--c-red) / 0.85); }
+html.light .text-\[\#6FCF97\]     { color: rgb(var(--c-green)); }
+html.light .text-\[\#88B0C0\]     { color: #2F6F8F; }
+html.light .text-\[\#E6B95C\]\/80 { color: rgb(var(--c-gold) / 0.9); }
