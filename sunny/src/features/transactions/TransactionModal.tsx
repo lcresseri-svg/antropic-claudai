@@ -2,6 +2,7 @@ import { useState, useEffect } from 'react';
 import { Transaction, TransactionType, TYPE_META, TYPE_ORDER, RecurrenceRule } from '../../types';
 import { formatCurrency, formatDate, guessCategory } from '../../utils';
 import { useSettings } from '../../shared/providers/settings';
+import { expandRecurringOnCreate } from '../../shared/recurrence';
 import { useEscapeKey } from '../../shared/hooks/useEscapeKey';
 
 interface Props {
@@ -157,6 +158,14 @@ export function TransactionModal({ open, editing, groupTransfers = [], seriesEdi
     const desc = description.trim() || defaultDesc.trim() || 'Senza nome';
     const deleteIds = editing ? [editing.id, ...groupTransfers.map(t => t.id)] : [];
 
+    // A brand-new recurring series whose start date is in the past gets its
+    // overdue occurrences materialized right away (as realized instances), so it
+    // counts as "done" immediately instead of waiting for the nightly Cloud
+    // Function. Skip on edits — those occurrences are already stored.
+    const todayISO = new Date().toISOString().slice(0, 10);
+    const finalize = (docs: Omit<Transaction, 'id'>[]) =>
+      editing ? docs : docs.flatMap(d => expandRecurringOnCreate(d, todayISO));
+
     const storni = (type === 'expense' && isShared)
       ? reimbursements
           .map(r => ({ amount: parseFloat(r.amount.replace(',', '.')), account: r.account }))
@@ -182,7 +191,7 @@ export function TransactionModal({ open, editing, groupTransfers = [], seriesEdi
         });
       }
       if (account) try { localStorage.setItem('sunny:lastAccount', account); } catch { /* ignore */ }
-      onSave(deleteIds, create);
+      onSave(deleteIds, finalize(create));
       if (keepOpen && !editing) { resetKeepContext(); } else { onClose(); }
       return;
     }
@@ -212,7 +221,7 @@ export function TransactionModal({ open, editing, groupTransfers = [], seriesEdi
       });
     }
     if (account) try { localStorage.setItem('sunny:lastAccount', account); } catch { /* ignore */ }
-    onSave(deleteIds, create);
+    onSave(deleteIds, finalize(create));
     if (keepOpen && !editing) { resetKeepContext(); } else { onClose(); }
   };
 

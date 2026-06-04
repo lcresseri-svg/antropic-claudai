@@ -99,6 +99,47 @@ export function isPending(t: Transaction, todayISO: string): boolean {
 }
 
 /**
+ * Expand a brand-new recurring template into the documents to actually store,
+ * so a series whose start date is in the PAST counts as "done" immediately —
+ * without waiting for the nightly catch-up Cloud Function. Mirrors that server
+ * logic on the client and is type-agnostic (expense / income / investment /
+ * transfer all behave the same).
+ *
+ * Returns, for a past-dated start:
+ *   - one REALIZED instance per occurrence with date <= today (no `recurring`
+ *     rule, stamped with `seriesId`), and
+ *   - the TEMPLATE advanced to its next future occurrence (keeps `recurring`).
+ * For a future-dated start it returns the template unchanged (a single
+ * "previsto"). Non-recurring inputs are returned as-is.
+ */
+export function expandRecurringOnCreate<T extends Omit<Transaction, 'id'>>(
+  base: T,
+  todayISO: string,
+): T[] {
+  const rule = base.recurring;
+  if (!rule) return [base];
+  const seriesId = base.seriesId ?? base.date; // callers set seriesId for series
+  const out: T[] = [];
+  let date = base.date;
+  let guard = 400;
+  while (date <= todayISO && (!rule.until || date <= rule.until) && guard-- > 0) {
+    // Realized occurrence: strip the recurring rule, keep the series link.
+    const { recurring: _r, ...rest } = base;
+    void _r;
+    out.push({ ...(rest as T), seriesId, date });
+    date = addPeriod(date, rule.freq);
+  }
+  // No past occurrence materialized → the series starts in the future: keep the
+  // single template as a "previsto".
+  if (out.length === 0) return [base];
+  // Advance the template to its next future occurrence (unless the series ended).
+  if (!rule.until || date <= rule.until) {
+    out.push({ ...base, seriesId, date });
+  }
+  return out;
+}
+
+/**
  * Sum of PLANNED (future, non-recurring) own-shares of a given type, dated
  * strictly after `todayISO` and up to `monthEndISO`. Recurring templates are
  * excluded — their upcoming occurrences are counted by upcomingRecurringThisMonth.
