@@ -7,7 +7,7 @@ import {
   suggestBudgets, forecastSavings, generateBudgetInsights, seasonalHint,
   seasonalVariableMonthly, forecastByCategory, DEMO_CATEGORY_SPEND, DEMO_CATEGORY_BUDGETS,
 } from './budgetUtils';
-import { upcomingRecurringThisMonth, upcomingPlannedThisMonth } from '../../shared/recurrence';
+import { upcomingRecurringThisMonth, upcomingPlannedThisMonth, buildProjectedOccurrences, isPending } from '../../shared/recurrence';
 import { history } from '../insights/insightsEngine';
 import { SavingsGoalCard } from './SavingsGoalCard';
 import { SuggestedBudgetCard } from './SuggestedBudgetCard';
@@ -47,28 +47,31 @@ export function BudgetScreen({
   const incomeCats     = useMemo(() => categories.filter(c => c.kind === 'income'),     [categories]);
   const investmentCats = useMemo(() => categories.filter(c => c.kind === 'investment'), [categories]);
 
-  // Income totals by category (current month). The Budget is a planning view, so
-  // it counts the "programmato" too: realized + future-dated movements this month.
+  const todayISO = useMemo(() => new Date().toISOString().slice(0, 10), []);
+
+  // Income totals by category (current month, REALIZED only — date <= today).
+  // The "programmato" (future-dated) is shown separately as its own bar segment
+  // via `scheduledByCategory`, so it must not be folded into the realized spend.
   const incomeCategoryTotals = useMemo(() => {
     const out: Record<string, number> = {};
     for (const t of transactions) {
       if (t.type !== 'income') continue;
-      if (t.date.slice(0, 7) !== currentMonth) continue;
+      if (t.date.slice(0, 7) !== currentMonth || t.date > todayISO) continue;
       out[t.category] = (out[t.category] ?? 0) + t.amount;
     }
     return out;
-  }, [transactions]);
+  }, [transactions, todayISO]);
 
-  // Investment totals by category (current month, realized + programmato).
+  // Investment totals by category (current month, realized only).
   const investmentCategoryTotals = useMemo(() => {
     const out: Record<string, number> = {};
     for (const t of transactions) {
       if (t.type !== 'investment') continue;
-      if (t.date.slice(0, 7) !== currentMonth) continue;
+      if (t.date.slice(0, 7) !== currentMonth || t.date > todayISO) continue;
       out[t.category] = (out[t.category] ?? 0) + t.amount;
     }
     return out;
-  }, [transactions]);
+  }, [transactions, todayISO]);
 
   const isLearning = transactions.length === 0;
   const expenseSpend = isLearning ? DEMO_CATEGORY_SPEND : categoryTotals;
@@ -84,6 +87,29 @@ export function BudgetScreen({
     if (isLearning) return {};
     return forecastByCategory(transactions, expenseCats.map(c => c.id));
   }, [isLearning, transactions, expenseCats]);
+
+  // "Programmato" per category: committed this month but not yet spent —
+  // future-dated movements + upcoming recurring occurrences. Shown in the budget
+  // bars so you can see they already occupy part of the limit. Covers all types.
+  const scheduledByCategory = useMemo(() => {
+    const out: Record<string, number> = {};
+    const now = new Date();
+    const today = now.toISOString().slice(0, 10);
+    const lastDay = new Date(now.getFullYear(), now.getMonth() + 1, 0).getDate();
+    const monthEnd = `${currentMonth}-${String(lastDay).padStart(2, '0')}`;
+    const add = (id: string, amt: number) => { out[id] = (out[id] ?? 0) + amt; };
+    // Real future-dated movements this month (one-offs + recurring templates).
+    for (const t of transactions) {
+      if (!isPending(t, today) || t.date.slice(0, 7) !== currentMonth) continue;
+      add(t.category, ownShare(t));
+    }
+    // Virtual upcoming recurring occurrences still to come this month.
+    for (const t of buildProjectedOccurrences(transactions, today, monthEnd)) {
+      if (t.date.slice(0, 7) !== currentMonth) continue;
+      add(t.category, ownShare(t));
+    }
+    return out;
+  }, [transactions, currentMonth]);
 
   // Planned income: sum of income budgets if set, otherwise actual monthly income
   const plannedIncome = useMemo(() => {
@@ -213,6 +239,7 @@ export function BudgetScreen({
           spend={incomeCategoryTotals}
           budgets={activeIncBudgets}
           mode="income"
+          scheduled={scheduledByCategory}
           onEditCategory={id => openEdit('income', id)}
         />
         {incomeCats.length > 0 && Object.keys(activeIncBudgets).length === 0 && (
@@ -232,6 +259,7 @@ export function BudgetScreen({
         budgets={activeExpBudgets}
         mode="expense"
         projected={projectedSpend}
+        scheduled={scheduledByCategory}
         onEditCategory={id => openEdit('expenses', id)}
       />
 
@@ -243,6 +271,7 @@ export function BudgetScreen({
             spend={investmentCategoryTotals}
             budgets={activeInvBudgets}
             mode="investment"
+            scheduled={scheduledByCategory}
             onEditCategory={id => openEdit('investments', id)}
           />
           {investmentCats.length > 0 && Object.keys(activeInvBudgets).length === 0 && (

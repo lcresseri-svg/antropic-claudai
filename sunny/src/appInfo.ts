@@ -1,4 +1,4 @@
-export const APP_VERSION = '1.9.10';
+export const APP_VERSION = '1.9.12';
 
 /**
  * Release channel. While in 'beta' the app is still under active development
@@ -15,6 +15,20 @@ export interface VersionEntry {
 
 /** Registro versioni mostrato in Impostazioni → Registro versioni. */
 export const VERSIONS: VersionEntry[] = [
+  {
+    version: '1.9.12', date: '2026-06-04', title: 'Budget: stato "programmato" + fix chiusura',
+    changes: [
+      'Nuovo stato "programmato" nelle barre del budget: le spese/entrate/investimenti già programmati ma non ancora avvenuti compaiono come segmento tratteggiato più chiaro, così vedi quanta parte del budget occupano già.',
+      'Avviso quando lo speso + il programmato supereranno il limite della categoria.',
+      'Corretta la "✕" di chiusura della modifica budget: area di tocco più ampia e chiusura affidabile anche con la tastiera numerica aperta.',
+    ],
+  },
+  {
+    version: '1.9.11', date: '2026-06-04', title: 'Colori dei tipi leggibili nel tema chiaro',
+    changes: [
+      'Il colore "Uscita" era un bianco pensato per il tema scuro: nel tema chiaro il pulsante "Aggiungi uscita", il selettore tipo e le etichette risultavano invisibili. Ora ogni tipo ha una variante leggibile su sfondo chiaro.',
+    ],
+  },
   {
     version: '1.9.10', date: '2026-06-04', title: 'Catch-up al login + tema chiaro più leggibile',
     changes: [

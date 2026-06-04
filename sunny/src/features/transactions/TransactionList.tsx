@@ -1,5 +1,5 @@
 import { useState, useMemo, useEffect } from 'react';
-import { Transaction, TransactionType, TYPE_META, TYPE_ORDER, TransactionPatch } from '../../types';
+import { Transaction, TransactionType, TYPE_META, TYPE_ORDER, TransactionPatch, typeColor } from '../../types';
 import { formatCurrency, formatDate, formatMonthLong, capitalize } from '../../utils';
 import { useSettings } from '../../shared/providers/settings';
 import { isPending } from '../../shared/recurrence';
@@ -67,7 +67,7 @@ function projectedCutoffISO(v: ProjView, now: Date): string | null {
 }
 
 export function TransactionList({ transactions, projected = [], onEdit, onDelete, onBulkUpdate, onBulkDelete, onAdd }: Props) {
-  const { categories, accounts, getAcc, getCat } = useSettings();
+  const { categories, accounts, getAcc, getCat, theme } = useSettings();
   const [search, setSearch] = useState('');
   const [typeFilter, setTypeFilter] = useState<TransactionType | 'all'>('all');
   const [groupMode, setGroupMode] = useState<GroupMode>('month');
@@ -381,7 +381,7 @@ export function TransactionList({ transactions, projected = [], onEdit, onDelete
           <div className="flex gap-1.5 overflow-x-auto scrollbar-hide flex-1 -mx-1 px-1">
             <PillBtn active={typeFilter === 'all'} onClick={() => setTypeFilter('all')}>Tutte</PillBtn>
             {usedTypes.map(t => (
-              <PillBtn key={t} active={typeFilter === t} dot={TYPE_META[t].color}
+              <PillBtn key={t} active={typeFilter === t} dot={typeColor(t, theme)}
                 onClick={() => setTypeFilter(typeFilter === t ? 'all' : t)}>
                 {TYPE_META[t].label}
               </PillBtn>

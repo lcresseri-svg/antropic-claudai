@@ -1,6 +1,7 @@
 import { useState, useEffect } from 'react';
-import { TransactionType, TYPE_META, TYPE_ORDER, FundType, FUND_TYPE_META, FUND_TYPE_ORDER } from '../../types';
+import { TransactionType, TYPE_META, TYPE_ORDER, FundType, FUND_TYPE_META, FUND_TYPE_ORDER, typeColor, typeOnColor } from '../../types';
 import { EMOJI_CHOICES, COLOR_CHOICES } from '../../defaults';
+import { useSettings } from '../../shared/providers/settings';
 import { useEscapeKey } from '../../shared/hooks/useEscapeKey';
 
 export interface DefDraft {
@@ -27,6 +28,7 @@ interface Props {
 }
 
 export function EditDefSheet({ open, draft, withKind, canDelete, showFundType, onSave, onDelete, onClose }: Props) {
+  const { theme } = useSettings();
   const [label, setLabel] = useState('');
   const [icon, setIcon] = useState('•');
   const [color, setColor] = useState(COLOR_CHOICES[0]);
@@ -102,7 +104,7 @@ export function EditDefSheet({ open, draft, withKind, canDelete, showFundType, o
               {TYPE_ORDER.map(t => (
                 <button key={t} onClick={() => setKind(t)}
                   className={`py-2 rounded-xl text-[11px] font-semibold transition-all ${kind === t ? 'shadow-sm' : 'text-secondary'}`}
-                  style={kind === t ? { backgroundColor: TYPE_META[t].color, color: '#0D0D0D' } : undefined}>
+                  style={kind === t ? { backgroundColor: typeColor(t, theme), color: typeOnColor(theme) } : undefined}>
                   {TYPE_META[t].label}
                 </button>
               ))}
