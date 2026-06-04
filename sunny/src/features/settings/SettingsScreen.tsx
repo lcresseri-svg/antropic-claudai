@@ -1,7 +1,7 @@
 import { useState, useEffect, useRef } from 'react';
 import { useNavigate, useLocation } from 'react-router-dom';
 import { User } from 'firebase/auth';
-import { CategoryDef, AccountDef, Transaction, TransactionType, TYPE_META, TYPE_ORDER } from '../../types';
+import { CategoryDef, AccountDef, Transaction, TransactionType, TYPE_META, TYPE_ORDER, typeColor } from '../../types';
 import { useSettings } from '../../shared/providers/settings';
 import { usePush } from '../../shared/hooks/usePush';
 import { EditDefSheet, DefDraft } from './EditDefSheet';
@@ -485,7 +485,7 @@ export function SettingsScreen({ user, transactions, onLogOut, onDeleteAll, onDe
               return (
                 <div key={k}>
                   <div className="flex items-center mb-2 px-1 gap-2">
-                    <p className="text-[11px] font-semibold uppercase tracking-wider flex-1" style={{ color: TYPE_META[k].color }}>
+                    <p className="text-[11px] font-semibold uppercase tracking-wider flex-1" style={{ color: typeColor(k, theme) }}>
                       {TYPE_META[k].label}
                     </p>
                   </div>

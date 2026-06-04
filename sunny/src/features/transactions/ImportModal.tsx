@@ -1,6 +1,6 @@
 import { useState, useRef } from 'react';
 import { useEscapeKey } from '../../shared/hooks/useEscapeKey';
-import { Transaction, TransactionType, TYPE_META } from '../../types';
+import { Transaction, TransactionType, TYPE_META, typeColor } from '../../types';
 import { formatCurrency, formatDate } from '../../utils';
 import { useSettings } from '../../shared/providers/settings';
 import { parseDate, parseAmount, parseType, col, MAX_IMPORT_ROWS } from './importParsing';
@@ -14,7 +14,7 @@ interface Props {
 type Step = 'upload' | 'preview' | 'importing' | 'done';
 
 export function ImportModal({ open, onClose, onImport }: Props) {
-  const { categories, accounts } = useSettings();
+  const { categories, accounts, theme } = useSettings();
   const [step, setStep] = useState<Step>('upload');
   const [parsed, setParsed] = useState<Omit<Transaction, 'id'>[]>([]);
   const [errors, setErrors] = useState<string[]>([]);
@@ -193,7 +193,7 @@ export function ImportModal({ open, onClose, onImport }: Props) {
                       <span className="text-secondary text-xs w-12 flex-shrink-0">{formatDate(tx.date)}</span>
                       <span className="flex-1 truncate text-primary">{tx.description}</span>
                       <span className="label-caps px-2 py-0.5 rounded-md"
-                        style={{ backgroundColor: TYPE_META[tx.type].color + '22', color: TYPE_META[tx.type].color }}>
+                        style={{ backgroundColor: typeColor(tx.type, theme) + '22', color: typeColor(tx.type, theme) }}>
                         {TYPE_META[tx.type].label}
                       </span>
                       <span className="font-medium balance-num text-xs">{formatCurrency(tx.amount)}</span>

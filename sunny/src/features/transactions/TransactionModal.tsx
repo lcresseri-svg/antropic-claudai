@@ -1,5 +1,5 @@
 import { useState, useEffect } from 'react';
-import { Transaction, TransactionType, TYPE_META, TYPE_ORDER, RecurrenceRule } from '../../types';
+import { Transaction, TransactionType, TYPE_META, TYPE_ORDER, RecurrenceRule, typeColor, typeOnColor } from '../../types';
 import { formatCurrency, formatDate, guessCategory } from '../../utils';
 import { useSettings } from '../../shared/providers/settings';
 import { expandRecurringOnCreate } from '../../shared/recurrence';
@@ -20,7 +20,7 @@ const today = () => new Date().toISOString().slice(0, 10);
 const yesterday = () => { const d = new Date(); d.setDate(d.getDate() - 1); return d.toISOString().slice(0, 10); };
 
 export function TransactionModal({ open, editing, groupTransfers = [], seriesEdit = false, onClose, onSave }: Props) {
-  const { categories, accounts, enableInvestments, detailedInvestments } = useSettings();
+  const { categories, accounts, enableInvestments, detailedInvestments, theme } = useSettings();
   const [type, setType] = useState<TransactionType>('expense');
   const [description, setDescription] = useState('');
   const [amount, setAmount] = useState('');
@@ -247,7 +247,7 @@ export function TransactionModal({ open, editing, groupTransfers = [], seriesEdi
             {availableTypes.map(t => (
               <button key={t} type="button" onClick={() => setType(t)}
                 className={`py-2 sm:py-2.5 rounded-xl text-[11px] sm:text-xs font-semibold transition-all ${type === t ? 'shadow-sm' : 'text-secondary'}`}
-                style={type === t ? { backgroundColor: TYPE_META[t].color, color: '#0D0D0D' } : undefined}>
+                style={type === t ? { backgroundColor: typeColor(t, theme), color: typeOnColor(theme) } : undefined}>
                 {TYPE_META[t].label}
               </button>
             ))}
@@ -470,8 +470,8 @@ export function TransactionModal({ open, editing, groupTransfers = [], seriesEdi
           )}
 
           <button type="submit"
-            className="w-full py-3 rounded-2xl font-semibold text-bg transition-transform active:scale-[0.98]"
-            style={{ backgroundColor: TYPE_META[type].color }}>
+            className="w-full py-3 rounded-2xl font-semibold transition-transform active:scale-[0.98]"
+            style={{ backgroundColor: typeColor(type, theme), color: typeOnColor(theme) }}>
             {editing ? 'Salva modifiche' : `Aggiungi ${TYPE_META[type].label.toLowerCase()}`}
           </button>
 

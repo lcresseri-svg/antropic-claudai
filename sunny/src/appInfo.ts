@@ -1,4 +1,4 @@
-export const APP_VERSION = '1.9.10';
+export const APP_VERSION = '1.9.11';
 
 /**
  * Release channel. While in 'beta' the app is still under active development
@@ -15,6 +15,12 @@ export interface VersionEntry {
 
 /** Registro versioni mostrato in Impostazioni → Registro versioni. */
 export const VERSIONS: VersionEntry[] = [
+  {
+    version: '1.9.11', date: '2026-06-04', title: 'Colori dei tipi leggibili nel tema chiaro',
+    changes: [
+      'Il colore "Uscita" era un bianco pensato per il tema scuro: nel tema chiaro il pulsante "Aggiungi uscita", il selettore tipo e le etichette risultavano invisibili. Ora ogni tipo ha una variante leggibile su sfondo chiaro.',
+    ],
+  },
   {
     version: '1.9.10', date: '2026-06-04', title: 'Catch-up al login + tema chiaro più leggibile',
     changes: [

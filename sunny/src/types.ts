@@ -7,6 +7,27 @@ export const TYPE_META: Record<TransactionType, { label: string; color: string }
   transfer:   { label: 'Movimento',    color: '#88B0C0' },
 };
 
+// The TYPE_META colours are bright accents tuned for the DARK theme; on a light
+// background several are too pale to work as a pill / CTA background or as text
+// (the near-white "expense" disappears entirely). These are the light-theme
+// equivalents — deeper, with enough contrast for white text on top.
+const TYPE_COLOR_LIGHT: Record<TransactionType, string> = {
+  income:     '#4E6B3E',
+  expense:    '#3A3A3A',
+  investment: '#A07A37',
+  transfer:   '#3A7A9A',
+};
+
+/** Theme-correct display colour for a transaction type. */
+export function typeColor(type: TransactionType, theme: 'dark' | 'light' = 'dark'): string {
+  return theme === 'light' ? TYPE_COLOR_LIGHT[type] : TYPE_META[type].color;
+}
+
+/** Text colour to sit ON a `typeColor` pill/CTA background, per theme. */
+export function typeOnColor(theme: 'dark' | 'light' = 'dark'): string {
+  return theme === 'light' ? '#FFFFFF' : '#0D0D0D';
+}
+
 export const TYPE_ORDER: TransactionType[] = ['expense', 'income', 'investment', 'transfer'];
 
 /** Classification of an investment fund (detailed-investments mode). */
