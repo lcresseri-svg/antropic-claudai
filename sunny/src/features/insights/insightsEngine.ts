@@ -1,7 +1,7 @@
 import { Transaction, ownShare } from '../../types';
 import { formatCurrency, capitalize } from '../../utils';
 import { monthProgress, forecastSavings, seasonalMonthlyAverage, seasonalVariableMonthly, robustAvg } from '../budget/budgetUtils';
-import { addPeriod, recurringMonthlyEquivalent } from '../../shared/recurrence';
+import { addPeriod, recurringMonthlyEquivalent, upcomingPlannedThisMonth } from '../../shared/recurrence';
 
 export type InsightCategory = 'alert' | 'forecast' | 'seasonal' | 'trend' | 'habit' | 'highlight';
 
@@ -474,14 +474,18 @@ export function buildInsights(input: InsightInput): Insight[] {
           d = addPeriod(d, rule.freq);
         }
       }
+      // Planned one-off (future-dated) expenses still to come this month.
+      upcomingRecurring += upcomingPlannedThisMonth(transactions, today, monthEnd);
     }
 
-    // Variable (non-recurring) spending already recorded this month.
+    // Variable (non-recurring) spending already recorded this month. Planned
+    // future-dated one-offs are excluded here — they're in upcomingRecurring.
     const curKey = ym(now);
     let variableSpent = 0;
     for (const t of transactions) {
       if (t.type !== 'expense' || t.date.slice(0, 7) !== curKey) continue;
       if (t.seriesId || t.recurring) continue;
+      if (t.date > today) continue;
       variableSpent += ownShare(t);
     }
 

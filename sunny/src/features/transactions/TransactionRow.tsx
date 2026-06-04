@@ -6,11 +6,13 @@ interface Props {
   tx: Transaction;
   selectable?: boolean;
   selected?: boolean;
+  /** Show as a forecast ("Programmato"): recurring projection or planned one-off. */
+  upcoming?: boolean;
   onToggle?: (id: string) => void;
   onClick?: (tx: Transaction) => void;
 }
 
-export function TransactionRow({ tx, selectable, selected, onToggle, onClick }: Props) {
+export function TransactionRow({ tx, selectable, selected, upcoming, onToggle, onClick }: Props) {
   const { getCat, getAcc } = useSettings();
   const cat = getCat(tx.category);
   const acc = getAcc(tx.account);
@@ -18,7 +20,7 @@ export function TransactionRow({ tx, selectable, selected, onToggle, onClick }: 
   const isIncome = tx.type === 'income';
   const isTransfer = tx.type === 'transfer';
   const isInvestment = tx.type === 'investment';
-  const isProjected = !!tx.projected;
+  const isProjected = !!upcoming || !!tx.projected;
 
   const prefix = isIncome ? '+' : isTransfer ? '' : '−';
   const amountClass = isIncome ? 'text-green' : isInvestment ? 'text-gold' : isTransfer ? 'text-[#88B0C0]' : 'text-primary';

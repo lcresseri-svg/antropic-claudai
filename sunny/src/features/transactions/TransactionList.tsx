@@ -2,8 +2,15 @@ import { useState, useMemo, useEffect } from 'react';
 import { Transaction, TransactionType, TYPE_META, TYPE_ORDER, TransactionPatch } from '../../types';
 import { formatCurrency, formatDate, formatMonthLong, capitalize } from '../../utils';
 import { useSettings } from '../../shared/providers/settings';
+import { isPending } from '../../shared/recurrence';
 import { TransactionRow } from './TransactionRow';
 import { OptionSheet } from '../../shared/components/OptionSheet';
+
+const TODAY_ISO = new Date().toISOString().slice(0, 10);
+// Upcoming = a synthetic recurring projection OR a real planned (future-dated)
+// one-off. Both are forecasts for subtotal/styling purposes; only the planned
+// one-off is a real, editable document.
+const isUpcoming = (t: Transaction) => !!t.projected || isPending(t, TODAY_ISO);
 
 interface Props {
   transactions: Transaction[];
@@ -150,13 +157,13 @@ export function TransactionList({ transactions, projected = [], onEdit, onDelete
       : `${getCat(key).icon} ${getCat(key).label}`;
 
   // Subtotals reflect only realized (actual) transactions — projected occurrences
-  // are forecasts and must not inflate the month total.
+  // and planned future-dated one-offs are forecasts and must not inflate the total.
   const signed = (t: Transaction) => t.type === 'income' ? t.amount : t.type === 'expense' ? -t.amount : 0;
   const groupSum = (txs: Transaction[]) =>
-    txs.filter(t => !t.projected).reduce((s, t) => s + signed(t), 0);
-  const groupHasReal = (txs: Transaction[]) => txs.some(t => !t.projected);
+    txs.filter(t => !isUpcoming(t)).reduce((s, t) => s + signed(t), 0);
+  const groupHasReal = (txs: Transaction[]) => txs.some(t => !isUpcoming(t));
   const groupProjectedSum = (txs: Transaction[]) =>
-    txs.filter(t => t.projected).reduce((s, t) => s + signed(t), 0);
+    txs.filter(isUpcoming).reduce((s, t) => s + signed(t), 0);
 
   const toggleCollapse = (key: string) => {
     setCollapsed(prev => {
@@ -429,7 +436,7 @@ export function TransactionList({ transactions, projected = [], onEdit, onDelete
               {!isCollapsed && (
                 <div className="divide-y divide-divider">
                   {txs.map(tx => (
-                    <TransactionRow key={tx.id} tx={tx}
+                    <TransactionRow key={tx.id} tx={tx} upcoming={isUpcoming(tx)}
                       selectable={selectMode && !tx.projected} selected={selected.has(tx.id)}
                       onToggle={toggle} onClick={onEdit} />
                   ))}

@@ -7,7 +7,7 @@ import {
   suggestBudgets, forecastSavings, generateBudgetInsights, seasonalHint,
   seasonalVariableMonthly, forecastByCategory, DEMO_CATEGORY_SPEND, DEMO_CATEGORY_BUDGETS,
 } from './budgetUtils';
-import { upcomingRecurringThisMonth } from '../../shared/recurrence';
+import { upcomingRecurringThisMonth, upcomingPlannedThisMonth } from '../../shared/recurrence';
 import { history } from '../insights/insightsEngine';
 import { SavingsGoalCard } from './SavingsGoalCard';
 import { SuggestedBudgetCard } from './SuggestedBudgetCard';
@@ -101,11 +101,16 @@ export function BudgetScreen({
     const curKey = now.toISOString().slice(0, 7);
     const lastDay = new Date(now.getFullYear(), now.getMonth() + 1, 0).getDate();
     const monthEnd = `${curKey}-${String(lastDay).padStart(2, '0')}`;
-    const upcomingRecurring = upcomingRecurringThisMonth(transactions, today, monthEnd);
+    // Upcoming committed spending still to come this month: recurring occurrences
+    // + planned one-off (future-dated) expenses. Both are added on top of what's
+    // already been spent, never as already-realized.
+    const upcomingRecurring = upcomingRecurringThisMonth(transactions, today, monthEnd)
+      + upcomingPlannedThisMonth(transactions, today, monthEnd);
     let variableSpent = 0;
     for (const t of transactions) {
       if (t.type !== 'expense' || t.date.slice(0, 7) !== curKey) continue;
       if (t.seriesId || t.recurring) continue;
+      if (t.date > today) continue; // planned: counted via upcomingRecurring, not as spent
       variableSpent += ownShare(t);
     }
     return forecastSavings({

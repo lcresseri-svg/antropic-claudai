@@ -4,23 +4,8 @@ import { AffordabilityForm } from './AffordabilityForm';
 import { AffordabilityResultCard } from './AffordabilityResultCard';
 
 export function AICoachScreen() {
-  const { aiEnabled, categories } = useSettings();
+  const { categories } = useSettings();
   const { status, result, errorMsg, remaining, analyze, reset } = useAICoach();
-
-  if (!aiEnabled) {
-    return (
-      <div className="pt-4 md:pt-6">
-        <h1 className="text-2xl font-bold text-primary tracking-[-0.03em] mb-2">AI Coach</h1>
-        <p className="text-sm text-secondary mb-6">Chiedi all'AI se puoi permetterti un acquisto.</p>
-        <div className="rounded-2xl bg-card border border-divider px-5 py-6 text-center">
-          <p className="text-sm text-secondary mb-3">I suggerimenti AI non sono attivi.</p>
-          <a href="/settings?section=generali" className="text-sm text-gold hover:underline">
-            Attivali in Impostazioni → Generali
-          </a>
-        </div>
-      </div>
-    );
-  }
 
   return (
     <div className="pt-4 md:pt-6 max-w-lg">

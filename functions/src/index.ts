@@ -384,13 +384,12 @@ export const generateAffordabilityAdvice = onRequest(
         return;
       }
 
-      // ── Check aiEnabled in settings ───────────────────────────────────────
+      // Load settings for category labels. NOTE: the AI Coach is intentionally
+      // INDEPENDENT of the `aiEnabled` flag (that one only gates the monthly
+      // Gemini digest). The Coach is its own opt-in feature, gated client-side
+      // by `aiCoachWidgetEnabled` + admin, so we do not block on aiEnabled here.
       const settingsSnap = await db.doc(`users/${uid}/meta/settings`).get();
       const settings = (settingsSnap.data() ?? {}) as { aiEnabled?: boolean; categories?: { id: string; label: string }[] };
-      if (settings.aiEnabled === false) {
-        res.status(403).json({ ok: false, error: 'ai-disabled' });
-        return;
-      }
 
       // ── Parse request body ────────────────────────────────────────────────
       const { itemName, cost, targetDate, priority } = (req.body ?? {}) as {
