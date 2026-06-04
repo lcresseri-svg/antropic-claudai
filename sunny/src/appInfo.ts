@@ -1,4 +1,4 @@
-export const APP_VERSION = '1.9.7';
+export const APP_VERSION = '1.9.8';
 
 /**
  * Release channel. While in 'beta' the app is still under active development
@@ -15,6 +15,14 @@ export interface VersionEntry {
 
 /** Registro versioni mostrato in Impostazioni → Registro versioni. */
 export const VERSIONS: VersionEntry[] = [
+  {
+    version: '1.9.8', date: '2026-06-04', title: 'Ricorrenti retroattive contano subito come fatte',
+    changes: [
+      'Aggiungendo una voce ricorrente con data di inizio nel passato (es. un pagamento mensile partito 3 mesi fa), tutte le occorrenze già passate vengono registrate subito come "fatte" (non più in attesa della procedura notturna).',
+      'Vale per qualsiasi tipo di movimento: uscite, entrate, investimenti e trasferimenti.',
+      'Le occorrenze future della stessa serie restano "Programmate" e si materializzano da sole quando arriva la loro data.',
+    ],
+  },
   {
     version: '1.9.7', date: '2026-06-04', title: 'Stima fine mese meno aggressiva a inizio mese',
     changes: [
