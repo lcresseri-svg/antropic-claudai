@@ -27,7 +27,7 @@ export function AICoachWidget() {
   return (
     <div
       ref={panelRef}
-      className="fixed bottom-[84px] right-4 md:bottom-6 md:right-6 z-[45] flex flex-col items-end gap-3"
+      className="fixed bottom-[76px] right-4 md:bottom-6 md:right-6 z-[45] flex flex-col items-end gap-3"
     >
       {/* Chat panel */}
       {open && (
