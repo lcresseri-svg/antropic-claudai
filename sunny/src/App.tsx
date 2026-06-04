@@ -19,11 +19,13 @@ import { BudgetScreen } from './features/budget/BudgetScreen';
 import { BudgetDisabled } from './features/budget/BudgetDisabled';
 import { TransactionList } from './features/transactions/TransactionList';
 import { SettingsScreen } from './features/settings/SettingsScreen';
+import { AICoachScreen } from './features/aiCoach/AICoachScreen';
 import { TransactionModal } from './features/transactions/TransactionModal';
 import { SeriesEditChoiceSheet } from './features/transactions/SeriesEditChoiceSheet';
 import { ImportModal } from './features/transactions/ImportModal';
 import { BottomNav } from './shared/components/BottomNav';
 import { SideNav } from './shared/components/SideNav';
+import { isAdminUser } from './shared/featureFlags';
 import { PushPromoSheet } from './shared/components/PushPromoSheet';
 import { pushSupported, hasLocalToken } from './shared/push';
 
@@ -219,7 +221,7 @@ function Main({ user, onLogOut, onDeleteAccount }: {
       )}
 
       {/* Desktop sidebar */}
-      <SideNav loading={tx.loading} onAdd={openAdd} onImport={() => setImportOpen(true)} />
+      <SideNav loading={tx.loading} onAdd={openAdd} onImport={() => setImportOpen(true)} isAdmin={isAdminUser(user)} />
 
       {/* Content (shifted right by sidebar on desktop) */}
       <div className="flex-1 md:ml-[220px] min-w-0">
@@ -331,6 +333,13 @@ function Main({ user, onLogOut, onDeleteAccount }: {
                   onLogOut={onLogOut} onDeleteAll={tx.deleteAll} onDeleteAccount={onDeleteAccount} />
               </div>
             } />
+            {isAdminUser(user) && (
+              <Route path="/ai-coach" element={
+                <div className="pt-4 md:pt-6">
+                  <AICoachScreen />
+                </div>
+              } />
+            )}
             <Route path="*" element={<Navigate to="/" replace />} />
           </Routes>
         </main>
