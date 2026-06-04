@@ -1,4 +1,4 @@
-export const APP_VERSION = '1.8.11';
+export const APP_VERSION = '1.8.12';
 
 /**
  * Release channel. While in 'beta' the app is still under active development
@@ -15,6 +15,14 @@ export interface VersionEntry {
 
 /** Registro versioni mostrato in Impostazioni → Registro versioni. */
 export const VERSIONS: VersionEntry[] = [
+  {
+    version: '1.8.12', date: '2026-06-04', title: 'Onboarding guidato per nuovi utenti',
+    changes: [
+      'I nuovi utenti vengono accompagnati in 6 passi prima di entrare nella dashboard: obiettivi personali, primo conto, sorgente dati, obiettivo di risparmio e primo insight.',
+      'Modalità demo: chi non vuole inserire dati subito può esplorare Sunny con un set realistico di ~35 transazioni su 4 mesi, rimovibili in qualsiasi momento da Impostazioni.',
+      'Chi usa già Sunny non vede nulla di nuovo: l\'onboarding viene ignorato completamente.',
+    ],
+  },
   {
     version: '1.8.11', date: '2026-06-04', title: 'Rifiniture filtri e confronti',
     changes: [

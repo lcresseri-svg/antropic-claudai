@@ -58,6 +58,7 @@ export interface Transaction {
   recurring?: RecurrenceRule;
   seriesId?: string;     // stable id linking a recurring template to its materialized instances
   projected?: boolean;   // CLIENT-ONLY: a virtual future occurrence — NEVER persisted to Firestore
+  demo?: boolean;        // written by onboarding demo data; removable from Settings
 }
 
 export interface RecurrenceRule {

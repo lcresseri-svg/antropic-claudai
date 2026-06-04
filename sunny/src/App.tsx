@@ -1,11 +1,16 @@
 import { useState, useEffect, useMemo } from 'react';
 import { Routes, Route, Navigate, useNavigate, useLocation } from 'react-router-dom';
+import { doc, setDoc } from 'firebase/firestore';
 import { useAuth } from './shared/hooks/useAuth';
 import { useTransactions } from './shared/hooks/useTransactions';
 import { SettingsProvider, useSettings } from './shared/providers/settings';
 import { Transaction } from './types';
 import { greeting } from './utils';
 import { buildProjectedOccurrences } from './shared/recurrence';
+import { db } from './lib/firebase';
+import { useOnboarding } from './features/onboarding/useOnboarding';
+import { OnboardingScreen } from './features/onboarding/OnboardingScreen';
+import { ONBOARDING_VERSION } from './features/onboarding/onboardingTypes';
 import { LoginScreen } from './shared/components/LoginScreen';
 import { Dashboard } from './features/dashboard/Dashboard';
 import { InvestmentsScreen } from './features/dashboard/InvestmentsScreen';
@@ -46,9 +51,57 @@ export default function App() {
   if (!user) return <LoginScreen onSignIn={signIn} error={authError} />;
   return (
     <SettingsProvider user={user}>
-      <Main user={user} onLogOut={logOut} onDeleteAccount={deleteAccount} />
+      <OnboardingGate user={user} onLogOut={logOut} onDeleteAccount={deleteAccount} />
     </SettingsProvider>
   );
+}
+
+/** Decides whether to show the guided onboarding or go straight to Main.
+ *  Existing users (detected synchronously via localStorage OR via transaction
+ *  check in useOnboarding) bypass onboarding completely with zero flash. */
+function OnboardingGate({ user, onLogOut, onDeleteAccount }: {
+  user: import('firebase/auth').User;
+  onLogOut: () => void;
+  onDeleteAccount: () => Promise<void>;
+}) {
+  // --- Synchronous bypass: any localStorage key set by prior app usage ---
+  const hasLocalData = useMemo(
+    () => Object.keys(localStorage).some(k => k.startsWith('sunny:') && k.includes(user.uid)),
+    [user.uid],
+  );
+
+  const { onboarding, loading, updateOnboarding, completeOnboarding, skipOnboarding } = useOnboarding(user.uid);
+
+  // Fire-and-forget: write completed doc for existing users detected via localStorage
+  useEffect(() => {
+    if (!hasLocalData) return;
+    setDoc(
+      doc(db, 'users', user.uid, 'meta', 'onboarding'),
+      { completed: true, version: ONBOARDING_VERSION, currentStep: 0, goals: [], dataMode: null },
+      { merge: true },
+    );
+  }, [hasLocalData, user.uid]);
+
+  // Existing user with local data → Main immediately (zero latency)
+  if (hasLocalData) {
+    return <Main user={user} onLogOut={onLogOut} onDeleteAccount={onDeleteAccount} />;
+  }
+
+  if (loading) return <Loader phase="Caricamento" />;
+
+  if (!onboarding || !onboarding.completed) {
+    return (
+      <OnboardingScreen
+        uid={user.uid}
+        onboarding={onboarding ?? { completed: false, version: ONBOARDING_VERSION, currentStep: 0, goals: [], dataMode: null }}
+        updateOnboarding={updateOnboarding}
+        completeOnboarding={completeOnboarding}
+        skipOnboarding={skipOnboarding}
+      />
+    );
+  }
+
+  return <Main user={user} onLogOut={onLogOut} onDeleteAccount={onDeleteAccount} />;
 }
 
 function Main({ user, onLogOut, onDeleteAccount }: {
