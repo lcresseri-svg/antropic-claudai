@@ -235,12 +235,17 @@ export function forecastSavings(o: {
 
   let variableRemaining: number;
   if (variableAvg > 0) {
-    // (3) Trust this month's actual pace more as the month progresses,
-    // but only when the pace is plausible (spending is at least roughly
-    // on track). A pace near zero mid-month more likely means "no data
-    // yet" than "extremely light month", so we scale down its influence
-    // proportionally to how much has actually been spent vs expected.
-    const w = Math.min(1, prog);
+    // (3) Trust this month's actual pace more as the month progresses, but ramp
+    // it in QUADRATICALLY. Pace = spent / elapsed-fraction, so a linear weight
+    // would let a single early purchase enter at near-full strength on day 2-3
+    // (the elapsed fraction cancels out), badly over-projecting the month. The
+    // squared weight keeps the first part of the month anchored to history and
+    // only leans on live pace once enough of the month has actually elapsed.
+    const pc = Math.min(1, prog);
+    const w = pc * pc;
+    // Only when the pace is plausible (spending is at least roughly on track):
+    // a pace near zero mid-month more likely means "no data yet" than an
+    // "extremely light month", so scale its influence by spent-vs-expected.
     const expectedSpentSoFar = prog * variableAvg;
     const paceReliability = expectedSpentSoFar > 0
       ? Math.min(1, variableSpent / expectedSpentSoFar)
@@ -466,7 +471,10 @@ export function forecastByCategory(
     const paceReliability = expectedSpentSoFar > 0
       ? Math.min(1, variableSpent / expectedSpentSoFar)
       : 1;
-    const effectiveW = Math.min(1, prog) * paceReliability;
+    // Quadratic ramp on the pace weight — see forecastSavings for the rationale
+    // (avoids a single early-month purchase blowing up the projection).
+    const pc = Math.min(1, prog);
+    const effectiveW = pc * pc * paceReliability;
     const projectedVariableMonthly = effectiveW * paceMonthly + (1 - effectiveW) * variableAvg;
     const variableRemaining = Math.max(0, 1 - prog) * projectedVariableMonthly;
 

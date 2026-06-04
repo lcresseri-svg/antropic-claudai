@@ -1,4 +1,4 @@
-export const APP_VERSION = '1.9.6';
+export const APP_VERSION = '1.9.7';
 
 /**
  * Release channel. While in 'beta' the app is still under active development
@@ -15,6 +15,13 @@ export interface VersionEntry {
 
 /** Registro versioni mostrato in Impostazioni → Registro versioni. */
 export const VERSIONS: VersionEntry[] = [
+  {
+    version: '1.9.7', date: '2026-06-04', title: 'Stima fine mese meno aggressiva a inizio mese',
+    changes: [
+      'La stima di fine mese (totale e per categoria) non si gonfia più per un singolo acquisto fatto nei primi giorni: il peso del "ritmo attuale" ora cresce in modo graduale, restando ancorato alle tue abitudini finché non è passato abbastanza mese.',
+      'A metà/fine mese la reattività resta invariata: se stai davvero spendendo molto, la previsione continua a salire come prima.',
+    ],
+  },
   {
     version: '1.9.6', date: '2026-06-04', title: 'Budget e previsioni considerano il programmato',
     changes: [
