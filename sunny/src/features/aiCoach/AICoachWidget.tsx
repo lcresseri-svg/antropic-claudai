@@ -27,7 +27,7 @@ export function AICoachWidget() {
   return (
     <div
       ref={panelRef}
-      className="fixed bottom-24 right-4 md:bottom-8 md:right-8 z-[45] flex flex-col items-end gap-3"
+      className="fixed bottom-20 right-4 md:bottom-6 md:right-6 z-[45] flex flex-col items-end gap-3"
     >
       {/* Chat panel */}
       {open && (
@@ -83,16 +83,14 @@ export function AICoachWidget() {
       <button
         onClick={() => setOpen(o => !o)}
         aria-label="AI Coach"
-        className={`w-14 h-14 rounded-full shadow-float flex items-center justify-center transition-all duration-200 active:scale-90 ${
-          open ? 'glass-cta-gold rotate-0' : 'glass-cta-gold'
-        }`}
+        className="w-16 h-16 rounded-full shadow-float glass-cta-gold flex items-center justify-center transition-all duration-200 active:scale-90"
       >
         {open ? (
-          <svg width="18" height="18" viewBox="0 0 18 18" fill="none">
-            <path d="M2 2l14 14M16 2L2 16" stroke="currentColor" strokeWidth="1.75" strokeLinecap="round"/>
+          <svg width="20" height="20" viewBox="0 0 20 20" fill="none">
+            <path d="M3 3l14 14M17 3L3 17" stroke="currentColor" strokeWidth="1.75" strokeLinecap="round"/>
           </svg>
         ) : (
-          <SparkleIcon size={22} />
+          <SparkleIcon size={26} />
         )}
       </button>
     </div>
