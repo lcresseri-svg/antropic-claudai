@@ -140,6 +140,50 @@ export function expandRecurringOnCreate<T extends Omit<Transaction, 'id'>>(
 }
 
 /**
+ * On-load catch-up: for every recurring template whose next occurrence date is
+ * already due (<= today), produce the realized instances to create and the new
+ * date to advance the template to (its first future occurrence). Mirrors the
+ * nightly Cloud Function so nothing stays "Programmato" with a past/today date
+ * once the user opens the app. Type-agnostic.
+ *
+ * Idempotent & race-safe: occurrences already materialized (an instance with the
+ * same seriesId + date exists) are skipped, so it never duplicates what the
+ * Cloud Function — or another device — already wrote.
+ */
+export function catchUpRecurring(
+  transactions: Transaction[],
+  todayISO: string,
+): { creates: Omit<Transaction, 'id'>[]; advance: { id: string; date: string; seriesId: string }[] } {
+  // Occurrences already stored as realized instances (seriesId + date).
+  const have = new Set<string>();
+  for (const t of transactions) {
+    if (t.seriesId && !t.recurring) have.add(`${t.seriesId}|${t.date}`);
+  }
+  const creates: Omit<Transaction, 'id'>[] = [];
+  const advance: { id: string; date: string; seriesId: string }[] = [];
+  for (const t of transactions) {
+    const rule = t.recurring;
+    if (!rule) continue;
+    if (t.date > todayISO) continue; // next occurrence still in the future → nothing due
+    const seriesId = t.seriesId ?? t.id;
+    let date = t.date;
+    let guard = 400;
+    while (date <= todayISO && (!rule.until || date <= rule.until) && guard-- > 0) {
+      const key = `${seriesId}|${date}`;
+      if (!have.has(key)) {
+        const { recurring: _r, id: _id, ...rest } = t;
+        void _r; void _id;
+        creates.push({ ...rest, seriesId, date });
+        have.add(key);
+      }
+      date = addPeriod(date, rule.freq);
+    }
+    advance.push({ id: t.id, date, seriesId });
+  }
+  return { creates, advance };
+}
+
+/**
  * Sum of PLANNED (future, non-recurring) own-shares of a given type, dated
  * strictly after `todayISO` and up to `monthEndISO`. Recurring templates are
  * excluded — their upcoming occurrences are counted by upcomingRecurringThisMonth.

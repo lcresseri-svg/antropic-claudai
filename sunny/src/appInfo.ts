@@ -1,4 +1,4 @@
-export const APP_VERSION = '1.9.9';
+export const APP_VERSION = '1.9.10';
 
 /**
  * Release channel. While in 'beta' the app is still under active development
@@ -15,6 +15,14 @@ export interface VersionEntry {
 
 /** Registro versioni mostrato in Impostazioni → Registro versioni. */
 export const VERSIONS: VersionEntry[] = [
+  {
+    version: '1.9.10', date: '2026-06-04', title: 'Catch-up al login + tema chiaro più leggibile',
+    changes: [
+      'All\'apertura dell\'app, qualsiasi voce ricorrente con data già scaduta (≤ oggi) viene subito spostata da "Programmato" a "Fatto" — senza aspettare la procedura notturna. Vale per tutti i tipi e non crea doppioni.',
+      'Tema chiaro: testo secondario, oro e divisori con contrasti più sensati (conformi AA) — niente più scritte sbiadite su sfondo bianco.',
+      'Corretti alcuni colori (errori, importi di trasferimento, accenti AI Coach) che risultavano poco leggibili in modalità chiara.',
+    ],
+  },
   {
     version: '1.9.9', date: '2026-06-04', title: 'Rimossi i suggerimenti "Recenti"',
     changes: [

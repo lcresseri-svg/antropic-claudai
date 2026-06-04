@@ -1,4 +1,4 @@
-import { useState, useEffect, useMemo } from 'react';
+import { useState, useEffect, useMemo, useRef } from 'react';
 import { Routes, Route, Navigate, useNavigate, useLocation } from 'react-router-dom';
 import { doc, setDoc } from 'firebase/firestore';
 import { useAuth } from './shared/hooks/useAuth';
@@ -6,7 +6,7 @@ import { useTransactions } from './shared/hooks/useTransactions';
 import { SettingsProvider, useSettings } from './shared/providers/settings';
 import { Transaction } from './types';
 import { greeting } from './utils';
-import { buildProjectedOccurrences } from './shared/recurrence';
+import { buildProjectedOccurrences, catchUpRecurring } from './shared/recurrence';
 import { db } from './lib/firebase';
 import { useOnboarding } from './features/onboarding/useOnboarding';
 import { OnboardingScreen } from './features/onboarding/OnboardingScreen';
@@ -163,6 +163,20 @@ function Main({ user, onLogOut, onDeleteAccount }: {
     const horizon = new Date(); horizon.setFullYear(horizon.getFullYear() + 1);
     return buildProjectedOccurrences(tx.transactions, todayISO, horizon.toISOString().slice(0, 10));
   }, [tx.transactions]);
+
+  // On login (first server-confirmed snapshot): move anything "Programmato" whose
+  // date is already due (<= today) into "Fatto" by materializing overdue recurring
+  // occurrences right away, instead of waiting for the nightly Cloud Function.
+  // Gated on `synced` so it only runs on real server data (never on stale cache).
+  const caughtUp = useRef(false);
+  useEffect(() => {
+    if (!tx.synced || caughtUp.current) return;
+    caughtUp.current = true;
+    const todayISO = new Date().toISOString().slice(0, 10);
+    const { creates, advance } = catchUpRecurring(tx.transactions, todayISO);
+    if (creates.length || advance.length) tx.materializeRecurring(creates, advance);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [tx.synced]);
 
   // Resolve the template (series anchor) for any occurrence carrying a seriesId.
   const findTemplate = (t: Transaction): Transaction | undefined =>

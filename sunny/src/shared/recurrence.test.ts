@@ -1,5 +1,5 @@
 import { describe, it, expect } from 'vitest';
-import { expandRecurringOnCreate, isPending } from './recurrence';
+import { expandRecurringOnCreate, catchUpRecurring, isPending } from './recurrence';
 import { Transaction } from '../types';
 
 const TODAY = '2026-06-04';
@@ -56,5 +56,38 @@ describe('expandRecurringOnCreate', () => {
     // Only Mar and Apr fall on/before the until date; series ends, no template kept.
     expect(instances.map(d => d.date)).toEqual(['2026-03-04', '2026-04-04']);
     expect(out.find(d => d.recurring)).toBeUndefined();
+  });
+});
+
+describe('catchUpRecurring', () => {
+  const t = (over: Partial<Transaction>): Transaction => ({
+    id: Math.random().toString(36).slice(2), date: '2026-06-04', description: 'X', amount: 10,
+    type: 'expense', category: 'casa', account: 'conto', ...over,
+  });
+
+  it('does nothing when every template is in the future', () => {
+    const txs = [t({ date: '2026-07-01', recurring: { freq: 'monthly' }, seriesId: 's' })];
+    const { creates, advance } = catchUpRecurring(txs, TODAY);
+    expect(creates).toHaveLength(0);
+    expect(advance).toHaveLength(0);
+  });
+
+  it('materializes overdue occurrences and advances the template', () => {
+    // Template's next occurrence pointer fell behind: due Apr 4, today Jun 4.
+    const txs = [t({ id: 'tpl', date: '2026-04-04', recurring: { freq: 'monthly' }, seriesId: 's' })];
+    const { creates, advance } = catchUpRecurring(txs, TODAY);
+    expect(creates.map(c => c.date)).toEqual(['2026-04-04', '2026-05-04', '2026-06-04']);
+    creates.forEach(c => { expect(c.recurring).toBeUndefined(); expect(c.seriesId).toBe('s'); });
+    expect(advance).toEqual([{ id: 'tpl', date: '2026-07-04', seriesId: 's' }]);
+  });
+
+  it('skips occurrences already materialized (no duplicates with the Cloud Function)', () => {
+    const txs = [
+      t({ id: 'tpl', date: '2026-04-04', recurring: { freq: 'monthly' }, seriesId: 's' }),
+      t({ id: 'i1', date: '2026-04-04', seriesId: 's' }), // already created by the CF
+      t({ id: 'i2', date: '2026-05-04', seriesId: 's' }),
+    ];
+    const { creates } = catchUpRecurring(txs, TODAY);
+    expect(creates.map(c => c.date)).toEqual(['2026-06-04']); // only the missing one
   });
 });
