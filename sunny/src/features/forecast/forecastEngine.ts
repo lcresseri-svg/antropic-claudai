@@ -14,12 +14,13 @@ import { buildCategoryHistory, computeCatStats } from './forecastHistory';
 import {
   CategoryForecastV2, TotalForecastV2,
   ForecastComposition, TreatmentBreakdown,
-  ForecastRule, PlannedBudgetItem,
+  ForecastRule, PlannedBudgetItem, ForecastModeDebug,
 } from './forecastTypes';
 import {
   buildMerchantHistory, buildMerchantRecentMonths,
   normalizeMerchant, inferForecastTreatment,
 } from './forecastTreatment';
+import { inferCategoryForecastMode, buildModeExplanation, ForecastModeResult } from './forecastMode';
 
 // ── Tuning constants ─────────────────────────────────────────────────────────
 const LOOKBACK_MONTHS = 3;      // recent window for variable averages
@@ -117,6 +118,8 @@ export interface ForecastV2Input {
   upcomingInvest?: number;
   plannedItems?: PlannedBudgetItem[];
   forecastRules?: ForecastRule[];
+  /** Per-category budget amounts (€). Used to confirm locked amounts and detect budget meaning. */
+  categoryBudgets?: Record<string, number>;
   now?: Date;
 }
 
@@ -127,27 +130,32 @@ export function computeForecastV2(input: ForecastV2Input): TotalForecastV2 {
   const prog = monthProgress(now);
   const cutoff = new Date(now.getFullYear(), now.getMonth() - HISTORY_CUTOFF_MONTHS, 1);
   const recentKeys = monthKeys(LOOKBACK_MONTHS, now);
+  const sixMonthKeys = monthKeys(6, now);
   const catIds = new Set(input.expenseCategories.map(c => c.id));
   const currentMonth = now.getMonth();
 
   const plannedItems = input.plannedItems ?? [];
   const forecastRules = input.forecastRules ?? [];
+  const categoryBudgets = input.categoryBudgets ?? {};
 
   // ── 1. Build category history (excludes current month) ────────────────────
   const history = buildCategoryHistory(input.transactions, catIds, curKey, cutoff);
 
   // ── 2. Collect recent tickets per category (for medianTicket) ─────────────
   const recentTickets: Record<string, number[]> = {};
+  // Also detect which categories have ANY explicit recurring in the full history
+  const categoriesWithExplicitRecurring = new Set<string>();
   for (const t of input.transactions) {
     if (t.type !== 'expense') continue;
     if (!catIds.has(t.category)) continue;
+    if (t.seriesId || t.recurring) categoriesWithExplicitRecurring.add(t.category);
     const tKey = t.date.slice(0, 7);
     if (recentKeys.includes(tKey) && !t.seriesId && !t.recurring) {
       (recentTickets[t.category] ??= []).push(ownShare(t));
     }
   }
 
-  // ── 3. Pre-compute per-category stats (used for treatment context) ─────────
+  // ── 3. Pre-compute per-category stats ─────────────────────────────────────
   const allCatStats: Record<string, ReturnType<typeof computeCatStats>> = {};
   for (const cat of input.expenseCategories) {
     allCatStats[cat.id] = computeCatStats(
@@ -156,6 +164,25 @@ export function computeForecastV2(input: ForecastV2Input): TotalForecastV2 {
       currentMonth,
       recentTickets[cat.id] ?? [],
     );
+  }
+
+  // ── 3b. Infer deterministic forecast mode per category ─────────────────────
+  // Done before the transaction loop so mode is available during projection.
+  const plannedCurrentMonthCats = new Set(
+    plannedItems.filter(p => p.month === curKey).map(p => p.categoryId),
+  );
+  const catModes: Record<string, ForecastModeResult> = {};
+  for (const cat of input.expenseCategories) {
+    const catHistory = history[cat.id] ?? {};
+    catModes[cat.id] = inferCategoryForecastMode({
+      catHistory,
+      allHistoryKeys: Object.keys(catHistory).sort(),
+      sixMonthKeys,
+      currentCalendarMonth: currentMonth,
+      budgetAmount: categoryBudgets[cat.id],
+      hasExplicitRecurring: categoriesWithExplicitRecurring.has(cat.id),
+      plannedCurrentMonth: plannedCurrentMonthCats.has(cat.id),
+    });
   }
 
   // ── 4. Build merchant context ──────────────────────────────────────────────
@@ -216,7 +243,6 @@ export function computeForecastV2(input: ForecastV2Input): TotalForecastV2 {
           bd.transferExcluded++;
           break;
         default:
-          // variable_normal or planned_normal: future pre-entered spend within baseline
           plannedNormalFuture[catId] = (plannedNormalFuture[catId] ?? 0) + share;
           treatment === 'planned_normal' ? bd.plannedNormal++ : bd.variableNormal++;
       }
@@ -228,7 +254,6 @@ export function computeForecastV2(input: ForecastV2Input): TotalForecastV2 {
           bd.variableNormal++;
           break;
         case 'planned_normal':
-          // Planned-normal past spend counts toward the variable baseline
           actualVarNormal[catId] = (actualVarNormal[catId] ?? 0) + share;
           varNormalCount[catId] = (varNormalCount[catId] ?? 0) + 1;
           bd.plannedNormal++;
@@ -258,15 +283,7 @@ export function computeForecastV2(input: ForecastV2Input): TotalForecastV2 {
   for (const cat of input.expenseCategories) {
     const catId = cat.id;
     const stats = allCatStats[catId];
-
-    // Seasonal blend for variable avg
-    let variableAvg: number;
-    if (stats.recentVarMean > 0 && stats.seasonalMean > 0) {
-      const sw = SEASONAL_MAX_WEIGHT * Math.min(1, stats.seasonalYears / SEASONAL_FULL_YEARS);
-      variableAvg = stats.recentVarMean * (1 - sw) + stats.seasonalMean * sw;
-    } else {
-      variableAvg = stats.recentVarMean > 0 ? stats.recentVarMean : stats.seasonalMean;
-    }
+    const modeResult = catModes[catId];
 
     const catVarNormal = actualVarNormal[catId] ?? 0;
     const catVarCount = varNormalCount[catId] ?? 0;
@@ -276,52 +293,141 @@ export function computeForecastV2(input: ForecastV2Input): TotalForecastV2 {
     const catPlannedNormalFuture = plannedNormalFuture[catId] ?? 0;
     const catPlannedOneOffFuture = plannedOneOffFuture[catId] ?? 0;
     const catActualSoFar = catVarNormal + catScheduled + catOneOff;
+    // "Total normal" = all fixed/scheduled spend already recorded + future-dated
+    const catTotalNormal = catVarNormal + catScheduled + catSchedFuture + catPlannedNormalFuture;
 
-    // Amount curve — only variable_normal spend feeds the pace signal
-    const ac = computeAmountCurve(catVarNormal, variableAvg, prog);
-    // Count curve — only variable_normal transaction counts feed the frequency signal
-    const cc = computeCountCurve(catVarCount, stats.recentCountMean, stats.medianTicket, prog);
-
-    let blendedProjectedMonthly = 0;
+    let projected = 0;
+    let predictedVariableRemaining = 0;
     let blendAlpha = 0;
     let reliability = 0;
     let explanation = '';
     let amtCurveRemaining = 0;
     let cntCurveRemaining = 0;
+    let fixedComponent: number | undefined;
+    let variableComponent: number | undefined;
+    let extraComponent: number | undefined;
 
-    if (ac && cc) {
-      blendAlpha = Math.min(AMOUNT_ALPHA_MAX, prog * AMOUNT_ALPHA_MAX / 0.6);
-      blendedProjectedMonthly = blendAlpha * ac.projectedMonthly + (1 - blendAlpha) * cc.projectedMonthly;
-      amtCurveRemaining = ac.remaining;
-      cntCurveRemaining = cc.remaining;
-      reliability = blendAlpha * ac.reliability + (1 - blendAlpha) * cc.reliability;
-      explanation = buildExplanation(cat.label, catVarNormal, variableAvg, prog, 'both');
-    } else if (ac) {
-      blendAlpha = 1;
-      blendedProjectedMonthly = ac.projectedMonthly;
-      amtCurveRemaining = ac.remaining;
-      reliability = ac.reliability;
-      explanation = buildExplanation(cat.label, catVarNormal, variableAvg, prog, 'amount');
-    } else if (cc) {
-      blendAlpha = 0;
-      blendedProjectedMonthly = cc.projectedMonthly;
-      cntCurveRemaining = cc.remaining;
-      reliability = cc.reliability;
-      explanation = buildExplanation(cat.label, catVarCount, stats.recentCountMean, prog, 'count');
-    } else if (variableAvg > 0) {
-      blendedProjectedMonthly = variableAvg;
-      reliability = 0.1;
-      explanation = `Stima basata sulla media storica (nessun dato ancora questo mese per ${cat.label}).`;
+    // ── Seasonal blend for variable avg (used by variable + hybrid) ──────────
+    let variableAvg = 0;
+    if (stats.recentVarMean > 0 && stats.seasonalMean > 0) {
+      const sw = SEASONAL_MAX_WEIGHT * Math.min(1, stats.seasonalYears / SEASONAL_FULL_YEARS);
+      variableAvg = stats.recentVarMean * (1 - sw) + stats.seasonalMean * sw;
+    } else {
+      variableAvg = stats.recentVarMean > 0 ? stats.recentVarMean : stats.seasonalMean;
     }
 
-    // Double-counting prevention:
-    // blendedProjectedMonthly is the expected variable baseline for the full month.
-    // catVarNormal is already spent, catPlannedNormalFuture is already planned (within baseline).
-    // So only the gap beyond those two is still unpredicted.
-    const predictedVariableRemaining = Math.max(
-      0,
-      blendedProjectedMonthly - catVarNormal - catPlannedNormalFuture,
-    );
+    // ── Branch by forecast mode ────────────────────────────────────────────
+    if (modeResult.mode === 'locked_monthly') {
+      const lockedAmount = modeResult.lockedAmount ?? catTotalNormal;
+      // The normal part of the projection is pinned to lockedAmount.
+      // If we've already spent/scheduled more, take the actual (anomaly flagged in explanation).
+      const normalProjected = Math.max(catTotalNormal, lockedAmount);
+      extraComponent = Math.round(catOneOff + catPlannedOneOffFuture);
+      predictedVariableRemaining = 0;
+      projected = Math.round(normalProjected + catOneOff + catPlannedOneOffFuture);
+      // Confidence → reliability
+      reliability = 0.95;
+      explanation = buildModeExplanation(
+        cat.label, modeResult, lockedAmount, currentMonth, false,
+      );
+      if (catTotalNormal > lockedAmount * 1.15) {
+        explanation += ` (attenzione: speso ${Math.round(catTotalNormal)}€ contro i ${Math.round(lockedAmount)}€ attesi — importo anomalo non usato come nuova baseline)`;
+      }
+
+    } else if (modeResult.mode === 'locked_seasonal') {
+      const isActiveMonth = (modeResult.activeMonths ?? []).includes(currentMonth);
+      const expectedAmount = modeResult.lockedAmount ?? 0;
+      extraComponent = Math.round(catOneOff + catPlannedOneOffFuture);
+
+      if (!isActiveMonth) {
+        // Dormant month — forecast only actual if something unexpected was recorded
+        predictedVariableRemaining = 0;
+        projected = Math.round(catActualSoFar + catPlannedOneOffFuture);
+        reliability = 0.92;
+        explanation = buildModeExplanation(cat.label, modeResult, expectedAmount, currentMonth, false);
+      } else {
+        // Active month — anchor to expected seasonal amount
+        const normalProjected = Math.max(catTotalNormal, expectedAmount);
+        predictedVariableRemaining = 0;
+        projected = Math.round(normalProjected + catOneOff + catPlannedOneOffFuture);
+        reliability = 0.85;
+        explanation = buildModeExplanation(cat.label, modeResult, expectedAmount, currentMonth, true);
+      }
+
+    } else if (modeResult.mode === 'hybrid') {
+      // Fixed recurring part already captured in actualScheduled/scheduledFutureBucket.
+      // Run the statistical model only on the variable component.
+      const ac = computeAmountCurve(catVarNormal, variableAvg, prog);
+      const cc = computeCountCurve(catVarCount, stats.recentCountMean, stats.medianTicket, prog);
+
+      let blendedVariable = 0;
+      if (ac && cc) {
+        blendAlpha = Math.min(AMOUNT_ALPHA_MAX, prog * AMOUNT_ALPHA_MAX / 0.6);
+        blendedVariable = blendAlpha * ac.projectedMonthly + (1 - blendAlpha) * cc.projectedMonthly;
+        amtCurveRemaining = ac.remaining;
+        cntCurveRemaining = cc.remaining;
+        reliability = 0.7 * (blendAlpha * ac.reliability + (1 - blendAlpha) * cc.reliability);
+      } else if (ac) {
+        blendAlpha = 1; blendedVariable = ac.projectedMonthly; amtCurveRemaining = ac.remaining;
+        reliability = 0.7 * ac.reliability;
+      } else if (cc) {
+        blendAlpha = 0; blendedVariable = cc.projectedMonthly; cntCurveRemaining = cc.remaining;
+        reliability = 0.7 * cc.reliability;
+      } else if (variableAvg > 0) {
+        blendedVariable = variableAvg; reliability = 0.1;
+      }
+
+      const varRemaining = Math.max(0, blendedVariable - catVarNormal - catPlannedNormalFuture);
+      predictedVariableRemaining = varRemaining;
+      fixedComponent = Math.round(catScheduled + catSchedFuture);
+      variableComponent = Math.round(blendedVariable);
+      extraComponent = Math.round(catOneOff + catPlannedOneOffFuture);
+      projected = Math.round(catActualSoFar + catSchedFuture + catPlannedNormalFuture + catPlannedOneOffFuture + varRemaining);
+      explanation = buildModeExplanation(cat.label, modeResult, modeResult.fixedComponent, currentMonth, false)
+        || buildExplanation(cat.label, catVarNormal, variableAvg, prog, ac && cc ? 'both' : ac ? 'amount' : 'count');
+
+    } else {
+      // ── variable: full statistical model ────────────────────────────────
+      const ac = computeAmountCurve(catVarNormal, variableAvg, prog);
+      const cc = computeCountCurve(catVarCount, stats.recentCountMean, stats.medianTicket, prog);
+
+      let blendedProjectedMonthly = 0;
+      if (ac && cc) {
+        blendAlpha = Math.min(AMOUNT_ALPHA_MAX, prog * AMOUNT_ALPHA_MAX / 0.6);
+        blendedProjectedMonthly = blendAlpha * ac.projectedMonthly + (1 - blendAlpha) * cc.projectedMonthly;
+        amtCurveRemaining = ac.remaining; cntCurveRemaining = cc.remaining;
+        reliability = blendAlpha * ac.reliability + (1 - blendAlpha) * cc.reliability;
+        explanation = buildExplanation(cat.label, catVarNormal, variableAvg, prog, 'both');
+      } else if (ac) {
+        blendAlpha = 1; blendedProjectedMonthly = ac.projectedMonthly;
+        amtCurveRemaining = ac.remaining; reliability = ac.reliability;
+        explanation = buildExplanation(cat.label, catVarNormal, variableAvg, prog, 'amount');
+      } else if (cc) {
+        blendAlpha = 0; blendedProjectedMonthly = cc.projectedMonthly;
+        cntCurveRemaining = cc.remaining; reliability = cc.reliability;
+        explanation = buildExplanation(cat.label, catVarCount, stats.recentCountMean, prog, 'count');
+      } else if (variableAvg > 0) {
+        blendedProjectedMonthly = variableAvg; reliability = 0.1;
+        explanation = `Stima basata sulla media storica (nessun dato ancora questo mese per ${cat.label}).`;
+      }
+
+      // Add budget-mismatch warning for target budgets
+      if (modeResult.budgetMeaning === 'target' && categoryBudgets[catId]) {
+        const budget = categoryBudgets[catId];
+        if (budget < blendedProjectedMonthly * 0.60) {
+          explanation += ` Il budget (${Math.round(budget)}€) è molto inferiore al ritmo storico (${Math.round(blendedProjectedMonthly)}€) — uso il ritmo storico come previsione.`;
+        }
+      }
+
+      predictedVariableRemaining = Math.max(
+        0,
+        blendedProjectedMonthly - catVarNormal - catPlannedNormalFuture,
+      );
+      projected = Math.round(
+        catActualSoFar + catSchedFuture + catPlannedNormalFuture +
+        catPlannedOneOffFuture + predictedVariableRemaining,
+      );
+    }
 
     const composition: ForecastComposition = {
       actualVariableNormalSoFar: Math.round(catVarNormal),
@@ -333,10 +439,13 @@ export function computeForecastV2(input: ForecastV2Input): TotalForecastV2 {
       predictedVariableRemaining: Math.round(predictedVariableRemaining),
     };
 
-    const projected = Math.round(
-      catActualSoFar + catSchedFuture + catPlannedNormalFuture +
-      catPlannedOneOffFuture + predictedVariableRemaining,
-    );
+    const forecastModeDebug: ForecastModeDebug = {
+      mode: modeResult.mode,
+      lockedAmount: modeResult.lockedAmount,
+      activeMonths: modeResult.activeMonths,
+      budgetMeaning: modeResult.budgetMeaning,
+      reasons: modeResult.reasons,
+    };
 
     categoryForecasts.push({
       categoryId: catId,
@@ -352,6 +461,13 @@ export function computeForecastV2(input: ForecastV2Input): TotalForecastV2 {
       explanation,
       composition,
       treatmentBreakdown: breakdownMap[catId] ?? makeBreakdown(),
+      forecastMode: modeResult.mode,
+      lockedAmount: modeResult.lockedAmount,
+      activeMonths: modeResult.activeMonths,
+      fixedComponent,
+      variableComponent,
+      extraComponent,
+      forecastModeDebug,
     });
   }
 

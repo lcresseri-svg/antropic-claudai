@@ -213,6 +213,22 @@ function CategoryRow({
             <DetailRow label="Peso curva importi" value={pct(data.blendAlpha)} muted />
             <DetailRow label="Peso frequenza" value={pct(1 - data.blendAlpha)} muted />
           </div>
+          {/* Forecast mode badge */}
+          <div className="flex items-center gap-2 pt-0.5">
+            <span className={`text-[10px] px-2 py-0.5 rounded-full font-medium ${
+              data.forecastMode === 'locked_monthly' ? 'bg-[#8A9270]/15 text-[#8A9270]' :
+              data.forecastMode === 'locked_seasonal' ? 'bg-blue-500/10 text-blue-400' :
+              data.forecastMode === 'hybrid' ? 'bg-gold/10 text-gold' :
+              'bg-elevated text-tertiary'
+            }`}>
+              {data.forecastMode === 'locked_monthly' ? '🔒 Fisso mensile' :
+               data.forecastMode === 'locked_seasonal' ? '📅 Stagionale' :
+               data.forecastMode === 'hybrid' ? '⚡ Ibrido' : '📊 Variabile'}
+            </span>
+            {data.lockedAmount != null && (
+              <span className="text-[10px] text-tertiary">ancora {fmt(data.lockedAmount)}</span>
+            )}
+          </div>
           {/* Classificazione transazioni del mese */}
           {treatmentChips.length > 0 && (
             <div className="flex flex-wrap gap-1.5 pt-1">

@@ -1,3 +1,28 @@
+// ── Forecast mode ─────────────────────────────────────────────────────────────
+
+/**
+ * How a category's end-of-month spend is predicted.
+ *
+ * - variable:        standard statistical model (amount + count curves)
+ * - locked_monthly:  pinned to a stable monthly amount; no statistical prediction
+ * - locked_seasonal: only forecast in historically-active months; 0 otherwise
+ * - hybrid:          fixed recurring part + statistical variable part
+ */
+export type CategoryForecastMode =
+  | 'variable'
+  | 'locked_monthly'
+  | 'locked_seasonal'
+  | 'hybrid';
+
+/** Debug payload explaining why a category got its forecast mode. */
+export interface ForecastModeDebug {
+  mode: CategoryForecastMode;
+  lockedAmount?: number;
+  activeMonths?: number[];
+  budgetMeaning?: 'target' | 'fixed_expected';
+  reasons: string[];
+}
+
 /** Per-category end-of-month projection from the V2 multi-signal engine. */
 export interface CategoryForecastV2 {
   categoryId: string;
@@ -25,6 +50,20 @@ export interface CategoryForecastV2 {
   composition: ForecastComposition;
   /** Count of current-month transactions per treatment bucket. */
   treatmentBreakdown: TreatmentBreakdown;
+  /** Deterministic mode applied to this category. */
+  forecastMode: CategoryForecastMode;
+  /** For locked_monthly/locked_seasonal: the pinned amount used as forecast anchor. */
+  lockedAmount?: number;
+  /** For locked_seasonal: calendar months (0-based, Jan=0) where this category is active. */
+  activeMonths?: number[];
+  /** For hybrid: the stable recurring component in €. */
+  fixedComponent?: number;
+  /** For hybrid: the statistical variable component in €. */
+  variableComponent?: number;
+  /** For hybrid/locked: one-off extra spend on top of the fixed part in €. */
+  extraComponent?: number;
+  /** Debug: why this forecast mode was chosen. */
+  forecastModeDebug: ForecastModeDebug;
 }
 
 export interface TotalForecastV2 {
@@ -129,4 +168,3 @@ export interface TreatmentBreakdown {
   oneOffExtra: number;
   transferExcluded: number;
 }
-
