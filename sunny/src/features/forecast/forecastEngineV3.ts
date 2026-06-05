@@ -435,14 +435,24 @@ export function computeForecastV3(input: ForecastV3Input): TotalForecastV3 {
       }
     }
 
-    // ── Apply bias correction ─────────────────────────────────────────────
+    // ── Apply bias correction — ONLY to predictedVariableRemaining ───────────
+    // Deterministic components (actuals, scheduled, locked amounts, periodic
+    // expectations, one-offs) are never touched. If a fixed category is
+    // predicted wrong, the fix is better classification, not bias scaling.
+    // Bias applies only to the statistical variable estimate.
     const projectedRaw = projected;
-    const biasCorrection = biasCorrectionApplied ? biasFactor : 1.0;
-    if (biasCorrectionApplied && projected > 0) {
-      projected = Math.round(projected * biasFactor);
-      if (predictedVariableRemaining > 0) {
-        predictedVariableRemaining = Math.round(predictedVariableRemaining * biasFactor);
-      }
+    const biasApplicable =
+      behavior === 'variable_frequent' ||
+      behavior === 'variable_sparse' ||
+      behavior === 'volatile_mixed' ||
+      behavior === 'hybrid';
+    const biasCorrection = (biasCorrectionApplied && biasApplicable) ? biasFactor : 1.0;
+
+    if (biasCorrection !== 1.0 && predictedVariableRemaining > 0) {
+      const calibrated = Math.round(predictedVariableRemaining * biasCorrection);
+      // Recompute projected: swap out the old variable estimate for the corrected one
+      projected = projected - predictedVariableRemaining + calibrated;
+      predictedVariableRemaining = calibrated;
     }
 
     // ── Confidence interval ───────────────────────────────────────────────
