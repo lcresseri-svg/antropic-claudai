@@ -10,6 +10,7 @@ interface Props {
   editing?: Transaction | null;
   groupTransfers?: Transaction[];
   seriesEdit?: boolean;
+  defaultType?: TransactionType;
   onClose: () => void;
   onSave: (deleteIds: string[], create: Omit<Transaction, 'id'>[]) => void;
 }
@@ -19,7 +20,7 @@ interface Reimb { amount: string; account: string }
 const today = () => new Date().toISOString().slice(0, 10);
 const yesterday = () => { const d = new Date(); d.setDate(d.getDate() - 1); return d.toISOString().slice(0, 10); };
 
-export function TransactionModal({ open, editing, groupTransfers = [], seriesEdit = false, onClose, onSave }: Props) {
+export function TransactionModal({ open, editing, groupTransfers = [], seriesEdit = false, defaultType, onClose, onSave }: Props) {
   const { categories, accounts, enableInvestments, detailedInvestments, theme } = useSettings();
   const [type, setType] = useState<TransactionType>('expense');
   const [description, setDescription] = useState('');
@@ -40,7 +41,11 @@ export function TransactionModal({ open, editing, groupTransfers = [], seriesEdi
   const [amountError, setAmountError] = useState(false);
   const [categoryTouched, setCategoryTouched] = useState(false);
   const [showMore, setShowMore] = useState(false);
+  const [advancedOpen, setAdvancedOpen] = useState(false);
   const [confirmDelete, setConfirmDelete] = useState(false);
+
+  // Quick mode: defaultType set + not editing → hide type selector, collapse date/account
+  const quickMode = !editing && !!defaultType && defaultType !== 'transfer';
 
   useEffect(() => {
     if (!open) return;
@@ -66,7 +71,7 @@ export function TransactionModal({ open, editing, groupTransfers = [], seriesEdi
       setTfr(editing.tfr !== undefined ? String(editing.tfr) : '');
     } else {
       const lastAcc = localStorage.getItem('sunny:lastAccount');
-      setType('expense'); setDescription(''); setAmount(''); setDate(today());
+      setType(defaultType ?? 'expense'); setDescription(''); setAmount(''); setDate(today());
       setCategory('');
       setAccount((lastAcc && accounts.some(a => a.id === lastAcc)) ? lastAcc : (accounts[0]?.id ?? ''));
       setToAccount(accounts[1]?.id ?? ''); setNotes('');
@@ -77,6 +82,7 @@ export function TransactionModal({ open, editing, groupTransfers = [], seriesEdi
     setAmountError(false);
     setCategoryTouched(!!editing);
     setConfirmDelete(false);
+    setAdvancedOpen(false);
     const hasGroup = !!editing && editing.type === 'expense' && !!editing.groupId && groupTransfers.length > 0;
     setShowMore(!!editing && (!!editing.recurring || hasGroup || !!editing.shared));
   }, [open, editing, groupTransfers.length]);
@@ -242,16 +248,18 @@ export function TransactionModal({ open, editing, groupTransfers = [], seriesEdi
             </p>
           )}
 
-          {/* Type segmented */}
-          <div className="grid gap-1.5 bg-surface rounded-2xl p-1" style={{ gridTemplateColumns: `repeat(${availableTypes.length}, 1fr)` }}>
-            {availableTypes.map(t => (
-              <button key={t} type="button" onClick={() => setType(t)}
-                className={`py-2 sm:py-2.5 rounded-xl text-[11px] sm:text-xs font-semibold transition-all ${type === t ? 'shadow-sm' : 'text-secondary'}`}
-                style={type === t ? { backgroundColor: typeColor(t, theme), color: typeOnColor(theme) } : undefined}>
-                {TYPE_META[t].label}
-              </button>
-            ))}
-          </div>
+          {/* Type segmented — hidden in quick mode (type is pre-set) */}
+          {!quickMode && (
+            <div className="grid gap-1.5 bg-surface rounded-2xl p-1" style={{ gridTemplateColumns: `repeat(${availableTypes.length}, 1fr)` }}>
+              {availableTypes.map(t => (
+                <button key={t} type="button" onClick={() => setType(t)}
+                  className={`py-2 sm:py-2.5 rounded-xl text-[11px] sm:text-xs font-semibold transition-all ${type === t ? 'shadow-sm' : 'text-secondary'}`}
+                  style={type === t ? { backgroundColor: typeColor(t, theme), color: typeOnColor(theme) } : undefined}>
+                  {TYPE_META[t].label}
+                </button>
+              ))}
+            </div>
+          )}
 
           {/* Amount */}
           <div className="text-center">
@@ -314,6 +322,31 @@ export function TransactionModal({ open, editing, groupTransfers = [], seriesEdi
                 </Field>
               </div>
               <DateField date={date} td={td} yd={yd} setDate={setDate} />
+            </>
+          ) : quickMode ? (
+            /* Quick mode: conto + data collapsed under "Dettagli avanzati" */
+            <>
+              <button type="button" onClick={() => setAdvancedOpen(s => !s)}
+                className="w-full flex items-center justify-center gap-1.5 py-2 text-sm font-medium text-secondary">
+                Dettagli avanzati
+                <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor"
+                  strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round"
+                  className={`transition-transform ${advancedOpen ? 'rotate-180' : ''}`}>
+                  <path d="M6 9l6 6 6-6" />
+                </svg>
+              </button>
+              {advancedOpen && (
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                  <Field label="Conto">
+                    <Select value={account} onChange={setAccount}
+                      options={[
+                        ...(canNoAccount ? [{ value: '', label: '🚫 Senza conto (TFR / datore)' }] : []),
+                        ...accounts.map(a => ({ value: a.id, label: `${a.icon} ${a.label}` })),
+                      ]} />
+                  </Field>
+                  <DateField date={date} td={td} yd={yd} setDate={setDate} />
+                </div>
+              )}
             </>
           ) : (
             <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">

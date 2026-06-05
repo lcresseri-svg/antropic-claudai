@@ -1,4 +1,4 @@
-export const APP_VERSION = '1.9.14';
+export const APP_VERSION = '2.0.0';
 
 /**
  * Release channel. While in 'beta' the app is still under active development
@@ -15,6 +15,20 @@ export interface VersionEntry {
 
 /** Registro versioni mostrato in Impostazioni → Registro versioni. */
 export const VERSIONS: VersionEntry[] = [
+  {
+    version: '2.0.0', date: '2026-06-05', title: 'Sunny diventa il tuo financial copilot',
+    changes: [
+      'Dashboard "Oggi": stato del mese, insight prioritario e azioni rapide [+ Spesa] [+ Entrata] subito visibili.',
+      'Navigazione rinominata: Oggi · Consigli · Piano · Movimenti.',
+      'Consigli: 4 gruppi tematici, "Analisi avanzata" collassata di default.',
+      'Piano: obiettivo del mese in evidenza, "Tutto il piano" espandibile.',
+      'Aggiunta spesa rapida: aprendo [+ Spesa] il tipo è pre-impostato, data e conto in "Dettagli avanzati".',
+      'Feedback sugli insight: 👍👎 + motivo in fondo a ogni consiglio.',
+      'Impostazioni riorganizzate in 6 sezioni tematiche.',
+      'Onboarding finale: tre stati distinti (demo / dati reali / senza dati).',
+      'Token dark theme più profondi per un look quiet premium.',
+    ],
+  },
   {
     version: '1.9.14', date: '2026-06-04', title: 'Impostazioni: torna in cima cambiando sezione',
     changes: [

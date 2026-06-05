@@ -27,6 +27,8 @@ import { ImportModal } from './features/transactions/ImportModal';
 import { BottomNav } from './shared/components/BottomNav';
 import { SideNav } from './shared/components/SideNav';
 import { isAdminUser } from './shared/featureFlags';
+import { useBudget } from './shared/hooks/useBudget';
+import { TransactionType } from './types';
 import { PushPromoSheet } from './shared/components/PushPromoSheet';
 import { pushSupported, hasLocalToken } from './shared/push';
 
@@ -116,10 +118,12 @@ function Main({ user, onLogOut, onDeleteAccount }: {
   const location = useLocation();
   const { accounts, categories, includeInvestments, enableInvestments, enableBudget, aiCoachWidgetEnabled, settingsLoaded } = useSettings();
   const tx = useTransactions(user, accounts, includeInvestments, categories, enableInvestments);
+  const budget = useBudget(user);
   const [editing, setEditing] = useState<Transaction | null>(null);
   const [seriesEdit, setSeriesEdit] = useState(false);
   const [seriesChoice, setSeriesChoice] = useState<Transaction | null>(null);
   const [modalOpen, setModalOpen] = useState(false);
+  const [defaultType, setDefaultType] = useState<TransactionType | undefined>();
   const [importOpen, setImportOpen] = useState(false);
   const [settingsOpen, setSettingsOpen] = useState(false);
   const [showPushPromo, setShowPushPromo] = useState(false);
@@ -186,7 +190,8 @@ function Main({ user, onLogOut, onDeleteAccount }: {
     setEditing(t); setSeriesEdit(asSeries); setModalOpen(true);
   };
 
-  const openAdd = () => { setEditing(null); setSeriesEdit(false); setModalOpen(true); };
+  const openAdd = () => { setEditing(null); setSeriesEdit(false); setDefaultType(undefined); setModalOpen(true); };
+  const openAddWithType = (type: TransactionType) => { setEditing(null); setSeriesEdit(false); setDefaultType(type); setModalOpen(true); };
 
   // Outlook-style: opening an occurrence opens the series.
   const openEdit = (t: Transaction) => {
@@ -279,8 +284,12 @@ function Main({ user, onLogOut, onDeleteAccount }: {
                 investmentByCategory={tx.investmentByCategory}
                 accountBalances={tx.accountBalances}
                 trend={tx.trend} transactions={tx.transactions}
+                savingsTarget={budget.budget.savingsTarget}
                 onSeeInsights={() => navigate('/insights')}
                 onSeeInvestments={() => navigate('/investments')}
+                onAddExpense={() => openAddWithType('expense')}
+                onAddIncome={() => openAddWithType('income')}
+                onImportCSV={() => setImportOpen(true)}
               />
             } />
             <Route path="/investments" element={
@@ -298,7 +307,7 @@ function Main({ user, onLogOut, onDeleteAccount }: {
             } />
             <Route path="/insights" element={
               <div className="pt-4 md:pt-6">
-                <InsightsScreen transactions={tx.transactions}
+                <InsightsScreen user={user} transactions={tx.transactions}
                   monthlyIncome={tx.monthlyIncome} monthlyExpenses={tx.monthlyExpenses}
                   monthlyInvestments={tx.monthlyInvestments} />
               </div>
@@ -353,6 +362,7 @@ function Main({ user, onLogOut, onDeleteAccount }: {
 
       <TransactionModal
         open={modalOpen} editing={editing} groupTransfers={groupTransfers} seriesEdit={seriesEdit}
+        defaultType={defaultType}
         onClose={() => setModalOpen(false)}
         onSave={handleSave}
       />
