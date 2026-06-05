@@ -25,3 +25,18 @@ export function canUsePush(user: User | null): boolean {
 export function isAdminUser(user: User | null): boolean {
   return canUseDetailedInvestments(user);
 }
+
+// UI v2.0.0 ("financial copilot" redesign): rolled out to the admin allow-list
+// only. Everyone else keeps the previous (v1.9.x) interface. Widen this list to
+// release the new UI more broadly.
+const UI_V2_UIDS: string[] = [
+  'qPtCOJGRrwOZ2EfjxMHwW6ZISXX2',
+];
+const UI_V2_EMAILS: string[] = [];
+
+export function canUseUiV2(user: User | null): boolean {
+  if (!user) return false;
+  if (user.uid && UI_V2_UIDS.includes(user.uid)) return true;
+  if (user.email && UI_V2_EMAILS.includes(user.email.toLowerCase())) return true;
+  return false;
+}

@@ -58,6 +58,16 @@ html.light {
   --modal-hdr-bg:   rgba(255,255,255,1);
 }
 
+/* ─── UI v2.0.0 (admin allow-list) ───────────────────────────────────────────
+   Quieter, deeper dark surfaces for the "financial copilot" redesign. Scoped to
+   the .ui-v2 wrapper so only opted-in users get it; light theme is unchanged. */
+html:not(.light) .ui-v2 {
+  --c-card:       15 15 15;
+  --c-card-hover: 20 20 20;
+  --c-elevated:   20 20 20;
+  --c-divider:    24 24 24;
+}
+
 @layer base {
   html {
     background-color: rgb(var(--c-bg));

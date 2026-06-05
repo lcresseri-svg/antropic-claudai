@@ -4,7 +4,8 @@ import { doc, setDoc } from 'firebase/firestore';
 import { useAuth } from './shared/hooks/useAuth';
 import { useTransactions } from './shared/hooks/useTransactions';
 import { SettingsProvider, useSettings } from './shared/providers/settings';
-import { Transaction } from './types';
+import { useBudget } from './shared/hooks/useBudget';
+import { Transaction, TransactionType } from './types';
 import { greeting } from './utils';
 import { buildProjectedOccurrences, catchUpRecurring } from './shared/recurrence';
 import { db } from './lib/firebase';
@@ -13,9 +14,12 @@ import { OnboardingScreen } from './features/onboarding/OnboardingScreen';
 import { ONBOARDING_VERSION } from './features/onboarding/onboardingTypes';
 import { LoginScreen } from './shared/components/LoginScreen';
 import { Dashboard } from './features/dashboard/Dashboard';
+import { DashboardV2 } from './features/dashboard/DashboardV2';
 import { InvestmentsScreen } from './features/dashboard/InvestmentsScreen';
 import { InsightsScreen } from './features/insights/InsightsScreen';
+import { InsightsScreenV2 } from './features/insights/InsightsScreenV2';
 import { BudgetScreen } from './features/budget/BudgetScreen';
+import { BudgetScreenV2 } from './features/budget/BudgetScreenV2';
 import { BudgetDisabled } from './features/budget/BudgetDisabled';
 import { TransactionList } from './features/transactions/TransactionList';
 import { SettingsScreen } from './features/settings/SettingsScreen';
@@ -26,7 +30,7 @@ import { SeriesEditChoiceSheet } from './features/transactions/SeriesEditChoiceS
 import { ImportModal } from './features/transactions/ImportModal';
 import { BottomNav } from './shared/components/BottomNav';
 import { SideNav } from './shared/components/SideNav';
-import { isAdminUser } from './shared/featureFlags';
+import { isAdminUser, canUseUiV2 } from './shared/featureFlags';
 import { PushPromoSheet } from './shared/components/PushPromoSheet';
 import { pushSupported, hasLocalToken } from './shared/push';
 
@@ -116,10 +120,13 @@ function Main({ user, onLogOut, onDeleteAccount }: {
   const location = useLocation();
   const { accounts, categories, includeInvestments, enableInvestments, enableBudget, aiCoachWidgetEnabled, settingsLoaded } = useSettings();
   const tx = useTransactions(user, accounts, includeInvestments, categories, enableInvestments);
+  const budget = useBudget(user);
+  const uiV2 = canUseUiV2(user);
   const [editing, setEditing] = useState<Transaction | null>(null);
   const [seriesEdit, setSeriesEdit] = useState(false);
   const [seriesChoice, setSeriesChoice] = useState<Transaction | null>(null);
   const [modalOpen, setModalOpen] = useState(false);
+  const [defaultType, setDefaultType] = useState<TransactionType | undefined>();
   const [importOpen, setImportOpen] = useState(false);
   const [settingsOpen, setSettingsOpen] = useState(false);
   const [showPushPromo, setShowPushPromo] = useState(false);
@@ -186,7 +193,12 @@ function Main({ user, onLogOut, onDeleteAccount }: {
     setEditing(t); setSeriesEdit(asSeries); setModalOpen(true);
   };
 
-  const openAdd = () => { setEditing(null); setSeriesEdit(false); setModalOpen(true); };
+  const openAdd = () => { setEditing(null); setSeriesEdit(false); setDefaultType(undefined); setModalOpen(true); };
+
+  // Quick-add from the v2 Dashboard: pre-set the transaction type.
+  const openAddWithType = (type: TransactionType) => {
+    setEditing(null); setSeriesEdit(false); setDefaultType(type); setModalOpen(true);
+  };
 
   // Outlook-style: opening an occurrence opens the series.
   const openEdit = (t: Transaction) => {
@@ -215,14 +227,14 @@ function Main({ user, onLogOut, onDeleteAccount }: {
     tx.replaceGroup(deleteIds, create);
 
   return (
-    <div className="min-h-screen md:flex">
+    <div className={`min-h-screen md:flex${uiV2 ? ' ui-v2' : ''}`}>
       {/* Global backdrop for settings dropdown — outside the header stacking context */}
       {settingsOpen && !isSettings && (
         <div className="fixed inset-0 z-[35]" onClick={() => setSettingsOpen(false)} />
       )}
 
       {/* Desktop sidebar */}
-      <SideNav loading={tx.loading} onAdd={openAdd} onImport={() => setImportOpen(true)} isAdmin={isAdminUser(user)} />
+      <SideNav loading={tx.loading} onAdd={openAdd} onImport={() => setImportOpen(true)} isAdmin={isAdminUser(user)} uiV2={uiV2} />
 
       {/* Content (shifted right by sidebar on desktop) */}
       <div className="flex-1 md:ml-[220px] min-w-0">
@@ -271,17 +283,35 @@ function Main({ user, onLogOut, onDeleteAccount }: {
         <main className="max-w-2xl mx-auto md:max-w-none px-5 md:px-8 pt-2">
           <Routes>
             <Route path="/" element={
-              <Dashboard
-                greeting={brand}
-                netWorth={tx.netWorth} liquidity={tx.liquidity} investmentTotal={tx.investmentTotal}
-                monthlyIncome={tx.monthlyIncome} monthlyExpenses={tx.monthlyExpenses}
-                monthlyInvestments={tx.monthlyInvestments}
-                investmentByCategory={tx.investmentByCategory}
-                accountBalances={tx.accountBalances}
-                trend={tx.trend} transactions={tx.transactions}
-                onSeeInsights={() => navigate('/insights')}
-                onSeeInvestments={() => navigate('/investments')}
-              />
+              uiV2 ? (
+                <DashboardV2
+                  greeting={brand}
+                  netWorth={tx.netWorth} liquidity={tx.liquidity} investmentTotal={tx.investmentTotal}
+                  monthlyIncome={tx.monthlyIncome} monthlyExpenses={tx.monthlyExpenses}
+                  monthlyInvestments={tx.monthlyInvestments}
+                  investmentByCategory={tx.investmentByCategory}
+                  accountBalances={tx.accountBalances}
+                  trend={tx.trend} transactions={tx.transactions}
+                  savingsTarget={budget.budget.savingsTarget}
+                  onSeeInsights={() => navigate('/insights')}
+                  onSeeInvestments={() => navigate('/investments')}
+                  onAddExpense={() => openAddWithType('expense')}
+                  onAddIncome={() => openAddWithType('income')}
+                  onImportCSV={() => setImportOpen(true)}
+                />
+              ) : (
+                <Dashboard
+                  greeting={brand}
+                  netWorth={tx.netWorth} liquidity={tx.liquidity} investmentTotal={tx.investmentTotal}
+                  monthlyIncome={tx.monthlyIncome} monthlyExpenses={tx.monthlyExpenses}
+                  monthlyInvestments={tx.monthlyInvestments}
+                  investmentByCategory={tx.investmentByCategory}
+                  accountBalances={tx.accountBalances}
+                  trend={tx.trend} transactions={tx.transactions}
+                  onSeeInsights={() => navigate('/insights')}
+                  onSeeInvestments={() => navigate('/investments')}
+                />
+              )
             } />
             <Route path="/investments" element={
               !enableInvestments ? <Navigate to="/" replace /> : (
@@ -298,20 +328,35 @@ function Main({ user, onLogOut, onDeleteAccount }: {
             } />
             <Route path="/insights" element={
               <div className="pt-4 md:pt-6">
-                <InsightsScreen transactions={tx.transactions}
-                  monthlyIncome={tx.monthlyIncome} monthlyExpenses={tx.monthlyExpenses}
-                  monthlyInvestments={tx.monthlyInvestments} />
+                {uiV2 ? (
+                  <InsightsScreenV2 user={user} transactions={tx.transactions}
+                    monthlyIncome={tx.monthlyIncome} monthlyExpenses={tx.monthlyExpenses}
+                    monthlyInvestments={tx.monthlyInvestments} />
+                ) : (
+                  <InsightsScreen transactions={tx.transactions}
+                    monthlyIncome={tx.monthlyIncome} monthlyExpenses={tx.monthlyExpenses}
+                    monthlyInvestments={tx.monthlyInvestments} />
+                )}
               </div>
             } />
             <Route path="/budget" element={
               <div className="pt-4 md:pt-6">
                 {enableBudget ? (
-                  <BudgetScreen
-                    user={user}
-                    transactions={tx.transactions}
-                    monthlyIncome={tx.monthlyIncome} monthlyExpenses={tx.monthlyExpenses}
-                    monthlyInvestments={tx.monthlyInvestments} categoryTotals={tx.categoryTotals}
-                  />
+                  uiV2 ? (
+                    <BudgetScreenV2
+                      user={user}
+                      transactions={tx.transactions}
+                      monthlyIncome={tx.monthlyIncome} monthlyExpenses={tx.monthlyExpenses}
+                      monthlyInvestments={tx.monthlyInvestments} categoryTotals={tx.categoryTotals}
+                    />
+                  ) : (
+                    <BudgetScreen
+                      user={user}
+                      transactions={tx.transactions}
+                      monthlyIncome={tx.monthlyIncome} monthlyExpenses={tx.monthlyExpenses}
+                      monthlyInvestments={tx.monthlyInvestments} categoryTotals={tx.categoryTotals}
+                    />
+                  )
                 ) : (
                   <BudgetDisabled onActivate={() => navigate('/settings?section=generali')} />
                 )}
@@ -324,13 +369,13 @@ function Main({ user, onLogOut, onDeleteAccount }: {
                   transactions={tx.transactions} projected={projected}
                   onEdit={openEdit} onDelete={tx.deleteTransaction}
                   onBulkUpdate={tx.updateTransactions} onBulkDelete={tx.deleteTransactions}
-                  onAdd={openAdd}
+                  onAdd={openAdd} uiV2={uiV2}
                 />
               </div>
             } />
             <Route path="/settings/*" element={
               <div className="pt-4 md:pt-6 md:max-w-3xl">
-                <SettingsScreen user={user} transactions={tx.transactions}
+                <SettingsScreen user={user} transactions={tx.transactions} uiV2={uiV2}
                   onLogOut={onLogOut} onDeleteAll={tx.deleteAll} onDeleteAccount={onDeleteAccount} />
               </div>
             } />
@@ -346,13 +391,14 @@ function Main({ user, onLogOut, onDeleteAccount }: {
         </main>
 
         {/* Mobile-only bottom nav */}
-        {!isSettings && <BottomNav onAdd={openAdd} />}
+        {!isSettings && <BottomNav onAdd={openAdd} uiV2={uiV2} />}
       </div>
 
       {settingsLoaded && isAdminUser(user) && aiCoachWidgetEnabled && <AICoachWidget />}
 
       <TransactionModal
         open={modalOpen} editing={editing} groupTransfers={groupTransfers} seriesEdit={seriesEdit}
+        defaultType={defaultType}
         onClose={() => setModalOpen(false)}
         onSave={handleSave}
       />

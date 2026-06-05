@@ -5,9 +5,10 @@ interface Props {
   onAdd: () => void;
   onImport: () => void;
   isAdmin?: boolean;
+  uiV2?: boolean;
 }
 
-export function SideNav({ loading, onAdd, onImport, isAdmin }: Props) {
+export function SideNav({ loading, onAdd, onImport, isAdmin, uiV2 = false }: Props) {
   const navigate = useNavigate();
 
   return (
@@ -24,9 +25,9 @@ export function SideNav({ loading, onAdd, onImport, isAdmin }: Props) {
 
       {/* Nav links */}
       <nav className="flex-1 p-3 space-y-0.5 overflow-y-auto">
-        <SideLink to="/" label="Dashboard" icon={<HomeIcon />} />
-        <SideLink to="/insights" label="Insight" icon={<InsightIcon />} />
-        <SideLink to="/budget" label="Budget" icon={<TargetIcon />} />
+        <SideLink to="/" label={uiV2 ? 'Oggi' : 'Dashboard'} icon={<HomeIcon />} />
+        <SideLink to="/insights" label={uiV2 ? 'Consigli' : 'Insight'} icon={<InsightIcon />} />
+        <SideLink to="/budget" label={uiV2 ? 'Piano' : 'Budget'} icon={<TargetIcon />} />
         <SideLink to="/transactions" label="Movimenti" icon={<ListIcon />} />
         {isAdmin && <SideLink to="/ai-coach" label="AI Coach" icon={<AICoachIcon />} />}
       </nav>

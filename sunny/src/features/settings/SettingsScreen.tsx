@@ -12,6 +12,7 @@ import { APP_VERSION, APP_CHANNEL, VERSIONS } from '../../appInfo';
 interface Props {
   user: User;
   transactions: Transaction[];
+  uiV2?: boolean;
   onLogOut: () => void;
   onDeleteAll: () => Promise<void>;
   onDeleteAccount: () => Promise<void>;
@@ -34,7 +35,7 @@ function reorder<T>(arr: T[], from: number, to: number): T[] {
   return next;
 }
 
-export function SettingsScreen({ user, transactions, onLogOut, onDeleteAll, onDeleteAccount }: Props) {
+export function SettingsScreen({ user, transactions, uiV2 = false, onLogOut, onDeleteAll, onDeleteAccount }: Props) {
   const navigate = useNavigate();
   const location = useLocation();
   const { categories, accounts, theme, includeInvestments, enableInvestments, enableBudget, insightDepth, aiEnabled, aiCoachWidgetEnabled, detailedInvestments, saveCategories, saveAccounts, saveTheme, saveIncludeInvestments, saveEnableInvestments, saveEnableBudget, saveInsightDepth, saveAiEnabled, saveAiCoachWidgetEnabled } = useSettings();
@@ -209,13 +210,43 @@ export function SettingsScreen({ user, transactions, onLogOut, onDeleteAll, onDe
           </div>
 
           {/* Main entries */}
-          <div className="bg-card rounded-2xl divide-y divide-divider md:bg-transparent md:divide-y-0 md:grid md:grid-cols-2 md:gap-3">
-            <Row icon="⚙️" color="#8B8B8B" label="Generali" sub="Tema, patrimonio" onClick={() => enterSub('generali')} />
-            <Row icon="🗂️" color="#6FA8DC" label="Gestione" sub="Conti e categorie" onClick={() => enterSub('gestione')} />
-            <Row icon="💾" color="#8A9270" label="Dati" sub="Esporta, elimina" onClick={() => enterSub('dati')} />
-            <Row icon="ℹ️" color="#88B0C0" label="Come funziona" sub="Calcoli e formule" onClick={() => enterSub('info')} />
-            <Row icon="💬" color="#E6B95C" label="Lascia un feedback" sub="Problemi, idee, suggerimenti" onClick={() => setFeedbackOpen(true)} />
-          </div>
+          {uiV2 ? (
+            <div className="space-y-5">
+              <MenuSection title="Preferenze">
+                <Row icon="🎨" color="#8B8B8B" label="Aspetto" sub="Tema chiaro/scuro" onClick={() => enterSub('generali')} />
+              </MenuSection>
+              <MenuSection title="Il tuo Sunny">
+                <Row icon="🎯" color="#E6B95C" label="Piano e budget" sub="Obiettivi, limiti, previsioni" onClick={() => enterSub('generali')} />
+                <Row icon="📊" color="#6FA8DC" label="Investimenti" sub="Portafoglio e capitale" onClick={() => enterSub('generali')} />
+                <Row icon="✨" color="#8A9270" label="AI abilitata" sub="Suggerimenti e riepilogo mensile" onClick={() => enterSub('generali')} />
+                {push.supported && (
+                  <Row icon="🔔" color="#88B0C0" label="Notifiche" sub="Promemoria e aggiornamenti" onClick={() => enterSub('generali')} />
+                )}
+              </MenuSection>
+              <MenuSection title="Dati">
+                <Row icon="💾" color="#8A9270" label="Dati" sub="Importa CSV, esporta, elimina" onClick={() => enterSub('dati')} />
+              </MenuSection>
+              <MenuSection title="Personalizzazione">
+                <Row icon="🗂️" color="#6FA8DC" label="Conti e categorie" sub="Saldi, icone, ordine" onClick={() => enterSub('gestione')} />
+              </MenuSection>
+              <MenuSection title="Supporto">
+                <Row icon="💬" color="#E6B95C" label="Lascia un feedback" sub="Problemi, idee, suggerimenti" onClick={() => setFeedbackOpen(true)} />
+                <Row icon="ℹ️" color="#88B0C0" label="Come funziona" sub="Calcoli e formule" onClick={() => enterSub('info')} />
+                <Row icon="📋" color="#8B8B8B" label="Versioni" sub={`v${APP_VERSION}`} onClick={() => enterSub('versioni')} />
+              </MenuSection>
+              <MenuSection title="Avanzate">
+                <Row icon="🔍" color="#8B8B8B" label="Analisi e AI" sub="Profondità insight, widget coach" onClick={() => enterSub('generali')} />
+              </MenuSection>
+            </div>
+          ) : (
+            <div className="bg-card rounded-2xl divide-y divide-divider md:bg-transparent md:divide-y-0 md:grid md:grid-cols-2 md:gap-3">
+              <Row icon="⚙️" color="#8B8B8B" label="Generali" sub="Tema, patrimonio" onClick={() => enterSub('generali')} />
+              <Row icon="🗂️" color="#6FA8DC" label="Gestione" sub="Conti e categorie" onClick={() => enterSub('gestione')} />
+              <Row icon="💾" color="#8A9270" label="Dati" sub="Esporta, elimina" onClick={() => enterSub('dati')} />
+              <Row icon="ℹ️" color="#88B0C0" label="Come funziona" sub="Calcoli e formule" onClick={() => enterSub('info')} />
+              <Row icon="💬" color="#E6B95C" label="Lascia un feedback" sub="Problemi, idee, suggerimenti" onClick={() => setFeedbackOpen(true)} />
+            </div>
+          )}
 
           <div className="text-center pt-2 space-y-1.5">
             <p className="text-xs text-secondary/60 flex items-center justify-center gap-1.5">
@@ -224,7 +255,7 @@ export function SettingsScreen({ user, transactions, onLogOut, onDeleteAll, onDe
                 <span className="px-1.5 py-0.5 rounded-md bg-gold/15 text-gold text-[10px] font-semibold tracking-wide uppercase">beta</span>
               )}
             </p>
-            <button onClick={() => enterSub('versioni')} className="text-xs font-medium text-gold">Registro versioni</button>
+            {!uiV2 && <button onClick={() => enterSub('versioni')} className="text-xs font-medium text-gold">Registro versioni</button>}
           </div>
         </>
       )}
@@ -700,6 +731,17 @@ function SettingsGroup({ title, children }: { title: string; children: React.Rea
     <div>
       <p className="label-caps text-secondary mb-2 px-1">{title}</p>
       <div className="bg-card rounded-2xl divide-y divide-divider overflow-hidden">{children}</div>
+    </div>
+  );
+}
+
+function MenuSection({ title, children }: { title: string; children: React.ReactNode }) {
+  return (
+    <div>
+      <p className="label-caps text-secondary mb-2 px-1">{title}</p>
+      <div className="bg-card rounded-2xl divide-y divide-divider md:bg-transparent md:divide-y-0 md:grid md:grid-cols-2 md:gap-3">
+        {children}
+      </div>
     </div>
   );
 }
