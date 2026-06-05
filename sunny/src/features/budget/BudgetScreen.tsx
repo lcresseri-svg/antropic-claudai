@@ -15,7 +15,6 @@ import { CategoryBudgetList } from './CategoryBudgetList';
 import { BudgetInsights } from './BudgetInsights';
 import { BudgetOverview } from './BudgetOverview';
 import { BudgetEditSheet } from './BudgetEditSheet';
-import { MonthGoalCard } from './MonthGoalCard';
 import { formatCurrency, currentMonthLabel, capitalize } from '../../utils';
 
 type EditSection = 'savings' | 'income' | 'expenses' | 'investments';
@@ -189,43 +188,6 @@ export function BudgetScreen({
     [expenseCats, expenseSpend, activeExpBudgets, predicted, budget.savingsTarget],
   );
 
-  // Full MonthForecast object (predicted is just .savings, but MonthGoalCard needs the full obj)
-  const forecastObj = useMemo(() => {
-    if (isLearning) {
-      return { expectedIncome: monthlyIncome, projectedExpenses: monthlyExpenses, expectedInvest: monthlyInvestments, savings: 420 };
-    }
-    const now = new Date();
-    const h = history(transactions, 3);
-    const seasonalVar = seasonalVariableMonthly(transactions, now.getMonth(), now);
-    const today = now.toISOString().slice(0, 10);
-    const curKey = now.toISOString().slice(0, 7);
-    const lastDay = new Date(now.getFullYear(), now.getMonth() + 1, 0).getDate();
-    const monthEnd = `${curKey}-${String(lastDay).padStart(2, '0')}`;
-    const upcomingRecurring = upcomingRecurringThisMonth(transactions, today, monthEnd)
-      + upcomingPlannedThisMonth(transactions, today, monthEnd);
-    const upcomingIncome = upcomingRecurringThisMonth(transactions, today, monthEnd, 'income')
-      + upcomingPlannedThisMonth(transactions, today, monthEnd, 'income');
-    const upcomingInvest = upcomingRecurringThisMonth(transactions, today, monthEnd, 'investment')
-      + upcomingPlannedThisMonth(transactions, today, monthEnd, 'investment');
-    let variableSpent = 0;
-    for (const t of transactions) {
-      if (t.type !== 'expense' || t.date.slice(0, 7) !== curKey) continue;
-      if (t.seriesId || t.recurring) continue;
-      if (t.date > today) continue;
-      variableSpent += ownShare(t);
-    }
-    return forecastSavings({
-      monthlyIncome, monthlyExpenses, monthlyInvestments,
-      variableSpent,
-      recentVariableAvg: h.avgVariableExpense,
-      seasonalVariableAvg: seasonalVar.avg, seasonalYears: seasonalVar.years,
-      avgIncome: h.avgIncome, avgInvest: h.avgInvest,
-      upcomingRecurring, upcomingIncome, upcomingInvest,
-    });
-  }, [isLearning, transactions, monthlyIncome, monthlyExpenses, monthlyInvestments]);
-
-  const [planOpen, setPlanOpen] = useState(true);
-
   const openEdit = (section: EditSection = 'expenses', catId?: string) => {
     setEditSection(section);
     setFocusCategory(catId ?? null);
@@ -233,8 +195,8 @@ export function BudgetScreen({
   };
 
   return (
-    <div className="pb-32 space-y-5">
-      <h1 className="text-2xl font-bold text-primary tracking-[-0.03em]">Piano</h1>
+    <div className="pb-32 space-y-6">
+      <h1 className="text-2xl font-bold text-primary tracking-[-0.03em]">Budget</h1>
 
       {isLearning && (
         <div className="glass-card rounded-2xl px-4 py-3 flex items-center gap-2.5">
@@ -243,25 +205,11 @@ export function BudgetScreen({
         </div>
       )}
 
-      {/* 1 — Obiettivo del mese */}
-      <MonthGoalCard
-        savingsTarget={budget.savingsTarget}
-        forecast={forecastObj}
-        onEdit={() => openEdit('savings')}
-      />
-
-      {/* 2 — Sunny consiglia */}
-      <BudgetInsights insights={insights} />
-
-      {/* 3 — Suggerimento se non ha ancora budget */}
-      {!hasBudget && (
-        <SuggestedBudgetCard
-          categories={expenseCats}
-          suggested={suggested}
-          onAccept={() => acceptSuggestion(suggested, budget.savingsTarget)}
-          onEdit={() => openEdit('expenses')}
-        />
-      )}
+      {/* Panoramica del mese */}
+      <div className="space-y-3">
+        <BudgetOverview plannedIncome={plannedIncome} plannedExpenses={plannedExpenses} plannedInvestments={plannedInvestments} showInvest={enableInvestments} />
+        <SavingsGoalCard predicted={predicted} target={budget.savingsTarget} onEdit={() => openEdit('savings')} />
+      </div>
 
       {/* Banner stagionale */}
       {season && seasonCat && (
@@ -275,80 +223,69 @@ export function BudgetScreen({
         </div>
       )}
 
-      {/* 4 — Tutto il piano (espandibile) */}
-      <div className="glass-card rounded-2xl overflow-hidden">
-        <button
-          type="button"
-          onClick={() => setPlanOpen(o => !o)}
-          className="w-full flex items-center justify-between px-5 py-4 text-left"
-        >
-          <p className="text-[13px] font-semibold text-primary">Tutto il piano</p>
-          <span className="text-secondary text-[11px]">{planOpen ? '▲' : '▼'}</span>
-        </button>
+      {!hasBudget && (
+        <SuggestedBudgetCard
+          categories={expenseCats}
+          suggested={suggested}
+          onAccept={() => acceptSuggestion(suggested, budget.savingsTarget)}
+          onEdit={() => openEdit('expenses')}
+        />
+      )}
 
-        {planOpen && (
-          <div className="px-5 pb-5 space-y-5 border-t border-white/[0.04]">
-            {/* Panoramica */}
-            <div className="pt-4 space-y-3">
-              <BudgetOverview plannedIncome={plannedIncome} plannedExpenses={plannedExpenses} plannedInvestments={plannedInvestments} showInvest={enableInvestments} />
-              <SavingsGoalCard predicted={predicted} target={budget.savingsTarget} onEdit={() => openEdit('savings')} />
-            </div>
-
-            {/* Entrate previste */}
-            <div className="space-y-3">
-              <CategoryBudgetList
-                categories={incomeCats}
-                spend={incomeCategoryTotals}
-                budgets={activeIncBudgets}
-                mode="income"
-                scheduled={scheduledByCategory}
-                onEditCategory={id => openEdit('income', id)}
-              />
-              {incomeCats.length > 0 && Object.keys(activeIncBudgets).length === 0 && (
-                <button
-                  onClick={() => openEdit('income')}
-                  className="w-full bg-elevated rounded-2xl px-4 py-3 flex items-center gap-2.5 text-left">
-                  <span className="text-gold">+</span>
-                  <p className="text-[13px] text-secondary">Aggiungi entrate previste per categoria</p>
-                </button>
-              )}
-            </div>
-
-            {/* Uscite */}
-            <CategoryBudgetList
-              categories={expenseCats}
-              spend={expenseSpend}
-              budgets={activeExpBudgets}
-              mode="expense"
-              projected={projectedSpend}
-              scheduled={scheduledByCategory}
-              onEditCategory={id => openEdit('expenses', id)}
-            />
-
-            {/* Investimenti */}
-            {enableInvestments && (
-              <div className="space-y-3">
-                <CategoryBudgetList
-                  categories={investmentCats}
-                  spend={investmentCategoryTotals}
-                  budgets={activeInvBudgets}
-                  mode="investment"
-                  scheduled={scheduledByCategory}
-                  onEditCategory={id => openEdit('investments', id)}
-                />
-                {investmentCats.length > 0 && Object.keys(activeInvBudgets).length === 0 && (
-                  <button
-                    onClick={() => openEdit('investments')}
-                    className="w-full bg-elevated rounded-2xl px-4 py-3 flex items-center gap-2.5 text-left">
-                    <span className="text-gold">+</span>
-                    <p className="text-[13px] text-secondary">Aggiungi obiettivi di investimento mensili</p>
-                  </button>
-                )}
-              </div>
-            )}
-          </div>
+      {/* Entrate previste */}
+      <div className="space-y-3">
+        <CategoryBudgetList
+          categories={incomeCats}
+          spend={incomeCategoryTotals}
+          budgets={activeIncBudgets}
+          mode="income"
+          scheduled={scheduledByCategory}
+          onEditCategory={id => openEdit('income', id)}
+        />
+        {incomeCats.length > 0 && Object.keys(activeIncBudgets).length === 0 && (
+          <button
+            onClick={() => openEdit('income')}
+            className="w-full glass-card rounded-2xl px-4 py-3 flex items-center gap-2.5 text-left">
+            <span className="text-gold">+</span>
+            <p className="text-[13px] text-secondary">Aggiungi entrate previste per categoria</p>
+          </button>
         )}
       </div>
+
+      {/* Uscite */}
+      <CategoryBudgetList
+        categories={expenseCats}
+        spend={expenseSpend}
+        budgets={activeExpBudgets}
+        mode="expense"
+        projected={projectedSpend}
+        scheduled={scheduledByCategory}
+        onEditCategory={id => openEdit('expenses', id)}
+      />
+
+      {/* Investimenti */}
+      {enableInvestments && (
+        <div className="space-y-3">
+          <CategoryBudgetList
+            categories={investmentCats}
+            spend={investmentCategoryTotals}
+            budgets={activeInvBudgets}
+            mode="investment"
+            scheduled={scheduledByCategory}
+            onEditCategory={id => openEdit('investments', id)}
+          />
+          {investmentCats.length > 0 && Object.keys(activeInvBudgets).length === 0 && (
+            <button
+              onClick={() => openEdit('investments')}
+              className="w-full glass-card rounded-2xl px-4 py-3 flex items-center gap-2.5 text-left">
+              <span className="text-gold">+</span>
+              <p className="text-[13px] text-secondary">Aggiungi obiettivi di investimento mensili</p>
+            </button>
+          )}
+        </div>
+      )}
+
+      <BudgetInsights insights={insights} />
 
       <BudgetEditSheet
         open={editOpen}

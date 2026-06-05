@@ -11,15 +11,15 @@
   /* ── Dark theme (default) ── */
   --c-bg:         5 5 5;
   --c-surface:    16 16 16;
-  --c-card:       15 15 15;
-  --c-card-hover: 20 20 20;
-  --c-elevated:   20 20 20;
+  --c-card:       11 11 11;
+  --c-card-hover: 18 18 18;
+  --c-elevated:   21 21 21;
   --c-primary:    240 240 240;
   --c-secondary:  102 102 102;
   --c-gold:       200 160 90;
   --c-green:      122 158 110;
   --c-red:        192 96 90;
-  --c-divider:    24 24 24;
+  --c-divider:    22 22 22;
 
   /* Accent colors for SVG / inline styles — full hex for compatibility */
   --accent-green: #7A9E6E;

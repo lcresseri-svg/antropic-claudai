@@ -287,10 +287,9 @@ export function buildInsights(input: InsightInput): Insight[] {
   const now    = input.now ?? new Date();
   const today  = now.toISOString().slice(0, 10);
   // Realized = everything except future-dated one-off "previsti" (those are
-  // forecasts, not actuals). Recurring templates are always kept even when
-  // their next date is in the future — they represent series state and are
-  // required for the upcoming-payments alert below.
-  const transactions = allTx.filter(t => !isPending(t, today) || !!t.recurring);
+  // forecasts, not actuals). All backward-looking slices below run on `realized`;
+  // the only forward-looking call that needs the planned items uses `allTx`.
+  const transactions = allTx.filter(t => !isPending(t, today));
   const curMon = monthKey(0, now);
   const prog   = monthProgress(now);
   const out: Insight[] = [];
