@@ -96,10 +96,25 @@ function computeCountCurve(
 
 // ── Tail-aware variable remaining estimator ───────────────────────────────────
 
+interface VarRemainingResult {
+  value: number;
+  paceSignal: number;
+  tailSignal: number;
+  txSignal: number;
+  expectedRemainingTx: number;
+  txCompletionFactor: number;
+  tailCap: number;
+}
+
 /**
  * Blend three signals to estimate remaining variable spend.
  * Shifts weight from pace extrapolation (over-predicts late month) to
  * historical tail distributions and transaction exhaustion (more accurate days 20+).
+ *
+ * Key improvements vs naive pace extrapolation:
+ * - txCompletionFactor: scales tail signal down when most expected tx have already occurred
+ * - Time-adjusted expected remaining tx: respects fraction of month remaining
+ * - Stronger exhaustion guard: 0.25× tail median instead of min(pace, tail.median)
  */
 function computeVariableRemainingV3(
   paceRemaining: number,
@@ -107,17 +122,37 @@ function computeVariableRemainingV3(
   recentCountMean: number,
   medianTicket: number,
   dayOfMonth: number,
+  daysInCurMonth: number,
   tail: { median: number; p75: number; samples: number },
-): number {
-  // Transaction exhaustion guard: count is at/above expected → cap at tail median
+): VarRemainingResult {
+  // txCompletionFactor: 1 = no tx done yet, 0 = all expected tx done
+  const txExhaustionRatio = recentCountMean > 0 ? catVarCount / recentCountMean : 0;
+  const txCompletionFactor = Math.max(0, 1 - txExhaustionRatio);
+
+  // Transaction exhaustion guard: count at or above expected → very small residual
   if (recentCountMean > 0 && catVarCount >= recentCountMean) {
-    return Math.max(0, Math.min(paceRemaining, tail.median));
+    const residual = Math.max(0, tail.median * 0.25);
+    return {
+      value: residual,
+      paceSignal: paceRemaining,
+      tailSignal: tail.median * 0.25,
+      txSignal: 0,
+      expectedRemainingTx: 0,
+      txCompletionFactor: 0,
+      tailCap: tail.p75,
+    };
   }
 
-  const expectedRemainingTx = Math.max(0, recentCountMean - catVarCount);
-  const txSignal = expectedRemainingTx * medianTicket;
+  // Time-adjusted expected remaining tx: cap by what's plausible in the remaining days
+  const remainingFraction = Math.max(0, (daysInCurMonth - dayOfMonth) / daysInCurMonth);
+  const rawGap = Math.max(0, recentCountMean - catVarCount);
+  const timeAdjustedRemainingTx = Math.min(rawGap, recentCountMean * remainingFraction * 1.2);
+  const txSignal = timeAdjustedRemainingTx * medianTicket;
 
-  // Blend weights shift from pace→tail as month progresses
+  // Scale tail signal by txCompletionFactor: fewer remaining tx → less tail spend expected
+  const scaledTailMedian = tail.median * txCompletionFactor;
+
+  // Blend weights shift from pace-dominant (early) to tail-dominant (late)
   let wPace: number, wTail: number, wTx: number;
   if (dayOfMonth < 10)      { wPace = 0.65; wTail = 0.25; wTx = 0.10; }
   else if (dayOfMonth < 15) { wPace = 0.50; wTail = 0.35; wTx = 0.15; }
@@ -125,15 +160,26 @@ function computeVariableRemainingV3(
   else if (dayOfMonth < 25) { wPace = 0.15; wTail = 0.55; wTx = 0.30; }
   else                      { wPace = 0.05; wTail = 0.55; wTx = 0.40; }
 
-  const blended = wPace * paceRemaining + wTail * tail.median + wTx * txSignal;
+  const blended = wPace * paceRemaining + wTail * scaledTailMedian + wTx * txSignal;
 
-  // Apply P75 cap scaled by day (prevents extreme tail estimates)
+  // P75 hard ceiling (not scaled by completion — this is an absolute maximum)
+  let tailCap = 0;
+  let result = blended;
   if (tail.p75 > 0) {
     const tailMultiplier = dayOfMonth < 15 ? 1.25 : dayOfMonth <= 21 ? 1.10 : 1.00;
-    return Math.max(0, Math.min(blended, tail.p75 * tailMultiplier));
+    tailCap = tail.p75 * tailMultiplier;
+    result = Math.min(blended, tailCap);
   }
 
-  return Math.max(0, blended);
+  return {
+    value: Math.max(0, result),
+    paceSignal: paceRemaining,
+    tailSignal: scaledTailMedian,
+    txSignal,
+    expectedRemainingTx: timeAdjustedRemainingTx,
+    txCompletionFactor,
+    tailCap,
+  };
 }
 
 // ── Input interface ───────────────────────────────────────────────────────────
@@ -175,6 +221,7 @@ export function computeForecastV3(input: ForecastV3Input): TotalForecastV3 {
   const categoryBudgets = input.categoryBudgets ?? {};
   const biasFactor = Math.max(0.75, Math.min(1.25, input.biasFactor ?? 1.0));
   const biasCorrectionApplied = biasFactor !== 1.0;
+  const daysInCurMonth = daysInMonth(now.getFullYear(), now.getMonth());
 
   // ── 1. Build category history ─────────────────────────────────────────────
   const history = buildCategoryHistory(input.transactions, catIds, curKey, cutoff);
@@ -426,6 +473,10 @@ export function computeForecastV3(input: ForecastV3Input): TotalForecastV3 {
     let explanation = '';
     let amtCurveRemaining = 0;
     let cntCurveRemaining = 0;
+    let varDebug: VarRemainingResult = {
+      value: 0, paceSignal: 0, tailSignal: 0, txSignal: 0,
+      expectedRemainingTx: 0, txCompletionFactor: 0, tailCap: 0,
+    };
 
     // ── Branch by behavior ────────────────────────────────────────────────
     if (behavior === 'recurring') {
@@ -497,10 +548,11 @@ export function computeForecastV3(input: ForecastV3Input): TotalForecastV3 {
       }
 
       const paceRemainingH = Math.max(0, blendedVariable - catVarNormal - catPlannedNormalFuture);
-      predictedVariableRemaining = computeVariableRemainingV3(
+      varDebug = computeVariableRemainingV3(
         paceRemainingH, catVarCount, stats.recentCountMean, stats.medianTicket,
-        currentDay, catTailData[catId] ?? { median: 0, p75: 0, samples: 0 },
+        currentDay, daysInCurMonth, catTailData[catId] ?? { median: 0, p75: 0, samples: 0 },
       );
+      predictedVariableRemaining = varDebug.value;
       projected = Math.round(catActualSoFar + catSchedFuture + catPlannedNormalFuture + catPlannedOneOffFuture + predictedVariableRemaining);
       reliability = Math.max(0.1, reliability);
       explanation = `${cat.label}: parte fissa ~${Math.round(fixedPart)}€ + parte variabile stimata.`;
@@ -541,10 +593,11 @@ export function computeForecastV3(input: ForecastV3Input): TotalForecastV3 {
       const paceRemainingV = Math.max(
         0, blendedProjectedMonthly - catVarNormal - catPlannedNormalFuture,
       );
-      predictedVariableRemaining = computeVariableRemainingV3(
+      varDebug = computeVariableRemainingV3(
         paceRemainingV, catVarCount, stats.recentCountMean, stats.medianTicket,
-        currentDay, catTailData[catId] ?? { median: 0, p75: 0, samples: 0 },
+        currentDay, daysInCurMonth, catTailData[catId] ?? { median: 0, p75: 0, samples: 0 },
       );
+      predictedVariableRemaining = varDebug.value;
       projected = Math.round(
         catActualSoFar + catSchedFuture + catPlannedNormalFuture +
         catPlannedOneOffFuture + predictedVariableRemaining,
@@ -565,6 +618,8 @@ export function computeForecastV3(input: ForecastV3Input): TotalForecastV3 {
     // predicted wrong, the fix is better classification, not bias scaling.
     // Bias applies only to the statistical variable estimate.
     const projectedRaw = projected;
+    const variableBeforeBias = predictedVariableRemaining;
+    const deterministicComponent = projectedRaw - variableBeforeBias;
     const biasApplicable =
       behavior === 'variable_frequent' ||
       behavior === 'variable_sparse' ||
@@ -578,6 +633,8 @@ export function computeForecastV3(input: ForecastV3Input): TotalForecastV3 {
       projected = projected - predictedVariableRemaining + calibrated;
       predictedVariableRemaining = calibrated;
     }
+
+    const tailData = catTailData[catId] ?? { median: 0, p75: 0, samples: 0 };
 
     // ── Confidence interval ───────────────────────────────────────────────
     const halfWidth = behaviorIntervalWidth(behavior);
@@ -614,6 +671,14 @@ export function computeForecastV3(input: ForecastV3Input): TotalForecastV3 {
       explanation,
       composition,
       treatmentBreakdown: breakdownMap[catId] ?? makeBreakdown(),
+      deterministicComponent: Math.round(deterministicComponent),
+      variableBeforeBias: Math.round(variableBeforeBias),
+      tailMedian: Math.round(tailData.median),
+      tailP75: Math.round(tailData.p75),
+      tailSamples: tailData.samples,
+      expectedRemainingTx: Math.round(varDebug.expectedRemainingTx * 10) / 10,
+      paceRemainingSignal: Math.round(varDebug.paceSignal),
+      txCompletionFactor: Math.round(varDebug.txCompletionFactor * 100) / 100,
     });
   }
 

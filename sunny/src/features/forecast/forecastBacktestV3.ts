@@ -7,6 +7,10 @@
  *   - Additional metrics: medAE, WAPE, per-day breakdown
  *   - Bias correction factor computed from the VARIABLE component only
  *     (deterministic amounts are not touched by bias correction)
+ *   - actualDeterministic derived from tx flags (seriesId || recurring) to avoid
+ *     the circular formula that made variableTailError == totalError
+ *   - Snapshot filter includes future recurring/scheduled expense transactions to
+ *     match production behavior where the recurring Cloud Function pre-inserts them
  */
 import { Transaction, CategoryDef, ownShare } from '../../types';
 import { computeForecastV3 } from './forecastEngineV3';
@@ -19,8 +23,14 @@ const SNAPSHOT_DAYS = [5, 10, 15, 20, 25];
 interface InternalSnapshot extends BacktestSnapshotV3 {
   predictedVariableTotal: number;
   deterministicTotal: number;
-  /** predictedVariableTotal − max(0, actual − deterministicTotal) */
+  /** Actual variable spend derived from tx flags (not circular estimate). */
+  actualVariable: number;
+  /** Actual deterministic spend derived from tx flags. */
+  actualDeterministic: number;
+  /** predictedVariableTotal − actualVariable */
   variableTailError: number;
+  /** deterministicTotal − actualDeterministic */
+  deterministicError: number;
 }
 
 /**
@@ -28,7 +38,9 @@ interface InternalSnapshot extends BacktestSnapshotV3 {
  *
  * For each historical month M and each snapshot day D:
  *  1. Pretend `now` is day D of month M.
- *  2. Feed the engine only transactions on or before that snapshot date.
+ *  2. Feed the engine transactions on or before that snapshot date PLUS any
+ *     future-dated expense transactions in month M with seriesId/recurring set
+ *     (matching production: recurring Cloud Function pre-inserts scheduled items).
  *  3. Compare prediction against actual full-month spend.
  *
  * Returns metrics + a variable-only bias factor to apply to future forecasts.
@@ -54,9 +66,35 @@ export function runBacktestV3(
 
     if (actual === 0) continue;
 
+    // Compute actual deterministic from tx flags once per month (avoids circular formula).
+    // "Deterministic" = transactions with seriesId or recurring flag set.
+    const actualDeterministic = Math.round(
+      transactions
+        .filter(t =>
+          t.type === 'expense' &&
+          t.date.slice(0, 7) === monthKey &&
+          (t.seriesId || t.recurring),
+        )
+        .reduce((s, t) => s + ownShare(t), 0),
+    );
+    const actualVariable = Math.round(Math.max(0, actual - actualDeterministic));
+
     for (const day of SNAPSHOT_DAYS) {
       const snapshotISO = `${monthKey}-${String(day).padStart(2, '0')}`;
-      const snapshotTx = transactions.filter(t => t.date <= snapshotISO);
+
+      // Include transactions up to snapshot date PLUS future-dated scheduled/recurring
+      // expense transactions in the same month — matching production behavior where
+      // the Cloud Function pre-inserts recurring items at the start of the month.
+      const snapshotTx = transactions.filter(t =>
+        t.date <= snapshotISO ||
+        (
+          t.date.slice(0, 7) === monthKey &&
+          t.date > snapshotISO &&
+          (t.seriesId || t.recurring) &&
+          t.type === 'expense'
+        ),
+      );
+
       const snapshotDate = new Date(targetYear, targetMonthRaw, day);
 
       const monthlyIncome = snapshotTx
@@ -85,9 +123,11 @@ export function runBacktestV3(
         (s, c) => s + c.predictedVariableRemaining, 0,
       );
       const deterministicTotal = predicted - predictedVariableTotal;
-      // variableTailError: how far off the variable estimate was
-      // actualVariable ≈ actual - deterministicTotal (estimated)
-      const variableTailError = Math.round(predictedVariableTotal - Math.max(0, actual - deterministicTotal));
+
+      // variableTailError: how far off the variable estimate was vs actual variable spend
+      const variableTailError = Math.round(predictedVariableTotal - actualVariable);
+      // deterministicError: how far off the deterministic estimate was
+      const deterministicError = Math.round(deterministicTotal - actualDeterministic);
 
       snapshots.push({
         monthKey,
@@ -99,7 +139,10 @@ export function runBacktestV3(
         relError,
         predictedVariableTotal: Math.round(predictedVariableTotal),
         deterministicTotal: Math.round(deterministicTotal),
+        actualVariable,
+        actualDeterministic,
         variableTailError,
+        deterministicError,
       });
     }
   }
@@ -126,16 +169,13 @@ export function runBacktestV3(
   // Bias correction must only apply to the statistical variable component, not to
   // locked/scheduled/recurring/periodic deterministic amounts.
   //
-  // For each snapshot:
-  //   actualVariable ≈ actual - deterministicTotal (the actual variable spend)
-  //   predictedVariable = predictedVariableTotal (engine's variable estimate)
-  //
   // biasFactor = mean(actualVariable) / mean(predictedVariable), clamp [0.75, 1.25]
+  // Uses actualVariable derived from tx flags (not the circular estimate).
   const variableSnaps = snapshots.filter(s => s.predictedVariableTotal > 0);
   let biasFactor = 1.0;
   if (variableSnaps.length > 0) {
     const meanActualVar = variableSnaps.reduce(
-      (s, m) => s + Math.max(0, m.actual - m.deterministicTotal), 0,
+      (s, m) => s + m.actualVariable, 0,
     ) / variableSnaps.length;
     const meanPredictedVar = variableSnaps.reduce(
       (s, m) => s + m.predictedVariableTotal, 0,
@@ -151,8 +191,9 @@ export function runBacktestV3(
   const r2 = ssTot > 0 ? 1 - ssRes / ssTot : 1;
 
   // ── Per-component error metrics ───────────────────────────────────────────
+  // Variable component: predictedVariableTotal vs actualVariable (from tx flags)
   const variableSnapsAll = snapshots.filter(s => s.predictedVariableTotal > 0);
-  const totalPredVar = variableSnapsAll.reduce((s, m) => s + m.predictedVariableTotal, 0);
+  const totalActualVar = variableSnapsAll.reduce((s, m) => s + m.actualVariable, 0);
   const variableTail = {
     mae: variableSnapsAll.length > 0
       ? Math.round(variableSnapsAll.reduce((s, m) => s + Math.abs(m.variableTailError), 0) / variableSnapsAll.length)
@@ -160,22 +201,22 @@ export function runBacktestV3(
     bias: variableSnapsAll.length > 0
       ? Math.round(variableSnapsAll.reduce((s, m) => s + m.variableTailError, 0) / variableSnapsAll.length)
       : 0,
-    wape: totalPredVar > 0
-      ? Math.round(variableSnapsAll.reduce((s, m) => s + Math.abs(m.variableTailError), 0) / totalPredVar * 1000) / 10
+    wape: totalActualVar > 0
+      ? Math.round(variableSnapsAll.reduce((s, m) => s + Math.abs(m.variableTailError), 0) / totalActualVar * 1000) / 10
       : 0,
   };
-  // Deterministic: compare deterministicTotal against estimated actual deterministic
-  const detErrors = snapshots.map(m => m.deterministicTotal - Math.max(0, m.actual - m.predictedVariableTotal));
-  const totalDetActual = snapshots.reduce((s, m) => s + Math.max(0, m.actual - m.predictedVariableTotal), 0);
+
+  // Deterministic component: deterministicTotal vs actualDeterministic (from tx flags)
+  const totalActualDet = snapshots.reduce((s, m) => s + m.actualDeterministic, 0);
   const deterministic = {
     mae: snapshots.length > 0
-      ? Math.round(detErrors.reduce((s, e) => s + Math.abs(e), 0) / snapshots.length)
+      ? Math.round(snapshots.reduce((s, m) => s + Math.abs(m.deterministicError), 0) / snapshots.length)
       : 0,
     bias: snapshots.length > 0
-      ? Math.round(detErrors.reduce((s, e) => s + e, 0) / snapshots.length)
+      ? Math.round(snapshots.reduce((s, m) => s + m.deterministicError, 0) / snapshots.length)
       : 0,
-    wape: totalDetActual > 0
-      ? Math.round(detErrors.reduce((s, e) => s + Math.abs(e), 0) / totalDetActual * 1000) / 10
+    wape: totalActualDet > 0
+      ? Math.round(snapshots.reduce((s, m) => s + Math.abs(m.deterministicError), 0) / totalActualDet * 1000) / 10
       : 0,
   };
 

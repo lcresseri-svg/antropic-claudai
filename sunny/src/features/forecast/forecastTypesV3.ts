@@ -97,6 +97,23 @@ export interface CategoryForecastV3 {
   composition: ForecastComposition;
   /** Current-month transaction classification counts. */
   treatmentBreakdown: TreatmentBreakdown;
+  // ── Debug / signal tracing fields ─────────────────────────────────────────
+  /** Deterministic component: actuals + scheduled future + plans (no statistical estimate). */
+  deterministicComponent: number;
+  /** Statistical variable estimate before bias correction. */
+  variableBeforeBias: number;
+  /** Historical tail median for remaining variable spend (€). */
+  tailMedian: number;
+  /** Historical tail P75 used as cap (€). */
+  tailP75: number;
+  /** Number of historical months used for tail distribution. */
+  tailSamples: number;
+  /** Time-adjusted expected remaining transactions this month. */
+  expectedRemainingTx: number;
+  /** Pace remaining signal fed to the 3-signal blend (€). */
+  paceRemainingSignal: number;
+  /** Transaction completion factor [0,1]. Near 0 = most expected tx already done. */
+  txCompletionFactor: number;
 }
 
 // ── Total V3 forecast ────────────────────────────────────────────────────────

@@ -19,17 +19,24 @@ interface Props {
 }
 
 const BEHAVIOR_META: Record<CategoryBehavior, { label: string; color: string; bg: string }> = {
-  recurring:          { label: '🔁 Ricorrente',      color: 'text-[#8A9270]',  bg: 'bg-[#8A9270]/15' },
-  recurring_bundle:   { label: '📦 Bundle abbonamenti', color: 'text-emerald-400', bg: 'bg-emerald-400/10' },
-  fixed_monthly:      { label: '🔒 Fisso mensile',    color: 'text-[#8A9270]',  bg: 'bg-[#8A9270]/15' },
-  periodic_fixed:     { label: '📅 Periodico',        color: 'text-blue-400',   bg: 'bg-blue-500/10' },
-  hybrid:             { label: '⚡ Ibrido',           color: 'text-gold',       bg: 'bg-gold/10' },
-  variable_frequent:  { label: '📊 Variabile freq.',  color: 'text-tertiary',   bg: 'bg-elevated' },
-  variable_sparse:    { label: '📊 Variabile raro',   color: 'text-tertiary',   bg: 'bg-elevated' },
-  volatile_mixed:     { label: '⚠️ Volatile',         color: 'text-[#C0706A]',  bg: 'bg-[#C0706A]/10' },
-  stale:              { label: '💤 Inattiva',          color: 'text-tertiary',   bg: 'bg-elevated' },
-  unknown:            { label: '❓ Sconosciuto',       color: 'text-tertiary',   bg: 'bg-elevated' },
+  recurring:          { label: '🔁 Ricorrente',         color: 'text-[#8A9270]',  bg: 'bg-[#8A9270]/15' },
+  recurring_bundle:   { label: '📦 Bundle abbonamenti',  color: 'text-emerald-400', bg: 'bg-emerald-400/10' },
+  fixed_monthly:      { label: '🔒 Fisso mensile',       color: 'text-[#8A9270]',  bg: 'bg-[#8A9270]/15' },
+  periodic_fixed:     { label: '📅 Periodico',           color: 'text-blue-400',   bg: 'bg-blue-500/10' },
+  hybrid:             { label: '⚡ Ibrido',              color: 'text-gold',       bg: 'bg-gold/10' },
+  variable_frequent:  { label: '📊 Variabile frequente', color: 'text-tertiary',   bg: 'bg-elevated' },
+  variable_sparse:    { label: '📊 Variabile raro',      color: 'text-tertiary',   bg: 'bg-elevated' },
+  volatile_mixed:     { label: '⚠️ Volatile',            color: 'text-[#C0706A]',  bg: 'bg-[#C0706A]/10' },
+  stale:              { label: '💤 Inattiva',             color: 'text-tertiary',   bg: 'bg-elevated' },
+  unknown:            { label: '❓ Sconosciuto',          color: 'text-tertiary',   bg: 'bg-elevated' },
 };
+
+function wapeGrade(wape: number): { label: string; color: string } {
+  if (wape < 8)  return { label: 'A — Ottimo',   color: 'text-[#8A9270]' };
+  if (wape < 15) return { label: 'B — Buono',    color: 'text-[#8A9270]' };
+  if (wape < 25) return { label: 'C — Accettabile', color: 'text-gold' };
+  return             { label: 'D — Migliorabile', color: 'text-[#C0706A]' };
+}
 
 export function ForecastV3Screen({ transactions, expenseCategories, monthlyIncome, monthlyInvestments }: Props) {
   const [showBacktest, setShowBacktest] = useState(false);
@@ -47,6 +54,7 @@ export function ForecastV3Screen({ transactions, expenseCategories, monthlyIncom
   });
 
   const fmt = (n: number) => `€${Math.round(Math.abs(n)).toLocaleString('it-IT')}`;
+  const fmtSigned = (n: number) => `${n >= 0 ? '+' : '−'}${fmt(n)}`;
   const pct = (n: number) => `${Math.round(n * 100)}%`;
   const rlColor = (r: number) => r >= 0.7 ? 'text-[#8A9270]' : r >= 0.4 ? 'text-gold' : 'text-[#C0706A]';
   const rlLabel = (r: number) => r >= 0.7 ? 'Alta' : r >= 0.4 ? 'Media' : 'Bassa';
@@ -72,7 +80,7 @@ export function ForecastV3Screen({ transactions, expenseCategories, monthlyIncom
       <div className="glass-card rounded-2xl p-5 space-y-4">
         <div className="flex items-start justify-between">
           <div>
-            <p className="text-xs text-tertiary uppercase tracking-wide mb-1">Spese previste V3</p>
+            <p className="text-xs text-tertiary uppercase tracking-wide mb-1">Spese previste a fine mese</p>
             <p className="text-3xl font-bold text-primary tracking-[-0.04em]">{fmt(v3.projectedExpenses)}</p>
           </div>
           <div className="text-right">
@@ -83,18 +91,16 @@ export function ForecastV3Screen({ transactions, expenseCategories, monthlyIncom
           </div>
         </div>
 
-        {compareV2 && (
-          <div className="h-px bg-divider" />
-        )}
+        {compareV2 && <div className="h-px bg-divider" />}
 
         {compareV2 && (
           <div className="grid grid-cols-3 gap-3 text-center">
-            <Kpi label="V2" value={fmt(v2.projectedExpenses)} sub="previsione V2" />
-            <Kpi label="V3" value={fmt(v3.projectedExpenses)} sub="previsione V3" />
+            <Kpi label="V2" value={fmt(v2.projectedExpenses)} sub="vecchio motore" />
+            <Kpi label="V3" value={fmt(v3.projectedExpenses)} sub="nuovo motore" />
             <Kpi
-              label="Δ"
+              label="Differenza"
               value={`${v3.projectedExpenses >= v2.projectedExpenses ? '+' : ''}${fmt(v3.projectedExpenses - v2.projectedExpenses)}`}
-              sub={`V3 ${v3.projectedExpenses > v2.projectedExpenses ? 'più alta' : 'più bassa'} di V2`}
+              sub={`V3 ${v3.projectedExpenses > v2.projectedExpenses ? 'più alta' : 'più bassa'}`}
               highlight={Math.abs(v3.projectedExpenses - v2.projectedExpenses) > 50}
             />
           </div>
@@ -102,7 +108,6 @@ export function ForecastV3Screen({ transactions, expenseCategories, monthlyIncom
 
         <div className="h-px bg-divider" />
 
-        {/* Controls */}
         <div className="flex flex-wrap gap-2">
           <Toggle label="Confronto V2" value={compareV2} onChange={setCompareV2} />
           <Toggle
@@ -122,7 +127,10 @@ export function ForecastV3Screen({ transactions, expenseCategories, monthlyIncom
 
       {/* Behavior legend */}
       <div className="glass-card rounded-2xl p-4">
-        <p className="text-xs font-semibold text-tertiary uppercase tracking-wide mb-3">Legenda comportamenti</p>
+        <p className="text-xs font-semibold text-tertiary uppercase tracking-wide mb-1">Comportamenti rilevati</p>
+        <p className="text-[11px] text-tertiary mb-3">
+          Il motore classifica ogni categoria in base alla regolarità storica per scegliere il metodo di stima più accurato.
+        </p>
         <div className="flex flex-wrap gap-1.5">
           {(Object.entries(BEHAVIOR_META) as [CategoryBehavior, typeof BEHAVIOR_META[CategoryBehavior]][]).map(([key, meta]) => (
             <span key={key} className={`text-[10px] px-2 py-0.5 rounded-full font-medium ${meta.color} ${meta.bg}`}>
@@ -134,7 +142,10 @@ export function ForecastV3Screen({ transactions, expenseCategories, monthlyIncom
 
       {/* Category breakdown */}
       <div>
-        <h2 className="text-base font-semibold text-primary mb-3">Per categoria</h2>
+        <h2 className="text-base font-semibold text-primary mb-1">Dettaglio categorie</h2>
+        <p className="text-xs text-tertiary mb-3">
+          Clicca su una categoria per vedere come è composta la previsione e i segnali usati dal motore.
+        </p>
         <div className="space-y-2">
           {v3.categories
             .filter(c => c.projected > 0 || c.actualSoFar > 0)
@@ -148,6 +159,7 @@ export function ForecastV3Screen({ transactions, expenseCategories, monthlyIncom
                 icon={expenseCategories.find(x => x.id === c.categoryId)?.icon ?? ''}
                 rlColor={rlColor}
                 fmt={fmt}
+                fmtSigned={fmtSigned}
                 pct={pct}
               />
             ))}
@@ -160,12 +172,12 @@ export function ForecastV3Screen({ transactions, expenseCategories, monthlyIncom
           onClick={() => setShowBacktest(s => !s)}
           className="w-full flex items-center justify-between px-5 py-4 text-sm font-medium text-primary hover:bg-card-hover transition-colors"
         >
-          <span>Backtest V3 (multi-snapshot)</span>
+          <span>Backtest V3 — accuratezza storica</span>
           <ChevronIcon open={showBacktest} />
         </button>
         {showBacktest && v3Backtest && (
           <div className="px-5 pb-5 border-t border-divider">
-            <BacktestPanel result={v3Backtest} fmt={fmt} />
+            <BacktestPanel result={v3Backtest} fmt={fmt} fmtSigned={fmtSigned} />
           </div>
         )}
         {showBacktest && !v3Backtest && (
@@ -216,7 +228,7 @@ function ReliabilityBar({ value }: { value: number }) {
 }
 
 function CategoryRow({
-  v3, v2, label, icon, rlColor, fmt, pct,
+  v3, v2, label, icon, rlColor, fmt, fmtSigned, pct,
 }: {
   v3: CategoryForecastV3;
   v2?: CategoryForecastV2;
@@ -224,6 +236,7 @@ function CategoryRow({
   icon: string;
   rlColor: (r: number) => string;
   fmt: (n: number) => string;
+  fmtSigned: (n: number) => string;
   pct: (n: number) => string;
 }) {
   const [open, setOpen] = useState(false);
@@ -241,6 +254,8 @@ function CategoryRow({
     { label: 'Straordinarie', count: tb.oneOffExtra },
   ].filter(c => c.count > 0);
 
+  const hasVariableSignals = v3.tailSamples > 0 || v3.paceRemainingSignal > 0;
+
   return (
     <div className="glass-card rounded-xl overflow-hidden">
       <button
@@ -250,7 +265,6 @@ function CategoryRow({
         <span className="text-lg w-6 flex-shrink-0 text-center">{icon}</span>
         <span className="flex-1 text-sm font-medium text-primary">{label}</span>
 
-        {/* Confidence interval + projected */}
         <div className="text-right flex-shrink-0">
           <span className="text-sm font-semibold text-primary">{fmt(v3.projected)}</span>
           {v3.projectedHigh > v3.projectedLow && (
@@ -273,17 +287,15 @@ function CategoryRow({
       </button>
 
       {open && (
-        <div className="px-4 pb-3 border-t border-divider space-y-2 pt-3">
-          {/* Behavior badge + reasons */}
+        <div className="px-4 pb-3 border-t border-divider space-y-3 pt-3">
+          {/* Behavior + confidence */}
           <div className="flex items-center gap-2 flex-wrap">
             <span className={`text-[10px] px-2 py-0.5 rounded-full font-medium ${meta.color} ${meta.bg}`}>
               {meta.label}
             </span>
-            {v3.behaviorResult.confidence !== 'low' && (
-              <span className="text-[10px] text-tertiary">
-                confidenza {v3.behaviorResult.confidence === 'high' ? 'alta' : 'media'}
-              </span>
-            )}
+            <span className="text-[10px] text-tertiary">
+              confidenza {v3.behaviorResult.confidence === 'high' ? 'alta' : v3.behaviorResult.confidence === 'medium' ? 'media' : 'bassa'}
+            </span>
             {v3.biasCorrection !== 1.0 && (
               <span className="text-[10px] px-1.5 py-0.5 rounded-full bg-gold/10 text-gold">
                 bias ×{v3.biasCorrection.toFixed(2)}
@@ -291,52 +303,102 @@ function CategoryRow({
             )}
           </div>
 
-          {/* Composition */}
-          {comp.actualVariableNormalSoFar > 0 && (
-            <DetailRow label="Variabile registrato" value={fmt(comp.actualVariableNormalSoFar)} />
-          )}
-          {comp.actualScheduledSoFar > 0 && (
-            <DetailRow label="Ricorrenti registrate" value={fmt(comp.actualScheduledSoFar)} />
-          )}
-          {comp.actualOneOffSoFar > 0 && (
-            <DetailRow label="Straordinarie registrate" value={fmt(comp.actualOneOffSoFar)} />
-          )}
-          {comp.scheduledFuture > 0 && (
-            <DetailRow label="Ricorrenti previste" value={fmt(comp.scheduledFuture)} />
-          )}
-          {comp.plannedNormalFuture > 0 && (
-            <DetailRow label="Pianificate (normali)" value={fmt(comp.plannedNormalFuture)} />
-          )}
-          {comp.plannedOneOffFuture > 0 && (
-            <DetailRow label="Pianificate (straordinarie)" value={fmt(comp.plannedOneOffFuture)} />
-          )}
-          <DetailRow label="Variabile stimata" value={fmt(comp.predictedVariableRemaining)} />
+          {/* Composition — what makes up the projected total */}
+          <div>
+            <p className="text-[10px] text-tertiary uppercase tracking-wide mb-1.5">Composizione previsione</p>
+            <div className="space-y-1">
+              {comp.actualVariableNormalSoFar > 0 && (
+                <DetailRow label="Variabile già registrato" value={fmt(comp.actualVariableNormalSoFar)} hint="spesa variabile già avvenuta questo mese" />
+              )}
+              {comp.actualScheduledSoFar > 0 && (
+                <DetailRow label="Ricorrenti già registrate" value={fmt(comp.actualScheduledSoFar)} hint="abbonamenti/ricorrenti già incassati" />
+              )}
+              {comp.actualOneOffSoFar > 0 && (
+                <DetailRow label="Straordinarie già registrate" value={fmt(comp.actualOneOffSoFar)} hint="spese eccezionali già avvenute" />
+              )}
+              {comp.scheduledFuture > 0 && (
+                <DetailRow label="Ricorrenti in arrivo" value={fmt(comp.scheduledFuture)} hint="abbonamenti/rate ancora da incassare" />
+              )}
+              {comp.plannedNormalFuture > 0 && (
+                <DetailRow label="Pianificate in arrivo" value={fmt(comp.plannedNormalFuture)} />
+              )}
+              {comp.plannedOneOffFuture > 0 && (
+                <DetailRow label="Straordinarie pianificate" value={fmt(comp.plannedOneOffFuture)} />
+              )}
+              <DetailRow
+                label="Variabile stimata"
+                value={fmt(comp.predictedVariableRemaining)}
+                hint="stima statistica spesa futura non pianificata"
+                highlight
+              />
+              <div className="flex justify-between items-baseline pt-1 border-t border-divider">
+                <span className="text-xs font-semibold text-primary">Totale previsto</span>
+                <span className="text-xs font-bold text-primary">{fmt(v3.projected)}</span>
+              </div>
+            </div>
+          </div>
 
+          {/* Variable estimation signals — only for statistical categories */}
+          {hasVariableSignals && (
+            <div>
+              <p className="text-[10px] text-tertiary uppercase tracking-wide mb-1.5">Segnali di stima variabile</p>
+              <div className="space-y-1 bg-elevated/50 rounded-lg p-2">
+                {v3.paceRemainingSignal > 0 && (
+                  <DetailRow label="Ritmo mese corrente" value={fmt(v3.paceRemainingSignal)} hint="estrapolazione dal ritmo di spesa attuale" muted />
+                )}
+                {v3.tailMedian > 0 && (
+                  <DetailRow label="Coda storica (mediana)" value={fmt(v3.tailMedian)} hint="quanto si è speso dopo oggi nei mesi passati" muted />
+                )}
+                {v3.tailP75 > 0 && (
+                  <DetailRow label="Cap P75 coda" value={fmt(v3.tailP75)} hint="tetto massimo applicato (75° percentile storico)" muted />
+                )}
+                {v3.tailSamples > 0 && (
+                  <DetailRow label="Mesi campione coda" value={`${v3.tailSamples}`} hint="quanti mesi storici sono stati usati" muted />
+                )}
+                {v3.expectedRemainingTx > 0 && (
+                  <DetailRow label="Transazioni attese" value={`${v3.expectedRemainingTx.toFixed(1)}`} hint="numero stimato di tx variabili rimanenti" muted />
+                )}
+                {v3.txCompletionFactor < 1 && (
+                  <DetailRow
+                    label="Completamento tx"
+                    value={pct(1 - v3.txCompletionFactor)}
+                    hint="% delle transazioni attese già registrate — più alto = meno coda stimata"
+                    muted
+                  />
+                )}
+              </div>
+            </div>
+          )}
+
+          {/* Amount/count curve reference signals */}
           {(v3.amountCurveRemaining > 0 || v3.countCurveRemaining > 0) && (
-            <>
-              <div className="h-px bg-divider" />
-              <div className="grid grid-cols-2 gap-x-4 gap-y-1">
+            <div>
+              <p className="text-[10px] text-tertiary uppercase tracking-wide mb-1.5">Curve di riferimento (non usate direttamente)</p>
+              <div className="grid grid-cols-2 gap-x-4 gap-y-1 bg-elevated/30 rounded-lg p-2">
                 <DetailRow label="Curva importi" value={fmt(v3.amountCurveRemaining)} muted />
                 <DetailRow label="Curva frequenza" value={fmt(v3.countCurveRemaining)} muted />
-                <DetailRow label="Peso amt" value={pct(v3.blendAlpha)} muted />
-                <DetailRow label="Peso freq" value={pct(1 - v3.blendAlpha)} muted />
+                <DetailRow label="Peso importi (α)" value={pct(v3.blendAlpha)} muted />
+                <DetailRow label="Peso frequenza" value={pct(1 - v3.blendAlpha)} muted />
               </div>
-            </>
+            </div>
           )}
 
-          {/* V3 reasons */}
+          {/* Behavior reasons from classifier */}
           {v3.behaviorResult.reasons.length > 0 && (
-            <div className="flex flex-col gap-0.5 pt-0.5">
-              {v3.behaviorResult.reasons.map((r, i) => (
-                <p key={i} className="text-[10px] text-tertiary italic">· {r}</p>
-              ))}
+            <div>
+              <p className="text-[10px] text-tertiary uppercase tracking-wide mb-1">Perché questo comportamento</p>
+              <div className="flex flex-col gap-0.5">
+                {v3.behaviorResult.reasons.map((r, i) => (
+                  <p key={i} className="text-[10px] text-tertiary italic">· {r}</p>
+                ))}
+              </div>
             </div>
           )}
 
           {/* V2 comparison */}
           {v2 && (
             <div className="pt-1 border-t border-divider">
-              <p className="text-[10px] text-tertiary uppercase tracking-wide mb-1">Confronto V2</p>
+              <p className="text-[10px] text-tertiary uppercase tracking-wide mb-1">Confronto con motore V2</p>
               <div className="flex justify-between">
                 <span className="text-xs text-secondary">V2: {fmt(v2.projected)}</span>
                 <span className="text-xs text-secondary">V3: {fmt(v3.projected)}</span>
@@ -349,9 +411,9 @@ function CategoryRow({
             </div>
           )}
 
-          {/* Treatment chips */}
+          {/* Transaction classification chips */}
           {treatmentChips.length > 0 && (
-            <div className="flex flex-wrap gap-1.5 pt-1">
+            <div className="flex flex-wrap gap-1.5">
               {treatmentChips.map(c => (
                 <span key={c.label} className="text-[10px] px-2 py-0.5 rounded-full bg-elevated text-tertiary">
                   {c.label} · {c.count}
@@ -361,7 +423,7 @@ function CategoryRow({
           )}
 
           {v3.explanation && (
-            <p className="text-xs text-tertiary pt-1 italic">{v3.explanation}</p>
+            <p className="text-xs text-tertiary italic">{v3.explanation}</p>
           )}
         </div>
       )}
@@ -369,103 +431,246 @@ function CategoryRow({
   );
 }
 
-function DetailRow({ label, value, muted }: { label: string; value: string; muted?: boolean }) {
+function DetailRow({
+  label, value, hint, muted, highlight,
+}: {
+  label: string;
+  value: string;
+  hint?: string;
+  muted?: boolean;
+  highlight?: boolean;
+}) {
   return (
-    <div className="flex justify-between items-baseline">
-      <span className={`text-xs ${muted ? 'text-tertiary' : 'text-secondary'}`}>{label}</span>
-      <span className={`text-xs font-medium ${muted ? 'text-tertiary' : 'text-primary'}`}>{value}</span>
+    <div className="flex justify-between items-baseline gap-2">
+      <div className="flex-1 min-w-0">
+        <span className={`text-xs ${muted ? 'text-tertiary' : 'text-secondary'}`}>{label}</span>
+        {hint && <p className="text-[10px] text-tertiary/70 leading-tight">{hint}</p>}
+      </div>
+      <span className={`text-xs font-medium flex-shrink-0 ${highlight ? 'text-gold' : muted ? 'text-tertiary' : 'text-primary'}`}>
+        {value}
+      </span>
     </div>
   );
 }
 
-function BacktestPanel({ result, fmt }: { result: BacktestResultV3; fmt: (n: number) => string }) {
+function BacktestPanel({
+  result, fmt, fmtSigned,
+}: {
+  result: BacktestResultV3;
+  fmt: (n: number) => string;
+  fmtSigned: (n: number) => string;
+}) {
   if (result.snapshots.length === 0) {
     return <p className="text-sm text-tertiary pt-3">Nessun dato storico sufficiente per il backtest.</p>;
   }
 
+  const grade = wapeGrade(result.wape);
+  const biasDir = result.bias > 20 ? '↑ sovrastima' : result.bias < -20 ? '↓ sottostima' : '≈ centrato';
+  const biasDirColor = Math.abs(result.bias) < 50 ? 'text-[#8A9270]' : 'text-[#C0706A]';
+
   return (
-    <div className="space-y-4 pt-3">
-      {/* Summary metrics — total */}
-      <div className="grid grid-cols-3 gap-3 text-center">
-        <Kpi label="MAE" value={fmt(result.mae)} sub="errore assoluto medio" />
-        <Kpi label="MedAE" value={fmt(result.medAE)} sub="errore assoluto mediano" />
-        <Kpi label="WAPE" value={`${result.wape}%`} sub="errore relativo pesato" />
-      </div>
-      <div className="grid grid-cols-3 gap-3 text-center">
-        <Kpi label="Bias" value={`${result.bias >= 0 ? '+' : ''}${fmt(result.bias)}`} sub="errore sistematico" />
-        <Kpi label="Fattore bias" value={`×${result.biasFactor.toFixed(2)}`} sub="correzione applicabile" />
-        <Kpi label="R²" value={`${result.r2}`} sub="coeff. determinaz." />
+    <div className="space-y-5 pt-3">
+      {/* Quality grade */}
+      <div className="flex items-center gap-3 p-3 rounded-xl bg-elevated/50">
+        <div>
+          <p className={`text-lg font-bold ${grade.color}`}>{grade.label}</p>
+          <p className="text-[11px] text-tertiary">
+            basato su {result.snapshots.length} snapshot su {Math.round(result.snapshots.length / 5)} mesi storici
+          </p>
+        </div>
+        <div className="ml-auto text-right">
+          <p className="text-xs text-tertiary">WAPE</p>
+          <p className={`text-xl font-bold ${grade.color}`}>{result.wape}%</p>
+        </div>
       </div>
 
-      {/* Component breakdown */}
+      {/* Section: Overall accuracy */}
+      <div>
+        <p className="text-xs font-semibold text-tertiary uppercase tracking-wide mb-2">Accuratezza totale</p>
+        <p className="text-[11px] text-tertiary mb-2">
+          Quante euro di errore fa il motore in media, guardando tutti i giorni snapshot (5, 10, 15, 20, 25 di ogni mese).
+        </p>
+        <div className="grid grid-cols-3 gap-3 text-center">
+          <Kpi
+            label="Errore medio"
+            value={fmt(result.mae)}
+            sub="MAE: media degli errori assoluti"
+          />
+          <Kpi
+            label="Errore mediano"
+            value={fmt(result.medAE)}
+            sub="MedAE: la metà degli snapshot è sotto"
+          />
+          <Kpi
+            label="Errore relativo"
+            value={`${result.wape}%`}
+            sub="WAPE: errore in % del totale reale"
+          />
+        </div>
+        <div className="grid grid-cols-3 gap-3 text-center mt-3">
+          <Kpi
+            label="Bias sistematico"
+            value={`${result.bias >= 0 ? '+' : ''}${fmt(result.bias)}`}
+            sub={biasDir}
+          />
+          <div>
+            <p className="text-xs text-tertiary mb-0.5">Direzione bias</p>
+            <p className={`text-sm font-semibold ${biasDirColor}`}>{biasDir}</p>
+            <p className="text-[11px] text-tertiary">+: sovrastima · −: sottostima</p>
+          </div>
+          <Kpi
+            label="R²"
+            value={`${result.r2}`}
+            sub="correlazione previsione/reale (1.0 = perfetto)"
+          />
+        </div>
+      </div>
+
+      {/* Section: Component breakdown */}
       <div className="h-px bg-divider" />
-      <p className="text-xs text-tertiary uppercase tracking-wide">Coda variabile</p>
-      <div className="grid grid-cols-3 gap-3 text-center">
-        <Kpi label="MAE var." value={fmt(result.variableTail.mae)} sub="errore coda variabile" />
-        <Kpi
-          label="Bias var."
-          value={`${result.variableTail.bias >= 0 ? '+' : ''}${fmt(result.variableTail.bias)}`}
-          sub="sovra/sotto-stima"
-        />
-        <Kpi label="WAPE var." value={`${result.variableTail.wape.toFixed(1)}%`} sub="APE pesato variabile" />
-      </div>
-      <p className="text-xs text-tertiary uppercase tracking-wide">Deterministic</p>
-      <div className="grid grid-cols-3 gap-3 text-center">
-        <Kpi label="MAE det." value={fmt(result.deterministic.mae)} sub="errore fisso/ricorrente" />
-        <Kpi
-          label="Bias det."
-          value={`${result.deterministic.bias >= 0 ? '+' : ''}${fmt(result.deterministic.bias)}`}
-          sub="sov/sot-stima fisso"
-        />
-        <Kpi label="WAPE det." value={`${result.deterministic.wape.toFixed(1)}%`} sub="APE pesato fisso" />
+      <div>
+        <p className="text-xs font-semibold text-tertiary uppercase tracking-wide mb-2">Accuratezza per componente</p>
+        <p className="text-[11px] text-tertiary mb-3">
+          La previsione è composta da due parti. La parte <strong className="text-secondary">deterministica</strong> (fisso/ricorrente)
+          e la parte <strong className="text-secondary">variabile</strong> (stima statistica). Idealmente gli errori delle due componenti
+          sono diversi — se sono uguali al totale c'è un bug nei calcoli.
+        </p>
+
+        <div className="space-y-3">
+          {/* Variable component */}
+          <div className="rounded-xl bg-elevated/50 p-3">
+            <p className="text-xs font-medium text-secondary mb-2">
+              📊 Componente variabile
+              <span className="text-[10px] text-tertiary font-normal ml-2">
+                (stima statistica spesa futura imprevedibile)
+              </span>
+            </p>
+            <div className="grid grid-cols-3 gap-3 text-center">
+              <Kpi label="MAE variabile" value={fmt(result.variableTail.mae)} sub="errore medio coda" />
+              <Kpi
+                label="Bias variabile"
+                value={`${result.variableTail.bias >= 0 ? '+' : ''}${fmt(result.variableTail.bias)}`}
+                sub={result.variableTail.bias > 20 ? '↑ sovrastima coda' : result.variableTail.bias < -20 ? '↓ sottostima coda' : '≈ centrato'}
+              />
+              <Kpi label="WAPE variabile" value={`${result.variableTail.wape.toFixed(1)}%`} sub="errore % coda" />
+            </div>
+          </div>
+
+          {/* Deterministic component */}
+          <div className="rounded-xl bg-elevated/50 p-3">
+            <p className="text-xs font-medium text-secondary mb-2">
+              🔒 Componente deterministica
+              <span className="text-[10px] text-tertiary font-normal ml-2">
+                (fisso/ricorrente/pianificato — dovrebbe essere quasi zero)
+              </span>
+            </p>
+            <div className="grid grid-cols-3 gap-3 text-center">
+              <Kpi label="MAE determin." value={fmt(result.deterministic.mae)} sub="errore medio fisso" />
+              <Kpi
+                label="Bias determin."
+                value={`${result.deterministic.bias >= 0 ? '+' : ''}${fmt(result.deterministic.bias)}`}
+                sub={result.deterministic.bias > 20 ? '↑ ricorrenti mancanti' : result.deterministic.bias < -20 ? '↓ ricorrenti doppi' : '≈ ok'}
+              />
+              <Kpi label="WAPE determin." value={`${result.deterministic.wape.toFixed(1)}%`} sub="errore % fisso" />
+            </div>
+          </div>
+        </div>
       </div>
 
-      {/* Per-day breakdown with variable component */}
+      {/* Section: Per-day progression */}
       {result.byDay.length > 0 && (
         <>
           <div className="h-px bg-divider" />
-          <p className="text-xs text-tertiary uppercase tracking-wide">Per giorno snapshot</p>
-          <div className="space-y-1">
-            {result.byDay.map(d => (
-              <div key={d.day} className="py-1.5 border-b border-divider last:border-0">
-                <div className="flex items-center gap-3">
-                  <span className="text-xs text-secondary w-16">Giorno {d.day}</span>
-                  <span className="text-xs text-primary flex-1">MAE: {fmt(d.mae)}</span>
-                  <span className={`text-xs font-medium ${Math.abs(d.bias) < 50 ? 'text-[#8A9270]' : 'text-gold'}`}>
-                    Bias: {d.bias >= 0 ? '+' : ''}{fmt(d.bias)}
-                  </span>
-                  <span className="text-xs text-tertiary">{d.count} punti</span>
-                </div>
-                {(d.variableMae > 0 || d.variableBias !== 0) && (
-                  <div className="flex items-center gap-3 mt-0.5 pl-16">
-                    <span className="text-[10px] text-tertiary flex-1">
-                      var. MAE {fmt(d.variableMae)}
-                    </span>
-                    <span className={`text-[10px] ${Math.abs(d.variableBias) < 30 ? 'text-tertiary' : 'text-[#C0706A]'}`}>
-                      bias {d.variableBias >= 0 ? '+' : ''}{fmt(d.variableBias)}
-                    </span>
+          <div>
+            <p className="text-xs font-semibold text-tertiary uppercase tracking-wide mb-2">Accuratezza per giorno snapshot</p>
+            <p className="text-[11px] text-tertiary mb-2">
+              Come cambia l'accuratezza a seconda di quando nel mese si fa la previsione.
+              L'errore al giorno 5 deve essere molto più alto che al giorno 25.
+            </p>
+            <div className="space-y-1.5">
+              {result.byDay.map(d => {
+                const biasColor = Math.abs(d.bias) < 80 ? 'text-[#8A9270]' : Math.abs(d.bias) < 200 ? 'text-gold' : 'text-[#C0706A]';
+                const maxMae = Math.max(...result.byDay.map(x => x.mae));
+                const barWidth = maxMae > 0 ? Math.round((d.mae / maxMae) * 100) : 0;
+                return (
+                  <div key={d.day} className="py-2 border-b border-divider last:border-0">
+                    <div className="flex items-center gap-2 mb-1">
+                      <span className="text-xs text-secondary w-16 flex-shrink-0">Giorno {d.day}</span>
+                      <div className="flex-1 h-1.5 rounded-full bg-elevated overflow-hidden">
+                        <div
+                          className="h-full rounded-full bg-gold/60"
+                          style={{ width: `${barWidth}%` }}
+                        />
+                      </div>
+                      <span className="text-xs font-medium text-primary w-16 text-right flex-shrink-0">
+                        {fmt(d.mae)}
+                      </span>
+                      <span className={`text-xs font-medium w-24 text-right flex-shrink-0 ${biasColor}`}>
+                        {d.bias >= 0 ? '+' : ''}{fmt(d.bias)}
+                      </span>
+                      <span className="text-[10px] text-tertiary w-12 text-right flex-shrink-0">{d.count} m.</span>
+                    </div>
+                    {(d.variableMae > 0 || d.variableBias !== 0) && (
+                      <div className="flex items-center gap-2 pl-16">
+                        <span className="text-[10px] text-tertiary flex-1">
+                          var. MAE {fmt(d.variableMae)}
+                        </span>
+                        <span className={`text-[10px] ${Math.abs(d.variableBias) < 80 ? 'text-tertiary' : 'text-[#C0706A]'}`}>
+                          bias {d.variableBias >= 0 ? '+' : ''}{fmt(d.variableBias)}
+                        </span>
+                      </div>
+                    )}
                   </div>
-                )}
-              </div>
-            ))}
+                );
+              })}
+            </div>
+            <div className="flex items-center justify-between text-[10px] text-tertiary mt-1.5 px-16">
+              <span>MAE</span>
+              <span>Bias (+ sovrastima · − sottostima)</span>
+              <span>mesi</span>
+            </div>
           </div>
         </>
       )}
 
-      {/* Sample snapshots */}
-      <p className="text-xs text-tertiary uppercase tracking-wide">Campioni snapshot</p>
-      <div className="space-y-1 max-h-48 overflow-y-auto">
-        {result.snapshots.slice(0, 20).map((s, i) => (
-          <div key={i} className="flex items-center gap-2 py-1 border-b border-divider last:border-0">
-            <span className="text-[10px] text-secondary w-16">{s.monthKey}</span>
-            <span className="text-[10px] text-tertiary w-8">g.{s.snapshotDay}</span>
-            <span className="text-[10px] text-primary flex-1">Reale: {fmt(s.actual)}</span>
-            <span className="text-[10px] text-primary flex-1">Prev: {fmt(s.predicted)}</span>
-            <span className={`text-[10px] font-medium ${Math.abs(s.relError) <= 0.1 ? 'text-[#8A9270]' : Math.abs(s.relError) <= 0.2 ? 'text-gold' : 'text-[#C0706A]'}`}>
-              {s.error >= 0 ? '+' : ''}{fmt(s.error)} ({Math.round(s.relError * 100)}%)
-            </span>
-          </div>
-        ))}
+      {/* Section: Bias correction */}
+      <div className="h-px bg-divider" />
+      <div className="rounded-xl bg-elevated/50 p-3">
+        <p className="text-xs font-semibold text-secondary mb-1">Fattore di correzione bias: ×{result.biasFactor.toFixed(2)}</p>
+        <p className="text-[11px] text-tertiary">
+          {result.biasFactor > 1.05
+            ? `Il motore sotto-stimava la spesa variabile: moltiplicare per ${result.biasFactor.toFixed(2)} la porta verso il reale.`
+            : result.biasFactor < 0.95
+            ? `Il motore sovra-stimava la spesa variabile: ridurre a ×${result.biasFactor.toFixed(2)} la porta verso il reale.`
+            : 'Il motore è già ben calibrato — la correzione bias è minima (×≈1.0).'}
+          {' '}Attiva "Correzione bias" in alto per applicarla.
+        </p>
+      </div>
+
+      {/* Section: Raw snapshots */}
+      <div className="h-px bg-divider" />
+      <div>
+        <p className="text-xs font-semibold text-tertiary uppercase tracking-wide mb-2">Campioni snapshot (ultimi 20)</p>
+        <p className="text-[11px] text-tertiary mb-2">
+          Ogni riga è un test: il motore riceve solo i dati fino al giorno indicato, poi confronta la sua previsione con il reale di fine mese.
+        </p>
+        <div className="space-y-0.5 max-h-52 overflow-y-auto">
+          {result.snapshots.slice(0, 20).map((s, i) => {
+            const errColor = Math.abs(s.relError) <= 0.1 ? 'text-[#8A9270]' : Math.abs(s.relError) <= 0.2 ? 'text-gold' : 'text-[#C0706A]';
+            return (
+              <div key={i} className="flex items-center gap-2 py-1 border-b border-divider/50 last:border-0">
+                <span className="text-[10px] text-secondary w-14 flex-shrink-0">{s.monthKey}</span>
+                <span className="text-[10px] text-tertiary w-8 flex-shrink-0">g.{s.snapshotDay}</span>
+                <span className="text-[10px] text-secondary flex-1">reale: {fmt(s.actual)}</span>
+                <span className="text-[10px] text-secondary flex-1">prev: {fmt(s.predicted)}</span>
+                <span className={`text-[10px] font-medium ${errColor}`}>
+                  {s.error >= 0 ? '+' : ''}{fmt(s.error)}
+                  <span className="text-tertiary ml-0.5">({Math.round(s.relError * 100)}%)</span>
+                </span>
+              </div>
+            );
+          })}
+        </div>
       </div>
     </div>
   );
