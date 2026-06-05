@@ -385,7 +385,7 @@ function BacktestPanel({ result, fmt }: { result: BacktestResultV3; fmt: (n: num
 
   return (
     <div className="space-y-4 pt-3">
-      {/* Summary metrics */}
+      {/* Summary metrics — total */}
       <div className="grid grid-cols-3 gap-3 text-center">
         <Kpi label="MAE" value={fmt(result.mae)} sub="errore assoluto medio" />
         <Kpi label="MedAE" value={fmt(result.medAE)} sub="errore assoluto mediano" />
@@ -397,19 +397,55 @@ function BacktestPanel({ result, fmt }: { result: BacktestResultV3; fmt: (n: num
         <Kpi label="R²" value={`${result.r2}`} sub="coeff. determinaz." />
       </div>
 
-      {/* Per-day breakdown */}
+      {/* Component breakdown */}
+      <div className="h-px bg-divider" />
+      <p className="text-xs text-tertiary uppercase tracking-wide">Coda variabile</p>
+      <div className="grid grid-cols-3 gap-3 text-center">
+        <Kpi label="MAE var." value={fmt(result.variableTail.mae)} sub="errore coda variabile" />
+        <Kpi
+          label="Bias var."
+          value={`${result.variableTail.bias >= 0 ? '+' : ''}${fmt(result.variableTail.bias)}`}
+          sub="sovra/sotto-stima"
+        />
+        <Kpi label="WAPE var." value={`${result.variableTail.wape.toFixed(1)}%`} sub="APE pesato variabile" />
+      </div>
+      <p className="text-xs text-tertiary uppercase tracking-wide">Deterministic</p>
+      <div className="grid grid-cols-3 gap-3 text-center">
+        <Kpi label="MAE det." value={fmt(result.deterministic.mae)} sub="errore fisso/ricorrente" />
+        <Kpi
+          label="Bias det."
+          value={`${result.deterministic.bias >= 0 ? '+' : ''}${fmt(result.deterministic.bias)}`}
+          sub="sov/sot-stima fisso"
+        />
+        <Kpi label="WAPE det." value={`${result.deterministic.wape.toFixed(1)}%`} sub="APE pesato fisso" />
+      </div>
+
+      {/* Per-day breakdown with variable component */}
       {result.byDay.length > 0 && (
         <>
+          <div className="h-px bg-divider" />
           <p className="text-xs text-tertiary uppercase tracking-wide">Per giorno snapshot</p>
           <div className="space-y-1">
             {result.byDay.map(d => (
-              <div key={d.day} className="flex items-center gap-3 py-1 border-b border-divider last:border-0">
-                <span className="text-xs text-secondary w-16">Giorno {d.day}</span>
-                <span className="text-xs text-primary flex-1">MAE: {fmt(d.mae)}</span>
-                <span className={`text-xs font-medium ${Math.abs(d.bias) < 50 ? 'text-[#8A9270]' : 'text-gold'}`}>
-                  Bias: {d.bias >= 0 ? '+' : ''}{fmt(d.bias)}
-                </span>
-                <span className="text-xs text-tertiary">{d.count} punti</span>
+              <div key={d.day} className="py-1.5 border-b border-divider last:border-0">
+                <div className="flex items-center gap-3">
+                  <span className="text-xs text-secondary w-16">Giorno {d.day}</span>
+                  <span className="text-xs text-primary flex-1">MAE: {fmt(d.mae)}</span>
+                  <span className={`text-xs font-medium ${Math.abs(d.bias) < 50 ? 'text-[#8A9270]' : 'text-gold'}`}>
+                    Bias: {d.bias >= 0 ? '+' : ''}{fmt(d.bias)}
+                  </span>
+                  <span className="text-xs text-tertiary">{d.count} punti</span>
+                </div>
+                {(d.variableMae > 0 || d.variableBias !== 0) && (
+                  <div className="flex items-center gap-3 mt-0.5 pl-16">
+                    <span className="text-[10px] text-tertiary flex-1">
+                      var. MAE {fmt(d.variableMae)}
+                    </span>
+                    <span className={`text-[10px] ${Math.abs(d.variableBias) < 30 ? 'text-tertiary' : 'text-[#C0706A]'}`}>
+                      bias {d.variableBias >= 0 ? '+' : ''}{fmt(d.variableBias)}
+                    </span>
+                  </div>
+                )}
               </div>
             ))}
           </div>

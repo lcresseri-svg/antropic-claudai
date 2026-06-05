@@ -15,10 +15,12 @@ import { median } from './forecastStats';
 
 const SNAPSHOT_DAYS = [5, 10, 15, 20, 25];
 
-/** Internal snapshot shape includes extra fields for variable-bias computation. */
+/** Internal snapshot shape includes extra fields for component-level error analysis. */
 interface InternalSnapshot extends BacktestSnapshotV3 {
   predictedVariableTotal: number;
   deterministicTotal: number;
+  /** predictedVariableTotal − max(0, actual − deterministicTotal) */
+  variableTailError: number;
 }
 
 /**
@@ -77,12 +79,15 @@ export function runBacktestV3(
       const absError = Math.abs(error);
       const relError = actual > 0 ? absError / actual : 0;
 
-      // Variable component: used for computing variable-only bias factor.
+      // Variable component: used for bias factor and per-component error analysis.
       // deterministicTotal = predicted - sum(predictedVariableRemaining across all cats)
       const predictedVariableTotal = result.categories.reduce(
         (s, c) => s + c.predictedVariableRemaining, 0,
       );
       const deterministicTotal = predicted - predictedVariableTotal;
+      // variableTailError: how far off the variable estimate was
+      // actualVariable ≈ actual - deterministicTotal (estimated)
+      const variableTailError = Math.round(predictedVariableTotal - Math.max(0, actual - deterministicTotal));
 
       snapshots.push({
         monthKey,
@@ -94,6 +99,7 @@ export function runBacktestV3(
         relError,
         predictedVariableTotal: Math.round(predictedVariableTotal),
         deterministicTotal: Math.round(deterministicTotal),
+        variableTailError,
       });
     }
   }
@@ -102,6 +108,8 @@ export function runBacktestV3(
     return {
       snapshots: [], mae: 0, medAE: 0, wape: 0, bias: 0,
       biasFactor: 1.0, r2: 0, byDay: [],
+      variableTail: { mae: 0, bias: 0, wape: 0 },
+      deterministic: { mae: 0, bias: 0, wape: 0 },
     };
   }
 
@@ -142,15 +150,51 @@ export function runBacktestV3(
   const ssRes = snapshots.reduce((s, m) => s + Math.pow(m.error, 2), 0);
   const r2 = ssTot > 0 ? 1 - ssRes / ssTot : 1;
 
+  // ── Per-component error metrics ───────────────────────────────────────────
+  const variableSnapsAll = snapshots.filter(s => s.predictedVariableTotal > 0);
+  const totalPredVar = variableSnapsAll.reduce((s, m) => s + m.predictedVariableTotal, 0);
+  const variableTail = {
+    mae: variableSnapsAll.length > 0
+      ? Math.round(variableSnapsAll.reduce((s, m) => s + Math.abs(m.variableTailError), 0) / variableSnapsAll.length)
+      : 0,
+    bias: variableSnapsAll.length > 0
+      ? Math.round(variableSnapsAll.reduce((s, m) => s + m.variableTailError, 0) / variableSnapsAll.length)
+      : 0,
+    wape: totalPredVar > 0
+      ? Math.round(variableSnapsAll.reduce((s, m) => s + Math.abs(m.variableTailError), 0) / totalPredVar * 1000) / 10
+      : 0,
+  };
+  // Deterministic: compare deterministicTotal against estimated actual deterministic
+  const detErrors = snapshots.map(m => m.deterministicTotal - Math.max(0, m.actual - m.predictedVariableTotal));
+  const totalDetActual = snapshots.reduce((s, m) => s + Math.max(0, m.actual - m.predictedVariableTotal), 0);
+  const deterministic = {
+    mae: snapshots.length > 0
+      ? Math.round(detErrors.reduce((s, e) => s + Math.abs(e), 0) / snapshots.length)
+      : 0,
+    bias: snapshots.length > 0
+      ? Math.round(detErrors.reduce((s, e) => s + e, 0) / snapshots.length)
+      : 0,
+    wape: totalDetActual > 0
+      ? Math.round(detErrors.reduce((s, e) => s + Math.abs(e), 0) / totalDetActual * 1000) / 10
+      : 0,
+  };
+
   // ── Per-snapshot-day breakdown ────────────────────────────────────────────
   const byDay = SNAPSHOT_DAYS.map(day => {
     const daySnaps = snapshots.filter(s => s.snapshotDay === day);
-    if (daySnaps.length === 0) return { day, mae: 0, bias: 0, count: 0 };
+    if (daySnaps.length === 0) return { day, mae: 0, bias: 0, count: 0, variableMae: 0, variableBias: 0 };
+    const varDaySnaps = daySnaps.filter(s => s.predictedVariableTotal > 0);
     return {
       day,
       mae: Math.round(daySnaps.reduce((s, m) => s + m.absError, 0) / daySnaps.length),
       bias: Math.round(daySnaps.reduce((s, m) => s + m.error, 0) / daySnaps.length),
       count: daySnaps.length,
+      variableMae: varDaySnaps.length > 0
+        ? Math.round(varDaySnaps.reduce((s, m) => s + Math.abs(m.variableTailError), 0) / varDaySnaps.length)
+        : 0,
+      variableBias: varDaySnaps.length > 0
+        ? Math.round(varDaySnaps.reduce((s, m) => s + m.variableTailError, 0) / varDaySnaps.length)
+        : 0,
     };
   }).filter(d => d.count > 0);
 
@@ -173,6 +217,8 @@ export function runBacktestV3(
     bias: Math.round(bias),
     biasFactor: Math.round(biasFactor * 100) / 100,
     r2: Math.round(r2 * 100) / 100,
+    variableTail,
+    deterministic,
     byDay,
   };
 }

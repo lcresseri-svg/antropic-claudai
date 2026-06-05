@@ -127,6 +127,15 @@ export interface BacktestSnapshotV3 {
   relError: number;      // |error| / actual
 }
 
+export interface BacktestComponentMetrics {
+  /** Mean absolute error (€). */
+  mae: number;
+  /** Mean signed error (€). Positive = over-predicts. */
+  bias: number;
+  /** Weighted absolute percentage error (%). */
+  wape: number;
+}
+
 export interface BacktestResultV3 {
   snapshots: BacktestSnapshotV3[];
   /** Mean absolute error across all snapshots (€). */
@@ -141,6 +150,13 @@ export interface BacktestResultV3 {
   biasFactor: number;
   /** R² coefficient of determination. */
   r2: number;
+  /** Variable tail component error metrics (statistical estimate only). */
+  variableTail: BacktestComponentMetrics;
+  /** Deterministic component error metrics (scheduled + fixed). */
+  deterministic: BacktestComponentMetrics;
   /** Breakdown by snapshot day-of-month. */
-  byDay: Array<{ day: number; mae: number; bias: number; count: number }>;
+  byDay: Array<{
+    day: number; mae: number; bias: number; count: number;
+    variableMae: number; variableBias: number;
+  }>;
 }

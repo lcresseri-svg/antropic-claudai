@@ -94,6 +94,48 @@ function computeCountCurve(
   return { projectedMonthly, remaining, reliability: Math.max(0, Math.min(1, reliability)) };
 }
 
+// ── Tail-aware variable remaining estimator ───────────────────────────────────
+
+/**
+ * Blend three signals to estimate remaining variable spend.
+ * Shifts weight from pace extrapolation (over-predicts late month) to
+ * historical tail distributions and transaction exhaustion (more accurate days 20+).
+ */
+function computeVariableRemainingV3(
+  paceRemaining: number,
+  catVarCount: number,
+  recentCountMean: number,
+  medianTicket: number,
+  dayOfMonth: number,
+  tail: { median: number; p75: number; samples: number },
+): number {
+  // Transaction exhaustion guard: count is at/above expected → cap at tail median
+  if (recentCountMean > 0 && catVarCount >= recentCountMean) {
+    return Math.max(0, Math.min(paceRemaining, tail.median));
+  }
+
+  const expectedRemainingTx = Math.max(0, recentCountMean - catVarCount);
+  const txSignal = expectedRemainingTx * medianTicket;
+
+  // Blend weights shift from pace→tail as month progresses
+  let wPace: number, wTail: number, wTx: number;
+  if (dayOfMonth < 10)      { wPace = 0.65; wTail = 0.25; wTx = 0.10; }
+  else if (dayOfMonth < 15) { wPace = 0.50; wTail = 0.35; wTx = 0.15; }
+  else if (dayOfMonth < 20) { wPace = 0.35; wTail = 0.40; wTx = 0.25; }
+  else if (dayOfMonth < 25) { wPace = 0.15; wTail = 0.55; wTx = 0.30; }
+  else                      { wPace = 0.05; wTail = 0.55; wTx = 0.40; }
+
+  const blended = wPace * paceRemaining + wTail * tail.median + wTx * txSignal;
+
+  // Apply P75 cap scaled by day (prevents extreme tail estimates)
+  if (tail.p75 > 0) {
+    const tailMultiplier = dayOfMonth < 15 ? 1.25 : dayOfMonth <= 21 ? 1.10 : 1.00;
+    return Math.max(0, Math.min(blended, tail.p75 * tailMultiplier));
+  }
+
+  return Math.max(0, blended);
+}
+
 // ── Input interface ───────────────────────────────────────────────────────────
 
 export interface ForecastV3Input {
@@ -120,9 +162,11 @@ export function computeForecastV3(input: ForecastV3Input): TotalForecastV3 {
   const curKey = `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, '0')}`;
   const todayISO = now.toISOString().slice(0, 10);
   const prog = monthProgress(now);
+  const currentDay = now.getDate();
   const cutoff = new Date(now.getFullYear(), now.getMonth() - HISTORY_CUTOFF_MONTHS, 1);
   const recentKeys = monthKeys(LOOKBACK_MONTHS, now);
   const fiveMonthKeys = monthKeys(5, now);
+  const tailLookbackKeys = monthKeys(6, now);
   const catIds = new Set(input.expenseCategories.map(c => c.id));
   const currentMonth = now.getMonth();
 
@@ -159,9 +203,65 @@ export function computeForecastV3(input: ForecastV3Input): TotalForecastV3 {
     );
   }
 
+  // ── 3b. Pre-compute per-category tail data ───────────────────────────────
+  // For each historical month that had variable activity, sum variable spend
+  // that occurred AFTER currentDay. The resulting distribution (median, P75)
+  // becomes the "tail signal" fed to computeVariableRemainingV3.
+  const catTailData: Record<string, { median: number; p75: number; samples: number }> = {};
+  for (const cat of input.expenseCategories) {
+    const tailAmounts: number[] = [];
+    for (const key of tailLookbackKeys) {
+      const monthEntry = history[cat.id]?.[key];
+      if (!monthEntry || monthEntry.variableTotal <= 0) continue;
+      const afterISO = `${key}-${String(currentDay).padStart(2, '0')}`;
+      const tailSum = input.transactions.reduce((s, t) =>
+        t.type === 'expense' && t.category === cat.id &&
+        t.date.slice(0, 7) === key && t.date > afterISO &&
+        !t.seriesId && !t.recurring
+          ? s + ownShare(t) : s, 0);
+      tailAmounts.push(tailSum);
+    }
+    if (tailAmounts.length === 0) {
+      catTailData[cat.id] = { median: 0, p75: 0, samples: 0 };
+    } else {
+      const sorted = [...tailAmounts].sort((a, b) => a - b);
+      const med = median(tailAmounts);
+      const p75 = sorted[Math.min(Math.floor(sorted.length * 0.75), sorted.length - 1)] ?? 0;
+      catTailData[cat.id] = { median: med, p75, samples: tailAmounts.length };
+    }
+  }
+
   // ── 4. Build merchant context ─────────────────────────────────────────────
   const merchantHistory = buildMerchantHistory(input.transactions);
   const merchantRecentMonthsMap = buildMerchantRecentMonths(input.transactions, recentKeys);
+
+  // ── 4b. Pre-pass: index future scheduled txs for materialization check ───
+  // If a past variable transaction matches a future scheduled one by merchant
+  // and similar amount (±20%), the future scheduled is already materialized
+  // and must not be double-counted.
+  const futureScheduledIndex = new Map<string, Array<{
+    tx: Transaction; norm: string; share: number; claimed: boolean;
+  }>>();
+  for (const t of input.transactions) {
+    if (t.type !== 'expense') continue;
+    if (!catIds.has(t.category)) continue;
+    if (t.date.slice(0, 7) !== curKey) continue;
+    if (t.date <= todayISO) continue;
+    const norm = normalizeMerchant(t.description);
+    const stats = allCatStats[t.category];
+    const treatment = inferForecastTreatment(t, {
+      merchantOccurrences: merchantHistory[norm] ?? [],
+      medianTicket: stats.medianTicket,
+      recentActiveMonths: stats.recentActiveMonths,
+      merchantRecentMonths: merchantRecentMonthsMap[norm] ?? 0,
+      plannedItems,
+      forecastRules,
+    });
+    if (treatment !== 'scheduled_recurring') continue;
+    const list = futureScheduledIndex.get(t.category) ?? [];
+    list.push({ tx: t, norm, share: ownShare(t), claimed: false });
+    futureScheduledIndex.set(t.category, list);
+  }
 
   // ── 5. Classify current-month transactions ────────────────────────────────
   const makeBreakdown = (): TreatmentBreakdown => ({
@@ -205,10 +305,15 @@ export function computeForecastV3(input: ForecastV3Input): TotalForecastV3 {
 
     if (isFuture) {
       switch (treatment) {
-        case 'scheduled_recurring':
-          scheduledFutureBucket[catId] = (scheduledFutureBucket[catId] ?? 0) + share;
-          bd.scheduledRecurring++;
+        case 'scheduled_recurring': {
+          // Skip if already materialized by a matching past actual
+          const fsEntry = futureScheduledIndex.get(catId)?.find(fs => fs.tx === t);
+          if (!fsEntry?.claimed) {
+            scheduledFutureBucket[catId] = (scheduledFutureBucket[catId] ?? 0) + share;
+            bd.scheduledRecurring++;
+          }
           break;
+        }
         case 'planned_one_off':
         case 'one_off_extra':
           plannedOneOffFuture[catId] = (plannedOneOffFuture[catId] ?? 0) + share;
@@ -224,15 +329,27 @@ export function computeForecastV3(input: ForecastV3Input): TotalForecastV3 {
     } else {
       switch (treatment) {
         case 'variable_normal':
-          actualVarNormal[catId] = (actualVarNormal[catId] ?? 0) + share;
-          varNormalCount[catId] = (varNormalCount[catId] ?? 0) + 1;
-          bd.variableNormal++;
+        case 'planned_normal': {
+          // Check if this past actual materializes a future scheduled transaction.
+          // If merchant and amount match (±20%), reclassify as scheduled so the
+          // future occurrence is not double-counted.
+          const fsList = futureScheduledIndex.get(catId);
+          const matched = fsList?.find(fs =>
+            !fs.claimed && fs.norm === norm &&
+            share > 0 && fs.share > 0 &&
+            share / fs.share >= 0.80 && share / fs.share <= 1.25,
+          );
+          if (matched) {
+            matched.claimed = true;
+            actualScheduled[catId] = (actualScheduled[catId] ?? 0) + share;
+            bd.scheduledRecurring++;
+          } else {
+            actualVarNormal[catId] = (actualVarNormal[catId] ?? 0) + share;
+            varNormalCount[catId] = (varNormalCount[catId] ?? 0) + 1;
+            treatment === 'planned_normal' ? bd.plannedNormal++ : bd.variableNormal++;
+          }
           break;
-        case 'planned_normal':
-          actualVarNormal[catId] = (actualVarNormal[catId] ?? 0) + share;
-          varNormalCount[catId] = (varNormalCount[catId] ?? 0) + 1;
-          bd.plannedNormal++;
-          break;
+        }
         case 'scheduled_recurring':
           actualScheduled[catId] = (actualScheduled[catId] ?? 0) + share;
           bd.scheduledRecurring++;
@@ -379,9 +496,12 @@ export function computeForecastV3(input: ForecastV3Input): TotalForecastV3 {
         reliability = 0.1;
       }
 
-      const varRemaining = Math.max(0, blendedVariable - catVarNormal - catPlannedNormalFuture);
-      predictedVariableRemaining = varRemaining;
-      projected = Math.round(catActualSoFar + catSchedFuture + catPlannedNormalFuture + catPlannedOneOffFuture + varRemaining);
+      const paceRemainingH = Math.max(0, blendedVariable - catVarNormal - catPlannedNormalFuture);
+      predictedVariableRemaining = computeVariableRemainingV3(
+        paceRemainingH, catVarCount, stats.recentCountMean, stats.medianTicket,
+        currentDay, catTailData[catId] ?? { median: 0, p75: 0, samples: 0 },
+      );
+      projected = Math.round(catActualSoFar + catSchedFuture + catPlannedNormalFuture + catPlannedOneOffFuture + predictedVariableRemaining);
       reliability = Math.max(0.1, reliability);
       explanation = `${cat.label}: parte fissa ~${Math.round(fixedPart)}€ + parte variabile stimata.`;
 
@@ -418,8 +538,12 @@ export function computeForecastV3(input: ForecastV3Input): TotalForecastV3 {
 
       if (behavior === 'volatile_mixed') reliability *= 0.5;
 
-      predictedVariableRemaining = Math.max(
+      const paceRemainingV = Math.max(
         0, blendedProjectedMonthly - catVarNormal - catPlannedNormalFuture,
+      );
+      predictedVariableRemaining = computeVariableRemainingV3(
+        paceRemainingV, catVarCount, stats.recentCountMean, stats.medianTicket,
+        currentDay, catTailData[catId] ?? { median: 0, p75: 0, samples: 0 },
       );
       projected = Math.round(
         catActualSoFar + catSchedFuture + catPlannedNormalFuture +
