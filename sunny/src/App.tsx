@@ -30,7 +30,8 @@ import { SeriesEditChoiceSheet } from './features/transactions/SeriesEditChoiceS
 import { ImportModal } from './features/transactions/ImportModal';
 import { BottomNav } from './shared/components/BottomNav';
 import { SideNav } from './shared/components/SideNav';
-import { isAdminUser, canUseUiV2 } from './shared/featureFlags';
+import { isAdminUser, canUseUiV2, canUseForecastV2 } from './shared/featureFlags';
+import { ForecastV2Screen } from './features/forecast/ForecastV2Screen';
 import { PushPromoSheet } from './shared/components/PushPromoSheet';
 import { pushSupported, hasLocalToken } from './shared/push';
 
@@ -386,6 +387,19 @@ function Main({ user, onLogOut, onDeleteAccount }: {
                 </div>
               } />
             )}
+            <Route path="/forecast-v2" element={
+              canUseForecastV2(user) ? (
+                <div className="pt-4 md:pt-6">
+                  <ForecastV2Screen
+                    transactions={tx.transactions}
+                    expenseCategories={categories.filter(c => c.kind === 'expense')}
+                    monthlyIncome={tx.monthlyIncome}
+                    monthlyInvestments={tx.monthlyInvestments}
+                    monthlyExpenses={tx.monthlyExpenses}
+                  />
+                </div>
+              ) : <Navigate to="/" replace />
+            } />
             <Route path="*" element={<Navigate to="/" replace />} />
           </Routes>
         </main>

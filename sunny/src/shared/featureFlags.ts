@@ -26,6 +26,16 @@ export function isAdminUser(user: User | null): boolean {
   return canUseDetailedInvestments(user);
 }
 
+// Forecast Engine V2 (multi-signal model + backtest): admin-only experimental feature.
+// Non-admin users see nothing — the /forecast-v2 route redirects to dashboard.
+const FORECAST_V2_UIDS: string[] = [
+  'qPtCOJGRrwOZ2EfjxMHwW6ZISXX2',
+];
+export function canUseForecastV2(user: import('firebase/auth').User | null): boolean {
+  if (!user) return false;
+  return FORECAST_V2_UIDS.includes(user.uid);
+}
+
 // UI v2.0.0 ("financial copilot" redesign): rolled out to the admin allow-list
 // only. Everyone else keeps the previous (v1.9.x) interface. Widen this list to
 // release the new UI more broadly.
