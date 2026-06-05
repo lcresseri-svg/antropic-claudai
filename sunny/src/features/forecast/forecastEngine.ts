@@ -310,3 +310,68 @@ export function medianMonthlyFlow(
     .map(([, v]) => v);
   return median(recent);
 }
+
+// ── V1-compatible adapters ────────────────────────────────────────────────────
+// These return the SAME shapes as forecastSavings() / forecastByCategory() so the
+// admin-only V2 screens can swap to the V2 engine with no other code changes.
+// Income/investment expectations are passed straight through (identical max() of
+// committed-vs-historical), so ONLY the expense projection changes to the V2 model.
+
+/** Same `MonthForecast` shape as forecastSavings(), backed by the V2 engine. */
+export interface MonthForecastShape {
+  expectedIncome: number;
+  projectedExpenses: number;
+  expectedInvest: number;
+  savings: number;
+}
+
+export function forecastSavingsV2(input: {
+  transactions: Transaction[];
+  expenseCategories: CategoryDef[];
+  monthlyIncome: number;
+  monthlyInvestments: number;
+  avgIncome?: number;
+  avgInvest?: number;
+  upcomingIncome?: number;
+  upcomingInvest?: number;
+  now?: Date;
+}): MonthForecastShape {
+  const r = computeForecastV2({
+    transactions: input.transactions,
+    expenseCategories: input.expenseCategories,
+    monthlyIncome: input.monthlyIncome,
+    monthlyInvestments: input.monthlyInvestments,
+    avgIncome: input.avgIncome,
+    avgInvest: input.avgInvest,
+    upcomingIncome: input.upcomingIncome,
+    upcomingInvest: input.upcomingInvest,
+    now: input.now,
+  });
+  return {
+    expectedIncome: r.expectedIncome,
+    projectedExpenses: r.projectedExpenses,
+    expectedInvest: r.expectedInvest,
+    savings: r.savings,
+  };
+}
+
+/** Same `Record<categoryId, projected>` shape as forecastByCategory(), via V2. */
+export function forecastByCategoryV2(
+  transactions: Transaction[],
+  expenseCategories: CategoryDef[],
+  now: Date = new Date(),
+): Record<string, number> {
+  const r = computeForecastV2({
+    transactions,
+    expenseCategories,
+    monthlyIncome: 0,
+    monthlyInvestments: 0,
+    now,
+  });
+  const out: Record<string, number> = {};
+  for (const c of r.categories) {
+    // Mirror V1: omit categories with no projection at all.
+    if (c.projected > 0) out[c.categoryId] = c.projected;
+  }
+  return out;
+}

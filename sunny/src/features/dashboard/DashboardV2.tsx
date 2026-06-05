@@ -11,7 +11,7 @@ import { AIDigestCard } from './AIDigestCard';
 import { MonthStatusCard } from './MonthStatusCard';
 import { useSettings } from '../../shared/providers/settings';
 import { buildInsights } from '../insights/insightsEngine';
-import { forecastSavings } from '../budget/budgetUtils';
+import { forecastSavingsV2, medianMonthlyFlow } from '../forecast/forecastEngine';
 
 type Period = '1m' | '3m' | '6m' | '1y';
 
@@ -43,7 +43,7 @@ interface Props {
 }
 
 export function DashboardV2(p: Props) {
-  const { enableInvestments, getCat, insightDepth } = useSettings();
+  const { enableInvestments, getCat, insightDepth, categories } = useSettings();
   const [accMode, setAccMode] = useState<'balance' | 'spending'>('balance');
   const [period, setPeriod] = useState<Period>('1m');
   const [offset, setOffset] = useState(0);
@@ -108,16 +108,24 @@ export function DashboardV2(p: Props) {
       monthlyInvestments: p.monthlyInvestments,
       getCat,
       depth: insightDepth,
+      forecastV2Categories: categories.filter(c => c.kind === 'expense'),
     }),
-  [p.transactions, p.monthlyIncome, p.monthlyExpenses, p.monthlyInvestments, getCat, insightDepth]);
+  [p.transactions, p.monthlyIncome, p.monthlyExpenses, p.monthlyInvestments, getCat, insightDepth, categories]);
 
-  const forecast = useMemo(() =>
-    forecastSavings({
+  // Forecast Engine V2 (admin-only screen): the end-of-month projection here
+  // comes from the multi-signal V2 model, not the legacy forecastSavings().
+  const forecast = useMemo(() => {
+    const ref = new Date();
+    return forecastSavingsV2({
+      transactions: p.transactions,
+      expenseCategories: categories.filter(c => c.kind === 'expense'),
       monthlyIncome: p.monthlyIncome,
-      monthlyExpenses: p.monthlyExpenses,
       monthlyInvestments: p.monthlyInvestments,
-    }),
-  [p.monthlyIncome, p.monthlyExpenses, p.monthlyInvestments]);
+      avgIncome: medianMonthlyFlow(p.transactions, 'income', ref),
+      avgInvest: medianMonthlyFlow(p.transactions, 'investment', ref),
+      now: ref,
+    });
+  }, [p.transactions, p.monthlyIncome, p.monthlyInvestments, categories]);
 
   const digestInput = useMemo(() => ({
     income: p.monthlyIncome,

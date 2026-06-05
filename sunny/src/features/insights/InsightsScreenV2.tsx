@@ -45,7 +45,7 @@ const GROUP_ORDER: DisplayGroup[] = ['now', 'forecast', 'habit', 'advanced'];
 const CAT_ORDER: InsightCategory[] = ['alert', 'forecast', 'seasonal', 'trend', 'habit', 'highlight'];
 
 export function InsightsScreenV2(p: Props) {
-  const { getCat, insightDepth } = useSettings();
+  const { getCat, insightDepth, categories } = useSettings();
   const user = p.user ?? null;
   const [detail, setDetail] = useState<Insight | null>(null);
   const [advancedOpen, setAdvancedOpen] = useState(false);
@@ -57,6 +57,7 @@ export function InsightsScreenV2(p: Props) {
     monthlyInvestments: p.monthlyInvestments,
     getCat,
     depth: insightDepth,
+    forecastV2Categories: categories.filter(c => c.kind === 'expense'),
   });
 
   // Group insights into 4 display groups
