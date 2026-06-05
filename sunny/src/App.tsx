@@ -32,6 +32,7 @@ import { BottomNav } from './shared/components/BottomNav';
 import { SideNav } from './shared/components/SideNav';
 import { isAdminUser, canUseUiV2, canUseForecastV2 } from './shared/featureFlags';
 import { ForecastV2Screen } from './features/forecast/ForecastV2Screen';
+import { ForecastV3Screen } from './features/forecast/ForecastV3Screen';
 import { PushPromoSheet } from './shared/components/PushPromoSheet';
 import { pushSupported, hasLocalToken } from './shared/push';
 
@@ -396,6 +397,18 @@ function Main({ user, onLogOut, onDeleteAccount }: {
                     monthlyIncome={tx.monthlyIncome}
                     monthlyInvestments={tx.monthlyInvestments}
                     monthlyExpenses={tx.monthlyExpenses}
+                  />
+                </div>
+              ) : <Navigate to="/" replace />
+            } />
+            <Route path="/forecast-v3" element={
+              canUseForecastV2(user) ? (
+                <div className="pt-4 md:pt-6">
+                  <ForecastV3Screen
+                    transactions={tx.transactions}
+                    expenseCategories={categories.filter(c => c.kind === 'expense')}
+                    monthlyIncome={tx.monthlyIncome}
+                    monthlyInvestments={tx.monthlyInvestments}
                   />
                 </div>
               ) : <Navigate to="/" replace />

@@ -1,4 +1,4 @@
-export const APP_VERSION = '1.9.17';
+export const APP_VERSION = '1.9.18';
 
 /**
  * Release channel. While in 'beta' the app is still under active development
@@ -15,6 +15,14 @@ export interface VersionEntry {
 
 /** Registro versioni mostrato in Impostazioni → Registro versioni. */
 export const VERSIONS: VersionEntry[] = [
+  {
+    version: '1.9.18', date: '2026-06-05', title: 'Motore previsione V3 (admin)',
+    changes: [
+      'Nuovo motore previsionale V3 disponibile nella scheda Piano (admin): corregge il doppio conteggio degli abbonamenti, rileva categorie inattive e azzerale, identifica cadenze periodiche (trimestrale/semestrale/annuale) tramite analisi dei gap tra pagamenti.',
+      'Intervalli di confidenza per categoria: ogni previsione mostra ora un range min-max basato sul tipo di comportamento rilevato.',
+      'Backtest multi-snapshot: ogni mese storico viene analizzato ai giorni 5, 10, 15, 20 e 25, producendo un fattore di correzione del bias più robusto.',
+    ],
+  },
   {
     version: '1.9.17', date: '2026-06-05', title: 'Migliorie interne',
     changes: [

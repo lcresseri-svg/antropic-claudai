@@ -208,21 +208,35 @@ export function BudgetScreenV2({
         onEdit={() => openEdit('savings')}
       />
 
-      {/* Accesso Motore Previsione V2 (admin-only) */}
+      {/* Accesso Motori Previsione V2/V3 (admin-only) */}
       {canUseForecastV2(user) && (
-        <button
-          type="button"
-          onClick={() => navigate('/forecast-v2')}
-          className="w-full glass-card rounded-2xl px-4 py-3.5 flex items-center gap-3 text-left hover:bg-card-hover transition-colors border border-gold/15"
-        >
-          <span className="w-8 h-8 rounded-xl flex items-center justify-center text-base flex-shrink-0" style={{ backgroundColor: 'rgba(230,185,92,0.12)' }}>🔮</span>
-          <div className="flex-1 min-w-0">
-            <p className="text-[13px] font-semibold text-primary">Previsione V2</p>
-            <p className="text-[11px] text-secondary">Modello multi-segnale · dettaglio per categoria · backtest</p>
-          </div>
-          <span className="text-xs font-medium px-2 py-0.5 rounded-full bg-gold/10 text-gold flex-shrink-0">Beta</span>
-          <span className="text-tertiary flex-shrink-0">›</span>
-        </button>
+        <div className="flex gap-2">
+          <button
+            type="button"
+            onClick={() => navigate('/forecast-v2')}
+            className="flex-1 glass-card rounded-2xl px-4 py-3.5 flex items-center gap-3 text-left hover:bg-card-hover transition-colors border border-gold/15"
+          >
+            <span className="w-8 h-8 rounded-xl flex items-center justify-center text-base flex-shrink-0" style={{ backgroundColor: 'rgba(230,185,92,0.12)' }}>🔮</span>
+            <div className="flex-1 min-w-0">
+              <p className="text-[13px] font-semibold text-primary">Previsione V2</p>
+              <p className="text-[11px] text-secondary">Multi-segnale · backtest</p>
+            </div>
+            <span className="text-tertiary flex-shrink-0">›</span>
+          </button>
+          <button
+            type="button"
+            onClick={() => navigate('/forecast-v3')}
+            className="flex-1 glass-card rounded-2xl px-4 py-3.5 flex items-center gap-3 text-left hover:bg-card-hover transition-colors border border-gold/15"
+          >
+            <span className="w-8 h-8 rounded-xl flex items-center justify-center text-base flex-shrink-0" style={{ backgroundColor: 'rgba(230,185,92,0.08)' }}>🧪</span>
+            <div className="flex-1 min-w-0">
+              <p className="text-[13px] font-semibold text-primary">Previsione V3</p>
+              <p className="text-[11px] text-secondary">Anti-double-count · cadenze</p>
+            </div>
+            <span className="text-xs font-medium px-1.5 py-0.5 rounded-full bg-gold/10 text-gold flex-shrink-0">Nuovo</span>
+            <span className="text-tertiary flex-shrink-0">›</span>
+          </button>
+        </div>
       )}
 
       {/* 2 — Sunny consiglia */}
