@@ -1,8 +1,10 @@
 import { useState, useMemo } from 'react';
+import { useNavigate } from 'react-router-dom';
 import { User } from 'firebase/auth';
 import { Transaction, ownShare } from '../../types';
 import { useSettings } from '../../shared/providers/settings';
 import { useBudget } from '../../shared/hooks/useBudget';
+import { canUseForecastV2 } from '../../shared/featureFlags';
 import {
   suggestBudgets, generateBudgetInsights, seasonalHint,
   DEMO_CATEGORY_SPEND, DEMO_CATEGORY_BUDGETS,
@@ -35,6 +37,7 @@ const currentMonth = new Date().toISOString().slice(0, 7);
 export function BudgetScreenV2({
   user, transactions, monthlyIncome, monthlyExpenses, monthlyInvestments, categoryTotals,
 }: Props) {
+  const navigate = useNavigate();
   const { categories, enableInvestments } = useSettings();
   const {
     budget, setSavingsTarget, setCategoryBudget, setIncomeBudget, setInvestmentBudget,
@@ -204,6 +207,23 @@ export function BudgetScreenV2({
         forecast={forecastObj}
         onEdit={() => openEdit('savings')}
       />
+
+      {/* Accesso Motore Previsione V2 (admin-only) */}
+      {canUseForecastV2(user) && (
+        <button
+          type="button"
+          onClick={() => navigate('/forecast-v2')}
+          className="w-full glass-card rounded-2xl px-4 py-3.5 flex items-center gap-3 text-left hover:bg-card-hover transition-colors border border-gold/15"
+        >
+          <span className="w-8 h-8 rounded-xl flex items-center justify-center text-base flex-shrink-0" style={{ backgroundColor: 'rgba(230,185,92,0.12)' }}>🔮</span>
+          <div className="flex-1 min-w-0">
+            <p className="text-[13px] font-semibold text-primary">Previsione V2</p>
+            <p className="text-[11px] text-secondary">Modello multi-segnale · dettaglio per categoria · backtest</p>
+          </div>
+          <span className="text-xs font-medium px-2 py-0.5 rounded-full bg-gold/10 text-gold flex-shrink-0">Beta</span>
+          <span className="text-tertiary flex-shrink-0">›</span>
+        </button>
+      )}
 
       {/* 2 — Sunny consiglia */}
       <BudgetInsights insights={insights} />

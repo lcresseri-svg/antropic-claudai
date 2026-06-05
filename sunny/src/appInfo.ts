@@ -1,4 +1,4 @@
-export const APP_VERSION = '1.9.16';
+export const APP_VERSION = '1.9.17';
 
 /**
  * Release channel. While in 'beta' the app is still under active development
@@ -15,6 +15,12 @@ export interface VersionEntry {
 
 /** Registro versioni mostrato in Impostazioni → Registro versioni. */
 export const VERSIONS: VersionEntry[] = [
+  {
+    version: '1.9.17', date: '2026-06-05', title: 'Migliorie interne',
+    changes: [
+      'Lavori interni di preparazione per la prossima versione dell\'interfaccia. Nessun cambiamento visibile.',
+    ],
+  },
   {
     version: '1.9.16', date: '2026-06-05', title: 'Migliorie interne',
     changes: [

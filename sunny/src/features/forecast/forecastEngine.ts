@@ -11,7 +11,15 @@
 import { Transaction, CategoryDef, ownShare } from '../../types';
 import { robustMean, lerp, median } from './forecastStats';
 import { buildCategoryHistory, computeCatStats } from './forecastHistory';
-import { CategoryForecastV2, TotalForecastV2 } from './forecastTypes';
+import {
+  CategoryForecastV2, TotalForecastV2,
+  ForecastComposition, TreatmentBreakdown,
+  ForecastRule, PlannedBudgetItem,
+} from './forecastTypes';
+import {
+  buildMerchantHistory, buildMerchantRecentMonths,
+  normalizeMerchant, inferForecastTreatment,
+} from './forecastTreatment';
 
 // ── Tuning constants ─────────────────────────────────────────────────────────
 const LOOKBACK_MONTHS = 3;      // recent window for variable averages
@@ -47,54 +55,53 @@ function monthProgress(now: Date): number {
 // ── Amount-curve signal ───────────────────────────────────────────────────────
 /**
  * Estimate end-of-month variable spend from the current month's pace.
- * Returns `null` when there's insufficient data to use this signal.
+ * Only variable_normal spend (not one-offs, not recurring) should be passed in.
+ * Returns null when there's insufficient data.
  */
-function amountCurveRemaining(
-  variableSpent: number,
+function computeAmountCurve(
+  variableNormalSpent: number,
   variableAvg: number,
   prog: number,
-): { remaining: number; reliability: number } | null {
+): { projectedMonthly: number; remaining: number; reliability: number } | null {
   if (variableAvg <= 0) return null;
 
   const expectedSoFar = prog * variableAvg;
-  const paceMonthly = prog > 0 ? variableSpent / prog : 0;
+  const paceMonthly = prog > 0 ? variableNormalSpent / prog : 0;
 
-  // Reliability: how well this month's spending tracks the average so far.
-  // Low at the start (prog < 0.2) or when spent is far below expected (data sparsity).
-  const spendRatio = expectedSoFar > 0 ? variableSpent / expectedSoFar : 1;
-  const timeReliability = Math.min(1, prog / 0.2);  // ramps 0→1 over first 20% of month
+  const spendRatio = expectedSoFar > 0 ? variableNormalSpent / expectedSoFar : 1;
+  const timeReliability = Math.min(1, prog / 0.2);
   const spendReliability = Math.min(1, spendRatio);
   const reliability = timeReliability * spendReliability;
 
-  // Quadratic ramp: amount-curve weight ramps with prog² to avoid early-month overfit
+  // Quadratic ramp avoids a single early-month purchase blowing up the projection
   const w = Math.min(1, prog * prog);
   const projectedMonthly = w * paceMonthly + (1 - w) * variableAvg;
   const remaining = Math.max(0, 1 - prog) * projectedMonthly;
-  return { remaining, reliability };
+  return { projectedMonthly, remaining, reliability };
 }
 
 // ── Count-curve signal ────────────────────────────────────────────────────────
 /**
  * Estimate end-of-month variable spend from transaction frequency × median ticket.
+ * Only variable_normal transaction counts should be passed in.
  */
-function countCurveRemaining(
-  variableCount: number,
+function computeCountCurve(
+  variableNormalCount: number,
   avgMonthlyCount: number,
   medianTicket: number,
   prog: number,
-): { remaining: number; reliability: number } | null {
+): { projectedMonthly: number; remaining: number; reliability: number } | null {
   if (avgMonthlyCount <= 0 || medianTicket <= 0) return null;
   if (prog < MIN_PROG_FOR_PACE) return null;
 
-  const paceCountMonthly = variableCount / prog;
-  const expectedCount = avgMonthlyCount;
-  // Reliability: how close actual transaction count is to expected (linear ramp)
-  const countRatio = paceCountMonthly / expectedCount;
+  const paceCountMonthly = variableNormalCount / prog;
+  const countRatio = paceCountMonthly / avgMonthlyCount;
   const reliability = Math.min(1, prog / 0.25) * Math.min(1.5, countRatio) / 1.5;
 
-  const projectedCountMonthly = lerp(expectedCount, paceCountMonthly, Math.min(1, prog * 1.5));
-  const remaining = Math.max(0, projectedCountMonthly - variableCount) * medianTicket;
-  return { remaining, reliability: Math.max(0, Math.min(1, reliability)) };
+  const projectedCountMonthly = lerp(avgMonthlyCount, paceCountMonthly, Math.min(1, prog * 1.5));
+  const projectedMonthly = projectedCountMonthly * medianTicket;
+  const remaining = Math.max(0, projectedCountMonthly - variableNormalCount) * medianTicket;
+  return { projectedMonthly, remaining, reliability: Math.max(0, Math.min(1, reliability)) };
 }
 
 // ── Main engine ───────────────────────────────────────────────────────────────
@@ -108,6 +115,8 @@ export interface ForecastV2Input {
   avgInvest?: number;
   upcomingIncome?: number;
   upcomingInvest?: number;
+  plannedItems?: PlannedBudgetItem[];
+  forecastRules?: ForecastRule[];
   now?: Date;
 }
 
@@ -121,58 +130,134 @@ export function computeForecastV2(input: ForecastV2Input): TotalForecastV2 {
   const catIds = new Set(input.expenseCategories.map(c => c.id));
   const currentMonth = now.getMonth();
 
-  // ── 1. Build history ─────────────────────────────────────────────────────
+  const plannedItems = input.plannedItems ?? [];
+  const forecastRules = input.forecastRules ?? [];
+
+  // ── 1. Build category history (excludes current month) ────────────────────
   const history = buildCategoryHistory(input.transactions, catIds, curKey, cutoff);
 
-  // ── 2. Collect current-month actuals ─────────────────────────────────────
-  const actualSoFar: Record<string, number> = {};
-  const variableSpent: Record<string, number> = {};
-  const variableCount: Record<string, number> = {};
-  const scheduledFuture: Record<string, number> = {};
-  const plannedFuture: Record<string, number> = {};
+  // ── 2. Collect recent tickets per category (for medianTicket) ─────────────
   const recentTickets: Record<string, number[]> = {};
-
   for (const t of input.transactions) {
     if (t.type !== 'expense') continue;
     if (!catIds.has(t.category)) continue;
     const tKey = t.date.slice(0, 7);
-
-    if (tKey === curKey) {
-      const share = ownShare(t);
-      if (t.seriesId || t.recurring) {
-        // Recurring entry for current month
-        if (t.date > todayISO) {
-          // Future recurring still due
-          scheduledFuture[t.category] = (scheduledFuture[t.category] ?? 0) + share;
-        } else {
-          actualSoFar[t.category] = (actualSoFar[t.category] ?? 0) + share;
-        }
-      } else if (t.date > todayISO) {
-        // Planned future one-off (not recurring, not yet occurred)
-        plannedFuture[t.category] = (plannedFuture[t.category] ?? 0) + share;
-      } else {
-        actualSoFar[t.category] = (actualSoFar[t.category] ?? 0) + share;
-        variableSpent[t.category] = (variableSpent[t.category] ?? 0) + share;
-        variableCount[t.category] = (variableCount[t.category] ?? 0) + 1;
-      }
-      continue;
-    }
-
-    // Collect recent tickets for median calculation
     if (recentKeys.includes(tKey) && !t.seriesId && !t.recurring) {
       (recentTickets[t.category] ??= []).push(ownShare(t));
     }
   }
 
-  // ── 3. Per-category projections ───────────────────────────────────────────
+  // ── 3. Pre-compute per-category stats (used for treatment context) ─────────
+  const allCatStats: Record<string, ReturnType<typeof computeCatStats>> = {};
+  for (const cat of input.expenseCategories) {
+    allCatStats[cat.id] = computeCatStats(
+      history[cat.id] ?? {},
+      recentKeys,
+      currentMonth,
+      recentTickets[cat.id] ?? [],
+    );
+  }
+
+  // ── 4. Build merchant context ──────────────────────────────────────────────
+  const merchantHistory = buildMerchantHistory(input.transactions);
+  const merchantRecentMonthsMap = buildMerchantRecentMonths(input.transactions, recentKeys);
+
+  // ── 5. Classify and bucket current-month transactions ─────────────────────
+  const makeBreakdown = (): TreatmentBreakdown => ({
+    variableNormal: 0, scheduledRecurring: 0, plannedNormal: 0,
+    plannedOneOff: 0, oneOffExtra: 0, transferExcluded: 0,
+  });
+
+  const actualVarNormal: Record<string, number> = {};
+  const actualScheduled: Record<string, number> = {};
+  const actualOneOff: Record<string, number> = {};
+  const varNormalCount: Record<string, number> = {};
+  const scheduledFutureBucket: Record<string, number> = {};
+  const plannedNormalFuture: Record<string, number> = {};
+  const plannedOneOffFuture: Record<string, number> = {};
+  const breakdownMap: Record<string, TreatmentBreakdown> = {};
+
+  for (const t of input.transactions) {
+    if (t.type !== 'expense') continue;
+    if (!catIds.has(t.category)) continue;
+    if (t.date.slice(0, 7) !== curKey) continue;
+
+    const catId = t.category;
+    const isFuture = t.date > todayISO;
+    const share = ownShare(t);
+    const norm = normalizeMerchant(t.description);
+    const stats = allCatStats[catId];
+    const treatment = inferForecastTreatment(t, {
+      merchantOccurrences: merchantHistory[norm] ?? [],
+      medianTicket: stats.medianTicket,
+      recentActiveMonths: stats.recentActiveMonths,
+      merchantRecentMonths: merchantRecentMonthsMap[norm] ?? 0,
+      plannedItems,
+      forecastRules,
+    });
+
+    const bd = (breakdownMap[catId] ??= makeBreakdown());
+
+    if (isFuture) {
+      switch (treatment) {
+        case 'scheduled_recurring':
+          scheduledFutureBucket[catId] = (scheduledFutureBucket[catId] ?? 0) + share;
+          bd.scheduledRecurring++;
+          break;
+        case 'planned_one_off':
+          plannedOneOffFuture[catId] = (plannedOneOffFuture[catId] ?? 0) + share;
+          bd.plannedOneOff++;
+          break;
+        case 'one_off_extra':
+          plannedOneOffFuture[catId] = (plannedOneOffFuture[catId] ?? 0) + share;
+          bd.oneOffExtra++;
+          break;
+        case 'transfer_excluded':
+          bd.transferExcluded++;
+          break;
+        default:
+          // variable_normal or planned_normal: future pre-entered spend within baseline
+          plannedNormalFuture[catId] = (plannedNormalFuture[catId] ?? 0) + share;
+          treatment === 'planned_normal' ? bd.plannedNormal++ : bd.variableNormal++;
+      }
+    } else {
+      switch (treatment) {
+        case 'variable_normal':
+          actualVarNormal[catId] = (actualVarNormal[catId] ?? 0) + share;
+          varNormalCount[catId] = (varNormalCount[catId] ?? 0) + 1;
+          bd.variableNormal++;
+          break;
+        case 'planned_normal':
+          // Planned-normal past spend counts toward the variable baseline
+          actualVarNormal[catId] = (actualVarNormal[catId] ?? 0) + share;
+          varNormalCount[catId] = (varNormalCount[catId] ?? 0) + 1;
+          bd.plannedNormal++;
+          break;
+        case 'scheduled_recurring':
+          actualScheduled[catId] = (actualScheduled[catId] ?? 0) + share;
+          bd.scheduledRecurring++;
+          break;
+        case 'planned_one_off':
+          actualOneOff[catId] = (actualOneOff[catId] ?? 0) + share;
+          bd.plannedOneOff++;
+          break;
+        case 'one_off_extra':
+          actualOneOff[catId] = (actualOneOff[catId] ?? 0) + share;
+          bd.oneOffExtra++;
+          break;
+        case 'transfer_excluded':
+          bd.transferExcluded++;
+          break;
+      }
+    }
+  }
+
+  // ── 6. Per-category projections ───────────────────────────────────────────
   const categoryForecasts: CategoryForecastV2[] = [];
 
   for (const cat of input.expenseCategories) {
     const catId = cat.id;
-    const catHistory = history[catId] ?? {};
-    const tickets = recentTickets[catId] ?? [];
-
-    const stats = computeCatStats(catHistory, recentKeys, currentMonth, tickets);
+    const stats = allCatStats[catId];
 
     // Seasonal blend for variable avg
     let variableAvg: number;
@@ -183,63 +268,94 @@ export function computeForecastV2(input: ForecastV2Input): TotalForecastV2 {
       variableAvg = stats.recentVarMean > 0 ? stats.recentVarMean : stats.seasonalMean;
     }
 
-    const catActual = actualSoFar[catId] ?? 0;
-    const catVarSpent = variableSpent[catId] ?? 0;
-    const catVarCount = variableCount[catId] ?? 0;
-    const catScheduled = scheduledFuture[catId] ?? 0;
-    const catPlanned = plannedFuture[catId] ?? 0;
+    const catVarNormal = actualVarNormal[catId] ?? 0;
+    const catVarCount = varNormalCount[catId] ?? 0;
+    const catScheduled = actualScheduled[catId] ?? 0;
+    const catOneOff = actualOneOff[catId] ?? 0;
+    const catSchedFuture = scheduledFutureBucket[catId] ?? 0;
+    const catPlannedNormalFuture = plannedNormalFuture[catId] ?? 0;
+    const catPlannedOneOffFuture = plannedOneOffFuture[catId] ?? 0;
+    const catActualSoFar = catVarNormal + catScheduled + catOneOff;
 
-    // Amount curve
-    const ac = amountCurveRemaining(catVarSpent, variableAvg, prog);
-    // Count curve
-    const cc = countCurveRemaining(catVarCount, stats.recentCountMean, stats.medianTicket, prog);
+    // Amount curve — only variable_normal spend feeds the pace signal
+    const ac = computeAmountCurve(catVarNormal, variableAvg, prog);
+    // Count curve — only variable_normal transaction counts feed the frequency signal
+    const cc = computeCountCurve(catVarCount, stats.recentCountMean, stats.medianTicket, prog);
 
-    let predictedVariableRemaining = 0;
+    let blendedProjectedMonthly = 0;
     let blendAlpha = 0;
     let reliability = 0;
     let explanation = '';
+    let amtCurveRemaining = 0;
+    let cntCurveRemaining = 0;
 
     if (ac && cc) {
-      // Both signals: blend α·amount + (1-α)·count, α grows with prog
       blendAlpha = Math.min(AMOUNT_ALPHA_MAX, prog * AMOUNT_ALPHA_MAX / 0.6);
-      predictedVariableRemaining = blendAlpha * ac.remaining + (1 - blendAlpha) * cc.remaining;
+      blendedProjectedMonthly = blendAlpha * ac.projectedMonthly + (1 - blendAlpha) * cc.projectedMonthly;
+      amtCurveRemaining = ac.remaining;
+      cntCurveRemaining = cc.remaining;
       reliability = blendAlpha * ac.reliability + (1 - blendAlpha) * cc.reliability;
-      explanation = buildExplanation(cat.label, catVarSpent, variableAvg, prog, 'both');
+      explanation = buildExplanation(cat.label, catVarNormal, variableAvg, prog, 'both');
     } else if (ac) {
       blendAlpha = 1;
-      predictedVariableRemaining = ac.remaining;
+      blendedProjectedMonthly = ac.projectedMonthly;
+      amtCurveRemaining = ac.remaining;
       reliability = ac.reliability;
-      explanation = buildExplanation(cat.label, catVarSpent, variableAvg, prog, 'amount');
+      explanation = buildExplanation(cat.label, catVarNormal, variableAvg, prog, 'amount');
     } else if (cc) {
       blendAlpha = 0;
-      predictedVariableRemaining = cc.remaining;
+      blendedProjectedMonthly = cc.projectedMonthly;
+      cntCurveRemaining = cc.remaining;
       reliability = cc.reliability;
       explanation = buildExplanation(cat.label, catVarCount, stats.recentCountMean, prog, 'count');
     } else if (variableAvg > 0) {
-      // No live signal yet (early month) — fall back to historical average
-      predictedVariableRemaining = Math.max(0, 1 - prog) * variableAvg;
+      blendedProjectedMonthly = variableAvg;
       reliability = 0.1;
       explanation = `Stima basata sulla media storica (nessun dato ancora questo mese per ${cat.label}).`;
     }
 
-    const projected = Math.round(catActual + catScheduled + catPlanned + predictedVariableRemaining);
+    // Double-counting prevention:
+    // blendedProjectedMonthly is the expected variable baseline for the full month.
+    // catVarNormal is already spent, catPlannedNormalFuture is already planned (within baseline).
+    // So only the gap beyond those two is still unpredicted.
+    const predictedVariableRemaining = Math.max(
+      0,
+      blendedProjectedMonthly - catVarNormal - catPlannedNormalFuture,
+    );
+
+    const composition: ForecastComposition = {
+      actualVariableNormalSoFar: Math.round(catVarNormal),
+      actualScheduledSoFar: Math.round(catScheduled),
+      actualOneOffSoFar: Math.round(catOneOff),
+      scheduledFuture: Math.round(catSchedFuture),
+      plannedNormalFuture: Math.round(catPlannedNormalFuture),
+      plannedOneOffFuture: Math.round(catPlannedOneOffFuture),
+      predictedVariableRemaining: Math.round(predictedVariableRemaining),
+    };
+
+    const projected = Math.round(
+      catActualSoFar + catSchedFuture + catPlannedNormalFuture +
+      catPlannedOneOffFuture + predictedVariableRemaining,
+    );
 
     categoryForecasts.push({
       categoryId: catId,
-      actualSoFar: Math.round(catActual),
-      scheduledFuture: Math.round(catScheduled),
-      plannedFuture: Math.round(catPlanned),
-      amountCurveRemaining: ac ? Math.round(ac.remaining) : 0,
-      countCurveRemaining: cc ? Math.round(cc.remaining) : 0,
+      actualSoFar: Math.round(catActualSoFar),
+      scheduledFuture: Math.round(catSchedFuture),
+      plannedFuture: Math.round(catPlannedNormalFuture + catPlannedOneOffFuture),
+      amountCurveRemaining: Math.round(amtCurveRemaining),
+      countCurveRemaining: Math.round(cntCurveRemaining),
       predictedVariableRemaining: Math.round(predictedVariableRemaining),
       projected,
       blendAlpha,
       reliability,
       explanation,
+      composition,
+      treatmentBreakdown: breakdownMap[catId] ?? makeBreakdown(),
     });
   }
 
-  // ── 4. Totals ─────────────────────────────────────────────────────────────
+  // ── 7. Totals ─────────────────────────────────────────────────────────────
   const projectedExpenses = categoryForecasts.reduce((s, c) => s + c.projected, 0);
   const committedIncome = input.monthlyIncome + Math.max(0, input.upcomingIncome ?? 0);
   const committedInvest = input.monthlyInvestments + Math.max(0, input.upcomingInvest ?? 0);
@@ -247,7 +363,6 @@ export function computeForecastV2(input: ForecastV2Input): TotalForecastV2 {
   const expectedInvest = Math.round(Math.max(committedInvest, input.avgInvest ?? 0));
   const savings = expectedIncome - projectedExpenses - expectedInvest;
 
-  // Overall reliability = weighted mean of per-cat reliabilities, weighted by projected amount
   const totalProjected = projectedExpenses || 1;
   const overallReliability = categoryForecasts.reduce(
     (s, c) => s + (c.reliability * c.projected) / totalProjected, 0,

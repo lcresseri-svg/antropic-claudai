@@ -160,6 +160,14 @@ function CategoryRow({
   const [open, setOpen] = useState(false);
   const fmt = (n: number) => `€${Math.round(n).toLocaleString('it-IT')}`;
   const pct = (n: number) => `${Math.round(n * 100)}%`;
+  const comp = data.composition;
+  const tb = data.treatmentBreakdown;
+  const treatmentChips = [
+    { label: 'Variabile', count: tb.variableNormal },
+    { label: 'Ricorrenti', count: tb.scheduledRecurring },
+    { label: 'Pianificate', count: tb.plannedNormal + tb.plannedOneOff },
+    { label: 'Straordinarie', count: tb.oneOffExtra },
+  ].filter(c => c.count > 0);
 
   return (
     <div className="glass-card rounded-xl overflow-hidden">
@@ -178,14 +186,26 @@ function CategoryRow({
 
       {open && (
         <div className="px-4 pb-3 border-t border-divider space-y-2 pt-3">
-          <DetailRow label="Già registrate" value={fmt(data.actualSoFar)} />
-          {data.scheduledFuture > 0 && (
-            <DetailRow label="Ricorrenti previste" value={fmt(data.scheduledFuture)} />
+          {/* Composizione della proiezione */}
+          {comp.actualVariableNormalSoFar > 0 && (
+            <DetailRow label="Variabile registrato" value={fmt(comp.actualVariableNormalSoFar)} />
           )}
-          {data.plannedFuture > 0 && (
-            <DetailRow label="Pianificate" value={fmt(data.plannedFuture)} />
+          {comp.actualScheduledSoFar > 0 && (
+            <DetailRow label="Ricorrenti registrate" value={fmt(comp.actualScheduledSoFar)} />
           )}
-          <DetailRow label="Variabile stimata" value={fmt(data.predictedVariableRemaining)} />
+          {comp.actualOneOffSoFar > 0 && (
+            <DetailRow label="Straordinarie registrate" value={fmt(comp.actualOneOffSoFar)} />
+          )}
+          {comp.scheduledFuture > 0 && (
+            <DetailRow label="Ricorrenti previste" value={fmt(comp.scheduledFuture)} />
+          )}
+          {comp.plannedNormalFuture > 0 && (
+            <DetailRow label="Pianificate (normali)" value={fmt(comp.plannedNormalFuture)} />
+          )}
+          {comp.plannedOneOffFuture > 0 && (
+            <DetailRow label="Pianificate (straordinarie)" value={fmt(comp.plannedOneOffFuture)} />
+          )}
+          <DetailRow label="Variabile stimata" value={fmt(comp.predictedVariableRemaining)} />
           <div className="h-px bg-divider" />
           <div className="grid grid-cols-2 gap-x-4 gap-y-1">
             <DetailRow label="Curva importi" value={fmt(data.amountCurveRemaining)} muted />
@@ -193,6 +213,16 @@ function CategoryRow({
             <DetailRow label="Peso curva importi" value={pct(data.blendAlpha)} muted />
             <DetailRow label="Peso frequenza" value={pct(1 - data.blendAlpha)} muted />
           </div>
+          {/* Classificazione transazioni del mese */}
+          {treatmentChips.length > 0 && (
+            <div className="flex flex-wrap gap-1.5 pt-1">
+              {treatmentChips.map(c => (
+                <span key={c.label} className="text-[10px] px-2 py-0.5 rounded-full bg-elevated text-tertiary">
+                  {c.label} · {c.count}
+                </span>
+              ))}
+            </div>
+          )}
           {data.explanation && (
             <p className="text-xs text-tertiary pt-1 italic">{data.explanation}</p>
           )}
