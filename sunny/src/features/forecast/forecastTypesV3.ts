@@ -133,24 +133,64 @@ export interface TotalForecastV3 {
 
 // ── V3 Backtest ───────────────────────────────────────────────────────────────
 
-/** One forecast snapshot: pretend we're at `snapshotDay` of a closed month. */
+/**
+ * One forecast snapshot: pretend we're at `snapshotDay` of a closed month.
+ *
+ * Component decomposition (correct, non-circular):
+ *   error = deterministicFutureError + variableError
+ *   where:
+ *     deterministicFutureError = forecastDeterministicFuture − actualDeterministicAfterD
+ *     variableError            = predictedVariable           − actualVariableAfterD
+ *
+ * "AfterD" means transactions that occurred AFTER the snapshot date (in the same month).
+ * These are what the engine has to predict — transactions before the snapshot are already
+ * in actualSoFar and cancel out of the error formula.
+ */
 export interface BacktestSnapshotV3 {
   monthKey: string;
   snapshotDay: number;
+  /** Full-month actual total expenses (€). */
   actual: number;
+  /** Engine prediction at snapshot day (€). */
   predicted: number;
-  error: number;         // predicted − actual
+  /** predicted − actual (positive = over-prediction). */
+  error: number;
   absError: number;
-  relError: number;      // |error| / actual
+  relError: number;
+  // ── Component breakdown ────────────────────────────────────────────────────
+  /** Engine's estimated variable tail: sum(c.predictedVariableRemaining). */
+  predictedVariable: number;
+  /** Engine's deterministic future estimate: sum(c.scheduledFuture + c.plannedFuture). */
+  forecastDeterministicFuture: number;
+  /** Scheduled/recurring expense transactions that actually occurred AFTER snapshot date. */
+  actualDeterministicAfterD: number;
+  /** Variable (non-recurring) expense transactions that actually occurred AFTER snapshot date. */
+  actualVariableAfterD: number;
+  /** predictedVariable − actualVariableAfterD. Positive = engine over-estimated variable tail. */
+  variableError: number;
+  /** forecastDeterministicFuture − actualDeterministicAfterD. Positive = engine over-estimated scheduled future. */
+  deterministicFutureError: number;
+  /** How much scheduled/recurring arrived after snapshot but wasn't in forecastDeterministicFuture.
+   *  = max(0, actualDeterministicAfterD − forecastDeterministicFuture). */
+  missedDeterministic: number;
 }
 
 export interface BacktestComponentMetrics {
   /** Mean absolute error (€). */
   mae: number;
+  /** Median absolute error (€). */
+  medAE: number;
   /** Mean signed error (€). Positive = over-predicts. */
   bias: number;
-  /** Weighted absolute percentage error (%). */
+  /**
+   * Weighted absolute percentage error (%).
+   * Only meaningful when wapeReliable = true (denominator large enough).
+   */
   wape: number;
+  /** False if the denominator (total actual) was too small (<€50 total) to compute a reliable WAPE. */
+  wapeReliable: boolean;
+  /** Number of snapshots included in these metrics. */
+  sampleCount: number;
 }
 
 export interface BacktestResultV3 {
@@ -163,14 +203,19 @@ export interface BacktestResultV3 {
   wape: number;
   /** Mean signed error (€). Positive = engine over-predicts. */
   bias: number;
-  /** Bias correction factor = mean(actual)/mean(predicted), clamped [0.75, 1.25]. */
+  /** Bias correction factor = mean(actualVariableAfterD)/mean(predictedVariable), clamped [0.75, 1.25]. */
   biasFactor: number;
   /** R² coefficient of determination. */
   r2: number;
-  /** Variable tail component error metrics (statistical estimate only). */
+  /** Variable tail component: predictedVariable vs actualVariableAfterD. */
   variableTail: BacktestComponentMetrics;
-  /** Deterministic component error metrics (scheduled + fixed). */
+  /** Deterministic future component: forecastDeterministicFuture vs actualDeterministicAfterD. */
   deterministic: BacktestComponentMetrics;
+  /**
+   * Mean amount of deterministic spend that arrived after snapshot but wasn't predicted (€).
+   * High value = engine consistently misses scheduled/periodic items.
+   */
+  missedDeterministicMean: number;
   /** Breakdown by snapshot day-of-month. */
   byDay: Array<{
     day: number; mae: number; bias: number; count: number;

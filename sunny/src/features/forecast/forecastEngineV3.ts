@@ -517,11 +517,21 @@ export function computeForecastV3(input: ForecastV3Input): TotalForecastV3 {
           behaviorResult.interval === 'semi_annual' ? 'semestrale' : 'periodica';
         explanation = `${cat.label}: spesa ${intLabel} — non attesa questo mese.`;
       } else {
-        const normalProjected = Math.max(catTotalNormal, expectedAmount);
+        // Active month: use ALL actual spend as the indicator the periodic occurred.
+        // Avoids double-counting when the periodic tx is classified as one_off_extra
+        // (which would previously get added on top of expectedAmount via normalProjected).
+        const actualPeriodicSoFar = catActualSoFar; // varNormal + scheduled + oneOff
+        const periodicFutureExpected = actualPeriodicSoFar > 0 ? 0 : expectedAmount;
+
         predictedVariableRemaining = 0;
-        projected = Math.round(normalProjected + catOneOff + catPlannedOneOffFuture);
+        projected = Math.round(
+          actualPeriodicSoFar + periodicFutureExpected +
+          catSchedFuture + catPlannedNormalFuture + catPlannedOneOffFuture,
+        );
         reliability = 0.85;
-        explanation = `${cat.label}: spesa periodica ~${Math.round(expectedAmount)}€ prevista questo mese.`;
+        explanation = `${cat.label}: spesa periodica ~${Math.round(expectedAmount)}€ ${
+          actualPeriodicSoFar > 0 ? 'già avvenuta' : 'attesa questo mese'
+        }.`;
       }
 
     } else if (behavior === 'hybrid') {
