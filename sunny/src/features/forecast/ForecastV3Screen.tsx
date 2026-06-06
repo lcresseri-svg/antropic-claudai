@@ -4,7 +4,7 @@
  * and a side-by-side comparison with V2.
  */
 import { useState } from 'react';
-import { Transaction, CategoryDef } from '../../types';
+import { Transaction, CategoryDef, AccountDef, BudgetState } from '../../types';
 import { useForecastV2 } from './useForecastV2';
 import { useForecastV3 } from './useForecastV3';
 import {
@@ -13,12 +13,22 @@ import {
 } from './forecastTypesV3';
 import { CategoryForecastV2 } from './forecastTypes';
 import { CategoryBehavior } from './forecastTypesV3';
+import {
+  buildForecastDiagnosticsExport, DiagnosticsPrivacyMode, ExportSettingsSnapshot,
+} from './forecastDiagnostics';
 
 interface Props {
   transactions: Transaction[];
   expenseCategories: CategoryDef[];
   monthlyIncome: number;
   monthlyInvestments: number;
+  /** Admin-only diagnostics export needs the full dataset. */
+  isAdmin?: boolean;
+  allCategories?: CategoryDef[];
+  accounts?: AccountDef[];
+  budget?: BudgetState;
+  settingsSnapshot?: ExportSettingsSnapshot;
+  userId?: string;
 }
 
 const BEHAVIOR_META: Record<CategoryBehavior, { label: string; color: string; bg: string }> = {
@@ -41,7 +51,10 @@ function wapeGrade(wape: number): { label: string; color: string } {
   return             { label: 'D — Migliorabile',   color: 'text-[#C0706A]' };
 }
 
-export function ForecastV3Screen({ transactions, expenseCategories, monthlyIncome, monthlyInvestments }: Props) {
+export function ForecastV3Screen({
+  transactions, expenseCategories, monthlyIncome, monthlyInvestments,
+  isAdmin = false, allCategories, accounts, budget, settingsSnapshot, userId,
+}: Props) {
   const [showBacktest, setShowBacktest] = useState(false);
   const [withBias, setWithBias] = useState(false);
   const [compareV2, setCompareV2] = useState(true);
@@ -189,7 +202,145 @@ export function ForecastV3Screen({ transactions, expenseCategories, monthlyIncom
           </div>
         )}
       </div>
+
+      {/* Diagnostics export — admin only */}
+      {isAdmin && allCategories && accounts && budget && settingsSnapshot && (
+        <DiagnosticsExportPanel
+          transactions={transactions}
+          categories={allCategories}
+          accounts={accounts}
+          budget={budget}
+          settings={settingsSnapshot}
+          userId={userId}
+        />
+      )}
     </div>
+  );
+}
+
+// ── Diagnostics export panel ────────────────────────────────────────────────────
+
+function DiagnosticsExportPanel({
+  transactions, categories, accounts, budget, settings, userId,
+}: {
+  transactions: Transaction[];
+  categories: CategoryDef[];
+  accounts: AccountDef[];
+  budget: BudgetState;
+  settings: ExportSettingsSnapshot;
+  userId?: string;
+}) {
+  const [months, setMonths] = useState<6 | 12>(12);
+  const [privacy, setPrivacy] = useState<DiagnosticsPrivacyMode>('pseudonymized');
+  const [includeTx, setIncludeTx] = useState(true);
+  const [includeCatForecasts, setIncludeCatForecasts] = useState(true);
+  const [busy, setBusy] = useState(false);
+  const [lastExport, setLastExport] = useState<string | null>(null);
+
+  const handleExport = () => {
+    setBusy(true);
+    try {
+      const exportData = buildForecastDiagnosticsExport({
+        transactions,
+        categories,
+        accounts,
+        budget,
+        settings,
+        monthsRequested: months,
+        privacyMode: privacy,
+        includeTransactions: includeTx,
+        includeCategoryForecasts: includeCatForecasts,
+        userId,
+      });
+      const dateStr = new Date().toISOString().slice(0, 10);
+      const filename = `sunny-forecast-diagnostics-${dateStr}.json`;
+      const blob = new Blob([JSON.stringify(exportData, null, 2)], { type: 'application/json' });
+      const url = URL.createObjectURL(blob);
+      const a = document.createElement('a');
+      a.href = url;
+      a.download = filename;
+      document.body.appendChild(a);
+      a.click();
+      document.body.removeChild(a);
+      URL.revokeObjectURL(url);
+      setLastExport(`${filename} · ${exportData.backtest.samples.length} snapshot · ${exportData.metadata.period.monthsAvailable} mesi`);
+    } catch (e) {
+      setLastExport(`Errore: ${e instanceof Error ? e.message : 'sconosciuto'}`);
+    } finally {
+      setBusy(false);
+    }
+  };
+
+  return (
+    <div className="glass-card rounded-2xl p-5 space-y-4">
+      <div>
+        <div className="flex items-center gap-2 mb-1">
+          <span className="text-xs font-medium px-2 py-0.5 rounded-full bg-gold/10 text-gold">Admin</span>
+          <h2 className="text-base font-semibold text-primary">Esporta diagnostica forecast</h2>
+        </div>
+        <p className="text-xs text-tertiary">
+          Genera un file JSON con backtest, previsioni e componenti del modello degli ultimi {months} mesi.
+        </p>
+      </div>
+
+      {/* Period */}
+      <div>
+        <p className="text-[10px] text-tertiary uppercase tracking-wide mb-1.5">Periodo</p>
+        <div className="flex gap-2">
+          <OptionChip label="Ultimi 6 mesi" active={months === 6} onClick={() => setMonths(6)} />
+          <OptionChip label="Ultimi 12 mesi" active={months === 12} onClick={() => setMonths(12)} />
+        </div>
+      </div>
+
+      {/* Privacy */}
+      <div>
+        <p className="text-[10px] text-tertiary uppercase tracking-wide mb-1.5">Privacy</p>
+        <div className="flex gap-2">
+          <OptionChip label="Pseudonimizzata" active={privacy === 'pseudonymized'} onClick={() => setPrivacy('pseudonymized')} />
+          <OptionChip label="Completa" active={privacy === 'full'} onClick={() => setPrivacy('full')} />
+        </div>
+        <p className="text-[10px] text-tertiary mt-1">
+          {privacy === 'pseudonymized'
+            ? 'Le descrizioni raw vengono sostituite da chiavi merchant stabili (merchant_001…). Importi, date e categorie restano.'
+            : 'Include le descrizioni complete delle transazioni. Usa solo per analisi personale.'}
+        </p>
+      </div>
+
+      {/* Toggles */}
+      <div className="flex flex-wrap gap-2">
+        <Toggle label={includeTx ? 'Transazioni: sì' : 'Transazioni: no'} value={includeTx} onChange={setIncludeTx} />
+        <Toggle
+          label={includeCatForecasts ? 'Forecast per categoria: sì' : 'Forecast per categoria: no'}
+          value={includeCatForecasts}
+          onChange={setIncludeCatForecasts}
+        />
+      </div>
+
+      <button
+        onClick={handleExport}
+        disabled={busy}
+        className="w-full py-3 rounded-xl bg-gold/15 text-gold font-medium text-sm hover:bg-gold/25 transition-colors disabled:opacity-50"
+      >
+        {busy ? 'Generazione…' : 'Esporta diagnostica forecast'}
+      </button>
+
+      {lastExport && (
+        <p className="text-[11px] text-tertiary text-center">{lastExport}</p>
+      )}
+    </div>
+  );
+}
+
+function OptionChip({ label, active, onClick }: { label: string; active: boolean; onClick: () => void }) {
+  return (
+    <button
+      onClick={onClick}
+      className={`text-xs px-3 py-1.5 rounded-lg font-medium transition-colors ${
+        active ? 'bg-gold/15 text-gold' : 'bg-elevated text-tertiary'
+      }`}
+    >
+      {label}
+    </button>
   );
 }
 

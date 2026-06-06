@@ -1,4 +1,4 @@
-export const APP_VERSION = '1.9.18';
+export const APP_VERSION = '1.9.19';
 
 /**
  * Release channel. While in 'beta' the app is still under active development
@@ -15,6 +15,12 @@ export interface VersionEntry {
 
 /** Registro versioni mostrato in Impostazioni → Registro versioni. */
 export const VERSIONS: VersionEntry[] = [
+  {
+    version: '1.9.19', date: '2026-06-06', title: 'Migliorie interne',
+    changes: [
+      'Lavori interni sul motore previsionale (strumenti di diagnostica). Nessun cambiamento visibile per gli utenti.',
+    ],
+  },
   {
     version: '1.9.18', date: '2026-06-05', title: 'Motore previsione V3 (admin)',
     changes: [

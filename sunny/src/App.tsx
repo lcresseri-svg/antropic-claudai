@@ -120,7 +120,7 @@ function Main({ user, onLogOut, onDeleteAccount }: {
 }) {
   const navigate = useNavigate();
   const location = useLocation();
-  const { accounts, categories, includeInvestments, enableInvestments, enableBudget, aiCoachWidgetEnabled, settingsLoaded } = useSettings();
+  const { accounts, categories, includeInvestments, enableInvestments, enableBudget, aiCoachWidgetEnabled, settingsLoaded, insightDepth, aiEnabled } = useSettings();
   const tx = useTransactions(user, accounts, includeInvestments, categories, enableInvestments);
   const budget = useBudget(user);
   const uiV2 = canUseUiV2(user);
@@ -409,6 +409,18 @@ function Main({ user, onLogOut, onDeleteAccount }: {
                     expenseCategories={categories.filter(c => c.kind === 'expense')}
                     monthlyIncome={tx.monthlyIncome}
                     monthlyInvestments={tx.monthlyInvestments}
+                    isAdmin={isAdminUser(user)}
+                    allCategories={categories}
+                    accounts={accounts}
+                    budget={budget.budget}
+                    settingsSnapshot={{
+                      includeInvestments,
+                      enableBudget,
+                      enableInvestments,
+                      aiEnabled,
+                      analysisDepth: insightDepth,
+                    }}
+                    userId={user.uid}
                   />
                 </div>
               ) : <Navigate to="/" replace />
