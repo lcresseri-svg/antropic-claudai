@@ -212,7 +212,7 @@ export function computeForecastV3(input: ForecastV3Input): TotalForecastV3 {
   const cutoff = new Date(now.getFullYear(), now.getMonth() - HISTORY_CUTOFF_MONTHS, 1);
   const recentKeys = monthKeys(LOOKBACK_MONTHS, now);
   const fiveMonthKeys = monthKeys(5, now);
-  const tailLookbackKeys = monthKeys(6, now);
+  const tailLookbackKeys = monthKeys(12, now);
   const catIds = new Set(input.expenseCategories.map(c => c.id));
   const currentMonth = now.getMonth();
 
@@ -222,6 +222,11 @@ export function computeForecastV3(input: ForecastV3Input): TotalForecastV3 {
   const biasFactor = Math.max(0.75, Math.min(1.25, input.biasFactor ?? 1.0));
   const biasCorrectionApplied = biasFactor !== 1.0;
   const daysInCurMonth = daysInMonth(now.getFullYear(), now.getMonth());
+
+  // Full 24-month window (ALL months, including those with no activity for this category).
+  // Passed as `allHistoryKeys` to behavior inference so periodic spendRatio is computed
+  // correctly (e.g. annual insurance: 2/24 = 8%, not 2/2 = 100%).
+  const allLookbackKeys = monthKeys(HISTORY_CUTOFF_MONTHS, now);
 
   // ── 1. Build category history ─────────────────────────────────────────────
   const history = buildCategoryHistory(input.transactions, catIds, curKey, cutoff);
@@ -254,6 +259,7 @@ export function computeForecastV3(input: ForecastV3Input): TotalForecastV3 {
   // For each historical month that had variable activity, sum variable spend
   // that occurred AFTER currentDay. The resulting distribution (median, P75)
   // becomes the "tail signal" fed to computeVariableRemainingV3.
+  // Using 12-month lookback (vs 6 previously) for more stable tail estimates.
   const catTailData: Record<string, { median: number; p75: number; samples: number }> = {};
   for (const cat of input.expenseCategories) {
     const tailAmounts: number[] = [];
@@ -423,8 +429,6 @@ export function computeForecastV3(input: ForecastV3Input): TotalForecastV3 {
     const catId = cat.id;
     const stats = allCatStats[catId];
     const catHistory = history[catId] ?? {};
-    const allHistoryKeys = Object.keys(catHistory).sort();
-
     const catVarNormal = actualVarNormal[catId] ?? 0;
     const catVarCount = varNormalCount[catId] ?? 0;
     const catScheduled = actualScheduled[catId] ?? 0;
@@ -436,9 +440,11 @@ export function computeForecastV3(input: ForecastV3Input): TotalForecastV3 {
     const catTotalNormal = catVarNormal + catScheduled + catSchedFuture + catPlannedNormalFuture;
 
     // Infer behavior (requires treatment results from step 5)
+    // Pass allLookbackKeys (full 24-month window) instead of Object.keys(catHistory)
+    // so periodic spendRatio is computed against all possible months.
     const behaviorResult: CategoryBehaviorResult = inferCategoryBehaviorV3({
       catHistory,
-      allHistoryKeys,
+      allHistoryKeys: allLookbackKeys,
       fiveMonthKeys,
       recentKeys,
       currentCalendarMonth: currentMonth,
@@ -574,6 +580,19 @@ export function computeForecastV3(input: ForecastV3Input): TotalForecastV3 {
       reliability = 0.80;
       const lastKey = behaviorResult.lastActiveKey ?? '?';
       explanation = `${cat.label}: nessuna spesa da ${lastKey}. Previsione: solo voci già registrate.`;
+
+    } else if (behavior === 'rare_variable') {
+      // Infrequent, no pattern. Predict a small amount based on historical average
+      // scaled by frequency (< 3 active months out of 24).
+      const rareExpected = behaviorResult.expectedAmount ?? 0;
+      // Scale down: if active 2/24 months ≈ 8% → expected monthly contribution ≈ 8% of typical
+      const activeCount = allLookbackKeys.filter(k => (history[catId]?.[k]?.variableTotal ?? 0) > 0).length;
+      const frequencyFactor = Math.min(1, activeCount / 12);
+      const scaledExpected = Math.round(rareExpected * frequencyFactor);
+      predictedVariableRemaining = catActualSoFar > 0 ? 0 : scaledExpected;
+      projected = Math.round(catActualSoFar + catSchedFuture + catPlannedOneOffFuture + predictedVariableRemaining);
+      reliability = 0.25;
+      explanation = `${cat.label}: spesa molto rara (${activeCount}/${allLookbackKeys.length} mesi). Stima prudente.`;
 
     } else {
       // variable_frequent / variable_sparse / volatile_mixed / unknown

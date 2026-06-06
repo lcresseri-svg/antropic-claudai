@@ -30,6 +30,11 @@ const BIAS_APPLICABLE: ReadonlySet<CategoryBehavior> = new Set<CategoryBehavior>
   'variable_frequent', 'variable_sparse', 'volatile_mixed', 'hybrid',
 ]);
 
+/** Behaviours where ALL actual spend is considered deterministic (not variable). */
+const DETERMINISTIC_BEHAVIORS: ReadonlySet<CategoryBehavior> = new Set<CategoryBehavior>([
+  'recurring', 'recurring_bundle', 'fixed_monthly', 'periodic_fixed',
+]);
+
 // ── Public types ───────────────────────────────────────────────────────────────
 
 export type DiagnosticsPrivacyMode = 'full' | 'pseudonymized';
@@ -113,10 +118,15 @@ interface ExportBudgetMonth {
 
 interface ForecastConfigSnapshot {
   lookbackMonths: number;
+  tailLookbackMonths: number;
+  periodicDetectionWindowMonths: number;
   snapshotDays: number[];
   biasFactor: number;
   biasAppliedOnlyToVariable: boolean;
+  /** Feature flag: bias only corrects the statistical variable component, not deterministic. */
+  useVariableOnlyBias: boolean;
   snapshotIncludesDateRule: '<=' | '<';
+  notes: string[];
 }
 
 interface MonthlyActualCategory {
@@ -233,7 +243,8 @@ interface ExportCategoryForecast {
   predictedVariableRemaining: number;
   calibratedVariableRemaining: number;
   budgetAmount?: number;
-  budgetMeaning?: 'target' | 'fixed_expected' | 'none';
+  /** 'target_unavailable' for all historical backtest months (Sunny has no historical budget). */
+  budgetMeaning?: 'target' | 'fixed_expected' | 'none' | 'target_unavailable';
   activeMonths?: number[];
   expectedAmount?: number;
   actualTransactionCountSoFar?: number;
@@ -244,6 +255,7 @@ interface ExportCategoryForecast {
   debug?: {
     treatmentBreakdown?: Record<string, number>;
     behaviorReasons?: string[];
+    behaviorSource?: string;
     tailCap?: number;
     historicalTailRemaining?: number;
     recentPaceRemaining?: number;
@@ -256,25 +268,43 @@ interface BacktestSample {
   snapshotDay: number;
   snapshotDate: string;
   actualFinal: { income: number; expense: number; investment: number; savings: number };
-  forecast: { income: number; expense: number; investment: number; savings: number };
+  /**
+   * forecast.expense = baseline (no bias). forecast.expenseCalibrated = with variable-only bias.
+   * Formula: actualSoFar + futureDeterministicForecast + futureVariableForecast = expense.
+   */
+  forecast: { income: number; expense: number; expenseCalibrated: number; investment: number; savings: number };
   error: { income: number; expense: number; investment: number; savings: number; expensePct: number };
+  /**
+   * Component breakdown — backtest errors are computed on AFTER-SNAPSHOT quantities only
+   * (what the engine had to predict). actualSoFar cancels from both sides.
+   *
+   * Formula:
+   *   forecast.expense = actualSoFar + futureDeterministicForecast + futureVariableForecast
+   *   error.expense ≈ deterministicFutureError + variableFutureError
+   */
   components: {
-    forecastDeterministic: number;
-    actualFinalDeterministic: number;
-    deterministicError: number;
-    forecastVariable: number;
-    actualFinalVariable: number;
-    variableError: number;
+    /** Transactions already recorded at snapshot time (shared by both sides, cancels from error). */
     actualSoFar: number;
+    /** Engine's future deterministic prediction: sum(scheduledFuture + plannedFuture). */
+    futureDeterministicForecast: number;
+    /** Engine's future variable prediction: sum(predictedVariableRemaining). */
+    futureVariableForecast: number;
+    /** futureVariableForecast × biasFactor for bias-applicable behaviors. */
+    calibratedVariableForecast: number;
+    /** Deterministic transactions that actually occurred AFTER snapshot (behavior-based split). */
+    actualDeterministicAfterSnapshot: number;
+    /** Variable transactions that actually occurred AFTER snapshot (behavior-based split). */
+    actualVariableAfterSnapshot: number;
+    /** futureDeterministicForecast − actualDeterministicAfterSnapshot. */
+    deterministicFutureError: number;
+    /** futureVariableForecast − actualVariableAfterSnapshot. */
+    variableFutureError: number;
+    /** Scheduled/periodic items that arrived after snapshot but engine missed. */
+    missedDeterministic: number;
     scheduledFuture: number;
-    recurringFuture: number;
     periodicFuture: number;
     plannedFuture: number;
-    budgetConfirmedFuture: number;
     oneOffSoFar: number;
-    predictedVariableRemaining: number;
-    calibratedVariableRemaining: number;
-    missedDeterministic: number;
   };
   categoryForecasts?: ExportCategoryForecast[];
   topErrorContributors: {
@@ -469,8 +499,8 @@ export function buildForecastDiagnosticsExport(input: DiagnosticsInput): Forecas
   }));
 
   // ── Budgets ───────────────────────────────────────────────────────────────
-  // Sunny stores only the CURRENT budget (no historical snapshots). We export it
-  // tagged with the current month and note the limitation.
+  // Sunny stores only the CURRENT budget (no historical snapshots).
+  // The historical backtest does NOT use this budget — it's purely informational.
   const curKey = `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, '0')}`;
   const budgets: ExportBudgetMonth[] = [{
     month: curKey,
@@ -479,15 +509,33 @@ export function buildForecastDiagnosticsExport(input: DiagnosticsInput): Forecas
     incomeBudgets: input.budget.incomeBudgets,
     investmentBudgets: input.budget.investmentBudgets,
   }];
-  notes.push('I budget storici per mese non sono disponibili: viene esportato solo il budget corrente (usato anche come riferimento nel backtest).');
+  notes.push(
+    'I budget storici per mese non sono disponibili: viene esportato solo il budget corrente come riferimento. ' +
+    'Il backtest NON usa il budget corrente nei mesi storici (budgetMeaning="target_unavailable" per i campioni passati).',
+  );
+
+  // ── Category behavior map (current — used for actual split in diagnostics) ──
+  // Behavior is determined from historical data only, so it's stable across months.
+  // Use current forecast behaviors as the reference split for all historical actuals.
+  const catBehaviorMapCurrent = new Map<string, CategoryBehavior>(
+    currentForecast.categories.map(c => [c.categoryId, c.behavior]),
+  );
 
   // ── Forecast config ────────────────────────────────────────────────────────
   const forecastConfig: ForecastConfigSnapshot = {
     lookbackMonths: 3,
+    tailLookbackMonths: 12,
+    periodicDetectionWindowMonths: 24,
     snapshotDays: SNAPSHOT_DAYS,
     biasFactor,
     biasAppliedOnlyToVariable: true,
+    useVariableOnlyBias: true,
     snapshotIncludesDateRule: '<=',
+    notes: [
+      'Historical backtest does not use current budget — budget influence is excluded from all historical snapshots.',
+      'Periodic detection uses 24-month window; at least 2 occurrences required.',
+      'Tail distribution uses 12-month lookback (increased from 6 for stability).',
+    ],
   };
 
   // ── Monthly actuals ─────────────────────────────────────────────────────────
@@ -515,9 +563,13 @@ export function buildForecastDiagnosticsExport(input: DiagnosticsInput): Forecas
       });
       entry.actualTotal += share;
       entry.transactionCount += 1;
-      if (isRecurring(t)) {
-        entry.recurringActual = (entry.recurringActual ?? 0) + share;
+      // P2: split by category behavior (not TX flags) for accurate det/var classification
+      const catBehav = catBehaviorMapCurrent.get(t.category) ?? 'unknown';
+      const isBehavDet = DETERMINISTIC_BEHAVIORS.has(catBehav);
+      if (isBehavDet) {
         entry.deterministicActual = (entry.deterministicActual ?? 0) + share;
+        // Still track explicitly-flagged recurring for reference
+        if (isRecurring(t)) entry.recurringActual = (entry.recurringActual ?? 0) + share;
       } else {
         entry.variableActual = (entry.variableActual ?? 0) + share;
       }
@@ -574,13 +626,18 @@ export function buildForecastDiagnosticsExport(input: DiagnosticsInput): Forecas
       .filter(t => t.type === 'investment' && t.date.slice(0, 7) === m.key)
       .reduce((s, t) => s + ownShare(t), 0));
 
-    // Per-category full-month actual split (deterministic vs variable)
+    // Per-category full-month actual split (deterministic vs variable).
+    // P2 fix: split by category BEHAVIOR, not by TX flags.
+    // If a category is classified as deterministic (fixed_monthly, recurring, periodic_fixed,
+    // recurring_bundle), ALL its actual spend is counted as deterministic — regardless of
+    // whether individual transactions have the recurring flag.
     const catActualFull = new Map<string, { total: number; det: number; var: number; count: number }>();
     for (const t of monthExpenseTx) {
       const e = (catActualFull.get(t.category) ?? { total: 0, det: 0, var: 0, count: 0 });
       const share = ownShare(t);
       e.total += share; e.count += 1;
-      if (isRecurring(t)) e.det += share; else e.var += share;
+      const isDet = DETERMINISTIC_BEHAVIORS.has(catBehaviorMapCurrent.get(t.category) ?? 'unknown');
+      if (isDet) e.det += share; else e.var += share;
       catActualFull.set(t.category, e);
     }
 
@@ -614,20 +671,38 @@ export function buildForecastDiagnosticsExport(input: DiagnosticsInput): Forecas
       const forecastIncome = round(result.expectedIncome);
       const forecastInvest = round(result.expectedInvest);
 
-      // After-snapshot actual splits (what the engine had to predict)
+      // P3: After-snapshot actual splits — behavior-based (not TX-flag-based).
+      // If a category is deterministic (recurring/fixed/periodic), ALL its post-snapshot spend
+      // goes to det; otherwise to var.
       const afterTx = monthExpenseTx.filter(t => t.date > snapshotISO);
-      const actualDetAfter = round(afterTx.filter(isRecurring).reduce((s, t) => s + ownShare(t), 0));
-      const actualVarAfter = round(afterTx.filter(t => !isRecurring(t)).reduce((s, t) => s + ownShare(t), 0));
+      const actualDetAfter = round(afterTx.reduce((s, t) => {
+        const isDet = DETERMINISTIC_BEHAVIORS.has(catBehaviorMapCurrent.get(t.category) ?? 'unknown');
+        return isDet ? s + ownShare(t) : s;
+      }, 0));
+      const actualVarAfter = round(afterTx.reduce((s, t) => {
+        const isDet = DETERMINISTIC_BEHAVIORS.has(catBehaviorMapCurrent.get(t.category) ?? 'unknown');
+        return isDet ? s : s + ownShare(t);
+      }, 0));
       const actualSoFarTotal = round(result.categories.reduce((s, c) => s + c.actualSoFar, 0));
 
-      const forecastDeterministic = round(result.categories.reduce((s, c) => s + c.deterministicComponent, 0));
-      const forecastVariable = round(result.categories.reduce((s, c) => s + c.predictedVariableRemaining, 0));
-      const actualFinalDeterministic = round(actualSoFarTotal + actualDetAfter);
-      const actualFinalVariable = actualVarAfter;
-      const deterministicError = round(forecastDeterministic - actualFinalDeterministic);
-      const variableError = round(forecastVariable - actualFinalVariable);
-      const missedDeterministic = round(Math.max(0,
-        actualDetAfter - result.categories.reduce((s, c) => s + c.scheduledFuture + c.plannedFuture, 0)));
+      // P3: Use after-snapshot future-only components, not deterministicComponent (which includes actualSoFar)
+      const futureDeterministicForecast = round(
+        result.categories.reduce((s, c) => s + c.scheduledFuture + c.plannedFuture, 0),
+      );
+      const futureVariableForecast = round(
+        result.categories.reduce((s, c) => s + c.predictedVariableRemaining, 0),
+      );
+      // P4: calibrated variable = apply biasFactor only to bias-applicable categories
+      const calibratedVariableForecast = round(
+        result.categories.reduce((s, c) =>
+          s + (BIAS_APPLICABLE.has(c.behavior) ? c.variableBeforeBias * biasFactor : c.predictedVariableRemaining), 0),
+      );
+      const calibratedForecastExpense = forecastExpense - futureVariableForecast + calibratedVariableForecast;
+
+      // Component errors (after-snapshot only — what the engine had to predict)
+      const deterministicFutureError = round(futureDeterministicForecast - actualDetAfter);
+      const variableFutureError = round(futureVariableForecast - actualVarAfter);
+      const missedDeterministic = round(Math.max(0, actualDetAfter - futureDeterministicForecast));
 
       const expenseError = round(forecastExpense - actualExpenseFull);
       const expensePct = actualExpenseFull > 0 ? Math.round((expenseError / actualExpenseFull) * 1000) / 10 : 0;
@@ -673,6 +748,8 @@ export function buildForecastDiagnosticsExport(input: DiagnosticsInput): Forecas
             ? round(c.variableBeforeBias * biasFactor)
             : c.predictedVariableRemaining;
           const isPeriodic = c.behavior === 'periodic_fixed';
+          // P1: historical backtest months do not have a known budget — don't export current budget
+          // for historical months. budgetAmount is only informational for the current month.
           catForecasts.push({
             categoryId: c.categoryId,
             categoryLabel: catLabel(c.categoryId),
@@ -684,6 +761,7 @@ export function buildForecastDiagnosticsExport(input: DiagnosticsInput): Forecas
             actualSoFar: c.actualSoFar,
             deterministicComponent: c.deterministicComponent,
             variableComponent: c.predictedVariableRemaining,
+            // P2: split by category behavior, not TX flags (already split via catActualFull)
             actualFinalDeterministic: round(actual?.det ?? 0),
             actualFinalVariable: round(actual?.var ?? 0),
             scheduledFuture: c.composition.scheduledFuture,
@@ -694,10 +772,9 @@ export function buildForecastDiagnosticsExport(input: DiagnosticsInput): Forecas
             oneOffSoFar: c.composition.actualOneOffSoFar,
             predictedVariableRemaining: c.variableBeforeBias,
             calibratedVariableRemaining: calibrated,
-            budgetAmount: input.budget.categoryBudgets[c.categoryId],
-            budgetMeaning: input.budget.categoryBudgets[c.categoryId]
-              ? (c.behavior === 'fixed_monthly' || c.behavior === 'periodic_fixed' ? 'fixed_expected' : 'target')
-              : 'none',
+            // P1: no historical budget — always 'target_unavailable' for backtest months
+            budgetAmount: undefined,
+            budgetMeaning: 'target_unavailable' as const,
             activeMonths: c.behaviorResult.activeMonths,
             expectedAmount: c.behaviorResult.expectedAmount,
             actualTransactionCountSoFar: c.treatmentBreakdown.variableNormal,
@@ -714,6 +791,7 @@ export function buildForecastDiagnosticsExport(input: DiagnosticsInput): Forecas
                 transferExcluded: c.treatmentBreakdown.transferExcluded,
               },
               behaviorReasons: c.behaviorResult.reasons,
+              behaviorSource: c.behaviorResult.behaviorSource,
               tailCap: c.tailP75,
               historicalTailRemaining: c.tailMedian,
               recentPaceRemaining: c.paceRemainingSignal,
@@ -758,9 +836,11 @@ export function buildForecastDiagnosticsExport(input: DiagnosticsInput): Forecas
           investment: actualInvestFull,
           savings: round(actualIncomeFull - actualExpenseFull - actualInvestFull),
         },
+        // P4: show both baseline (no bias) and calibrated (with bias) forecast
         forecast: {
           income: forecastIncome,
           expense: forecastExpense,
+          expenseCalibrated: calibratedForecastExpense,
           investment: forecastInvest,
           savings: round(forecastIncome - forecastExpense - forecastInvest),
         },
@@ -771,25 +851,22 @@ export function buildForecastDiagnosticsExport(input: DiagnosticsInput): Forecas
           savings: round((forecastIncome - forecastExpense - forecastInvest) - (actualIncomeFull - actualExpenseFull - actualInvestFull)),
           expensePct,
         },
+        // P3: clear component separation — after-snapshot quantities only for error decomposition
         components: {
-          forecastDeterministic,
-          actualFinalDeterministic,
-          deterministicError,
-          forecastVariable,
-          actualFinalVariable,
-          variableError,
           actualSoFar: actualSoFarTotal,
+          futureDeterministicForecast,
+          futureVariableForecast,
+          calibratedVariableForecast,
+          actualDeterministicAfterSnapshot: actualDetAfter,
+          actualVariableAfterSnapshot: actualVarAfter,
+          deterministicFutureError,
+          variableFutureError,
+          missedDeterministic,
           scheduledFuture: round(result.categories.reduce((s, c) => s + c.composition.scheduledFuture, 0)),
-          recurringFuture: round(result.categories.reduce((s, c) => s + c.composition.scheduledFuture, 0)),
           periodicFuture: round(result.categories.filter(c => c.behavior === 'periodic_fixed')
             .reduce((s, c) => s + c.composition.scheduledFuture, 0)),
           plannedFuture: round(result.categories.reduce((s, c) => s + c.plannedFuture, 0)),
-          budgetConfirmedFuture: round(result.categories.reduce((s, c) => s + c.composition.plannedNormalFuture, 0)),
           oneOffSoFar: round(result.categories.reduce((s, c) => s + c.composition.actualOneOffSoFar, 0)),
-          predictedVariableRemaining: round(result.categories.reduce((s, c) => s + c.variableBeforeBias, 0)),
-          calibratedVariableRemaining: round(result.categories.reduce((s, c) =>
-            s + (BIAS_APPLICABLE.has(c.behavior) ? c.variableBeforeBias * biasFactor : c.predictedVariableRemaining), 0)),
-          missedDeterministic,
         },
         categoryForecasts: includeCategoryForecasts ? catForecasts : undefined,
         topErrorContributors: contributors,
@@ -809,14 +886,14 @@ export function buildForecastDiagnosticsExport(input: DiagnosticsInput): Forecas
   const allSignedErr = samples.map(s => s.error.expense);
   const totalActualExpense = samples.reduce((s, x) => s + x.actualFinal.expense, 0);
 
-  const varAbs = samples.map(s => Math.abs(s.components.variableError));
-  const varSigned = samples.map(s => s.components.variableError);
-  const totalActualVar = samples.reduce((s, x) => s + x.components.actualFinalVariable, 0);
+  const varAbs = samples.map(s => Math.abs(s.components.variableFutureError));
+  const varSigned = samples.map(s => s.components.variableFutureError);
+  const totalActualVar = samples.reduce((s, x) => s + x.components.actualVariableAfterSnapshot, 0);
   const varWape = safeWape(varAbs.reduce((a, b) => a + b, 0), totalActualVar);
 
-  const detAbs = samples.map(s => Math.abs(s.components.deterministicError));
-  const detSigned = samples.map(s => s.components.deterministicError);
-  const totalActualDet = samples.reduce((s, x) => s + x.components.actualFinalDeterministic, 0);
+  const detAbs = samples.map(s => Math.abs(s.components.deterministicFutureError));
+  const detSigned = samples.map(s => s.components.deterministicFutureError);
+  const totalActualDet = samples.reduce((s, x) => s + x.components.actualDeterministicAfterSnapshot, 0);
   const detWape = safeWape(detAbs.reduce((a, b) => a + b, 0), totalActualDet);
 
   const meanOf = (arr: number[]) => arr.length ? Math.round(arr.reduce((a, b) => a + b, 0) / arr.length) : 0;
@@ -876,8 +953,8 @@ export function buildForecastDiagnosticsExport(input: DiagnosticsInput): Forecas
       medae: Math.round(median(abs)),
       wape: safeWape(abs.reduce((a, b) => a + b, 0), denom).wape,
       bias: meanOf(signed),
-      variableMae: meanOf(ds.map(s => Math.abs(s.components.variableError))),
-      deterministicMae: meanOf(ds.map(s => Math.abs(s.components.deterministicError))),
+      variableMae: meanOf(ds.map(s => Math.abs(s.components.variableFutureError))),
+      deterministicMae: meanOf(ds.map(s => Math.abs(s.components.deterministicFutureError))),
       worstSamples: worst,
     };
   }

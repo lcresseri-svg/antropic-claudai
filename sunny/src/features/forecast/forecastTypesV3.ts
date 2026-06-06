@@ -17,7 +17,7 @@ import type { ForecastComposition, TreatmentBreakdown } from './forecastTypes';
  * Priority order used by the V3 engine:
  *   recurring → recurring_bundle → fixed_monthly → periodic_fixed →
  *   hybrid → variable_frequent → variable_sparse → volatile_mixed →
- *   stale → unknown
+ *   rare_variable → stale → unknown
  */
 export type CategoryBehavior =
   | 'recurring'           // explicit seriesId/recurring flag → deterministic
@@ -28,8 +28,9 @@ export type CategoryBehavior =
   | 'variable_frequent'   // > 3 transactions/month on average
   | 'variable_sparse'     // ≤ 3 transactions/month on average
   | 'volatile_mixed'      // high variability (CV > 0.50), low confidence
+  | 'rare_variable'       // ≥ 1 occurrence in past year but no detectable pattern; ongoing but infrequent
   | 'stale'               // was active but 0 activity in last 2+ months with no budget/plan
-  | 'unknown';            // < 3 months of history
+  | 'unknown';            // < 1 month of history
 
 export type PeriodicInterval = 'quarterly' | 'semi_annual' | 'annual' | 'irregular';
 
@@ -55,6 +56,18 @@ export interface CategoryBehaviorResult {
   isStale?: boolean;
   /** Last YYYY-MM key with activity. */
   lastActiveKey?: string;
+  /** Which detection path triggered this classification (for diagnostics). */
+  behaviorSource?:
+    | 'explicit_recurring'
+    | 'recurring_bundle'
+    | 'fixed_monthly'
+    | 'periodic_fixed'
+    | 'stale_after_fixed'
+    | 'stale_after_periodic'
+    | 'stale_variable'
+    | 'rare_variable'
+    | 'variable'
+    | 'unknown';
 }
 
 // ── Per-category V3 forecast ─────────────────────────────────────────────────

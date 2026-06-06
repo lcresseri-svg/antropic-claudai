@@ -40,6 +40,7 @@ const BEHAVIOR_META: Record<CategoryBehavior, { label: string; color: string; bg
   variable_frequent:  { label: '📊 Variabile frequente', color: 'text-tertiary',   bg: 'bg-elevated' },
   variable_sparse:    { label: '📊 Variabile raro',      color: 'text-tertiary',   bg: 'bg-elevated' },
   volatile_mixed:     { label: '⚠️ Volatile',            color: 'text-[#C0706A]',  bg: 'bg-[#C0706A]/10' },
+  rare_variable:      { label: '🌙 Rarissima',           color: 'text-tertiary',   bg: 'bg-elevated' },
   stale:              { label: '💤 Inattiva',             color: 'text-tertiary',   bg: 'bg-elevated' },
   unknown:            { label: '❓ Sconosciuto',          color: 'text-tertiary',   bg: 'bg-elevated' },
 };

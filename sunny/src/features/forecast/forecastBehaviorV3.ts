@@ -95,6 +95,11 @@ function detectGapInterval(activeKeys: string[]): { interval: PeriodicInterval; 
  * Detect regular non-monthly payment cadence using occurrence gap analysis.
  * More robust than V2's calendar-month concentration because it works even
  * when payment months shift slightly year to year.
+ *
+ * V3 improvement: `allHistoryKeys` is now the FULL lookback window (24 months),
+ * not just active months. This lets the spendRatio computation work correctly —
+ * a category active 2 out of 24 months gets spendRatio=8%, correctly detected
+ * as periodic rather than classified as stale.
  */
 export function detectPeriodicFixedV3(params: {
   catHistory: Record<string, MonthCatHistory>;
@@ -116,9 +121,11 @@ export function detectPeriodicFixedV3(params: {
     activeMonths: [], confidence: 'low' as const, reasons: [] as string[],
   };
 
-  if (params.allHistoryKeys.length < 4) return no;
+  // Need at least 6 months in the window to compute a meaningful spendRatio
+  if (params.allHistoryKeys.length < 6) return no;
 
   const activeKeys = params.allHistoryKeys.filter(k => monthTotal(params.catHistory[k]) > 0);
+  // Need at least 2 occurrences to compute a gap
   if (activeKeys.length < 2) return no;
 
   const spendRatio = activeKeys.length / params.allHistoryKeys.length;
@@ -307,6 +314,11 @@ export function detectFixedMonthlyV3(params: {
  */
 export function inferCategoryBehaviorV3(params: {
   catHistory: Record<string, MonthCatHistory>;
+  /**
+   * ALL months in the lookback window (24 months), including those without activity.
+   * Required for correct spendRatio in periodic detection.
+   * Previously was Object.keys(catHistory) — fixed in V3.1.
+   */
   allHistoryKeys: string[];
   fiveMonthKeys: string[];
   recentKeys: string[];
@@ -324,8 +336,12 @@ export function inferCategoryBehaviorV3(params: {
     currentMonthActualScheduled, currentMonthActualVarNormal, currentMonthVarNormalCount,
   } = params;
 
-  if (allHistoryKeys.length < 2) {
-    return { behavior: 'unknown', confidence: 'low', reasons: ['Storia insufficiente'] };
+  // Count months with actual spend (used for guards below — not allHistoryKeys.length,
+  // which now includes all months in the window even without activity)
+  const activeHistoryCount = allHistoryKeys.filter(k => monthTotal(catHistory[k]) > 0).length;
+
+  if (activeHistoryCount < 1) {
+    return { behavior: 'unknown', confidence: 'low', reasons: ['Nessuna storia disponibile'], behaviorSource: 'unknown' };
   }
 
   // ── 1. Explicit recurring ──────────────────────────────────────────────────
@@ -346,6 +362,7 @@ export function inferCategoryBehaviorV3(params: {
         fixedAmount: fixedMedian,
         variableAmount: varMedian,
         expectedAmount: fixedMedian,
+        behaviorSource: 'explicit_recurring',
       };
     }
 
@@ -355,6 +372,7 @@ export function inferCategoryBehaviorV3(params: {
       confidence: 'high',
       reasons: fixed.reasons,
       expectedAmount: fixed.lockedAmount,
+      behaviorSource: 'explicit_recurring',
     };
   }
 
@@ -372,10 +390,11 @@ export function inferCategoryBehaviorV3(params: {
       reasons: bundle.reasons,
       expectedAmount,
       activeMonths: [...new Set(
-        Object.keys(catHistory)
+        allHistoryKeys
           .filter(k => monthTotal(catHistory[k]) > 0)
           .map(k => parseInt(k.slice(5, 7), 10) - 1),
       )].sort((a, b) => a - b),
+      behaviorSource: 'recurring_bundle',
     };
   }
 
@@ -389,6 +408,7 @@ export function inferCategoryBehaviorV3(params: {
         reasons: stale.reasons,
         isStale: true, lastActiveKey: stale.lastActiveKey,
         expectedAmount: fixed.lockedAmount,
+        behaviorSource: 'stale_after_fixed',
       };
     }
     return {
@@ -396,10 +416,13 @@ export function inferCategoryBehaviorV3(params: {
       confidence: fixed.confidence,
       reasons: fixed.reasons,
       expectedAmount: fixed.lockedAmount,
+      behaviorSource: 'fixed_monthly',
     };
   }
 
   // ── 4. Periodic fixed (gap-based interval detection) ─────────────────────
+  // Uses full allHistoryKeys window (24 months) so spendRatio is computed
+  // against total possible months — correctly identifies annual/semi-annual patterns.
   const periodic = detectPeriodicFixedV3({ catHistory, allHistoryKeys, currentCalendarMonth, budgetAmount });
   if (periodic.isPeriodic && periodic.confidence !== 'low') {
     return {
@@ -411,24 +434,48 @@ export function inferCategoryBehaviorV3(params: {
       activeMonths: periodic.activeMonths,
       nextExpectedCalendarMonth: periodic.nextExpectedCalendarMonth,
       expectedAmount: periodic.expectedAmount,
+      behaviorSource: 'periodic_fixed',
     };
   }
 
-  // ── Stale check for variable behaviors ────────────────────────────────────
+  // ── Stale check before variable classification ────────────────────────────
   const stale = detectStaleCategoryV3({ catHistory, recentKeys, budgetAmount, hasPlanningCurrentMonth: plannedCurrentMonth });
   if (stale.isStale) {
     return {
       behavior: 'stale', confidence: 'medium',
       reasons: stale.reasons,
       isStale: true, lastActiveKey: stale.lastActiveKey,
+      behaviorSource: 'stale_variable',
     };
   }
 
-  // ── 5. Variable behaviors ─────────────────────────────────────────────────
-  if (allHistoryKeys.length < 3) {
-    return { behavior: 'unknown', confidence: 'low', reasons: ['Storia insufficiente (< 3 mesi)'] };
+  // ── 5. Rare variable: active in the past year but < 3 months of data ─────
+  // Distinct from stale (which implies stopped) — rare_variable is ongoing but
+  // infrequent with no detectable regular period.
+  if (activeHistoryCount < 3) {
+    // Check if there was any activity in the last 12 months
+    const last12Keys = allHistoryKeys.slice(0, 12);
+    const recentActivity = last12Keys.some(k => monthTotal(catHistory[k]) > 0);
+    const allActiveKeys = allHistoryKeys.filter(k => monthTotal(catHistory[k]) > 0);
+    const lastKey = [...allActiveKeys].sort().pop();
+    if (recentActivity) {
+      const avgAmount = median(allActiveKeys.map(k => monthTotal(catHistory[k])));
+      return {
+        behavior: 'rare_variable', confidence: 'low',
+        reasons: [
+          `Solo ${activeHistoryCount} mesi con spesa negli ultimi ${allHistoryKeys.length} mesi`,
+          `Ultima attività: ${lastKey ?? '?'}`,
+          `Importo tipico: ~${Math.round(avgAmount)}€`,
+        ],
+        lastActiveKey: lastKey,
+        expectedAmount: avgAmount,
+        behaviorSource: 'rare_variable',
+      };
+    }
+    return { behavior: 'unknown', confidence: 'low', reasons: ['Storia insufficiente (< 3 mesi con dati)'], behaviorSource: 'unknown' };
   }
 
+  // ── 6. Variable behaviors (≥ 3 months of data) ───────────────────────────
   const recentCounts = recentKeys.map(k => catHistory[k]?.variableCount ?? 0).filter(c => c > 0);
   const medCount = recentCounts.length > 0 ? median(recentCounts) : 0;
   const recentAmounts = recentKeys.map(k => monthTotal(catHistory[k])).filter(v => v > 0);
@@ -438,6 +485,7 @@ export function inferCategoryBehaviorV3(params: {
     return {
       behavior: 'volatile_mixed', confidence: 'low',
       reasons: [`Alta variabilità (CV=${cv.toFixed(2)}) — previsione poco affidabile`],
+      behaviorSource: 'variable',
     };
   }
 
@@ -445,12 +493,14 @@ export function inferCategoryBehaviorV3(params: {
     return {
       behavior: 'variable_frequent', confidence: 'medium',
       reasons: [`~${medCount.toFixed(1)} transazioni/mese — categoria frequente`],
+      behaviorSource: 'variable',
     };
   }
 
   return {
     behavior: 'variable_sparse', confidence: 'medium',
     reasons: [`~${medCount.toFixed(1)} transazioni/mese — categoria poco frequente`],
+    behaviorSource: 'variable',
   };
 }
 
@@ -463,13 +513,14 @@ export function behaviorIntervalWidth(behavior: CategoryBehavior): number {
     case 'recurring_bundle':
     case 'fixed_monthly':
       return 0.0;
-    case 'periodic_fixed': return 0.15;
-    case 'hybrid':         return 0.20;
-    case 'variable_sparse': return 0.35;
+    case 'periodic_fixed':   return 0.15;
+    case 'hybrid':           return 0.20;
+    case 'variable_sparse':  return 0.35;
     case 'variable_frequent': return 0.25;
-    case 'volatile_mixed': return 0.55;
-    case 'stale':          return 0.05;
-    case 'unknown':        return 0.50;
-    default:               return 0.30;
+    case 'volatile_mixed':   return 0.55;
+    case 'rare_variable':    return 0.60;
+    case 'stale':            return 0.05;
+    case 'unknown':          return 0.50;
+    default:                 return 0.30;
   }
 }
