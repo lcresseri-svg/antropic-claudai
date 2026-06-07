@@ -85,6 +85,22 @@ export function buildProjectedOccurrences(
 }
 
 /**
+ * A recurring TEMPLATE that has moved past its own `until` bound: the series is
+ * over but the template doc still lingers (future-dated, still flagged
+ * recurring). This happens when:
+ *   - the user edits a series and sets/lowers `until` below the template's next
+ *     occurrence date, or
+ *   - a series reaches its natural end and the catch-up / Cloud Function advanced
+ *     the template one step past `until` without deleting it.
+ *
+ * Such a doc must NOT be shown as "Programmato", counted, or projected — and
+ * should be cleaned up (see catchUpRecurring's `remove`).
+ */
+export function isExpiredTemplate(t: Transaction): boolean {
+  return !t.projected && !!t.recurring?.until && t.date > t.recurring.until;
+}
+
+/**
  * Any real document dated in the future is a PLANNED ("previsto") movement:
  * shown as "Programmato", excluded from realized totals/balances, folded into
  * forecasts. This covers ALL types (expense, income, investment, transfer) and
@@ -93,8 +109,11 @@ export function buildProjectedOccurrences(
  * Recurring templates with a past/today date are NOT pending — they represent a
  * started series whose first occurrence has already been realized.
  * Synthetic projected rows (projected: true) are display-only and never pending.
+ * An EXPIRED template (advanced past its own `until`) is an ended series, not a
+ * live planned movement.
  */
 export function isPending(t: Transaction, todayISO: string): boolean {
+  if (isExpiredTemplate(t)) return false;
   return !t.projected && t.date > todayISO;
 }
 
@@ -153,7 +172,12 @@ export function expandRecurringOnCreate<T extends Omit<Transaction, 'id'>>(
 export function catchUpRecurring(
   transactions: Transaction[],
   todayISO: string,
-): { creates: Omit<Transaction, 'id'>[]; advance: { id: string; date: string; seriesId: string }[] } {
+): {
+  creates: Omit<Transaction, 'id'>[];
+  advance: { id: string; date: string; seriesId: string }[];
+  /** Template doc ids to DELETE: orphaned templates that ran past their `until`. */
+  remove: string[];
+} {
   // Occurrences already stored as realized instances (seriesId + date).
   const have = new Set<string>();
   for (const t of transactions) {
@@ -161,11 +185,15 @@ export function catchUpRecurring(
   }
   const creates: Omit<Transaction, 'id'>[] = [];
   const advance: { id: string; date: string; seriesId: string }[] = [];
+  const remove: string[] = [];
   for (const t of transactions) {
     const rule = t.recurring;
     if (!rule) continue;
-    if (t.date > todayISO) continue; // next occurrence still in the future → nothing due
     const seriesId = t.seriesId ?? t.id;
+    // Orphaned template: already advanced past its own end bound (e.g. the user
+    // set `until` below the next occurrence) → delete it, no occurrence remains.
+    if (rule.until && t.date > rule.until) { remove.push(t.id); continue; }
+    if (t.date > todayISO) continue; // next occurrence still in the future → nothing due
     let date = t.date;
     let guard = 400;
     while (date <= todayISO && (!rule.until || date <= rule.until) && guard-- > 0) {
@@ -178,9 +206,12 @@ export function catchUpRecurring(
       }
       date = addPeriod(date, rule.freq);
     }
-    advance.push({ id: t.id, date, seriesId });
+    // If the series has run out (next occurrence past `until`), drop the template
+    // instead of advancing it past the end date; otherwise advance as usual.
+    if (rule.until && date > rule.until) remove.push(t.id);
+    else advance.push({ id: t.id, date, seriesId });
   }
-  return { creates, advance };
+  return { creates, advance, remove };
 }
 
 /**
@@ -219,6 +250,7 @@ export function recurringMonthlyEquivalent(
   for (const t of transactions) {
     if (t.type !== type || !t.recurring) continue;
     if (t.recurring.until && t.recurring.until < todayISO) continue;
+    if (isExpiredTemplate(t)) continue; // ended series whose template lingers past `until`
     total += t.amount * MONTHLY_EQUIV[t.recurring.freq];
   }
   return total;

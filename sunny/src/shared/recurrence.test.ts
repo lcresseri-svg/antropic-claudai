@@ -1,5 +1,5 @@
 import { describe, it, expect } from 'vitest';
-import { expandRecurringOnCreate, catchUpRecurring, isPending } from './recurrence';
+import { expandRecurringOnCreate, catchUpRecurring, isPending, isExpiredTemplate } from './recurrence';
 import { Transaction } from '../types';
 
 const TODAY = '2026-06-04';
@@ -89,5 +89,49 @@ describe('catchUpRecurring', () => {
     ];
     const { creates } = catchUpRecurring(txs, TODAY);
     expect(creates.map(c => c.date)).toEqual(['2026-06-04']); // only the missing one
+  });
+
+  it('deletes an orphan template advanced past its until (e.g. until lowered on edit)', () => {
+    // User set until=2026-05-31 but the template still sits at its next occurrence
+    // 2026-07-04 (future, past until) → no occurrence remains: delete it.
+    const txs = [t({ id: 'orph', date: '2026-07-04', recurring: { freq: 'monthly', until: '2026-05-31' }, seriesId: 's' })];
+    const { creates, advance, remove } = catchUpRecurring(txs, TODAY);
+    expect(creates).toHaveLength(0);
+    expect(advance).toHaveLength(0);
+    expect(remove).toEqual(['orph']);
+  });
+
+  it('drops the template (no advance past until) when a series reaches its end', () => {
+    // Due Apr 4, until May 31: materialize Apr & May, then the next step (Jun 4)
+    // is still <= today but > until → series done, delete template, do not advance.
+    const txs = [t({ id: 'tpl', date: '2026-04-04', recurring: { freq: 'monthly', until: '2026-05-31' }, seriesId: 's' })];
+    const { creates, advance, remove } = catchUpRecurring(txs, TODAY);
+    expect(creates.map(c => c.date)).toEqual(['2026-04-04', '2026-05-04']);
+    expect(advance).toHaveLength(0);
+    expect(remove).toEqual(['tpl']);
+  });
+});
+
+describe('isExpiredTemplate / isPending', () => {
+  const mk = (over: Partial<Transaction>): Transaction => ({
+    id: 'x', date: '2026-07-04', description: 'X', amount: 10,
+    type: 'expense', category: 'casa', account: 'conto', ...over,
+  });
+
+  it('flags a future recurring template dated past its until as expired (not pending)', () => {
+    const tpl = mk({ date: '2026-07-04', recurring: { freq: 'monthly', until: '2026-05-31' } });
+    expect(isExpiredTemplate(tpl)).toBe(true);
+    expect(isPending(tpl, TODAY)).toBe(false); // no longer shown as "Programmato"
+  });
+
+  it('keeps a normal future template (within until) pending', () => {
+    const tpl = mk({ date: '2026-07-04', recurring: { freq: 'monthly', until: '2026-12-31' } });
+    expect(isExpiredTemplate(tpl)).toBe(false);
+    expect(isPending(tpl, TODAY)).toBe(true);
+  });
+
+  it('ignores projected rows (display-only, never expired-template)', () => {
+    const proj = mk({ projected: true, recurring: undefined });
+    expect(isExpiredTemplate(proj)).toBe(false);
   });
 });

@@ -182,8 +182,8 @@ function Main({ user, onLogOut, onDeleteAccount }: {
     if (!tx.synced || caughtUp.current) return;
     caughtUp.current = true;
     const todayISO = new Date().toISOString().slice(0, 10);
-    const { creates, advance } = catchUpRecurring(tx.transactions, todayISO);
-    if (creates.length || advance.length) tx.materializeRecurring(creates, advance);
+    const { creates, advance, remove } = catchUpRecurring(tx.transactions, todayISO);
+    if (creates.length || advance.length || remove.length) tx.materializeRecurring(creates, advance, remove);
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [tx.synced]);
 

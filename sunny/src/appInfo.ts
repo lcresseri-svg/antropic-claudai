@@ -1,4 +1,4 @@
-export const APP_VERSION = '1.9.19';
+export const APP_VERSION = '1.9.20';
 
 /**
  * Release channel. While in 'beta' the app is still under active development
@@ -15,6 +15,13 @@ export interface VersionEntry {
 
 /** Registro versioni mostrato in Impostazioni → Registro versioni. */
 export const VERSIONS: VersionEntry[] = [
+  {
+    version: '1.9.20', date: '2026-06-07', title: 'Fix fine ricorrenze',
+    changes: [
+      'Quando imposti una data di fine su una serie ricorrente, le occorrenze programmate dopo quella data ora spariscono correttamente (prima poteva restare un movimento "Programmato" oltre la fine).',
+      'Le serie che arrivano a scadenza vengono ripulite automaticamente, senza lasciare voci future orfane.',
+    ],
+  },
   {
     version: '1.9.19', date: '2026-06-06', title: 'Migliorie interne',
     changes: [

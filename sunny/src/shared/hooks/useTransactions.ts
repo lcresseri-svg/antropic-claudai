@@ -89,15 +89,18 @@ export function useTransactions(user: User | null, accounts: AccountDef[] = [], 
   }, [user, colRef]);
 
   // Materialize overdue recurring occurrences in one atomic batch: create the
-  // realized instances and advance their templates to the next future date.
+  // realized instances, advance their templates to the next future date, and
+  // delete templates that have run past their `until` (ended series).
   const materializeRecurring = useCallback((
     creates: Omit<Transaction, 'id'>[],
     advance: { id: string; date: string; seriesId: string }[],
+    remove: string[] = [],
   ) => {
-    if (!user || (creates.length === 0 && advance.length === 0)) return;
+    if (!user || (creates.length === 0 && advance.length === 0 && remove.length === 0)) return;
     const batch = writeBatch(db);
     creates.forEach(tx => batch.set(doc(colRef()), stripUndefined(tx)));
     advance.forEach(a => batch.update(doc(db, 'users', user.uid, 'transactions', a.id), { date: a.date, seriesId: a.seriesId }));
+    remove.forEach(id => batch.delete(doc(db, 'users', user.uid, 'transactions', id)));
     batch.commit();
   }, [user, colRef]);
 

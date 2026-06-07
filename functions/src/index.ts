@@ -187,11 +187,21 @@ export const processRecurringTransactions = onSchedule(
         }
 
         if (advanced) {
-          // Advance the template to its next future occurrence; backfill seriesId.
-          batch.update(doc.ref, { date, seriesId });
+          if (recurring.until && date > recurring.until) {
+            // The series reached its end this run: delete the template instead of
+            // advancing it past `until` (which would leave an orphan "Programmato").
+            batch.delete(doc.ref);
+            console.log(`processRecurringTransactions: series ${doc.id} (user ${userId}) ended (until=${recurring.until}); template deleted`);
+          } else {
+            // Advance the template to its next future occurrence; backfill seriesId.
+            batch.update(doc.ref, { date, seriesId });
+          }
           await batch.commit();
         } else if (recurring.until && date > recurring.until) {
-          console.log(`processRecurringTransactions: template ${doc.id} (user ${userId}) has expired (until=${recurring.until})`);
+          // Orphan template already sitting past its end bound (e.g. the user lowered
+          // `until` below the next occurrence on a series edit) → clean it up.
+          await doc.ref.delete();
+          console.log(`processRecurringTransactions: deleted expired orphan template ${doc.id} (user ${userId}, until=${recurring.until})`);
         }
       } catch (err) {
         console.error(`processRecurringTransactions: failed for template ${doc.id} (user ${userId}):`, err);
