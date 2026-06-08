@@ -16,6 +16,7 @@ import { LoginScreen } from './shared/components/LoginScreen';
 import { Dashboard } from './features/dashboard/Dashboard';
 import { DashboardV2 } from './features/dashboard/DashboardV2';
 import { InvestmentsScreen } from './features/dashboard/InvestmentsScreen';
+import { CategorySpendingScreen } from './features/dashboard/CategorySpendingScreen';
 import { InsightsScreen } from './features/insights/InsightsScreen';
 import { InsightsScreenV2 } from './features/insights/InsightsScreenV2';
 import { BudgetScreen } from './features/budget/BudgetScreen';
@@ -385,6 +386,13 @@ function Main({ user, onLogOut, onDeleteAccount }: {
               <Route path="/ai-coach" element={
                 <div className="pt-4 md:pt-6">
                   <AICoachScreen />
+                </div>
+              } />
+            )}
+            {isAdminUser(user) && (
+              <Route path="/category-spending" element={
+                <div className="pt-4 md:pt-6">
+                  <CategorySpendingScreen transactions={tx.transactions} />
                 </div>
               } />
             )}

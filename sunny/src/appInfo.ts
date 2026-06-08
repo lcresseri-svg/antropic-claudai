@@ -1,4 +1,4 @@
-export const APP_VERSION = '1.9.22';
+export const APP_VERSION = '1.9.23';
 
 /**
  * Release channel. While in 'beta' the app is still under active development
@@ -15,6 +15,15 @@ export interface VersionEntry {
 
 /** Registro versioni mostrato in Impostazioni → Registro versioni. */
 export const VERSIONS: VersionEntry[] = [
+  {
+    version: '1.9.23', date: '2026-06-08', title: 'Dashboard beta ristrutturata',
+    changes: [
+      '"Questo mese" con tre card (Entrate, Uscite, Risparmio) sempre visibili in cima alla Home.',
+      'Insight mostrati in lista verticale cliccabile invece del carosello orizzontale.',
+      '"Spese per categoria" diventa una schermata dedicata con selettore periodo e navigazione avanti/indietro nel tempo.',
+      'Rimosso il blocco Entrate · Uscite · Investito dalla Home.',
+    ],
+  },
   {
     version: '1.9.22', date: '2026-06-08', title: 'Home più essenziale',
     changes: [

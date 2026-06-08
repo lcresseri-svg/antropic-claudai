@@ -1,24 +1,17 @@
+// TODO: remove the old Dashboard.tsx and promote this component to all users
+// once the admin beta is validated.
 import { useState, useMemo } from 'react';
+import { useNavigate } from 'react-router-dom';
 import { Transaction, ownShare } from '../../types';
-import { formatCurrency, capitalize } from '../../utils';
+import { formatCurrency } from '../../utils';
 import { CategoryCard } from './CategoryCard';
 import { AccountsCard } from './AccountsCard';
 import { TrendChart } from './TrendChart';
-import { FlowBar } from './FlowBar';
 import { InvestmentSummaryCard } from './InvestmentSummaryCard';
-import { InsightTicker } from '../insights/InsightTicker';
 import { AIDigestCard } from './AIDigestCard';
+import { InsightDetailSheet } from '../insights/InsightDetailSheet';
 import { useSettings } from '../../shared/providers/settings';
-import { buildInsights } from '../insights/insightsEngine';
-
-type Period = '1m' | '3m' | '6m' | '1y';
-
-const PERIOD_OPTS: { value: Period; label: string; months: number }[] = [
-  { value: '1m', label: 'Mese',   months: 1 },
-  { value: '3m', label: '3 mesi', months: 3 },
-  { value: '6m', label: '6 mesi', months: 6 },
-  { value: '1y', label: 'Anno',   months: 12 },
-];
+import { buildInsights, Insight } from '../insights/insightsEngine';
 
 interface Props {
   greeting?: string;
@@ -32,6 +25,8 @@ interface Props {
   accountBalances: Record<string, number>;
   trend: { key: string; income: number; expense: number; invest: number }[];
   transactions: Transaction[];
+  // The following props are kept for backward compat with the App.tsx call site
+  // but are not used in this layout.
   savingsTarget: number;
   onSeeInsights: () => void;
   onSeeInvestments: () => void;
@@ -41,64 +36,30 @@ interface Props {
 }
 
 export function DashboardV2(p: Props) {
+  const navigate = useNavigate();
   const { enableInvestments, getCat, insightDepth, categories } = useSettings();
   const [accMode, setAccMode] = useState<'balance' | 'spending'>('balance');
-  const [period, setPeriod] = useState<Period>('1m');
-  const [offset, setOffset] = useState(0);
+  const [detailInsight, setDetailInsight] = useState<Insight | null>(null);
 
-  const now = useMemo(() => new Date(), []);
-  const months = PERIOD_OPTS.find(o => o.value === period)!.months;
-
-  const { start, end, label } = useMemo(() => {
+  // Current-month derived values (period selector moved to CategorySpendingScreen)
+  const { currentMonthCategoryTotals, currentMonthExpenseByAccount } = useMemo(() => {
+    const now = new Date();
     const cm = now.getMonth(), cy = now.getFullYear();
-    const endMonth = new Date(cy, cm - offset, 1);
-    const startMonth = new Date(cy, cm - offset - (months - 1), 1);
-    const isCurrent = offset === 0;
-    const end = isCurrent ? now : new Date(endMonth.getFullYear(), endMonth.getMonth() + 1, 0, 23, 59, 59);
-
-    const fmtM = (d: Date) => capitalize(d.toLocaleString('it-IT', { month: 'short' }).replace('.', ''));
-    let label: string;
-    if (months === 1) {
-      label = capitalize(endMonth.toLocaleString('it-IT', { month: 'long', year: 'numeric' }));
-    } else if (startMonth.getFullYear() === endMonth.getFullYear()) {
-      label = `${fmtM(startMonth)}–${fmtM(endMonth)} ${endMonth.getFullYear()}`;
-    } else {
-      label = `${fmtM(startMonth)} ${startMonth.getFullYear()} – ${fmtM(endMonth)} ${endMonth.getFullYear()}`;
-    }
-    return { start: startMonth, end, label };
-  }, [now, offset, months]);
-
-  const periodTx = useMemo(() =>
-    p.transactions.filter(t => {
+    const categoryTotals: Record<string, number> = {};
+    const expenseByAccount: Record<string, number> = {};
+    for (const t of p.transactions) {
+      if (t.type !== 'expense') continue;
       const d = new Date(t.date);
-      return d >= start && d <= end;
-    }), [p.transactions, start, end]);
-
-  const periodIncome      = useMemo(() => periodTx.filter(t => t.type === 'income').reduce((s, t) => s + t.amount, 0), [periodTx]);
-  const periodExpenses    = useMemo(() => periodTx.filter(t => t.type === 'expense').reduce((s, t) => s + ownShare(t), 0), [periodTx]);
-  const periodInvestments = useMemo(() => periodTx.filter(t => t.type === 'investment').reduce((s, t) => s + t.amount, 0), [periodTx]);
-
-  const periodCategoryTotals = useMemo(() => {
-    const r: Record<string, number> = {};
-    for (const t of periodTx) {
-      if (t.type !== 'expense') continue;
-      r[t.category] = (r[t.category] ?? 0) + ownShare(t);
+      if (d.getMonth() !== cm || d.getFullYear() !== cy) continue;
+      categoryTotals[t.category] = (categoryTotals[t.category] ?? 0) + ownShare(t);
+      expenseByAccount[t.account] = (expenseByAccount[t.account] ?? 0) + ownShare(t);
     }
-    return r;
-  }, [periodTx]);
+    return { currentMonthCategoryTotals: categoryTotals, currentMonthExpenseByAccount: expenseByAccount };
+  }, [p.transactions]);
 
-  const periodExpenseByAccount = useMemo(() => {
-    const r: Record<string, number> = {};
-    for (const t of periodTx) {
-      if (t.type !== 'expense') continue;
-      r[t.account] = (r[t.account] ?? 0) + ownShare(t);
-    }
-    return r;
-  }, [periodTx]);
+  const savings = p.monthlyIncome - p.monthlyExpenses;
 
-  const saved = periodIncome - periodExpenses - periodInvestments;
-
-  const dashboardInsights = useMemo(() =>
+  const insights = useMemo(() =>
     buildInsights({
       transactions: p.transactions,
       monthlyIncome: p.monthlyIncome,
@@ -115,137 +76,151 @@ export function DashboardV2(p: Props) {
     expenses: p.monthlyExpenses,
     investments: p.monthlyInvestments,
     saved: p.monthlyIncome - p.monthlyExpenses - p.monthlyInvestments,
-    topInsights: dashboardInsights.slice(0, 5).map(i => i.title),
-  }), [p.monthlyIncome, p.monthlyExpenses, p.monthlyInvestments, dashboardInsights]);
+    topInsights: insights.slice(0, 5).map(i => i.title),
+  }), [p.monthlyIncome, p.monthlyExpenses, p.monthlyInvestments, insights]);
 
   return (
     <div className="pb-32">
 
       {/* Desktop-only greeting */}
       {p.greeting && (
-        <p className="hidden md:block text-lg font-semibold text-primary tracking-[-0.02em] pt-2 mb-4">{p.greeting}</p>
+        <p className="hidden md:block text-lg font-semibold text-primary tracking-[-0.02em] pt-2 mb-5">{p.greeting}</p>
       )}
 
-      {/* Patrimonio netto + periodo */}
-      <div className="pt-4 md:pt-0 space-y-3">
-        <div className="pt-2 pb-4 border-b border-white/[0.05]">
-          <p className="label-caps text-secondary mb-2">Patrimonio netto</p>
-          <p className="text-[38px] leading-none font-bold text-primary balance-num">
-            {formatCurrency(p.netWorth)}
-          </p>
-          <div className="flex gap-8 mt-5 pt-5 border-t border-white/[0.04]">
-            <div>
-              <p className="label-caps text-secondary mb-1.5">Liquidità</p>
-              <p className="text-sm font-semibold text-primary balance-num">{formatCurrency(p.liquidity)}</p>
-            </div>
-            {enableInvestments && (
-              <button onClick={p.onSeeInvestments} className="text-left group">
-                <p className="label-caps text-secondary mb-1.5 flex items-center gap-1">
-                  Investito
-                  <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round" className="text-secondary group-hover:text-gold transition-colors"><path d="m9 18 6-6-6-6"/></svg>
-                </p>
-                <p className="text-sm font-semibold balance-num text-gold">{formatCurrency(p.investmentTotal)}</p>
-              </button>
-            )}
-          </div>
-        </div>
-
-        {/* Period selector */}
-        <div className="flex items-center gap-1.5">
-          {PERIOD_OPTS.map(opt => (
-            <button key={opt.value} onClick={() => { setPeriod(opt.value); setOffset(0); }}
-              className={`px-3.5 py-1.5 rounded-full text-xs font-semibold transition-colors ${
-                period === opt.value ? 'bg-gold/10 text-gold' : 'text-secondary hover:text-primary'
-              }`}>
-              {opt.label}
-            </button>
-          ))}
-        </div>
-
-        {/* Period navigator */}
-        <div className="flex items-center justify-between bg-card rounded-xl px-1.5 py-1.5">
-          <button onClick={() => setOffset(o => o + 1)} aria-label="Periodo precedente"
-            className="w-8 h-8 rounded-lg flex items-center justify-center text-secondary hover:text-primary hover:bg-elevated transition-colors">
-            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"><path d="m15 18-6-6 6-6"/></svg>
-          </button>
-          <div className="flex items-center gap-2">
-            <span className="text-[13px] font-medium text-primary">{label}</span>
-            {offset > 0 && (
-              <button onClick={() => setOffset(0)} className="text-[11px] font-medium text-gold">Oggi</button>
-            )}
-          </div>
-          <button onClick={() => setOffset(o => Math.max(0, o - 1))} disabled={offset === 0} aria-label="Periodo successivo"
-            className="w-8 h-8 rounded-lg flex items-center justify-center text-secondary hover:text-primary hover:bg-elevated transition-colors disabled:opacity-30 disabled:hover:bg-transparent">
-            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"><path d="m9 18 6-6-6-6"/></svg>
-          </button>
-        </div>
-
-        {/* Period stats */}
-        <div className="grid grid-cols-3 gap-2.5">
-          <Stat label="Entrate"   value={formatCurrency(periodIncome)}    colorClass="text-green" />
-          <Stat label="Uscite"    value={formatCurrency(periodExpenses)}  colorClass="text-secondary" />
-          <Stat
+      {/* ── A: Questo mese ── */}
+      <section className="pt-4 md:pt-0">
+        <p className="label-caps text-secondary mb-3 px-0.5">Questo mese</p>
+        <div className="grid grid-cols-3 gap-2">
+          <MonthStatCard label="Entrate"  value={p.monthlyIncome}    colorClass="text-green" />
+          <MonthStatCard label="Uscite"   value={p.monthlyExpenses}  colorClass="text-secondary" />
+          <MonthStatCard
             label="Risparmio"
-            value={formatCurrency(saved)}
-            colorClass={saved >= 0 ? 'text-gold' : 'text-red'}
-            warn={saved < 0 && enableInvestments}
-            hint={enableInvestments && periodInvestments > 0 ? `dopo ${formatCurrency(periodInvestments)} investiti` : undefined}
+            value={savings}
+            colorClass={savings >= 0 ? 'text-gold' : 'text-red'}
           />
         </div>
+      </section>
+
+      {/* ── Patrimonio netto ── */}
+      <div className="mt-7 pb-6 border-b border-white/[0.04]">
+        <p className="label-caps text-secondary mb-3">Patrimonio netto</p>
+        <p className="text-[44px] leading-none font-bold text-primary balance-num">
+          {formatCurrency(p.netWorth)}
+        </p>
+        <div className="flex gap-8 mt-6 pt-5 border-t border-white/[0.04]">
+          <div>
+            <p className="label-caps text-secondary mb-1.5">Liquidità</p>
+            <p className="text-sm font-semibold text-primary balance-num">{formatCurrency(p.liquidity)}</p>
+          </div>
+          {enableInvestments && (
+            <button onClick={p.onSeeInvestments} className="text-left group">
+              <p className="label-caps text-secondary mb-1.5 flex items-center gap-1">
+                Investito
+                <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round" className="text-secondary group-hover:text-gold transition-colors">
+                  <path d="m9 18 6-6-6-6"/>
+                </svg>
+              </p>
+              <p className="text-sm font-semibold balance-num text-gold">{formatCurrency(p.investmentTotal)}</p>
+            </button>
+          )}
+        </div>
       </div>
 
-      {/* Insight ticker */}
-      <div className="mt-5">
-        <InsightTicker
-          transactions={p.transactions}
-          monthlyIncome={p.monthlyIncome}
-          monthlyExpenses={p.monthlyExpenses}
-          monthlyInvestments={p.monthlyInvestments}
-          prebuilt={dashboardInsights}
-          onSeeAll={p.onSeeInsights}
-        />
-      </div>
+      {/* ── B: Insights vertical list ── */}
+      {insights.length > 0 && (
+        <section className="mt-6">
+          <div className="flex items-center justify-between mb-3 px-0.5">
+            <p className="label-caps text-secondary">Insight</p>
+            <button onClick={p.onSeeInsights} className="text-xs font-medium text-gold">
+              Vedi tutti
+            </button>
+          </div>
+          <div className="space-y-2">
+            {insights.slice(0, 8).map((ins, i) => (
+              <button
+                key={i}
+                onClick={() => setDetailInsight(ins)}
+                className={`w-full text-left glass-card rounded-2xl px-4 py-3.5 flex items-start gap-3.5 active:scale-[0.99] transition-transform ${ins.urgent ? 'ring-1 ring-[#E08B8B]/30' : ''}`}
+              >
+                <span
+                  className="w-8 h-8 rounded-xl flex items-center justify-center text-sm flex-shrink-0"
+                  style={{ backgroundColor: ins.accent + '20' }}
+                >
+                  {ins.icon}
+                </span>
+                <div className="min-w-0 flex-1">
+                  <p className="text-[13px] font-medium text-primary leading-snug">{ins.title}</p>
+                  <p className="text-[11px] mt-0.5 leading-snug" style={{ color: ins.accent + 'cc' }}>{ins.detail}</p>
+                </div>
+                {ins.explain && (
+                  <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.75" className="text-secondary/50 mt-0.5 flex-shrink-0">
+                    <circle cx="12" cy="12" r="9"/>
+                    <path d="M12 11v5" strokeLinecap="round"/>
+                    <circle cx="12" cy="7.6" r="0.6" fill="currentColor" stroke="none"/>
+                  </svg>
+                )}
+              </button>
+            ))}
+          </div>
+        </section>
+      )}
+
+      <InsightDetailSheet insight={detailInsight} onClose={() => setDetailInsight(null)} />
 
       {/* AI digest */}
-      <div className="mt-3">
+      <div className="mt-4">
         <AIDigestCard input={digestInput} />
       </div>
 
-      {/* Cards grid — 1 col mobile, 2 col desktop */}
-      <div className="mt-5 md:grid md:grid-cols-2 md:gap-5 md:items-start space-y-3 md:space-y-0">
-        <div className="space-y-3">
-          <FlowBar income={periodIncome} expense={periodExpenses} invest={periodInvestments} showInvest={enableInvestments} />
-          <TrendChart data={p.trend} />
-          {enableInvestments && <InvestmentSummaryCard investmentByCategory={p.investmentByCategory} total={p.investmentTotal} onClick={p.onSeeInvestments} />}
-        </div>
-        <div className="space-y-3">
-          <CategoryCard categoryTotals={periodCategoryTotals} />
-          <AccountsCard
-            accountBalances={p.accountBalances}
-            expenseByAccount={periodExpenseByAccount}
-            mode={accMode}
-            onToggle={() => setAccMode(m => m === 'balance' ? 'spending' : 'balance')}
+      {/* ── D: Andamento 6 mesi ── */}
+      <div className="mt-4">
+        <TrendChart data={p.trend} />
+      </div>
+
+      {/* ── E: Investimenti per categoria ── */}
+      {enableInvestments && (
+        <div className="mt-4">
+          <InvestmentSummaryCard
+            investmentByCategory={p.investmentByCategory}
+            total={p.investmentTotal}
+            onClick={p.onSeeInvestments}
           />
         </div>
+      )}
+
+      {/* ── F: Spese per categoria (navigabile → /category-spending) ── */}
+      <div className="mt-4">
+        <CategoryCard
+          categoryTotals={currentMonthCategoryTotals}
+          onClick={() => navigate('/category-spending')}
+        />
       </div>
+
+      {/* ── G: Saldo per conto ── */}
+      <div className="mt-4">
+        <AccountsCard
+          accountBalances={p.accountBalances}
+          expenseByAccount={currentMonthExpenseByAccount}
+          mode={accMode}
+          onToggle={() => setAccMode(m => m === 'balance' ? 'spending' : 'balance')}
+        />
+      </div>
+
     </div>
   );
 }
 
-function Stat({ label, value, colorClass, hint, warn }: {
-  label: string; value: string; colorClass: string; hint?: string; warn?: boolean;
+function MonthStatCard({ label, value, colorClass }: {
+  label: string;
+  value: number;
+  colorClass: string;
 }) {
   return (
-    <div className="glass-card rounded-2xl px-4 py-4">
-      <div className="flex items-center gap-1.5 mb-2">
-        <p className="label-caps text-secondary">{label}</p>
-        {warn && (
-          <span title="Entrate − Uscite − Investimenti è negativo: gli investimenti superano quanto ti è rimasto"
-            className="w-3.5 h-3.5 rounded-full bg-red/20 text-red text-[9px] font-bold flex items-center justify-center flex-shrink-0">!</span>
-        )}
-      </div>
-      <p className={`text-[14px] font-semibold balance-num truncate ${colorClass}`}>{value}</p>
-      {hint && <p className="text-[11px] text-secondary mt-1 leading-snug">{hint}</p>}
+    <div className="glass-card rounded-2xl px-3.5 py-4">
+      <p className="label-caps text-secondary mb-2.5">{label}</p>
+      <p className={`text-[15px] font-semibold balance-num truncate ${colorClass}`}>
+        {formatCurrency(value)}
+      </p>
     </div>
   );
 }
