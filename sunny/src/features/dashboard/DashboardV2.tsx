@@ -8,10 +8,8 @@ import { FlowBar } from './FlowBar';
 import { InvestmentSummaryCard } from './InvestmentSummaryCard';
 import { InsightTicker } from '../insights/InsightTicker';
 import { AIDigestCard } from './AIDigestCard';
-import { MonthStatusCard } from './MonthStatusCard';
 import { useSettings } from '../../shared/providers/settings';
 import { buildInsights } from '../insights/insightsEngine';
-import { forecastSavingsV2, medianMonthlyFlow } from '../forecast/forecastEngine';
 
 type Period = '1m' | '3m' | '6m' | '1y';
 
@@ -112,21 +110,6 @@ export function DashboardV2(p: Props) {
     }),
   [p.transactions, p.monthlyIncome, p.monthlyExpenses, p.monthlyInvestments, getCat, insightDepth, categories]);
 
-  // Forecast Engine V2 (admin-only screen): the end-of-month projection here
-  // comes from the multi-signal V2 model, not the legacy forecastSavings().
-  const forecast = useMemo(() => {
-    const ref = new Date();
-    return forecastSavingsV2({
-      transactions: p.transactions,
-      expenseCategories: categories.filter(c => c.kind === 'expense'),
-      monthlyIncome: p.monthlyIncome,
-      monthlyInvestments: p.monthlyInvestments,
-      avgIncome: medianMonthlyFlow(p.transactions, 'income', ref),
-      avgInvest: medianMonthlyFlow(p.transactions, 'investment', ref),
-      now: ref,
-    });
-  }, [p.transactions, p.monthlyIncome, p.monthlyInvestments, categories]);
-
   const digestInput = useMemo(() => ({
     income: p.monthlyIncome,
     expenses: p.monthlyExpenses,
@@ -134,21 +117,6 @@ export function DashboardV2(p: Props) {
     saved: p.monthlyIncome - p.monthlyExpenses - p.monthlyInvestments,
     topInsights: dashboardInsights.slice(0, 5).map(i => i.title),
   }), [p.monthlyIncome, p.monthlyExpenses, p.monthlyInvestments, dashboardInsights]);
-
-  // Top priority insight for the inline card
-  const topInsight = dashboardInsights.find(i => i.category === 'alert' || i.category === 'forecast');
-
-  // Top 3 expense categories for current month
-  const top3Categories = useMemo(() => {
-    return Object.entries(p.transactions
-      .filter(t => t.type === 'expense' && t.date.startsWith(`${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, '0')}`))
-      .reduce((r: Record<string, number>, t) => {
-        r[t.category] = (r[t.category] ?? 0) + ownShare(t);
-        return r;
-      }, {}))
-      .sort((a, b) => b[1] - a[1])
-      .slice(0, 3);
-  }, [p.transactions, now]);
 
   return (
     <div className="pb-32">
@@ -158,66 +126,8 @@ export function DashboardV2(p: Props) {
         <p className="hidden md:block text-lg font-semibold text-primary tracking-[-0.02em] pt-2 mb-4">{p.greeting}</p>
       )}
 
-      {/* ── BLOCCO 1: Questo mese ── */}
-      <div className="pt-4 md:pt-0">
-        <MonthStatusCard
-          forecast={forecast}
-          savingsTarget={p.savingsTarget}
-          monthlyIncome={p.monthlyIncome}
-          monthlyExpenses={p.monthlyExpenses}
-        />
-      </div>
-
-      {/* ── BLOCCO 2: Insight prioritario ── */}
-      {topInsight && (
-        <div className="mt-4 glass-card rounded-2xl px-4 py-4">
-          <p className="label-caps text-secondary mb-2">Da tenere d'occhio</p>
-          <p className="text-[13px] text-primary leading-snug mb-3">{topInsight.detail}</p>
-          <button
-            onClick={p.onSeeInsights}
-            className="text-[12px] font-semibold text-gold flex items-center gap-1"
-          >
-            Vedi consigli
-            <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"><path d="m9 18 6-6-6-6"/></svg>
-          </button>
-        </div>
-      )}
-
-      {/* ── BLOCCO 3: Azioni rapide ── */}
-      <div className="mt-4 grid grid-cols-3 gap-2">
-        <QuickAction label="+ Spesa" onClick={p.onAddExpense} />
-        <QuickAction label="+ Entrata" onClick={p.onAddIncome} />
-        <QuickAction label="Importa CSV" onClick={p.onImportCSV} />
-      </div>
-
-      {/* ── BLOCCO 4: Top 3 categorie ── */}
-      {top3Categories.length > 0 && (
-        <div className="mt-4 glass-card rounded-2xl px-4 py-4">
-          <div className="flex items-center justify-between mb-3">
-            <p className="label-caps text-secondary">Dove stanno andando i soldi</p>
-            <button onClick={p.onSeeInsights} className="text-[11px] text-gold font-medium">Vedi dettaglio →</button>
-          </div>
-          <div className="space-y-2.5">
-            {top3Categories.map(([catId, amount]) => {
-              const cat = getCat(catId);
-              return (
-                <div key={catId} className="flex items-center justify-between">
-                  <div className="flex items-center gap-2">
-                    <span className="text-sm">{cat.icon}</span>
-                    <span className="text-[13px] text-primary">{cat.label}</span>
-                  </div>
-                  <span className="text-[13px] font-semibold text-secondary balance-num">{formatCurrency(amount)}</span>
-                </div>
-              );
-            })}
-          </div>
-        </div>
-      )}
-
-      {/* ── SOTTO LA PIEGA: blocchi avanzati ── */}
-
       {/* Patrimonio netto + periodo */}
-      <div className="mt-6 space-y-3">
+      <div className="pt-4 md:pt-0 space-y-3">
         <div className="pt-2 pb-4 border-b border-white/[0.05]">
           <p className="label-caps text-secondary mb-2">Patrimonio netto</p>
           <p className="text-[38px] leading-none font-bold text-primary balance-num">
@@ -337,17 +247,5 @@ function Stat({ label, value, colorClass, hint, warn }: {
       <p className={`text-[14px] font-semibold balance-num truncate ${colorClass}`}>{value}</p>
       {hint && <p className="text-[11px] text-secondary mt-1 leading-snug">{hint}</p>}
     </div>
-  );
-}
-
-function QuickAction({ label, onClick }: { label: string; onClick: () => void }) {
-  return (
-    <button
-      type="button"
-      onClick={onClick}
-      className="bg-elevated rounded-xl py-2.5 px-2 text-[12px] font-medium text-secondary hover:text-primary hover:bg-card-hover transition-colors text-center active:scale-95"
-    >
-      {label}
-    </button>
   );
 }

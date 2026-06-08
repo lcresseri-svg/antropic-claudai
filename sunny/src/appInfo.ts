@@ -1,4 +1,4 @@
-export const APP_VERSION = '1.9.21';
+export const APP_VERSION = '1.9.22';
 
 /**
  * Release channel. While in 'beta' the app is still under active development
@@ -15,6 +15,12 @@ export interface VersionEntry {
 
 /** Registro versioni mostrato in Impostazioni → Registro versioni. */
 export const VERSIONS: VersionEntry[] = [
+  {
+    version: '1.9.22', date: '2026-06-08', title: 'Home più essenziale',
+    changes: [
+      'Rimosse dalla Home le sezioni "risparmio previsto", "da tenere d\'occhio", "dove stanno andando i soldi" e i pulsanti rapidi di aggiunta: la schermata parte ora dal patrimonio netto.',
+    ],
+  },
   {
     version: '1.9.21', date: '2026-06-08', title: 'Ordine movimenti più stabile',
     changes: [
