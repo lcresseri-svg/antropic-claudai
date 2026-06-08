@@ -65,9 +65,14 @@ export function useTransactions(user: User | null, accounts: AccountDef[] = [], 
 
   const colRef = useCallback(() => collection(db, 'users', user!.uid, 'transactions'), [user]);
 
+  // Stamp every newly created document with its creation time — used to break
+  // same-date sort ties deterministically (most-recently-added first).
+  const withCreatedAt = (tx: Omit<Transaction, 'id'>): Omit<Transaction, 'id'> =>
+    ({ ...tx, createdAt: Date.now() });
+
   const addTransaction = useCallback((tx: Omit<Transaction, 'id'>) => {
     if (!user) return;
-    addDoc(colRef(), stripUndefined(tx));
+    addDoc(colRef(), stripUndefined(withCreatedAt(tx)));
   }, [user, colRef]);
 
   const addTransactions = useCallback(async (txs: Omit<Transaction, 'id'>[]) => {
@@ -75,7 +80,7 @@ export function useTransactions(user: User | null, accounts: AccountDef[] = [], 
     // Firestore allows max 500 writes per batch — chunk to stay under the limit.
     for (let i = 0; i < txs.length; i += 450) {
       const batch = writeBatch(db);
-      txs.slice(i, i + 450).forEach(tx => batch.set(doc(colRef()), stripUndefined(tx)));
+      txs.slice(i, i + 450).forEach(tx => batch.set(doc(colRef()), stripUndefined(withCreatedAt(tx))));
       await batch.commit();
     }
   }, [user, colRef]);
@@ -84,7 +89,7 @@ export function useTransactions(user: User | null, accounts: AccountDef[] = [], 
     if (!user) return;
     const batch = writeBatch(db);
     deleteIds.forEach(id => batch.delete(doc(db, 'users', user.uid, 'transactions', id)));
-    create.forEach(tx => batch.set(doc(colRef()), stripUndefined(tx)));
+    create.forEach(tx => batch.set(doc(colRef()), stripUndefined(withCreatedAt(tx))));
     batch.commit();
   }, [user, colRef]);
 
@@ -98,7 +103,7 @@ export function useTransactions(user: User | null, accounts: AccountDef[] = [], 
   ) => {
     if (!user || (creates.length === 0 && advance.length === 0 && remove.length === 0)) return;
     const batch = writeBatch(db);
-    creates.forEach(tx => batch.set(doc(colRef()), stripUndefined(tx)));
+    creates.forEach(tx => batch.set(doc(colRef()), stripUndefined(withCreatedAt(tx))));
     advance.forEach(a => batch.update(doc(db, 'users', user.uid, 'transactions', a.id), { date: a.date, seriesId: a.seriesId }));
     remove.forEach(id => batch.delete(doc(db, 'users', user.uid, 'transactions', id)));
     batch.commit();

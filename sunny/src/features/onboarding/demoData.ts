@@ -13,7 +13,7 @@ export async function writeDemoData(uid: string, accountId: string): Promise<str
     const slug = payload.description.toLowerCase().replace(/\s+/g, '_').slice(0, 12);
     const id = `demo_${payload.date}_${slug}_${Math.random().toString(36).slice(2, 5)}`;
     ids.push(id);
-    batch.set(doc(collection(db, 'users', uid, 'transactions'), id), payload);
+    batch.set(doc(collection(db, 'users', uid, 'transactions'), id), { ...payload, createdAt: Date.now() });
   };
 
   const now = new Date();

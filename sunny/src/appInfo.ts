@@ -1,4 +1,4 @@
-export const APP_VERSION = '1.9.20';
+export const APP_VERSION = '1.9.21';
 
 /**
  * Release channel. While in 'beta' the app is still under active development
@@ -15,6 +15,12 @@ export interface VersionEntry {
 
 /** Registro versioni mostrato in Impostazioni → Registro versioni. */
 export const VERSIONS: VersionEntry[] = [
+  {
+    version: '1.9.21', date: '2026-06-08', title: 'Ordine movimenti più stabile',
+    changes: [
+      'Nell\'elenco movimenti, a parità di data l\'ordine è ora deterministico: il movimento aggiunto più di recente compare per primo (in modalità "più recenti").',
+    ],
+  },
   {
     version: '1.9.20', date: '2026-06-07', title: 'Fix fine ricorrenze',
     changes: [

@@ -144,9 +144,15 @@ export function TransactionList({ transactions, projected = [], onEdit, onDelete
       .filter(t => !cutoff || new Date(t.date) >= cutoff)
       .filter(matches)
       .sort((a, b) => {
-        const diff = sortKey === 'amount'
-          ? b.amount - a.amount
-          : new Date(b.date).getTime() - new Date(a.date).getTime();
+        let diff: number;
+        if (sortKey === 'amount') {
+          diff = b.amount - a.amount;
+        } else {
+          diff = new Date(b.date).getTime() - new Date(a.date).getTime();
+          // Same date: break the tie by creation time so the order is stable
+          // and the most-recently-added movement surfaces first.
+          if (diff === 0) diff = (b.createdAt ?? 0) - (a.createdAt ?? 0);
+        }
         return sortDir === 'desc' ? diff : -diff;
       });
   }, [transactions, projected, projView, typeFilter, period, search, sortKey, sortDir, categories, accounts]);
