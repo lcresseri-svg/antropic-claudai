@@ -25,21 +25,27 @@ export function CategoryCard({ categoryTotals, onClick }: Props) {
       role={onClick ? 'button' : undefined}
     >
       <div className="flex items-center justify-between mb-4">
-        <p className="label-caps text-secondary">Spese per categoria</p>
-        {onClick && (
-          <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round" className="text-secondary">
-            <path d="m9 18 6-6-6-6"/>
-          </svg>
-        )}
+        <p className="label-caps text-secondary flex items-center gap-1.5">
+          Spese per categoria
+          {onClick && (
+            <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round" className="text-secondary">
+              <path d="m9 18 6-6-6-6"/>
+            </svg>
+          )}
+        </p>
+        <span className="text-[13px] font-semibold balance-num text-primary">{formatCurrency(total)}</span>
       </div>
       <div className="flex items-center gap-5">
         <Donut segments={segments} centerLabel="Spese" size={132} />
         <ul className="flex-1 space-y-2.5 min-w-0">
-          {segments.slice(0, 5).map(s => (
+          {segments.slice(0, 6).map(s => (
             <li key={s.label} className="flex items-center gap-2.5 min-w-0">
               <span className="w-2.5 h-2.5 rounded-full flex-shrink-0" style={{ backgroundColor: s.color }} />
               <span className="text-[13px] text-secondary truncate flex-1">{s.label}</span>
-              <span className="text-[13px] font-medium text-primary balance-num">{formatCurrency(s.value)}</span>
+              <span className="text-[12px] text-secondary balance-num flex-shrink-0">
+                {Math.round((s.value / total) * 100)}%
+              </span>
+              <span className="text-[13px] font-medium text-primary balance-num flex-shrink-0 w-16 text-right">{formatCurrency(s.value)}</span>
             </li>
           ))}
         </ul>

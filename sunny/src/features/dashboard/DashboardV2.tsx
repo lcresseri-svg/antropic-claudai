@@ -9,9 +9,9 @@ import { AccountsCard } from './AccountsCard';
 import { TrendChart } from './TrendChart';
 import { InvestmentSummaryCard } from './InvestmentSummaryCard';
 import { AIDigestCard } from './AIDigestCard';
-import { InsightDetailSheet } from '../insights/InsightDetailSheet';
+import { InsightTicker } from '../insights/InsightTicker';
 import { useSettings } from '../../shared/providers/settings';
-import { buildInsights, Insight } from '../insights/insightsEngine';
+import { buildInsights } from '../insights/insightsEngine';
 
 interface Props {
   greeting?: string;
@@ -39,7 +39,6 @@ export function DashboardV2(p: Props) {
   const navigate = useNavigate();
   const { enableInvestments, getCat, insightDepth, categories } = useSettings();
   const [accMode, setAccMode] = useState<'balance' | 'spending'>('balance');
-  const [detailInsight, setDetailInsight] = useState<Insight | null>(null);
 
   // Current-month derived values (period selector moved to CategorySpendingScreen)
   const { currentMonthCategoryTotals, currentMonthExpenseByAccount } = useMemo(() => {
@@ -87,22 +86,8 @@ export function DashboardV2(p: Props) {
         <p className="hidden md:block text-lg font-semibold text-primary tracking-[-0.02em] pt-2 mb-5">{p.greeting}</p>
       )}
 
-      {/* ── A: Questo mese ── */}
-      <section className="pt-4 md:pt-0">
-        <p className="label-caps text-secondary mb-3 px-0.5">Questo mese</p>
-        <div className="grid grid-cols-3 gap-2">
-          <MonthStatCard label="Entrate"  value={p.monthlyIncome}    colorClass="text-green" />
-          <MonthStatCard label="Uscite"   value={p.monthlyExpenses}  colorClass="text-secondary" />
-          <MonthStatCard
-            label="Risparmio"
-            value={savings}
-            colorClass={savings >= 0 ? 'text-gold' : 'text-red'}
-          />
-        </div>
-      </section>
-
-      {/* ── Patrimonio netto ── */}
-      <div className="mt-7 pb-6 border-b border-white/[0.04]">
+      {/* ── 1. Patrimonio netto ── */}
+      <div className="pt-4 md:pt-0 pb-6 border-b border-white/[0.04]">
         <p className="label-caps text-secondary mb-3">Patrimonio netto</p>
         <p className="text-[44px] leading-none font-bold text-primary balance-num">
           {formatCurrency(p.netWorth)}
@@ -126,58 +111,44 @@ export function DashboardV2(p: Props) {
         </div>
       </div>
 
-      {/* ── B: Insights vertical list ── */}
-      {insights.length > 0 && (
-        <section className="mt-6">
-          <div className="flex items-center justify-between mb-3 px-0.5">
-            <p className="label-caps text-secondary">Insight</p>
-            <button onClick={p.onSeeInsights} className="text-xs font-medium text-gold">
-              Vedi tutti
-            </button>
-          </div>
-          <div className="space-y-2">
-            {insights.slice(0, 8).map((ins, i) => (
-              <button
-                key={i}
-                onClick={() => setDetailInsight(ins)}
-                className={`w-full text-left glass-card rounded-2xl px-4 py-3.5 flex items-start gap-3.5 active:scale-[0.99] transition-transform ${ins.urgent ? 'ring-1 ring-[#E08B8B]/30' : ''}`}
-              >
-                <span
-                  className="w-8 h-8 rounded-xl flex items-center justify-center text-sm flex-shrink-0"
-                  style={{ backgroundColor: ins.accent + '20' }}
-                >
-                  {ins.icon}
-                </span>
-                <div className="min-w-0 flex-1">
-                  <p className="text-[13px] font-medium text-primary leading-snug">{ins.title}</p>
-                  <p className="text-[11px] mt-0.5 leading-snug" style={{ color: ins.accent + 'cc' }}>{ins.detail}</p>
-                </div>
-                {ins.explain && (
-                  <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.75" className="text-secondary/50 mt-0.5 flex-shrink-0">
-                    <circle cx="12" cy="12" r="9"/>
-                    <path d="M12 11v5" strokeLinecap="round"/>
-                    <circle cx="12" cy="7.6" r="0.6" fill="currentColor" stroke="none"/>
-                  </svg>
-                )}
-              </button>
-            ))}
-          </div>
-        </section>
-      )}
+      {/* ── 2. Questo mese ── */}
+      <section className="mt-6">
+        <p className="label-caps text-secondary mb-3 px-0.5">Questo mese</p>
+        <div className="grid grid-cols-3 gap-2">
+          <MonthStatCard label="Entrate"  value={p.monthlyIncome}    colorClass="text-green" />
+          <MonthStatCard label="Uscite"   value={p.monthlyExpenses}  colorClass="text-secondary" />
+          <MonthStatCard
+            label="Risparmio"
+            value={savings}
+            colorClass={savings >= 0 ? 'text-gold' : 'text-red'}
+          />
+        </div>
+      </section>
 
-      <InsightDetailSheet insight={detailInsight} onClose={() => setDetailInsight(null)} />
+      {/* ── 3. Consigli (carosello, poche card) ── */}
+      <div className="mt-6">
+        <InsightTicker
+          transactions={p.transactions}
+          monthlyIncome={p.monthlyIncome}
+          monthlyExpenses={p.monthlyExpenses}
+          monthlyInvestments={p.monthlyInvestments}
+          prebuilt={insights}
+          limit={3}
+          onSeeAll={p.onSeeInsights}
+        />
+      </div>
 
       {/* AI digest */}
       <div className="mt-4">
         <AIDigestCard input={digestInput} />
       </div>
 
-      {/* ── D: Andamento 6 mesi ── */}
+      {/* Andamento 6 mesi */}
       <div className="mt-4">
         <TrendChart data={p.trend} />
       </div>
 
-      {/* ── E: Investimenti per categoria ── */}
+      {/* Investimenti per categoria */}
       {enableInvestments && (
         <div className="mt-4">
           <InvestmentSummaryCard
@@ -188,7 +159,7 @@ export function DashboardV2(p: Props) {
         </div>
       )}
 
-      {/* ── F: Spese per categoria (navigabile → /category-spending) ── */}
+      {/* Spese per categoria (navigabile → /category-spending) */}
       <div className="mt-4">
         <CategoryCard
           categoryTotals={currentMonthCategoryTotals}
@@ -196,7 +167,7 @@ export function DashboardV2(p: Props) {
         />
       </div>
 
-      {/* ── G: Saldo per conto ── */}
+      {/* Saldo per conto */}
       <div className="mt-4">
         <AccountsCard
           accountBalances={p.accountBalances}
