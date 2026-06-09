@@ -243,7 +243,7 @@ function Main({ user, onLogOut, onDeleteAccount }: {
       <div className="flex-1 md:ml-[220px] min-w-0">
 
         {/* Mobile-only header — z-[40] so it sits above the z-[35] backdrop */}
-        <header className="sticky top-0 z-[40] glass-header md:hidden">
+        <header className="fixed top-0 inset-x-0 z-[40] glass-header md:hidden">
           <div className="max-w-2xl mx-auto px-5 h-14 flex items-center justify-between">
             <div className="flex items-center gap-2.5 min-w-0">
               <ArcLogo size={28} />
@@ -283,7 +283,7 @@ function Main({ user, onLogOut, onDeleteAccount }: {
           </div>
         )}
 
-        <main className="max-w-2xl mx-auto md:max-w-none px-5 md:px-8 pt-2">
+        <main className="max-w-2xl mx-auto md:max-w-none px-5 md:px-8 pt-14 md:pt-2">
           <Routes>
             <Route path="/" element={
               uiV2 ? (

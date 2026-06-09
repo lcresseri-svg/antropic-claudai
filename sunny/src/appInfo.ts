@@ -1,4 +1,4 @@
-export const APP_VERSION = '1.9.23';
+export const APP_VERSION = '1.9.24';
 
 /**
  * Release channel. While in 'beta' the app is still under active development
@@ -15,6 +15,13 @@ export interface VersionEntry {
 
 /** Registro versioni mostrato in Impostazioni → Registro versioni. */
 export const VERSIONS: VersionEntry[] = [
+  {
+    version: '1.9.24', date: '2026-06-09', title: 'Fix navbar e donut spese per categoria',
+    changes: [
+      'La barra in alto su mobile ora rimane sempre fissa mentre scorri (prima poteva scorrere via su iOS Safari).',
+      'La schermata "Spese per categoria" mostra ora il grafico a torta con distribuzione delle categorie per il periodo selezionato, oltre alla lista dettagliata.',
+    ],
+  },
   {
     version: '1.9.23', date: '2026-06-08', title: 'Dashboard beta ristrutturata',
     changes: [
