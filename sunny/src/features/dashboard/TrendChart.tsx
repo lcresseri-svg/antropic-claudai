@@ -71,7 +71,7 @@ export function TrendChart({ data }: Props) {
   return (
     <div className="glass-card rounded-2xl p-5">
       <div className="flex items-center justify-between mb-5 flex-wrap gap-y-2">
-        <p className="label-caps text-secondary">Andamento 6 mesi</p>
+        <p className="label-caps text-secondary">Andamento 12 mesi</p>
         <div className="flex items-center gap-3 text-[11px] text-secondary">
           <span className="flex items-center gap-1.5"><span className="w-5 h-px inline-block" style={{ backgroundColor: COLORS.income }} /> Entrate</span>
           <span className="flex items-center gap-1.5"><span className="w-5 h-px inline-block" style={{ backgroundColor: COLORS.expense }} /> Uscite</span>
@@ -80,17 +80,20 @@ export function TrendChart({ data }: Props) {
       </div>
 
       {!hasData ? (
-        <div className="flex items-center justify-center text-secondary text-xs" style={{ height: H }}>
+        <div className="flex items-center justify-center text-secondary text-xs h-[110px] md:h-[180px]">
           Aggiungi transazioni per vedere il grafico
         </div>
       ) : (
         <div>
-          <svg viewBox={`0 0 ${W} ${H}`} className="w-full overflow-visible" style={{ height: H }}>
+          {/* preserveAspectRatio="none" lets the chart fill the full width on
+              wide desktop layouts; vector-effect keeps strokes crisp at 1.5px
+              despite the non-uniform scaling. */}
+          <svg viewBox={`0 0 ${W} ${H}`} preserveAspectRatio="none" className="w-full overflow-visible h-[120px] md:h-[200px] lg:h-[240px]">
             {[0.25, 0.5, 0.75].map(t => (
               <line key={t}
                 x1={PAD_X} y1={PAD_Y + t * (H - PAD_Y * 2)}
                 x2={W - PAD_X} y2={PAD_Y + t * (H - PAD_Y * 2)}
-                style={{ stroke: 'var(--progress-track)' }} strokeWidth="1" />
+                vectorEffect="non-scaling-stroke" style={{ stroke: 'var(--progress-track)' }} strokeWidth="1" />
             ))}
 
             {/* Stacked outflow: expense band (0→expense) + investment band (expense→top) */}
@@ -99,19 +102,17 @@ export function TrendChart({ data }: Props) {
             <path d={areaToBase(incPts)} fill="rgba(122,158,110,0.05)" />
 
             {/* Lines */}
-            <path d={smoothPath(incPts)} fill="none" style={{ stroke: COLORS.income }} strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" />
-            <path d={smoothPath(expPts)} fill="none" style={{ stroke: COLORS.expense }} strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" />
-            <path d={smoothPath(topPts)} fill="none" style={{ stroke: COLORS.invest }} strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" strokeDasharray="3 2.5" />
-
-            {/* Dots at last point */}
-            <circle cx={incPts[incPts.length - 1].x} cy={incPts[incPts.length - 1].y} r="2.5" style={{ fill: COLORS.income }} />
-            <circle cx={expPts[expPts.length - 1].x} cy={expPts[expPts.length - 1].y} r="2.5" style={{ fill: COLORS.expense }} />
-            <circle cx={topPts[topPts.length - 1].x} cy={topPts[topPts.length - 1].y} r="2.5" style={{ fill: COLORS.invest }} />
+            <path d={smoothPath(incPts)} fill="none" vectorEffect="non-scaling-stroke" style={{ stroke: COLORS.income }} strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" />
+            <path d={smoothPath(expPts)} fill="none" vectorEffect="non-scaling-stroke" style={{ stroke: COLORS.expense }} strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" />
+            <path d={smoothPath(topPts)} fill="none" vectorEffect="non-scaling-stroke" style={{ stroke: COLORS.invest }} strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" strokeDasharray="3 2.5" />
           </svg>
 
           <div className="flex justify-between mt-2" style={{ paddingLeft: PAD_X, paddingRight: PAD_X }}>
-            {data.map(d => (
-              <span key={d.key} className="text-[10px] text-secondary">
+            {data.map((d, i) => (
+              <span
+                key={d.key}
+                className={`text-[10px] text-secondary ${i % 2 === 1 ? 'hidden sm:inline' : ''}`}
+              >
                 {capitalize(formatMonthShort(d.key))}
               </span>
             ))}

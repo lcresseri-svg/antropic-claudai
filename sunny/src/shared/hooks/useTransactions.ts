@@ -217,9 +217,9 @@ export function useTransactions(user: User | null, accounts: AccountDef[] = [], 
       expenseByAccount[t.account] = (expenseByAccount[t.account] ?? 0) + ownShare(t);
     }
 
-    // 6-month trend
+    // 12-month trend
     const trend: { key: string; income: number; expense: number; invest: number }[] = [];
-    for (let i = 5; i >= 0; i--) {
+    for (let i = 11; i >= 0; i--) {
       const d = new Date(cy, cm - i, 1);
       const key = `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}`;
       trend.push({ key, income: 0, expense: 0, invest: 0 });

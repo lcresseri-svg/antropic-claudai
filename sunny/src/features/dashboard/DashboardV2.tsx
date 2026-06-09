@@ -138,43 +138,42 @@ export function DashboardV2(p: Props) {
         />
       </div>
 
-      {/* AI digest */}
+      {/* AI digest — full width */}
       <div className="mt-4">
         <AIDigestCard input={digestInput} />
       </div>
 
-      {/* Andamento 6 mesi */}
+      {/* Andamento 12 mesi — full width (benefits from horizontal space) */}
       <div className="mt-4">
         <TrendChart data={p.trend} />
       </div>
 
-      {/* Investimenti per categoria */}
-      {enableInvestments && (
-        <div className="mt-4">
+      {/* Analytical cards — 2-column grid on large screens to use the width */}
+      <div className="mt-4 grid grid-cols-1 lg:grid-cols-2 gap-4 lg:items-start">
+        {/* Investimenti per categoria */}
+        {enableInvestments && (
           <InvestmentSummaryCard
             investmentByCategory={p.investmentByCategory}
             total={p.investmentTotal}
             onClick={p.onSeeInvestments}
           />
-        </div>
-      )}
+        )}
 
-      {/* Spese per categoria (navigabile → /category-spending) */}
-      <div className="mt-4">
+        {/* Spese per categoria (navigabile → /category-spending) */}
         <CategoryCard
           categoryTotals={currentMonthCategoryTotals}
           onClick={() => navigate('/category-spending')}
         />
-      </div>
 
-      {/* Saldo per conto */}
-      <div className="mt-4">
-        <AccountsCard
-          accountBalances={p.accountBalances}
-          expenseByAccount={currentMonthExpenseByAccount}
-          mode={accMode}
-          onToggle={() => setAccMode(m => m === 'balance' ? 'spending' : 'balance')}
-        />
+        {/* Saldo per conto — full-width row */}
+        <div className="lg:col-span-2">
+          <AccountsCard
+            accountBalances={p.accountBalances}
+            expenseByAccount={currentMonthExpenseByAccount}
+            mode={accMode}
+            onToggle={() => setAccMode(m => m === 'balance' ? 'spending' : 'balance')}
+          />
+        </div>
       </div>
 
     </div>

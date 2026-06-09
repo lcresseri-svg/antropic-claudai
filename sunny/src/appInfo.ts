@@ -1,4 +1,4 @@
-export const APP_VERSION = '1.9.24';
+export const APP_VERSION = '1.9.25';
 
 /**
  * Release channel. While in 'beta' the app is still under active development
@@ -15,6 +15,13 @@ export interface VersionEntry {
 
 /** Registro versioni mostrato in Impostazioni → Registro versioni. */
 export const VERSIONS: VersionEntry[] = [
+  {
+    version: '1.9.25', date: '2026-06-09', title: 'Vista desktop migliorata',
+    changes: [
+      'Grafico andamento esteso a 12 mesi e ora occupa tutta la larghezza disponibile su desktop (prima era schiacciato al centro con grandi spazi vuoti ai lati), con altezza maggiore sugli schermi grandi.',
+      'Su desktop gli insight e le card di analisi (investimenti, spese per categoria, conti) si dispongono su più colonne per sfruttare la larghezza dello schermo invece di restare in un\'unica colonna stretta.',
+    ],
+  },
   {
     version: '1.9.24', date: '2026-06-09', title: 'Fix navbar e donut spese per categoria',
     changes: [
