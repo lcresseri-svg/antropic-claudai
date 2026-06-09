@@ -1,4 +1,4 @@
-export const APP_VERSION = '1.9.25';
+export const APP_VERSION = '1.9.26';
 
 /**
  * Release channel. While in 'beta' the app is still under active development
@@ -15,6 +15,12 @@ export interface VersionEntry {
 
 /** Registro versioni mostrato in Impostazioni → Registro versioni. */
 export const VERSIONS: VersionEntry[] = [
+  {
+    version: '1.9.26', date: '2026-06-09', title: 'Impostazioni divise per sezione',
+    changes: [
+      'Le voci del menu Impostazioni aprono ora schermate dedicate (Aspetto, Piano e budget, Investimenti, AI, Notifiche, Analisi avanzata) invece di portare tutte alla stessa pagina unica: ogni sezione mostra solo le opzioni che la riguardano.',
+    ],
+  },
   {
     version: '1.9.25', date: '2026-06-09', title: 'Vista desktop migliorata',
     changes: [

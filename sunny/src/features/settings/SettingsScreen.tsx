@@ -19,7 +19,8 @@ interface Props {
 }
 
 const newId = () => `x_${Date.now().toString(36)}`;
-type Sub = 'menu' | 'generali' | 'gestione' | 'dati' | 'accounts' | 'categories' | 'info' | 'versioni';
+type Sub = 'menu' | 'generali' | 'gestione' | 'dati' | 'accounts' | 'categories' | 'info' | 'versioni'
+  | 'aspetto' | 'budget' | 'investimenti' | 'ai' | 'notifiche' | 'avanzate';
 
 type DragState = {
   list: 'accounts' | TransactionType;
@@ -65,7 +66,8 @@ export function SettingsScreen({ user, transactions, uiV2 = false, onLogOut, onD
   // sub-section (used by the "Attiva budget" shortcut on the disabled screen).
   useEffect(() => {
     const s = new URLSearchParams(location.search).get('section');
-    const valid: Sub[] = ['generali', 'gestione', 'dati', 'accounts', 'categories', 'info', 'versioni'];
+    const valid: Sub[] = ['generali', 'gestione', 'dati', 'accounts', 'categories', 'info', 'versioni',
+      'aspetto', 'budget', 'investimenti', 'ai', 'notifiche', 'avanzate'];
     if (s && (valid as string[]).includes(s)) setSub(s as Sub);
   }, [location.search]);
 
@@ -185,6 +187,144 @@ export function SettingsScreen({ user, transactions, uiV2 = false, onLogOut, onD
   const startDrag = (list: 'accounts' | TransactionType, idx: number, startY: number) =>
     setDrag({ list, fromIdx: idx, overIdx: idx, startY });
 
+  // Reusable settings rows/blocks. The granular sub-screens (uiV2) compose
+  // these individually; the legacy combined "Generali" page renders them all.
+  const rowTheme = (
+    <ToggleRow
+      icon="🌙" label="Tema scuro"
+      sub={theme === 'dark' ? 'Attivo' : 'Non attivo'}
+      on={theme === 'dark'}
+      onToggle={() => saveTheme(theme === 'dark' ? 'light' : 'dark')}
+    />
+  );
+  const rowInvest = (
+    <ToggleRow
+      icon="📊" label="Gestione investimenti"
+      sub={enableInvestments ? 'Investi e tieni traccia del tuo portafoglio' : 'Investimenti nascosti da tutta l\'app'}
+      on={enableInvestments}
+      onToggle={() => saveEnableInvestments(!enableInvestments)}
+    />
+  );
+  const rowIncludeInvest = enableInvestments ? (
+    <ToggleRow
+      icon="📈" label="Includi investito nel patrimonio"
+      sub={includeInvestments ? 'Il patrimonio comprende il capitale investito' : 'Il patrimonio mostra solo la liquidità'}
+      on={includeInvestments}
+      onToggle={() => saveIncludeInvestments(!includeInvestments)}
+    />
+  ) : null;
+  const rowBudget = (
+    <ToggleRow
+      icon="🎯" label="Gestione budget"
+      sub={enableBudget ? 'Obiettivi, limiti di spesa e previsioni' : 'Budget nascosto — la scheda resta per riattivarlo'}
+      on={enableBudget}
+      onToggle={() => saveEnableBudget(!enableBudget)}
+    />
+  );
+  const rowAiEnabled = (
+    <ToggleRow
+      icon="✨" label="Suggerimenti AI"
+      sub={aiEnabled ? 'Riepilogo mensile generato da Gemini' : 'Disattivato — nessuna chiamata all\'API'}
+      on={aiEnabled}
+      onToggle={() => saveAiEnabled(!aiEnabled)}
+    />
+  );
+  const rowAiCoach = detailedInvestments ? (
+    <ToggleRow
+      icon="🤖" label="AI Coach (bottone chat)"
+      sub={aiCoachWidgetEnabled ? 'Bottone flottante visibile in tutte le schermate' : 'Bottone nascosto'}
+      on={aiCoachWidgetEnabled}
+      onToggle={() => saveAiCoachWidgetEnabled(!aiCoachWidgetEnabled)}
+    />
+  ) : null;
+  const blockDepth = (
+    <div className="p-4">
+      <div className="flex items-start gap-3.5 mb-3">
+        <span className="text-2xl mt-0.5">🔍</span>
+        <div>
+          <p className="text-sm font-medium text-primary">Livello di analisi</p>
+          <p className="text-xs text-secondary mt-0.5">
+            {insightDepth === 'minimal'
+              ? 'Solo scadenze ricorrenti'
+              : insightDepth === 'medium'
+              ? 'Previsioni e confronti principali'
+              : 'Analisi completa con trend e statistiche'}
+          </p>
+        </div>
+      </div>
+      <div className="flex rounded-xl bg-elevated p-0.5 gap-0.5">
+        {(['minimal', 'medium', 'advanced'] as const).map(d => (
+          <button
+            key={d}
+            onClick={() => saveInsightDepth(d)}
+            className={`flex-1 py-2 rounded-[10px] text-[13px] font-medium transition-colors ${
+              insightDepth === d ? 'bg-gold text-bg' : 'text-secondary active:text-primary'
+            }`}
+          >
+            {d === 'minimal' ? 'Minimal' : d === 'medium' ? 'Media' : 'Smanettone'}
+          </button>
+        ))}
+      </div>
+    </div>
+  );
+  const notificationsGroup = push.supported ? (
+    <SettingsGroup title="Notifiche">
+      <ToggleRow
+        icon="🔔" label="Notifiche push"
+        sub={
+          !push.supported ? 'Non supportate su questo dispositivo'
+          : push.enabled ? 'Attive su questo dispositivo'
+          : 'Promemoria spese, ricorrenti e riepilogo mensile'
+        }
+        on={push.enabled}
+        onToggle={async () => {
+          if (push.busy) return;
+          setPushMsg(null);
+          if (push.enabled) { await push.disable(); return; }
+          const res = await push.enable();
+          if (!res.ok) setPushMsg(pushReason(res.reason));
+        }}
+      />
+      {pushMsg && <p className="text-xs text-[#E08B8B] px-4 -mt-1 pb-3">{pushMsg}</p>}
+      {push.enabled && (
+        <>
+          <ToggleRow
+            icon="📝" label="Promemoria spese"
+            sub="A metà giornata e la sera, se non hai ancora registrato nulla"
+            on={push.reminders.logExpenses}
+            onToggle={() => push.setReminder('logExpenses', !push.reminders.logExpenses)}
+          />
+          <ToggleRow
+            icon="🔁" label="Voci ricorrenti"
+            sub="Quando una ricorrenza viene registrata automaticamente"
+            on={push.reminders.recurring}
+            onToggle={() => push.setReminder('recurring', !push.reminders.recurring)}
+          />
+          <ToggleRow
+            icon="📊" label="Riepilogo mensile"
+            sub="A inizio mese, il resoconto del mese precedente"
+            on={push.reminders.monthly}
+            onToggle={() => push.setReminder('monthly', !push.reminders.monthly)}
+          />
+          <div className="p-4 space-y-2">
+            <button
+              onClick={async () => {
+                if (testing) return;
+                setTesting(true); setTestMsg(null);
+                const res = await push.test();
+                setTesting(false);
+                setTestMsg(res.ok ? '✅ Notifica inviata' : testReason(res.reason));
+              }}
+              className="w-full py-3 rounded-xl bg-elevated text-gold text-sm font-semibold active:scale-[0.98] transition-transform">
+              {testing ? 'Invio…' : 'Invia notifica di prova'}
+            </button>
+            {testMsg && <p className="text-xs text-secondary px-1">{testMsg}</p>}
+          </div>
+        </>
+      )}
+    </SettingsGroup>
+  ) : null;
+
   return (
     <div className="space-y-6 pb-28 animate-fade-in">
       {sub === 'menu' && (
@@ -213,14 +353,14 @@ export function SettingsScreen({ user, transactions, uiV2 = false, onLogOut, onD
           {uiV2 ? (
             <div className="space-y-5">
               <MenuSection title="Preferenze">
-                <Row icon="🎨" color="#8B8B8B" label="Aspetto" sub="Tema chiaro/scuro" onClick={() => enterSub('generali')} />
+                <Row icon="🎨" color="#8B8B8B" label="Aspetto" sub="Tema chiaro/scuro" onClick={() => enterSub('aspetto')} />
               </MenuSection>
               <MenuSection title="Il tuo Sunny">
-                <Row icon="🎯" color="#E6B95C" label="Piano e budget" sub="Obiettivi, limiti, previsioni" onClick={() => enterSub('generali')} />
-                <Row icon="📊" color="#6FA8DC" label="Investimenti" sub="Portafoglio e capitale" onClick={() => enterSub('generali')} />
-                <Row icon="✨" color="#8A9270" label="AI abilitata" sub="Suggerimenti e riepilogo mensile" onClick={() => enterSub('generali')} />
+                <Row icon="🎯" color="#E6B95C" label="Piano e budget" sub="Obiettivi, limiti, previsioni" onClick={() => enterSub('budget')} />
+                <Row icon="📊" color="#6FA8DC" label="Investimenti" sub="Portafoglio e capitale" onClick={() => enterSub('investimenti')} />
+                <Row icon="✨" color="#8A9270" label="AI abilitata" sub="Suggerimenti e riepilogo mensile" onClick={() => enterSub('ai')} />
                 {push.supported && (
-                  <Row icon="🔔" color="#88B0C0" label="Notifiche" sub="Promemoria e aggiornamenti" onClick={() => enterSub('generali')} />
+                  <Row icon="🔔" color="#88B0C0" label="Notifiche" sub="Promemoria e aggiornamenti" onClick={() => enterSub('notifiche')} />
                 )}
               </MenuSection>
               <MenuSection title="Dati">
@@ -235,7 +375,7 @@ export function SettingsScreen({ user, transactions, uiV2 = false, onLogOut, onD
                 <Row icon="📋" color="#8B8B8B" label="Versioni" sub={`v${APP_VERSION}`} onClick={() => enterSub('versioni')} />
               </MenuSection>
               <MenuSection title="Avanzate">
-                <Row icon="🔍" color="#8B8B8B" label="Analisi e AI" sub="Profondità insight, widget coach" onClick={() => enterSub('generali')} />
+                <Row icon="🔍" color="#8B8B8B" label="Analisi e AI" sub="Profondità insight, widget coach" onClick={() => enterSub('avanzate')} />
               </MenuSection>
             </div>
           ) : (
@@ -260,144 +400,73 @@ export function SettingsScreen({ user, transactions, uiV2 = false, onLogOut, onD
         </>
       )}
 
+      {/* Legacy combined page (non-V2 menu routes "Generali" here) */}
       {sub === 'generali' && (
         <>
           <ManageHeader title="Generali" editMode={false} onBack={exitToMenu} onToggleEdit={() => {}} hideEdit />
           <div className="space-y-5 md:max-w-xl">
+            <SettingsGroup title="Aspetto">{rowTheme}</SettingsGroup>
+            <SettingsGroup title="Funzionalità">{rowInvest}{rowIncludeInvest}{rowBudget}</SettingsGroup>
+            <SettingsGroup title="Analisi e AI">{rowAiEnabled}{rowAiCoach}{blockDepth}</SettingsGroup>
+            {notificationsGroup}
+          </div>
+        </>
+      )}
 
-            <SettingsGroup title="Aspetto">
-              <ToggleRow
-                icon="🌙" label="Tema scuro"
-                sub={theme === 'dark' ? 'Attivo' : 'Non attivo'}
-                on={theme === 'dark'}
-                onToggle={() => saveTheme(theme === 'dark' ? 'light' : 'dark')}
-              />
-            </SettingsGroup>
+      {/* uiV2: granular tabs — each shows only its own settings */}
+      {sub === 'aspetto' && (
+        <>
+          <ManageHeader title="Aspetto" editMode={false} onBack={exitToMenu} onToggleEdit={() => {}} hideEdit />
+          <div className="space-y-5 md:max-w-xl">
+            <SettingsGroup title="Tema">{rowTheme}</SettingsGroup>
+          </div>
+        </>
+      )}
 
-            <SettingsGroup title="Funzionalità">
-              <ToggleRow
-                icon="📊" label="Gestione investimenti"
-                sub={enableInvestments ? 'Investi e tieni traccia del tuo portafoglio' : 'Investimenti nascosti da tutta l\'app'}
-                on={enableInvestments}
-                onToggle={() => saveEnableInvestments(!enableInvestments)}
-              />
-              {enableInvestments && (
-                <ToggleRow
-                  icon="📈" label="Includi investito nel patrimonio"
-                  sub={includeInvestments ? 'Il patrimonio comprende il capitale investito' : 'Il patrimonio mostra solo la liquidità'}
-                  on={includeInvestments}
-                  onToggle={() => saveIncludeInvestments(!includeInvestments)}
-                />
-              )}
-              <ToggleRow
-                icon="🎯" label="Gestione budget"
-                sub={enableBudget ? 'Obiettivi, limiti di spesa e previsioni' : 'Budget nascosto — la scheda resta per riattivarlo'}
-                on={enableBudget}
-                onToggle={() => saveEnableBudget(!enableBudget)}
-              />
-            </SettingsGroup>
+      {sub === 'budget' && (
+        <>
+          <ManageHeader title="Piano e budget" editMode={false} onBack={exitToMenu} onToggleEdit={() => {}} hideEdit />
+          <div className="space-y-5 md:max-w-xl">
+            <SettingsGroup title="Piano">{rowBudget}</SettingsGroup>
+          </div>
+        </>
+      )}
 
-            <SettingsGroup title="Analisi e AI">
-              <ToggleRow
-                icon="✨" label="Suggerimenti AI"
-                sub={aiEnabled ? 'Riepilogo mensile generato da Gemini' : 'Disattivato — nessuna chiamata all\'API'}
-                on={aiEnabled}
-                onToggle={() => saveAiEnabled(!aiEnabled)}
-              />
-              {detailedInvestments && (
-                <ToggleRow
-                  icon="🤖" label="AI Coach (bottone chat)"
-                  sub={aiCoachWidgetEnabled ? 'Bottone flottante visibile in tutte le schermate' : 'Bottone nascosto'}
-                  on={aiCoachWidgetEnabled}
-                  onToggle={() => saveAiCoachWidgetEnabled(!aiCoachWidgetEnabled)}
-                />
-              )}
-              <div className="p-4">
-                <div className="flex items-start gap-3.5 mb-3">
-                  <span className="text-2xl mt-0.5">🔍</span>
-                  <div>
-                    <p className="text-sm font-medium text-primary">Livello di analisi</p>
-                    <p className="text-xs text-secondary mt-0.5">
-                      {insightDepth === 'minimal'
-                        ? 'Solo scadenze ricorrenti'
-                        : insightDepth === 'medium'
-                        ? 'Previsioni e confronti principali'
-                        : 'Analisi completa con trend e statistiche'}
-                    </p>
-                  </div>
-                </div>
-                <div className="flex rounded-xl bg-elevated p-0.5 gap-0.5">
-                  {(['minimal', 'medium', 'advanced'] as const).map(d => (
-                    <button
-                      key={d}
-                      onClick={() => saveInsightDepth(d)}
-                      className={`flex-1 py-2 rounded-[10px] text-[13px] font-medium transition-colors ${
-                        insightDepth === d ? 'bg-gold text-bg' : 'text-secondary active:text-primary'
-                      }`}
-                    >
-                      {d === 'minimal' ? 'Minimal' : d === 'medium' ? 'Media' : 'Smanettone'}
-                    </button>
-                  ))}
-                </div>
+      {sub === 'investimenti' && (
+        <>
+          <ManageHeader title="Investimenti" editMode={false} onBack={exitToMenu} onToggleEdit={() => {}} hideEdit />
+          <div className="space-y-5 md:max-w-xl">
+            <SettingsGroup title="Portafoglio">{rowInvest}{rowIncludeInvest}</SettingsGroup>
+          </div>
+        </>
+      )}
+
+      {sub === 'ai' && (
+        <>
+          <ManageHeader title="AI abilitata" editMode={false} onBack={exitToMenu} onToggleEdit={() => {}} hideEdit />
+          <div className="space-y-5 md:max-w-xl">
+            <SettingsGroup title="Intelligenza artificiale">{rowAiEnabled}</SettingsGroup>
+          </div>
+        </>
+      )}
+
+      {sub === 'avanzate' && (
+        <>
+          <ManageHeader title="Analisi e AI" editMode={false} onBack={exitToMenu} onToggleEdit={() => {}} hideEdit />
+          <div className="space-y-5 md:max-w-xl">
+            <SettingsGroup title="Analisi avanzata">{rowAiCoach}{blockDepth}</SettingsGroup>
+          </div>
+        </>
+      )}
+
+      {sub === 'notifiche' && (
+        <>
+          <ManageHeader title="Notifiche" editMode={false} onBack={exitToMenu} onToggleEdit={() => {}} hideEdit />
+          <div className="space-y-5 md:max-w-xl">
+            {notificationsGroup ?? (
+              <div className="bg-card rounded-2xl px-5 py-8 text-center text-secondary text-[13px]">
+                Le notifiche non sono supportate su questo dispositivo.
               </div>
-            </SettingsGroup>
-
-            {push.supported && (
-              <SettingsGroup title="Notifiche">
-                <ToggleRow
-                  icon="🔔" label="Notifiche push"
-                  sub={
-                    !push.supported ? 'Non supportate su questo dispositivo'
-                    : push.enabled ? 'Attive su questo dispositivo'
-                    : 'Promemoria spese, ricorrenti e riepilogo mensile'
-                  }
-                  on={push.enabled}
-                  onToggle={async () => {
-                    if (push.busy) return;
-                    setPushMsg(null);
-                    if (push.enabled) { await push.disable(); return; }
-                    const res = await push.enable();
-                    if (!res.ok) setPushMsg(pushReason(res.reason));
-                  }}
-                />
-                {pushMsg && <p className="text-xs text-[#E08B8B] px-4 -mt-1 pb-3">{pushMsg}</p>}
-                {push.enabled && (
-                  <>
-                    <ToggleRow
-                      icon="📝" label="Promemoria spese"
-                      sub="A metà giornata e la sera, se non hai ancora registrato nulla"
-                      on={push.reminders.logExpenses}
-                      onToggle={() => push.setReminder('logExpenses', !push.reminders.logExpenses)}
-                    />
-                    <ToggleRow
-                      icon="🔁" label="Voci ricorrenti"
-                      sub="Quando una ricorrenza viene registrata automaticamente"
-                      on={push.reminders.recurring}
-                      onToggle={() => push.setReminder('recurring', !push.reminders.recurring)}
-                    />
-                    <ToggleRow
-                      icon="📊" label="Riepilogo mensile"
-                      sub="A inizio mese, il resoconto del mese precedente"
-                      on={push.reminders.monthly}
-                      onToggle={() => push.setReminder('monthly', !push.reminders.monthly)}
-                    />
-                    <div className="p-4 space-y-2">
-                      <button
-                        onClick={async () => {
-                          if (testing) return;
-                          setTesting(true); setTestMsg(null);
-                          const res = await push.test();
-                          setTesting(false);
-                          setTestMsg(res.ok ? '✅ Notifica inviata' : testReason(res.reason));
-                        }}
-                        className="w-full py-3 rounded-xl bg-elevated text-gold text-sm font-semibold active:scale-[0.98] transition-transform">
-                        {testing ? 'Invio…' : 'Invia notifica di prova'}
-                      </button>
-                      {testMsg && <p className="text-xs text-secondary px-1">{testMsg}</p>}
-                    </div>
-                  </>
-                )}
-              </SettingsGroup>
             )}
           </div>
         </>
