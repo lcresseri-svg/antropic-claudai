@@ -23,6 +23,13 @@ service cloud.firestore {
       match /meta/{doc} {
         allow read, write: if request.auth != null && request.auth.uid == userId;
       }
+
+      // Forecast backtest snapshots: immutable audit trail written by the V3 engine.
+      // Write-once: only create is allowed — update and delete are intentionally denied.
+      match /forecastSnapshots/{snapshotId} {
+        allow read: if request.auth != null && request.auth.uid == userId;
+        allow create: if request.auth != null && request.auth.uid == userId;
+      }
     }
 
     // User feedback: any signed-in user can submit a feedback document stamped

@@ -60,10 +60,12 @@ export function ForecastV3Screen({
   const [withBias, setWithBias] = useState(false);
   const [compareV2, setCompareV2] = useState(true);
 
-  const { forecast: v3, backtest: v3Backtest } = useForecastV3({
+  const { forecast: v3, backtest: v3Backtest, savedSnapshotCount } = useForecastV3({
     transactions, expenseCategories, monthlyIncome, monthlyInvestments,
     withBacktest: showBacktest,
     withBiasCorrection: withBias,
+    persistSnapshots: showBacktest && isAdmin,
+    uid: userId,
   });
 
   const { forecast: v2 } = useForecastV2({
@@ -189,7 +191,14 @@ export function ForecastV3Screen({
           onClick={() => setShowBacktest(s => !s)}
           className="w-full flex items-center justify-between px-5 py-4 text-sm font-medium text-primary hover:bg-card-hover transition-colors"
         >
-          <span>Backtest V3 — diagnostica accuratezza</span>
+          <span className="flex items-center gap-2">
+            Backtest V3 — diagnostica accuratezza
+            {savedSnapshotCount !== null && savedSnapshotCount > 0 && (
+              <span className="text-[10px] px-1.5 py-0.5 rounded-full bg-emerald-400/15 text-emerald-400 font-medium">
+                +{savedSnapshotCount} salvati
+              </span>
+            )}
+          </span>
           <ChevronIcon open={showBacktest} />
         </button>
         {showBacktest && v3Backtest && (
