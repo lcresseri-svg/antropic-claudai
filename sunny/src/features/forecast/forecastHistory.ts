@@ -3,7 +3,7 @@
  * Collects per-month per-category spending signals needed by the V2 engine.
  */
 import { Transaction, ownShare } from '../../types';
-import { robustMean } from './forecastStats';
+import { robustMean, median } from './forecastStats';
 
 export interface MonthCatHistory {
   /** YYYY-MM */
@@ -82,7 +82,13 @@ export function computeCatStats(
   const recentCounts = recentKeys.map(k => catHistory[k]?.variableCount ?? 0);
   const recentActiveMonths = recentKeys.filter(k => (catHistory[k]?.variableTotal ?? 0) > 0).length;
 
-  const recentVarMean = robustMean(recentVarTotals);
+  // Median is more robust than robustMean(k=3.0) for a 3-point window:
+  // a single spike has 33% weight and passes winsorization substantially,
+  // anchoring the estimate to the spike month for the next 3 months.
+  // Median (L1-optimal estimator) gives the middle value — it only "suppresses"
+  // a value when it is the unique outlier in the window (1-of-3), and naturally
+  // follows a genuine trend because median == mean for any arithmetic progression.
+  const recentVarMean = median(recentVarTotals);
   const recentCountMean = robustMean(recentCounts);
   const medianTicket = computeMedianTicket(allTickets);
 
