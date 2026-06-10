@@ -17,6 +17,8 @@
 import { describe, it, expect } from 'vitest';
 import { computeForecastV3, ForecastV3Input } from './forecastEngineV3';
 import { runBacktestV3 } from './forecastBacktestV3';
+import { detectStaleCategoryV3 } from './forecastBehaviorV3';
+import { MonthCatHistory } from './forecastHistory';
 import {
   buildFixtureV3,
   FIXTURE_NOW,
@@ -405,6 +407,128 @@ describe('C — mutation tests', () => {
     result.snapshots.forEach(snap => {
       expect(snap.error).toBe(snap.predicted - snap.actual);
     });
+  });
+
+  it('FASE2-G1a (unit): trailing inactivity interrupted by active last month → NOT stale', () => {
+    // Bug osservato su dati reali: 2 mesi inattivi NON consecutivi su 3 facevano
+    // scattare stale anche con il mese scorso attivo (es. nov✗ dic✗ gen✓ → stale).
+    const h = (key: string, total: number): MonthCatHistory =>
+      ({ monthKey: key, variableTotal: total, variableCount: total > 0 ? 2 : 0, recurringTotal: 0 });
+    const catHistory: Record<string, MonthCatHistory> = {
+      '2026-05': h('2026-05', 120), // mese scorso ATTIVO
+      '2026-04': h('2026-04', 0),
+      '2026-03': h('2026-03', 0),
+      '2026-01': h('2026-01', 90),
+    };
+    const recentKeys = ['2026-05', '2026-04', '2026-03']; // most recent first
+    const res = detectStaleCategoryV3({ catHistory, recentKeys });
+    expect(res.isStale).toBe(false);
+  });
+
+  it('FASE2-G1b (unit): trailing inactivity ≥ 2 consecutive months, no current activity → stale', () => {
+    const h = (key: string, total: number): MonthCatHistory =>
+      ({ monthKey: key, variableTotal: total, variableCount: total > 0 ? 2 : 0, recurringTotal: 0 });
+    const catHistory: Record<string, MonthCatHistory> = {
+      '2026-05': h('2026-05', 0),
+      '2026-04': h('2026-04', 0),
+      '2026-03': h('2026-03', 80),
+    };
+    const recentKeys = ['2026-05', '2026-04', '2026-03'];
+    const res = detectStaleCategoryV3({ catHistory, recentKeys });
+    expect(res.isStale).toBe(true);
+    expect(res.lastActiveKey).toBe('2026-03');
+  });
+
+  it('FASE2-G1c (unit): current-month activity wakes a dormant category → NOT stale', () => {
+    const h = (key: string, total: number): MonthCatHistory =>
+      ({ monthKey: key, variableTotal: total, variableCount: total > 0 ? 2 : 0, recurringTotal: 0 });
+    const catHistory: Record<string, MonthCatHistory> = {
+      '2026-05': h('2026-05', 0),
+      '2026-04': h('2026-04', 0),
+      '2026-03': h('2026-03', 80),
+    };
+    const recentKeys = ['2026-05', '2026-04', '2026-03'];
+    const res = detectStaleCategoryV3({ catHistory, recentKeys, hasCurrentMonthActivity: true });
+    expect(res.isStale).toBe(false);
+  });
+
+  it('FASE2-G1d (engine): category with gaps but active LAST month is not stale', () => {
+    const cats: CategoryDef[] = [
+      { id: 'risorta', label: 'Risorta', icon: '?', color: '#000', kind: 'expense' },
+    ];
+    // Attiva Gen, Feb e Mag 2026 (4 tx/mese, importi variati → né fixed né bundle),
+    // inattiva Mar+Apr. Prima del fix: 2 inattivi su 3 recenti → stale (errato).
+    const txs: Transaction[] = [];
+    for (const [monthsAgo, base] of [[1, 30], [4, 50], [5, 20]] as const) {
+      for (let j = 0; j < 4; j++) {
+        txs.push(fxTx(`${fixtureMonthKey(monthsAgo)}-${String(5 + j * 5).padStart(2, '0')}`,
+          base + j * 7, 'risorta', `risorta acq ${monthsAgo}-${j}`));
+      }
+    }
+    const result = computeForecastV3({
+      transactions: txs, expenseCategories: cats,
+      monthlyIncome: 0, monthlyInvestments: 0, now: FIXTURE_NOW,
+    });
+    const cat = result.categories.find(c => c.categoryId === 'risorta')!;
+    expect(cat.behavior).not.toBe('stale');
+  });
+
+  it('FASE2-G1e (engine): dormant category with current-month tx wakes; without it stays stale', () => {
+    const cats: CategoryDef[] = [
+      { id: 'dormiente', label: 'Dormiente', icon: '?', color: '#000', kind: 'expense' },
+    ];
+    // Attiva Set-Dic 2025 (4 tx/mese), poi ferma Gen-Mag 2026. Totali mensili
+    // MOLTO variabili (50/500/120/900) così detectPeriodicFixedV3 resta a
+    // confidence 'low' (CV alto) e il percorso arriva al check stale.
+    const MONTH_TOTALS: Record<number, number> = { 6: 50, 7: 500, 8: 120, 9: 900 };
+    const baseTxs: Transaction[] = [];
+    for (const monthsAgo of [6, 7, 8, 9]) {
+      for (let j = 0; j < 4; j++) {
+        baseTxs.push(fxTx(`${fixtureMonthKey(monthsAgo)}-${String(4 + j * 6).padStart(2, '0')}`,
+          MONTH_TOTALS[monthsAgo] / 4, 'dormiente', `dorm acq ${monthsAgo}-${j}`));
+      }
+    }
+    const run = (extra: Transaction[]) => computeForecastV3({
+      transactions: [...baseTxs, ...extra], expenseCategories: cats,
+      monthlyIncome: 0, monthlyInvestments: 0, now: FIXTURE_NOW,
+    }).categories.find(c => c.categoryId === 'dormiente')!;
+
+    // Senza attività corrente: 5 mesi consecutivi inattivi → stale (invariato)
+    expect(run([]).behavior).toBe('stale');
+    // Con una spesa registrata QUESTO mese: la categoria si risveglia
+    const woken = run([fxTx('2026-06-08', 40, 'dormiente', 'dorm risveglio')]);
+    expect(woken.behavior).not.toBe('stale');
+  });
+
+  it('FASE2-G1f (engine): single spike month after dormancy → rare_variable, not full variable path', () => {
+    const cats: CategoryDef[] = [
+      { id: 'spike', label: 'Spike', icon: '?', color: '#000', kind: 'expense' },
+    ];
+    // Storia vecchia (M-8..M-10, 4 tx/mese) → activeHistoryCount ≥ 3.
+    // Poi dormiente, e UN solo mese attivo recente (M-1) con un picco da €1000.
+    // Senza la guardia di recency: variable path con recentVarMean ≈ 333 →
+    // coda gonfiata il mese dopo (regressione osservata su dati reali 2026-02).
+    // Totali mensili variati (90/134/220) così periodic_fixed resta a
+    // confidence 'low' (CV alto) e non intercetta il percorso prima del guard.
+    const OLD_TOTALS: Record<number, number> = { 8: 90, 9: 134, 10: 220 };
+    const txs: Transaction[] = [];
+    for (const monthsAgo of [8, 9, 10]) {
+      for (let j = 0; j < 4; j++) {
+        txs.push(fxTx(`${fixtureMonthKey(monthsAgo)}-${String(3 + j * 7).padStart(2, '0')}`,
+          OLD_TOTALS[monthsAgo] / 4, 'spike', `spk acq ${monthsAgo}-${j}`));
+      }
+    }
+    txs.push(fxTx(`${fixtureMonthKey(1)}-12`, 1000, 'spike', 'spk picco isolato'));
+
+    const result = computeForecastV3({
+      transactions: txs, expenseCategories: cats,
+      monthlyIncome: 0, monthlyInvestments: 0, now: FIXTURE_NOW,
+    });
+    const cat = result.categories.find(c => c.categoryId === 'spike')!;
+    // Un mese attivo negli ultimi 6 → nessun pattern recente → rare_variable
+    expect(cat.behavior).toBe('rare_variable');
+    // La stima scalata per frequenza non deve ancorarsi al picco da 1000
+    expect(cat.predictedVariableRemaining).toBeLessThan(300);
   });
 
   it('M9b: det + var decomposition exact (±2 rounding) for clean deterministic+variable fixture', () => {

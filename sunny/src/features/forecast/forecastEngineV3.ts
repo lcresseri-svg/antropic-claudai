@@ -588,7 +588,10 @@ export function computeForecastV3(input: ForecastV3Input): TotalForecastV3 {
       // Scale down: if active 2/24 months ≈ 8% → expected monthly contribution ≈ 8% of typical
       const activeCount = allLookbackKeys.filter(k => (history[catId]?.[k]?.variableTotal ?? 0) > 0).length;
       const frequencyFactor = Math.min(1, activeCount / 12);
-      const scaledExpected = Math.round(rareExpected * frequencyFactor);
+      // Time scaling: with uniform timing, P(the rare event is still to come)
+      // decreases linearly with month progress — at day 25 the residual tail
+      // must be near zero, not the full month estimate.
+      const scaledExpected = Math.round(rareExpected * frequencyFactor * (1 - prog));
       predictedVariableRemaining = catActualSoFar > 0 ? 0 : scaledExpected;
       projected = Math.round(catActualSoFar + catSchedFuture + catPlannedOneOffFuture + predictedVariableRemaining);
       reliability = 0.25;
