@@ -42,27 +42,42 @@ function robustCV(values: number[]): number {
  * A category is stale when it was active historically but has had zero activity
  * in the last `STALE_INACTIVE_MONTHS` months — and there is no budget or planned
  * item confirming it should still be active.
+ *
+ * "Stopped" requires the inactivity to be CONSECUTIVE and FINAL: a category
+ * active last month is not stale, no matter how many gaps it had before.
+ * Activity already recorded in the current (partial) month wakes the category
+ * immediately — money is being spent right now, so zeroing the tail is wrong.
  */
 export function detectStaleCategoryV3(params: {
   catHistory: Record<string, MonthCatHistory>;
+  /** Last complete months, ordered MOST RECENT FIRST (as built by monthKeys). */
   recentKeys: string[];
   budgetAmount?: number;
   hasPlanningCurrentMonth?: boolean;
+  /** Any actual spend already recorded in the current month. */
+  hasCurrentMonthActivity?: boolean;
 }): { isStale: boolean; lastActiveKey?: string; reasons: string[] } {
   if ((params.budgetAmount ?? 0) > 0) return { isStale: false, reasons: [] };
   if (params.hasPlanningCurrentMonth) return { isStale: false, reasons: [] };
+  if (params.hasCurrentMonthActivity) return { isStale: false, reasons: [] };
 
   const allKeys = Object.keys(params.catHistory).sort().reverse();
   const lastActiveKey = allKeys.find(k => monthTotal(params.catHistory[k]) > 0);
   if (!lastActiveKey) return { isStale: false, reasons: [] };
 
-  const inactiveRecent = params.recentKeys.filter(k => monthTotal(params.catHistory[k]) === 0).length;
-  if (inactiveRecent >= STALE_INACTIVE_MONTHS) {
+  // Consecutive inactive months counted from the most recent complete month
+  // backwards — interrupted by the first active month found.
+  let trailingInactive = 0;
+  for (const k of params.recentKeys) {
+    if (monthTotal(params.catHistory[k]) === 0) trailingInactive += 1;
+    else break;
+  }
+  if (trailingInactive >= STALE_INACTIVE_MONTHS) {
     return {
       isStale: true,
       lastActiveKey,
       reasons: [
-        `Inattiva negli ultimi ${inactiveRecent} mesi (ultimo: ${lastActiveKey})`,
+        `Inattiva negli ultimi ${trailingInactive} mesi consecutivi (ultimo: ${lastActiveKey})`,
         'Nessun budget o pianificazione → previsione azzerata',
       ],
     };
@@ -272,6 +287,24 @@ export function detectFixedMonthlyV3(params: {
     };
   }
 
+  // Occupancy guard: at minimum occupancy (3/5 = two holes) the evidence for
+  // "fixed monthly" is weak — robustCV can mask real dispersion when MAD = 0
+  // (e.g. [200, 200, 300] → CV 0). Require the active amounts to be truly
+  // stable (max deviation from the median ≤ 10%), otherwise a winding-down
+  // category with holes gets a locked amount it no longer honours.
+  if (activeCount <= FIXED_MIN_ACTIVE) {
+    const medAll = median(nonZeroTotals);
+    const maxDevRatio = medAll > 0
+      ? Math.max(...nonZeroTotals.map(v => Math.abs(v - medAll))) / medAll
+      : 0;
+    if (maxDevRatio > 0.10) {
+      return {
+        isFixed: false, confidence: 'low',
+        reasons: [`Solo ${activeCount}/${FIXED_WINDOW} mesi attivi con importi non identici (dev. max ${Math.round(maxDevRatio * 100)}%)`],
+      };
+    }
+  }
+
   const varCounts = fiveMonthKeys.map(k => catHistory[k]?.variableCount ?? 0).filter(c => c > 0);
   const medCount = varCounts.length > 0 ? median(varCounts) : 0;
   if (medCount > FIXED_MAX_MED_COUNT) {
@@ -399,9 +432,12 @@ export function inferCategoryBehaviorV3(params: {
   }
 
   // ── 3. Fixed monthly (relaxed: ≥3/5 months) ───────────────────────────────
+  const hasCurrentMonthActivity =
+    currentMonthActualScheduled > 0 || currentMonthActualVarNormal > 0 || currentMonthVarNormalCount > 0;
+
   const fixed = detectFixedMonthlyV3({ catHistory, fiveMonthKeys, budgetAmount, hasExplicitRecurring: false });
   if (fixed.isFixed && fixed.confidence !== 'low') {
-    const stale = detectStaleCategoryV3({ catHistory, recentKeys, budgetAmount, hasPlanningCurrentMonth: plannedCurrentMonth });
+    const stale = detectStaleCategoryV3({ catHistory, recentKeys, budgetAmount, hasPlanningCurrentMonth: plannedCurrentMonth, hasCurrentMonthActivity });
     if (stale.isStale) {
       return {
         behavior: 'stale', confidence: 'medium',
@@ -439,7 +475,7 @@ export function inferCategoryBehaviorV3(params: {
   }
 
   // ── Stale check before variable classification ────────────────────────────
-  const stale = detectStaleCategoryV3({ catHistory, recentKeys, budgetAmount, hasPlanningCurrentMonth: plannedCurrentMonth });
+  const stale = detectStaleCategoryV3({ catHistory, recentKeys, budgetAmount, hasPlanningCurrentMonth: plannedCurrentMonth, hasCurrentMonthActivity });
   if (stale.isStale) {
     return {
       behavior: 'stale', confidence: 'medium',
@@ -452,7 +488,15 @@ export function inferCategoryBehaviorV3(params: {
   // ── 5. Rare variable: active in the past year but < 3 months of data ─────
   // Distinct from stale (which implies stopped) — rare_variable is ongoing but
   // infrequent with no detectable regular period.
-  if (activeHistoryCount < 3) {
+  //
+  // Recency guard: a category with ≤ 1 active month in the last 6 has no
+  // re-established pattern, even when activeHistoryCount ≥ 3 over the full
+  // window. One month of spend after a dormancy (e.g. a one-off bill) must
+  // NOT anchor the full variable estimator — recentVarMean over a single
+  // spike month would inflate next month's tail. Frequency-scaled rare path.
+  const activeRecent6 = allHistoryKeys.slice(0, 6)
+    .filter(k => monthTotal(catHistory[k]) > 0).length;
+  if (activeHistoryCount < 3 || activeRecent6 <= 1) {
     // Check if there was any activity in the last 12 months
     const last12Keys = allHistoryKeys.slice(0, 12);
     const recentActivity = last12Keys.some(k => monthTotal(catHistory[k]) > 0);
@@ -463,7 +507,9 @@ export function inferCategoryBehaviorV3(params: {
       return {
         behavior: 'rare_variable', confidence: 'low',
         reasons: [
-          `Solo ${activeHistoryCount} mesi con spesa negli ultimi ${allHistoryKeys.length} mesi`,
+          activeHistoryCount < 3
+            ? `Solo ${activeHistoryCount} mesi con spesa negli ultimi ${allHistoryKeys.length} mesi`
+            : `Solo ${activeRecent6} mese attivo negli ultimi 6 — nessun pattern recente`,
           `Ultima attività: ${lastKey ?? '?'}`,
           `Importo tipico: ~${Math.round(avgAmount)}€`,
         ],
