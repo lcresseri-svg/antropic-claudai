@@ -60,6 +60,19 @@ export function runBacktestV3(
     );
     if (actualFullMonth === 0) continue;
 
+    // Approximation: exclude transactions first entered after end of month M + 3-day grace.
+    // A tx with createdAt on day 4+ of the following month is assumed to be a late import
+    // that would not have been visible at backtest time (e.g. user entering old receipts).
+    // Conservative fallback: if createdAt is absent, the tx is treated as always-existing.
+    // NOTE: approximation pending a dedicated `importedAt` field that would capture actual
+    // user-entry time, decoupled from the transaction's calendar date.
+    const endOfMonthGraceMs = new Date(targetYear, targetMonthRaw + 1, 4).getTime();
+    const asOfOk = (t: Transaction): boolean =>
+      !t.createdAt || t.createdAt < endOfMonthGraceMs;
+    const excludedLateTx = transactions.filter(
+      t => t.date.slice(0, 7) === monthKey && !asOfOk(t),
+    ).length;
+
     for (const day of SNAPSHOT_DAYS) {
       // Use <= so day-5 snapshot INCLUDES transactions dated exactly on day 5
       const snapshotISO = `${monthKey}-${String(day).padStart(2, '0')}`;
@@ -68,13 +81,16 @@ export function runBacktestV3(
       //   - All transactions up to and including snapshot date, PLUS
       //   - Future-dated recurring/scheduled expense transactions in this month
       //     (matching production: Cloud Function pre-inserts them on day 1)
+      //   - Filtered by asOfOk to exclude late-entered transactions (causal leakage guard)
       const snapshotTx = transactions.filter(t =>
-        t.date <= snapshotISO ||
-        (
-          t.date.slice(0, 7) === monthKey &&
-          t.date > snapshotISO &&
-          (t.seriesId || t.recurring) &&
-          t.type === 'expense'
+        asOfOk(t) && (
+          t.date <= snapshotISO ||
+          (
+            t.date.slice(0, 7) === monthKey &&
+            t.date > snapshotISO &&
+            (t.seriesId || t.recurring) &&
+            t.type === 'expense'
+          )
         ),
       );
 
@@ -159,6 +175,7 @@ export function runBacktestV3(
         variableError,
         deterministicFutureError,
         missedDeterministic,
+        excludedLateTx,
       });
     }
   }

@@ -186,6 +186,9 @@ export interface BacktestSnapshotV3 {
   /** How much scheduled/recurring arrived after snapshot but wasn't in forecastDeterministicFuture.
    *  = max(0, actualDeterministicAfterD − forecastDeterministicFuture). */
   missedDeterministic: number;
+  /** Number of month-M transactions excluded from the snapshot input by the as-of createdAt filter.
+   *  Non-zero → causal leakage was detected and corrected for this month. */
+  excludedLateTx: number;
 }
 
 export interface BacktestComponentMetrics {
