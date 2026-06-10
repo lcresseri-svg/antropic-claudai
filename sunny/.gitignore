@@ -2,3 +2,9 @@ node_modules/
 dist/
 .env
 .env.local
+
+# Dati reali e baseline FASE 2 — mai committare
+real-data/
+forecast-baselines/
+sunny-dati-*.json
+sunny-forecast-diagnostics-*.json
