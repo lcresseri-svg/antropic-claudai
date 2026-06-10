@@ -66,3 +66,66 @@ in baseline). Decisione richiesta: accettare il giro 1 o fare rollback.
 
 ### Test
 106/106 verdi (100 pre-esistenti + 6 nuovi). Build TypeScript pulita.
+
+---
+
+## Giro 2 — 2026-06-10 · Diagnosi picco post-spike (Auto/Acquisti)
+
+### Causa da investigare (da giro 1)
+Sovra-previsione variabile sui mesi immediatamente successivi a un picco di spesa in categorie
+`variable_frequent`/`variable_sparse`: errore +€230 su Acquisti e +€243 su Auto al snapshot
+2026-02-05 (mese dopo il picco Jan 2026 di Acquisti €1080).
+
+### Esclusione M9 (verificata prima della diagnosi)
+Acquisti e Auto non sono categorie `fixed_monthly`/`periodic_fixed`; il gap locked-shortfall
+(artefatto M9) non si applica. La diagnosi opera sull'errore variabile puro.
+
+### Diagnosi causa-radice
+In `forecastHistory.ts:85`:
+
+```typescript
+const recentVarTotals = recentKeys.map(k => catHistory[k]?.variableTotal ?? 0);
+const recentVarMean = robustMean(recentVarTotals);  // k=3.0, n=3
+```
+
+Con n=3, `winsorize(k=3.0)` ha breakdown point 33%: un solo mese-picco corrompe la media.
+
+Caso Acquisti snapshot 2026-02-05:
+- `recentVarTotals = [1080, 382, 530]`; `median=530`, `MAD=148`
+- `cap = 530 + 3.0×148 = 974`; `robustMean = (974+382+530)/3 = 629`
+- Il motore proietta ~€300-450 di variabile per febbraio; reale = €90 → errore +€370-540.
+
+Il segnale stagionale (`seasonalMean`, peso max 35%) mitiga parzialmente ma è insufficiente
+quando `recentVarMean` è 2-3× il valore stagionale storico dello stesso mese.
+
+### Valutazione opzioni — distinzione picco-anomalia vs trend-reale
+
+| Opzione | Effetto | Problema |
+|---------|---------|----------|
+| `median` invece di `robustMean` | `median([1080,382,530])=530`, nessuna soglia | Sopprime sempre il massimo in finestra n=3; viola il vincolo "non sopprimere indiscriminatamente i picchi" |
+| k tighter (1.5 invece di 3.0) | cap=752, mean=555 | k è parametro arbitrario |
+| Finestra 3→6 mesi | diluisce spike con più storia | modifica `recentCountMean`/`medianTicket` e altri segnali; finestra scelta arbitraria |
+| Rapporto `recentVarMean`/`seasonalMean` come trigger | dampen quando recente > 2× stagionale | soglia 2× è arbitraria; richiede almeno 1 anno di storia per il mese corrente |
+| Nessuna azione | — | picco-contamination rimane nel 3-month window estimator |
+
+**Acquisti**: Jan €1080 è 2.8× il December precedente; con 6 mesi di contesto è rilevabile come
+anomalia, ma la soglia "quanto dev'essere grande?" è numericamente arbitraria.
+
+**Auto**: categoria volatile throughout (€1–741 nell'intera storia). Un picco non si distingue
+da variabilità normale senza informazione descrittiva (es. riparazione straordinaria vs spesa
+stagionale).
+
+### Stato: ⚠ STOP-TRIGGER — distinzione non determinabile senza soglia arbitraria
+
+Il vincolo "Se la distinzione non è determinabile dai dati con sicurezza, fermati e segnalalo
+invece di scegliere una soglia arbitraria" è attivato.
+
+Nessuna modifica al codice sorgente in questo giro. Metriche invariate rispetto alla baseline
+di giro 1 (MAE €286, WAPE 13,3%, bias −€242, R² 0,40).
+
+### Decisione richiesta
+Scegliere tra le opzioni elencate sopra, consapevoli dei tradeoff:
+- `median` è la scelta meno arbitraria (estimatore L1 ottimale per n piccolo) ma cambia
+  l'estimatore globale per tutte le categorie variabili.
+- k tighter/finestra estesa hanno effetti più locali ma richiedono un numero.
+- Nessuna azione accetta il 3-month window come limite strutturale dell'estimatore.
