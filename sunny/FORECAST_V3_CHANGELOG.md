@@ -114,33 +114,73 @@ dall'estimatore usato per recentVarMean.
 - `forecastHistory.ts`: `recentVarMean = robustMean(recentVarTotals)` → `median(recentVarTotals)`.
   `recentCountMean` rimane `robustMean` (i conteggi tx non hanno spike da ammortizzare).
 
-### Validazione caso reale — Acquisti 2026-02 (stima analitica da codice; harness non disponibile in CI)
+### Risultato MISURATO su dati reali (stessi dati, stesso `now` 2026-06-10, 12 mesi × 5 snapshot)
 
-| Snapshot | recentVarTotals | robustMean (prima) | median (dopo) | Riduzione variableAvg | Impatto previsto |
+Top-line vs baseline giro 1:
+- MAE €286→**€287** (+0,3%, entro il rumore) · MedAE 186→**179** (−3,8%)
+- WAPE 13,3%→**13,3%** (invariato) · R² 0,40→**0,40** (invariato)
+- Bias −242→**−238**: NON peggiorato. La sotto-previsione sistematica si riduce
+  leggermente — nessuna sovra-correzione da median (la median alza le stime nei
+  pattern con mese-basso in finestra, compensando l'abbassamento sui pattern con picco).
+
+### Anti-regressione per mese MISURATA (soglia X = 10% + pavimento €5)
+
+| mese | MAE prima | MAE ora | Δ | Δ% | verdetto |
 |---|---|---|---|---|---|
-| Feb day 5 | [1080, 382, 530] | 629 | 530 | −99€ (−16%) | predictedVarRemaining −40→70€ |
-| Mar day 5 | [90, 1080, 382] | 517 | 382 | −135€ (−26%) | predictedVarRemaining −90€ |
-| Apr day 5 | [136, 90, 1080] | 435 | 136 | −299€ (−69%) | predictedVarRemaining −195€ |
+| 2025-06 | €70 | €63 | −€7 | −10% | miglioramento |
+| 2025-07 | €146 | **€167** | **+€21** | **+14,4%** | **REGRESSIONE** |
+| 2025-08 | €259 | €249 | −€10 | −3,9% | miglioramento |
+| 2025-09 | €503 | €502 | −€1 | −0,2% | entro il rumore |
+| 2025-10 | €64 | €67 | +€3 | +4,7% | entro il rumore |
+| 2025-11 | €541 | €549 | +€8 | +1,5% | entro il rumore |
+| 2025-12 | €242 | €233 | −€9 | −3,7% | miglioramento |
+| 2026-01 | €838 | €834 | −€4 | −0,5% | entro il rumore |
+| 2026-02 | €117 | €109 | −€8 | **−6,8%** | **miglioramento** ✓ |
+| 2026-03 | €373 | €383 | +€10 | +2,7% | entro il rumore |
+| 2026-04 | €117 | €119 | +€2 | +1,7% | entro il rumore |
+| 2026-05 | €167 | €168 | +€1 | +0,6% | entro il rumore |
 
-Il miglioramento è cumulativo: la median non solo assorbe il picco a febbraio, ma impedisce
-che contamini i mesi successivi via il "trailing tail" della finestra a 3 mesi.
+4 mesi migliorano, 7 entro il rumore, **1 regredisce: 2025-07 +14,4%** (+€21 in
+assoluto, su un mese da €1.866 di spesa → errAbs passa da 7,8% a 8,9% del mese).
 
-Stima MAE: miglioramento ~€15-25 su 60 snapshot (5-9% rispetto alla baseline giro 1 di €286).
+**2026-02 (il mese fragile del giro 1) MIGLIORA del 6,8%** — la median non lo peggiora.
 
-### Test
-- `FASE2-G2a` (unit): `computeCatStats` con [1080,400,530] → `recentVarMean=530`, non ancorato al picco.
-- `FASE2-G2b` (unit): `computeCatStats` con [850,600,400] (trend genuino) → `recentVarMean=600`,
-  entro 10% della media aritmetica (617). Documenta ritardo massimo accettabile come ≤10% dalla media
-  per trend moderati (aritmetici); il test fallisce se median è <90% della media aritmetica.
+### Causa della regressione 2025-07 (misurata via drill per categoria, prima/dopo)
 
-### Anti-regressione prevista per mese
-Non eseguibile senza harness. Rischi principali:
-- Categorie con pattern 2-of-3 attivi ([100, 0, 100]): median=100 vs robustMean=67 → stima
-  _più alta_ con median. Non è regressione ma miglioramento per queste categorie.
-- Categorie stabili ([200, 200, 200]): median=robustMean=200. Nessuna differenza.
-- Categorie in trend lineare: median≈mean (differenza < 5%). Nessun rischio significativo.
+Effetto simmetrico della median: ignora anche i mesi *bassi*, non solo i picchi.
+- Acquisti, finestra luglio = [giu 342, mag 772, apr 767] → median 767 vs robustMean 627.
+  Il giugno basso (342) è il valore scartato → stima più alta. Proiezione day 5: 812→826
+  (reale 705, errore +107→+121).
+- Auto, finestra = [494, 411, 70] → median 411 vs robustMean 325. Proiezione day 5:
+  288→297 (reale 238, errore +50→+59).
 
-### Stato: ✅ COMPLETATO
+Nota: per Acquisti la median (767) era più vicina al reale di luglio (705) come stima
+di livello — l'errore extra viene dal blend pace/tail che già sovra-prevedeva e che la
+variableAvg più alta amplifica. È il prezzo intrinseco e simmetrico dell'estimatore:
+nessuna soglia può eliminarlo senza reintrodurre asimmetria arbitraria.
+
+### Validazione caso reale — Acquisti 2026-02 MISURATA
+
+| Snapshot | proj robustMean (prima) | proj median (dopo) | reale | err prima | err dopo |
+|---|---|---|---|---|---|
+| Feb day 5 | €320 | €309 | €90 | +230 | +219 (−11) |
+| Feb day 10 | €292 | €278 | €90 | +202 | +188 (−14) |
+| Feb day 15 | €224 | €212 | €90 | +134 | +122 (−12) |
+
+Il miglioramento c'è ma è MOLTO più piccolo della stima analitica pre-misura (~€400→~€90
+attesi). Motivo misurato: la previsione di Acquisti a day 5 è dominata dal segnale di coda
+(tail median/P75 sui 12 mesi storici, con cap P75×1,25), non dal `recentVarMean`. La
+riduzione di variableAvg (629→530, −16%) si traduce in −11€ sulla proiezione perché il cap
+di coda era già il fattore vincolante. Il reale di febbraio (€90) è 2,4× più basso di
+QUALSIASI mese dei 12 precedenti (range 212–1080): nessun estimatore basato solo sullo
+storico lo avrebbe previsto a day 5. La parte restante dell'errore su Acquisti/Auto
+2026-02 è un limite del segnale di coda, non dell'estimatore di livello.
+
+### Stato: ⚠ STOP-TRIGGER — in attesa di decisione utente
+La regola "nessun mese reale peggiora oltre il 10%" è formalmente violata su 2025-07
+(+14,4%, +€21 assoluti). Trade-off misurato del giro 2: 4 mesi migliorano (incluso il
+fragile 2026-02), bias e MedAE migliorano, MAE top-line invariato, 1 mese peggiora di €21.
+Decisione richiesta: accettare il giro 2 o fare rollback a robustMean.
 
 ### Test
 108/108 verdi (106 pre-esistenti + 2 nuovi G2a–G2b). Build TypeScript pulita.

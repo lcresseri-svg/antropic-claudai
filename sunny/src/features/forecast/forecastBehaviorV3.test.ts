@@ -540,11 +540,10 @@ describe('C — mutation tests', () => {
    * and the spike no longer anchors the forecast for the following month.
    *
    * Real-data equivalent: Acquisti Jan 2026 spike (€1080 → reversion €90 in Feb).
-   * Analytical estimate (harness unavailable in CI — real data is gitignored):
-   *   Before fix: recentVarMean=629 → variableAvg≈530-629 → predictedVarRemaining≈€395-430 at day 5 of Feb.
-   *   After fix : recentVarMean=530 → variableAvg≈466-530 → predictedVarRemaining≈€355-395 at day 5 of Feb.
-   * The spike contamination decays over the 3-month window; improvements are largest
-   * at Mar (median 382 vs robustMean 517) and Apr 2026 (median 136 vs robustMean 435).
+   * Measured on real data (harness, 2026-06-10): Feb day-5 projection 320→309,
+   * day-10 292→278, day-15 224→212. The improvement is smaller than the
+   * variableAvg reduction (629→530) because the tail P75 cap was already the
+   * binding constraint at early-month snapshots. Month MAE 2026-02: −6.8%.
    */
   it('FASE2-G2a (unit): recentVarMean median absorbs spike — [1080,400,530] → 530, not anchored to 1080', () => {
     const h = (key: string, total: number): MonthCatHistory =>
