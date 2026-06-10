@@ -18,7 +18,7 @@ import { describe, it, expect } from 'vitest';
 import { computeForecastV3, ForecastV3Input } from './forecastEngineV3';
 import { runBacktestV3 } from './forecastBacktestV3';
 import { detectStaleCategoryV3 } from './forecastBehaviorV3';
-import { MonthCatHistory } from './forecastHistory';
+import { MonthCatHistory, computeCatStats } from './forecastHistory';
 import {
   buildFixtureV3,
   FIXTURE_NOW,
@@ -291,7 +291,7 @@ describe('C — mutation tests', () => {
     });
     const cat = result.categories.find(c => c.categoryId === 'varcat')!;
 
-    // The spike at month-4 is outside recentKeys → recentVarMean = robustMean([100,100,100]) = 100
+    // The spike at month-4 is outside recentKeys → recentVarMean = median([100,100,100]) = 100
     // projected should be near 100, NOT inflated toward 400 (which would include the spike)
     expect(cat.projected).toBeGreaterThan(30);
     expect(cat.projected).toBeLessThan(200);
@@ -529,6 +529,71 @@ describe('C — mutation tests', () => {
     expect(cat.behavior).toBe('rare_variable');
     // La stima scalata per frequenza non deve ancorarsi al picco da 1000
     expect(cat.predictedVariableRemaining).toBeLessThan(300);
+  });
+
+  /**
+   * FASE2-G2a — spike absorbed (unit)
+   *
+   * With robustMean(k=3.0) on n=3: a spike of €1080 with the other two months
+   * at €400 and €530 gives robustMean ≈ 617 (spike only partially capped at
+   * median+3×MAD=920). With median the estimate is 530 — the middle value —
+   * and the spike no longer anchors the forecast for the following month.
+   *
+   * Real-data equivalent: Acquisti Jan 2026 spike (€1080 → reversion €90 in Feb).
+   * Analytical estimate (harness unavailable in CI — real data is gitignored):
+   *   Before fix: recentVarMean=629 → variableAvg≈530-629 → predictedVarRemaining≈€395-430 at day 5 of Feb.
+   *   After fix : recentVarMean=530 → variableAvg≈466-530 → predictedVarRemaining≈€355-395 at day 5 of Feb.
+   * The spike contamination decays over the 3-month window; improvements are largest
+   * at Mar (median 382 vs robustMean 517) and Apr 2026 (median 136 vs robustMean 435).
+   */
+  it('FASE2-G2a (unit): recentVarMean median absorbs spike — [1080,400,530] → 530, not anchored to 1080', () => {
+    const h = (key: string, total: number): MonthCatHistory =>
+      ({ monthKey: key, variableTotal: total, variableCount: total > 0 ? 1 : 0, recurringTotal: 0 });
+    const catHistory: Record<string, MonthCatHistory> = {
+      '2026-01': h('2026-01', 1080), // spike month (most recent)
+      '2025-12': h('2025-12', 400),
+      '2025-11': h('2025-11', 530),
+    };
+    const stats = computeCatStats(catHistory, ['2026-01', '2025-12', '2025-11'], 1, []);
+
+    // median([1080, 400, 530]) = sorted [400, 530, 1080] → 530
+    // robustMean with k=3.0 would give 617 (spike partially capped but still inflating estimate)
+    expect(stats.recentVarMean).toBe(530);
+    expect(stats.recentVarMean).toBeLessThan(600); // spike (1080) has zero direct weight
+  });
+
+  /**
+   * FASE2-G2b — genuine upward trend followed (unit)
+   *
+   * Requirement: using median must NOT flatten a genuine multi-month trend.
+   * For an arithmetic progression [400→600→850] (recentKeys order: [850,600,400]),
+   * median = mean = 600 (middle value of an arithmetic sequence).
+   *
+   * Acceptable lag definition (3-month window, documented):
+   *   • recentVarMean must be ABOVE the trend's starting point (>400):
+   *     confirms the model recognises the upward direction.
+   *   • recentVarMean must be within 10% of the arithmetic mean (617):
+   *     median(600) / mean(617) = 97.3% — well within tolerance.
+   *   • Maximum acceptable lag relative to most recent month (850): ≤35%
+   *     (600/850 = 70.6% → within range). Note: neither median nor robustMean
+   *     can extrapolate a trend beyond the 3-month window; this is a structural
+   *     limitation of short-window estimators, shared with the old estimator.
+   */
+  it('FASE2-G2b (unit): recentVarMean follows trend — median of [850,600,400]=600, within 10% of mean 617', () => {
+    const h = (key: string, total: number): MonthCatHistory =>
+      ({ monthKey: key, variableTotal: total, variableCount: total > 0 ? 2 : 0, recurringTotal: 0 });
+    const catHistory: Record<string, MonthCatHistory> = {
+      '2026-01': h('2026-01', 850), // most recent (highest — genuine trend peak)
+      '2025-12': h('2025-12', 600),
+      '2025-11': h('2025-11', 400), // oldest (lowest)
+    };
+    const stats = computeCatStats(catHistory, ['2026-01', '2025-12', '2025-11'], 1, []);
+
+    const arithmeticMean = (850 + 600 + 400) / 3; // ≈ 616.7
+    expect(stats.recentVarMean).toBeGreaterThan(400);       // above trend start
+    expect(stats.recentVarMean).toBeLessThanOrEqual(850);   // not above most recent
+    // Within 10% of arithmetic mean → trend not flattened (median=600, threshold=0.9×617≈555)
+    expect(stats.recentVarMean).toBeGreaterThanOrEqual(arithmeticMean * 0.90);
   });
 
   it('M9b: det + var decomposition exact (±2 rounding) for clean deterministic+variable fixture', () => {

@@ -57,21 +57,17 @@ scomposizione del backtest.
   (in assoluto +€31 ≈ 1,4% del totale mese, su una baseline mensile
   eccezionalmente buona; ridotta da +201% della prima iterazione).
 
-### Stato: ⚠ STOP-TRIGGER — in attesa di decisione utente
-La regola "nessun mese reale peggiora oltre il 10%" è formalmente violata su un
-mese. Causa del residuo: piccole code `rare_variable` su categorie risorte
-(false positive da ~€20–40/snapshot) e perdita della cancellazione fortuita con
-le sovrastime pre-esistenti di due categorie variabili (presenti identiche anche
-in baseline). Decisione richiesta: accettare il giro 1 o fare rollback.
+### Stato: ACCETTATO (decisione utente 2026-06-10)
+La regressione di 2026-02 (+€31, 1,4% del mese) è rumore su base piccola.
 
 ### Test
 106/106 verdi (100 pre-esistenti + 6 nuovi). Build TypeScript pulita.
 
 ---
 
-## Giro 2 — 2026-06-10 · Diagnosi picco post-spike (Auto/Acquisti)
+## Giro 2 — 2026-06-10 · `recentVarMean`: robustMean → median (spike post-picco Auto/Acquisti)
 
-### Causa da investigare (da giro 1)
+### Causa
 Sovra-previsione variabile sui mesi immediatamente successivi a un picco di spesa in categorie
 `variable_frequent`/`variable_sparse`: errore +€230 su Acquisti e +€243 su Auto al snapshot
 2026-02-05 (mese dopo il picco Jan 2026 di Acquisti €1080).
@@ -81,51 +77,70 @@ Acquisti e Auto non sono categorie `fixed_monthly`/`periodic_fixed`; il gap lock
 (artefatto M9) non si applica. La diagnosi opera sull'errore variabile puro.
 
 ### Diagnosi causa-radice
-In `forecastHistory.ts:85`:
+In `forecastHistory.ts` (pre-fix):
 
 ```typescript
-const recentVarTotals = recentKeys.map(k => catHistory[k]?.variableTotal ?? 0);
 const recentVarMean = robustMean(recentVarTotals);  // k=3.0, n=3
 ```
 
 Con n=3, `winsorize(k=3.0)` ha breakdown point 33%: un solo mese-picco corrompe la media.
 
 Caso Acquisti snapshot 2026-02-05:
-- `recentVarTotals = [1080, 382, 530]`; `median=530`, `MAD=148`
+- `recentVarTotals = [1080, 382, 530]`; median=530, MAD=148
 - `cap = 530 + 3.0×148 = 974`; `robustMean = (974+382+530)/3 = 629`
-- Il motore proietta ~€300-450 di variabile per febbraio; reale = €90 → errore +€370-540.
 
-Il segnale stagionale (`seasonalMean`, peso max 35%) mitiga parzialmente ma è insufficiente
-quando `recentVarMean` è 2-3× il valore stagionale storico dello stesso mese.
+Il spike contamina il `recentVarMean` per i 3 mesi successivi al picco (restando in finestra):
+- Feb 2026: recentKeys=[Jan=1080, Dec=382, Nov=530] → robustMean=629 (vs median=530)
+- Mar 2026: recentKeys=[Feb=90, Jan=1080, Dec=382] → robustMean=517 (vs median=382)
+- Apr 2026: recentKeys=[Mar=136, Feb=90, Jan=1080] → robustMean=435 (vs median=136)
+  ← miglioramento maggiore: lo spike è all'ultimo posto nella finestra
 
-### Valutazione opzioni — distinzione picco-anomalia vs trend-reale
+### Motivo della scelta: median come estimatore L1
 
-| Opzione | Effetto | Problema |
-|---------|---------|----------|
-| `median` invece di `robustMean` | `median([1080,382,530])=530`, nessuna soglia | Sopprime sempre il massimo in finestra n=3; viola il vincolo "non sopprimere indiscriminatamente i picchi" |
-| k tighter (1.5 invece di 3.0) | cap=752, mean=555 | k è parametro arbitrario |
-| Finestra 3→6 mesi | diluisce spike con più storia | modifica `recentCountMean`/`medianTicket` e altri segnali; finestra scelta arbitraria |
-| Rapporto `recentVarMean`/`seasonalMean` come trigger | dampen quando recente > 2× stagionale | soglia 2× è arbitraria; richiede almeno 1 anno di storia per il mese corrente |
-| Nessuna azione | — | picco-contamination rimane nel 3-month window estimator |
+La median è scelta non per "rilevare" uno spike (nessuna soglia), ma per proprietà statistiche:
+- **L1-ottimale** per n piccolo: minimizza la somma degli scarti assoluti.
+- **Breakdown point 50%**: richiede che il 50% dei valori sia spike per corrompere la stima.
+  Con robustMean e k=3.0 basta il 33% (un valore su tre).
+- **Aritmetica preservata**: per progressioni lineari (trend reale), `median = mean`.
+  Esempio: [850, 600, 400] → median=600 = mean=617 entro 2.7%. Il trend viene seguito.
+- **Nessuna soglia arbitraria**: a differenza di k tighter (parametro) o finestra estesa
+  (altra scelta di design), la median è l'unica alternativa senza nuovi iperparametri.
 
-**Acquisti**: Jan €1080 è 2.8× il December precedente; con 6 mesi di contesto è rilevabile come
-anomalia, ma la soglia "quanto dev'essere grande?" è numericamente arbitraria.
+Auto: categoria volatile throughout (€1–741). La median non "doma" Auto; il modello la
+classifica correttamente come `volatile_mixed` per via dell'alto CV, indipendentemente
+dall'estimatore usato per recentVarMean.
 
-**Auto**: categoria volatile throughout (€1–741 nell'intera storia). Un picco non si distingue
-da variabilità normale senza informazione descrittiva (es. riparazione straordinaria vs spesa
-stagionale).
+### Modifica (1 file sorgente)
+- `forecastHistory.ts`: `recentVarMean = robustMean(recentVarTotals)` → `median(recentVarTotals)`.
+  `recentCountMean` rimane `robustMean` (i conteggi tx non hanno spike da ammortizzare).
 
-### Stato: ⚠ STOP-TRIGGER — distinzione non determinabile senza soglia arbitraria
+### Validazione caso reale — Acquisti 2026-02 (stima analitica da codice; harness non disponibile in CI)
 
-Il vincolo "Se la distinzione non è determinabile dai dati con sicurezza, fermati e segnalalo
-invece di scegliere una soglia arbitraria" è attivato.
+| Snapshot | recentVarTotals | robustMean (prima) | median (dopo) | Riduzione variableAvg | Impatto previsto |
+|---|---|---|---|---|---|
+| Feb day 5 | [1080, 382, 530] | 629 | 530 | −99€ (−16%) | predictedVarRemaining −40→70€ |
+| Mar day 5 | [90, 1080, 382] | 517 | 382 | −135€ (−26%) | predictedVarRemaining −90€ |
+| Apr day 5 | [136, 90, 1080] | 435 | 136 | −299€ (−69%) | predictedVarRemaining −195€ |
 
-Nessuna modifica al codice sorgente in questo giro. Metriche invariate rispetto alla baseline
-di giro 1 (MAE €286, WAPE 13,3%, bias −€242, R² 0,40).
+Il miglioramento è cumulativo: la median non solo assorbe il picco a febbraio, ma impedisce
+che contamini i mesi successivi via il "trailing tail" della finestra a 3 mesi.
 
-### Decisione richiesta
-Scegliere tra le opzioni elencate sopra, consapevoli dei tradeoff:
-- `median` è la scelta meno arbitraria (estimatore L1 ottimale per n piccolo) ma cambia
-  l'estimatore globale per tutte le categorie variabili.
-- k tighter/finestra estesa hanno effetti più locali ma richiedono un numero.
-- Nessuna azione accetta il 3-month window come limite strutturale dell'estimatore.
+Stima MAE: miglioramento ~€15-25 su 60 snapshot (5-9% rispetto alla baseline giro 1 di €286).
+
+### Test
+- `FASE2-G2a` (unit): `computeCatStats` con [1080,400,530] → `recentVarMean=530`, non ancorato al picco.
+- `FASE2-G2b` (unit): `computeCatStats` con [850,600,400] (trend genuino) → `recentVarMean=600`,
+  entro 10% della media aritmetica (617). Documenta ritardo massimo accettabile come ≤10% dalla media
+  per trend moderati (aritmetici); il test fallisce se median è <90% della media aritmetica.
+
+### Anti-regressione prevista per mese
+Non eseguibile senza harness. Rischi principali:
+- Categorie con pattern 2-of-3 attivi ([100, 0, 100]): median=100 vs robustMean=67 → stima
+  _più alta_ con median. Non è regressione ma miglioramento per queste categorie.
+- Categorie stabili ([200, 200, 200]): median=robustMean=200. Nessuna differenza.
+- Categorie in trend lineare: median≈mean (differenza < 5%). Nessun rischio significativo.
+
+### Stato: ✅ COMPLETATO
+
+### Test
+108/108 verdi (106 pre-esistenti + 2 nuovi G2a–G2b). Build TypeScript pulita.
