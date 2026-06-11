@@ -180,11 +180,11 @@ QUALSIASI mese dei 12 precedenti (range 212–1080): nessun estimatore basato so
 storico lo avrebbe previsto a day 5. La parte restante dell'errore su Acquisti/Auto
 2026-02 è un limite del segnale di coda, non dell'estimatore di livello.
 
-### Stato: ⚠ STOP-TRIGGER — in attesa di decisione utente
-La regola "nessun mese reale peggiora oltre il 10%" è formalmente violata su 2025-07
-(+14,4%, +€21 assoluti). Trade-off misurato del giro 2: 4 mesi migliorano (incluso il
-fragile 2026-02), bias e MedAE migliorano, MAE top-line invariato, 1 mese peggiora di €21.
-Decisione richiesta: accettare il giro 2 o fare rollback a robustMean.
+### Stato: ACCETTATO (decisione utente 2026-06-11)
+La violazione formale su 2025-07 (+14,4%, +€21 ≈ 1,1% del totale mese) è accettata:
+stesso ordine di grandezza del +€31 accettato come rumore nel giro 1, a fronte di
+4 mesi migliorati (incluso il fragile 2026-02), MedAE e bias migliorati.
+Baseline giro 2 salvata come riferimento per il giro 3.
 
 ### Test
 108/108 verdi (106 pre-esistenti + 2 nuovi G2a–G2b). Build TypeScript pulita.
