@@ -7,6 +7,46 @@ I dati reali e le baseline NON sono nel repo (gitignored).
 
 ---
 
+## Riepilogo FASE 2 — Chiusura 2026-06-11
+
+3 giri completati su 4 massimi consentiti. Tutti i fix su dati reali, nessun tuning su
+dati sintetici. Nessun rollback, tutti e tre i giri accettati.
+
+### Progressione metriche (backtest 12 mesi × 5 snapshot, filtro as-of attivo)
+
+| Metrica | Pre-FASE 2 | G1 | G2 | G3 (finale) |
+|---|---|---|---|---|
+| MAE | €297 | €286 (−3,7%) | €287 (+0,3%) | **€282 (−5,1%)** |
+| MedAE | €194 | €186 | €179 | €187 |
+| WAPE | 13,8% | 13,3% | 13,3% | **13,1%** |
+| Bias | −€265 | −€242 | −€238 | **−€226** |
+| R² | 0,36 | 0,40 | 0,40 | **0,41** |
+
+### Modifiche al codice (3 file sorgente, 5 file test/doc)
+
+| Giro | File | Modifica |
+|---|---|---|
+| G1 | `forecastBehaviorV3.ts` | `stale` consecutivo, risveglio, recency guard, CV guard fixed |
+| G1 | `forecastEngineV3.ts` | `rare_variable` scalata per `(1 − prog)` |
+| G2 | `forecastHistory.ts` | `recentVarMean`: `robustMean(k=3.0)` → `median` (L1, BP 50%) |
+| G3 | `forecastBehaviorV3.ts` | `detectGapInterval`: gap mediano < 2 → "irregular" (mai periodico) |
+
+### Limiti strutturali documentati (non affrontati in FASE 2)
+
+- **Auto** (`volatile_mixed`): CV 1,03, range €1–741, irriducibile senza segnali esterni.
+- **Stale residuo** (28 campioni, bias ~−€184/campione): categorie dormienti 6–17 mesi,
+  risveglio da singolo pagamento a fine mese (Università €1025, Cene €239 dopo 17 mesi).
+  Nessun segnale nello storico → errore irriducibile per definizione.
+- **Soldi casa** (`fixed_monthly`, bias +66, WAPE 104%): pagamenti mai arrivati oltre
+  giorno 14, ma il lock €200 resta attivo oltre il giorno 15 per il contratto M4.
+  Fix candidato richiede riscrittura esplicita del contratto M4 — fuori scope FASE 2.
+
+### Giro 4 (non eseguito — chiusura anticipata per scelta utente)
+Candidato: Soldi casa `fixed_monthly` — rilascio lock dopo giorno massimo storico di
+pagamento. Bloccato da riscrittura contratto M4. Da pianificare in FASE 3 se necessario.
+
+---
+
 ## Giro 1 — 2026-06-10 · Classificazione `stale`: inattività consecutiva, risveglio, guardia di recency
 
 ### Misura baseline (pre-fix)
@@ -273,11 +313,12 @@ basso (ottobre: €10). Post-fix è `variable_sparse` e prevede una piccola coda
 (MAE €28→€26): è una ridistribuzione dell'errore, non un peggioramento della categoria.
 +€11 medi su un mese da €1.427 = 0,8% del totale mese.
 
-### Stato: ⚠ STOP-TRIGGER — in attesa di decisione utente
-La regola "nessun mese reale peggiora oltre il 10%" è formalmente violata su 2025-10
-(+16,4%, +€11 assoluti — il più piccolo dei tre giri: giro 1 +€31, giro 2 +€21).
-Trade-off misurato: 4 mesi migliorano (fino a −23,8%), MAE/WAPE/bias/R² migliorano
-tutti, 1 mese peggiora di €11. Decisione richiesta: accettare il giro 3 o rollback.
+### Stato: ACCETTATO (decisione utente 2026-06-11)
+La violazione formale su 2025-10 (+16,4%, +€11 assoluti — il più piccolo dei tre giri:
+giro 1 +€31, giro 2 +€21) è accettata come rumore di redistribuzione: la categoria Extra
+migliora su base annua (MAE €28→€26), e il +€11 è 0,8% del totale mese. Trade-off
+misurato: 4 mesi migliorano (fino a −23,8%), MAE/WAPE/bias/R² migliorano tutti.
+Baseline giro 3 come riferimento finale di FASE 2.
 
 ### Candidato residuo per il giro 4 (dal ranking aggiornato, esclusi M9 e Auto-volatile)
 Soldi casa (`fixed_monthly`, bias +66, WAPE 104%): 12 pagamenti storici sempre nei
@@ -292,7 +333,4 @@ categorie dormienti da 6-17 mesi risvegliate da un singolo pagamento a fine mese
 (Università €1.025 a gennaio, Cene €239 dopo 17 mesi) — nessun segnale nello storico.
 
 ### Test
-111/111 verdi (108 + 3 nuovi G3a–G3c). Build TypeScript pulita.
-
-### Test
-108/108 verdi (106 pre-esistenti + 2 nuovi G2a–G2b). Build TypeScript pulita.
+111/111 verdi (108 pre-esistenti + 3 nuovi G3a–G3c). Build TypeScript pulita.
