@@ -100,6 +100,12 @@ function detectGapInterval(activeKeys: string[]): { interval: PeriodicInterval; 
   }
 
   const med = median(gaps);
+  // A median gap below 2 months means the category is active in (nearly)
+  // consecutive months — a MONTHLY pattern, not a periodic cadence. Monthly
+  // patterns belong to fixed_monthly (stable amounts) or the variable paths;
+  // the periodic branch would wrongly stop predicting for the rest of the
+  // month as soon as the first payment of an "active month" is recorded.
+  if (med < 2) return { interval: 'irregular', intervalMonths: 0 };
   if (Math.abs(med - 3) <= 1) return { interval: 'quarterly', intervalMonths: 3 };
   if (Math.abs(med - 6) <= 1.5) return { interval: 'semi_annual', intervalMonths: 6 };
   if (Math.abs(med - 12) <= 2) return { interval: 'annual', intervalMonths: 12 };
