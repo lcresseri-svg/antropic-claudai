@@ -14,7 +14,7 @@ import { median, mad } from './forecastStats';
 import { MonthCatHistory } from './forecastHistory';
 import { CategoryBehavior, CategoryBehaviorResult, PeriodicInterval } from './forecastTypesV3';
 
-// ── Constants ─────────────────────────────────────────────────────────────────
+// ── Constants ───────────────────────────────────────────────────────────────
 
 const FIXED_WINDOW = 5;
 const FIXED_MIN_ACTIVE = 3;
@@ -23,7 +23,7 @@ const FIXED_MAX_MED_COUNT = 2.5;
 const BUNDLE_MAX_CV = 0.20;
 const STALE_INACTIVE_MONTHS = 2;
 
-// ── Helpers ───────────────────────────────────────────────────────────────────
+// ── Helpers ─────────────────────────────────────────────────────────────────
 
 function monthTotal(h: MonthCatHistory | undefined): number {
   return h ? h.variableTotal + h.recurringTotal : 0;
@@ -100,6 +100,12 @@ function detectGapInterval(activeKeys: string[]): { interval: PeriodicInterval; 
   }
 
   const med = median(gaps);
+  // A median gap below 2 months means the category is active in (nearly)
+  // consecutive months — a MONTHLY pattern, not a periodic cadence. Monthly
+  // patterns belong to fixed_monthly (stable amounts) or the variable paths;
+  // the periodic branch would wrongly stop predicting for the rest of the
+  // month as soon as the first payment of an "active month" is recorded.
+  if (med < 2) return { interval: 'irregular', intervalMonths: 0 };
   if (Math.abs(med - 3) <= 1) return { interval: 'quarterly', intervalMonths: 3 };
   if (Math.abs(med - 6) <= 1.5) return { interval: 'semi_annual', intervalMonths: 6 };
   if (Math.abs(med - 12) <= 2) return { interval: 'annual', intervalMonths: 12 };
@@ -191,7 +197,7 @@ export function detectPeriodicFixedV3(params: {
   };
 }
 
-// ── Recurring bundle detection ─────────────────────────────────────────────────
+// ── Recurring bundle detection ────────────────────────────────────────────────
 
 /**
  * A recurring_bundle is a category whose transactions are classified as
@@ -246,7 +252,7 @@ export function detectRecurringBundleV3(params: {
   };
 }
 
-// ── Fixed monthly detection (V3 relaxed threshold) ───────────────────────────
+// ── Fixed monthly detection (V3 relaxed threshold) ─────────────────────────────────
 
 export function detectFixedMonthlyV3(params: {
   catHistory: Record<string, MonthCatHistory>;
@@ -409,7 +415,7 @@ export function inferCategoryBehaviorV3(params: {
     };
   }
 
-  // ── 2. Recurring bundle (anti-double-count) ────────────────────────────────
+  // ── 2. Recurring bundle (anti-double-count) ────────────────────────────────────
   const bundle = detectRecurringBundleV3({
     catHistory, recentKeys,
     currentMonthActualScheduled, currentMonthActualVarNormal, currentMonthVarNormalCount,
@@ -431,7 +437,7 @@ export function inferCategoryBehaviorV3(params: {
     };
   }
 
-  // ── 3. Fixed monthly (relaxed: ≥3/5 months) ───────────────────────────────
+  // ── 3. Fixed monthly (relaxed: ≥3/5 months) ───────────────────────────────────
   const hasCurrentMonthActivity =
     currentMonthActualScheduled > 0 || currentMonthActualVarNormal > 0 || currentMonthVarNormalCount > 0;
 
@@ -456,7 +462,7 @@ export function inferCategoryBehaviorV3(params: {
     };
   }
 
-  // ── 4. Periodic fixed (gap-based interval detection) ─────────────────────
+  // ── 4. Periodic fixed (gap-based interval detection) ─────────────────────────
   // Uses full allHistoryKeys window (24 months) so spendRatio is computed
   // against total possible months — correctly identifies annual/semi-annual patterns.
   const periodic = detectPeriodicFixedV3({ catHistory, allHistoryKeys, currentCalendarMonth, budgetAmount });
@@ -474,7 +480,7 @@ export function inferCategoryBehaviorV3(params: {
     };
   }
 
-  // ── Stale check before variable classification ────────────────────────────
+  // ── Stale check before variable classification ────────────────────────────────
   const stale = detectStaleCategoryV3({ catHistory, recentKeys, budgetAmount, hasPlanningCurrentMonth: plannedCurrentMonth, hasCurrentMonthActivity });
   if (stale.isStale) {
     return {
@@ -521,7 +527,7 @@ export function inferCategoryBehaviorV3(params: {
     return { behavior: 'unknown', confidence: 'low', reasons: ['Storia insufficiente (< 3 mesi con dati)'], behaviorSource: 'unknown' };
   }
 
-  // ── 6. Variable behaviors (≥ 3 months of data) ───────────────────────────
+  // ── 6. Variable behaviors (≥ 3 months of data) ─────────────────────────────
   const recentCounts = recentKeys.map(k => catHistory[k]?.variableCount ?? 0).filter(c => c > 0);
   const medCount = recentCounts.length > 0 ? median(recentCounts) : 0;
   const recentAmounts = recentKeys.map(k => monthTotal(catHistory[k])).filter(v => v > 0);
@@ -550,7 +556,7 @@ export function inferCategoryBehaviorV3(params: {
   };
 }
 
-// ── Uncertainty width per behavior ───────────────────────────────────────────
+// ── Uncertainty width per behavior ─────────────────────────────────────────────
 
 /** Returns the ±half-width of the confidence interval as a fraction of `projected`. */
 export function behaviorIntervalWidth(behavior: CategoryBehavior): number {
