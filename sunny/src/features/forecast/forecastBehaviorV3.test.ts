@@ -17,7 +17,7 @@
 import { describe, it, expect } from 'vitest';
 import { computeForecastV3, ForecastV3Input } from './forecastEngineV3';
 import { runBacktestV3 } from './forecastBacktestV3';
-import { detectStaleCategoryV3 } from './forecastBehaviorV3';
+import { detectStaleCategoryV3, detectPeriodicFixedV3 } from './forecastBehaviorV3';
 import { MonthCatHistory, computeCatStats } from './forecastHistory';
 import {
   buildFixtureV3,
@@ -593,6 +593,85 @@ describe('C — mutation tests', () => {
     expect(stats.recentVarMean).toBeLessThanOrEqual(850);   // not above most recent
     // Within 10% of arithmetic mean → trend not flattened (median=600, threshold=0.9×617≈555)
     expect(stats.recentVarMean).toBeGreaterThanOrEqual(arithmeticMean * 0.90);
+  });
+
+  /**
+   * FASE2-G3a — monthly-active category is NOT periodic (unit)
+   *
+   * Real-data bug: a category active in 12 CONSECUTIVE months out of a
+   * 24-month window has spendRatio exactly 0.50 (passes the ≤ 0.50 gate) and
+   * median gap 1 → detectGapInterval returned "ogni ~1 mesi" → periodic_fixed
+   * with high confidence (stable amounts). Downstream, the periodic branch
+   * stops predicting for the rest of the month as soon as the first payment
+   * of an "active month" is recorded — fatal for a frequent social-spend
+   * category (observed: Uscite June 2025, flag missing_periodic_fixed).
+   *
+   * Definitional fix (no tuned threshold): median gap < 2 = monthly pattern,
+   * which is the domain of fixed_monthly / variable paths — never periodic.
+   */
+  it('FASE2-G3a (unit): 12 consecutive active months (spendRatio 0.50, gap 1) → NOT periodic', () => {
+    const h = (key: string, total: number): MonthCatHistory =>
+      ({ monthKey: key, variableTotal: total, variableCount: 10, recurringTotal: 0 });
+    // 24-month window 2023-07..2025-06, active only in the last 12 (consecutive)
+    const allHistoryKeys: string[] = [];
+    const catHistory: Record<string, MonthCatHistory> = {};
+    for (let i = 0; i < 24; i++) {
+      const d = new Date(2025, 5 - i, 1); // 2025-06 backwards
+      const key = `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}`;
+      allHistoryKeys.push(key);
+      if (i < 12) catHistory[key] = h(key, 280 + (i % 3) * 25); // stable-ish amounts, CV < 0.15
+    }
+    const res = detectPeriodicFixedV3({
+      catHistory, allHistoryKeys, currentCalendarMonth: 5,
+    });
+    expect(res.isPeriodic).toBe(false);
+  });
+
+  it('FASE2-G3b (unit): true quarterly cadence (median gap 3) still detected as periodic', () => {
+    const h = (key: string, total: number): MonthCatHistory =>
+      ({ monthKey: key, variableTotal: total, variableCount: 1, recurringTotal: 0 });
+    const allHistoryKeys: string[] = [];
+    const catHistory: Record<string, MonthCatHistory> = {};
+    for (let i = 0; i < 24; i++) {
+      const d = new Date(2025, 5 - i, 1);
+      const key = `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}`;
+      allHistoryKeys.push(key);
+      if (i % 3 === 0 && i < 15) catHistory[key] = h(key, 120); // 5 occurrences, gap 3
+    }
+    const res = detectPeriodicFixedV3({
+      catHistory, allHistoryKeys, currentCalendarMonth: 5,
+    });
+    expect(res.isPeriodic).toBe(true);
+    expect(res.interval).toBe('quarterly');
+  });
+
+  it('FASE2-G3c (engine): frequent monthly-active category keeps predicting after first tx of the month', () => {
+    const cats: CategoryDef[] = [
+      { id: 'sociale', label: 'Sociale', icon: '?', color: '#000', kind: 'expense' },
+    ];
+    // 12 consecutive active months, 4 tx/month ≈ €280/month (mild variation).
+    // medCount 4 > 2.5 → fixed_monthly rejected; gap 1 → pre-fix periodic_fixed
+    // (high confidence) → projected collapsed to actualSoFar after the first tx.
+    const txs: Transaction[] = [];
+    for (let monthsAgo = 1; monthsAgo <= 12; monthsAgo++) {
+      const monthTotal = 280 + (monthsAgo % 3) * 25;
+      for (let j = 0; j < 4; j++) {
+        txs.push(fxTx(`${fixtureMonthKey(monthsAgo)}-${String(4 + j * 6).padStart(2, '0')}`,
+          monthTotal / 4, 'sociale', `soc acq ${monthsAgo}-${j}`));
+      }
+    }
+    // Current month (June 2026): one €20 tx on day 3, snapshot at day 5
+    txs.push(fxTx('2026-06-03', 20, 'sociale', 'soc primo acquisto'));
+
+    const result = computeForecastV3({
+      transactions: txs, expenseCategories: cats,
+      monthlyIncome: 0, monthlyInvestments: 0, now: new Date(2026, 5, 5),
+    });
+    const cat = result.categories.find(c => c.categoryId === 'sociale')!;
+    expect(cat.behavior).not.toBe('periodic_fixed');
+    // The month must NOT be considered "already paid" at day 5:
+    // projection well above the €20 recorded so far, toward the ~€280 monthly level
+    expect(cat.projected).toBeGreaterThan(150);
   });
 
   it('M9b: det + var decomposition exact (±2 rounding) for clean deterministic+variable fixture', () => {
