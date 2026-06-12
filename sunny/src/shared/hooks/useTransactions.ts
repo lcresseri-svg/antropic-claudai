@@ -4,7 +4,7 @@ import {
   addDoc, deleteDoc, doc, updateDoc, writeBatch,
 } from 'firebase/firestore';
 import { User } from 'firebase/auth';
-import { AccountDef, CategoryDef, Transaction, TransactionPatch, ownShare } from '../../types';
+import { AccountDef, CategoryDef, Transaction, TransactionPatch, ownShare, investSign } from '../../types';
 import { isPending } from '../recurrence';
 import { db } from '../../lib/firebase';
 
@@ -161,29 +161,29 @@ export function useTransactions(user: User | null, accounts: AccountDef[] = [], 
 
     const monthlyIncome = monthTx.filter(t => t.type === 'income').reduce((s, t) => s + t.amount, 0);
     const monthlyExpenses = monthTx.filter(t => t.type === 'expense').reduce((s, t) => s + ownShare(t), 0);
+    // Net invested this month: deposits − withdrawals (direction-aware).
     const monthlyInvestments = enableInvestments
-      ? monthTx.filter(t => t.type === 'investment').reduce((s, t) => s + t.amount, 0)
+      ? monthTx.filter(t => t.type === 'investment').reduce((s, t) => s + investSign(t) * t.amount, 0)
       : 0;
 
-    // Invested capital by category (all-time), seeded with each investment
-    // category's initial balance (capital already invested before Sunny).
-    // Zeroed out when the investments feature is disabled.
+    // NET deposited capital by category (all-time): initial balance + deposits
+    // − withdrawals, floored at 0 per category. Zeroed when the feature is off.
     const investmentByCategory: Record<string, number> = {};
     let investmentTotal = 0;
     if (enableInvestments) {
-      let investmentInitial = 0;
       for (const c of categories) {
         if (c.kind === 'investment' && c.initialBalance) {
           investmentByCategory[c.id] = (investmentByCategory[c.id] ?? 0) + c.initialBalance;
-          investmentInitial += c.initialBalance;
         }
       }
       for (const t of realized) {
         if (t.type !== 'investment') continue;
-        investmentByCategory[t.category] = (investmentByCategory[t.category] ?? 0) + t.amount;
+        investmentByCategory[t.category] = (investmentByCategory[t.category] ?? 0) + investSign(t) * t.amount;
       }
-      investmentTotal =
-        realized.filter(t => t.type === 'investment').reduce((s, t) => s + t.amount, 0) + investmentInitial;
+      for (const id of Object.keys(investmentByCategory)) {
+        investmentByCategory[id] = Math.max(0, investmentByCategory[id]);
+        investmentTotal += investmentByCategory[id];
+      }
     }
 
     // Per-account balance (initial balance + cash flow through the account)
@@ -196,7 +196,8 @@ export function useTransactions(user: User | null, accounts: AccountDef[] = [], 
       // contribution) adds to invested capital without drawing from any account.
       const bal = (id: string, delta: number) => { if (!id) return; accountBalances[id] = (accountBalances[id] ?? 0) + delta; };
       if (t.type === 'income') bal(t.account, t.amount);
-      else if (t.type === 'investment') bal(t.account, -t.amount);
+      // Deposit debits the source account; withdrawal CREDITS the destination.
+      else if (t.type === 'investment') bal(t.account, -investSign(t) * t.amount);
       else if (t.type === 'expense') bal(t.account, -ownShare(t));
       else if (t.type === 'transfer') { bal(t.account, -t.amount); if (t.toAccount) bal(t.toAccount, t.amount); }
     }
@@ -230,7 +231,7 @@ export function useTransactions(user: User | null, accounts: AccountDef[] = [], 
       if (!slot) continue;
       if (t.type === 'income') slot.income += t.amount;
       else if (t.type === 'expense') slot.expense += ownShare(t);
-      else if (t.type === 'investment' && enableInvestments) slot.invest += t.amount;
+      else if (t.type === 'investment' && enableInvestments) slot.invest += investSign(t) * t.amount;
     }
 
     const recent = [...realized]

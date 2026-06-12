@@ -27,8 +27,13 @@ describe('transactionsToCsv', () => {
   it('renders missing optional fields as empty cells', () => {
     const csv = transactionsToCsv([tx({ notes: undefined, groupId: undefined })]);
     const row = csv.split('\r\n')[1];
-    // date,description,amount,type,category,account,toAccount,notes,shared,groupId
-    expect(row).toBe('2026-01-01,Test,10,expense,spesa,conto_corrente,,,,');
+    // date,description,amount,type,category,account,toAccount,notes,shared,groupId,direction
+    expect(row).toBe('2026-01-01,Test,10,expense,spesa,conto_corrente,,,,,');
+  });
+
+  it('exports the investment direction so a CSV round-trip preserves withdrawals', () => {
+    const csv = transactionsToCsv([tx({ type: 'investment', category: 'azioni_etf', direction: 'out' })]);
+    expect(csv.split('\r\n')[1].endsWith(',out')).toBe(true);
   });
 });
 

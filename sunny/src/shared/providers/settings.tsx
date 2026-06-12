@@ -5,6 +5,7 @@ import { db } from '../../lib/firebase';
 import { CategoryDef, AccountDef } from '../../types';
 import {
   DEFAULT_CATEGORIES, DEFAULT_ACCOUNTS, FALLBACK_CATEGORY, FALLBACK_ACCOUNT,
+  SYSTEM_CATEGORIES,
 } from '../../defaults';
 import { canUseDetailedInvestments } from '../featureFlags';
 
@@ -34,6 +35,8 @@ interface SettingsValue {
   saveInsightDepth: (v: InsightDepth) => void;
   saveAiEnabled: (v: boolean) => void;
   saveAiCoachWidgetEnabled: (v: boolean) => void;
+  /** Update an investment category's manually-entered market value (+ timestamp). */
+  saveCurrentValue: (categoryId: string, value: number) => void;
 }
 
 const SettingsContext = createContext<SettingsValue | null>(null);
@@ -154,8 +157,21 @@ export function SettingsProvider({ user, children }: { user: User | null; childr
 
   const detailedInvestments = canUseDetailedInvestments(user);
 
+  const saveCurrentValue = useCallback((categoryId: string, value: number) => {
+    const next = categories.map(c => c.id === categoryId
+      ? { ...c, currentValue: value, lastValueUpdate: new Date().toISOString().slice(0, 10) }
+      : c);
+    setCategories(next);
+    if (user) setDoc(settingsRef(), { categories: next }, MERGE);
+  }, [categories, user, settingsRef]);
+
+  // System categories (realized gain/loss) resolve for display everywhere but
+  // never appear in user lists and are never persisted.
   const getCat = useCallback(
-    (id: string) => categories.find(c => c.id === id) ?? FALLBACK_CATEGORY(id),
+    (id: string) =>
+      categories.find(c => c.id === id)
+      ?? SYSTEM_CATEGORIES.find(c => c.id === id)
+      ?? FALLBACK_CATEGORY(id),
     [categories],
   );
   const getAcc = useCallback(
@@ -164,7 +180,7 @@ export function SettingsProvider({ user, children }: { user: User | null; childr
   );
 
   return (
-    <SettingsContext.Provider value={{ categories, accounts, theme, includeInvestments, enableInvestments, enableBudget, insightDepth, aiEnabled, aiCoachWidgetEnabled, detailedInvestments, settingsLoaded, getCat, getAcc, saveCategories, saveAccounts, saveTheme, saveIncludeInvestments, saveEnableInvestments, saveEnableBudget, saveInsightDepth, saveAiEnabled, saveAiCoachWidgetEnabled }}>
+    <SettingsContext.Provider value={{ categories, accounts, theme, includeInvestments, enableInvestments, enableBudget, insightDepth, aiEnabled, aiCoachWidgetEnabled, detailedInvestments, settingsLoaded, getCat, getAcc, saveCategories, saveAccounts, saveTheme, saveIncludeInvestments, saveEnableInvestments, saveEnableBudget, saveInsightDepth, saveAiEnabled, saveAiCoachWidgetEnabled, saveCurrentValue }}>
       {children}
     </SettingsContext.Provider>
   );

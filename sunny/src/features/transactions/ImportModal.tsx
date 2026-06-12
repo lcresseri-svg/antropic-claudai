@@ -87,12 +87,16 @@ export function ImportModal({ open, onClose, onImport }: Props) {
       const rawType = col(row, 'tipo', 'type');
       const { type, recognized } = parseType(rawType);
       if (!recognized) warns.push(`Riga ${i + 2}: tipo "${rawType}" non riconosciuto → importato come Uscita`);
+      // Optional direction column (written by Sunny's own CSV export): keeps a
+      // re-imported withdrawal a withdrawal. Absent → deposit ('in') as always.
+      const rawDir = String(col(row, 'direction', 'direzione') ?? '').trim().toLowerCase();
       txs.push({
         date, description: String(descV).trim(), amount, type,
         category: type === 'transfer' ? 'trasferimento' : matchCategory(col(row, 'categoria', 'category'), type),
         account: matchAccount(col(row, 'conto', 'account', 'banca')),
         toAccount: type === 'transfer' ? matchAccount(col(row, 'conto_destinazione', 'destinazione', 'to_account')) : undefined,
         notes: col(row, 'note', 'notes') ? String(col(row, 'note', 'notes')).trim() : undefined,
+        ...(type === 'investment' && rawDir === 'out' ? { direction: 'out' as const } : {}),
       });
     });
     setParsed(txs); setErrors(errs); setWarnings(warns); setStep('preview');

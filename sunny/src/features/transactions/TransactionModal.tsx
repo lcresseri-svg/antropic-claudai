@@ -1,4 +1,5 @@
 import { useState, useEffect } from 'react';
+import { useNavigate } from 'react-router-dom';
 import { Transaction, TransactionType, TYPE_META, TYPE_ORDER, RecurrenceRule, typeColor, typeOnColor } from '../../types';
 import { formatCurrency, formatDate, guessCategory } from '../../utils';
 import { useSettings } from '../../shared/providers/settings';
@@ -21,8 +22,12 @@ const today = () => new Date().toISOString().slice(0, 10);
 const yesterday = () => { const d = new Date(); d.setDate(d.getDate() - 1); return d.toISOString().slice(0, 10); };
 
 export function TransactionModal({ open, editing, groupTransfers = [], seriesEdit = false, defaultType, onClose, onSave }: Props) {
+  const navigate = useNavigate();
   const { categories, accounts, enableInvestments, detailedInvestments, theme } = useSettings();
   const [type, setType] = useState<TransactionType>('expense');
+  // New investments are managed from /investments — the tab only shows a redirect.
+  // Editing an existing investment still works normally.
+  const [investRedirect, setInvestRedirect] = useState(false);
   const [description, setDescription] = useState('');
   const [amount, setAmount] = useState('');
   const [date, setDate] = useState(today());
@@ -86,6 +91,7 @@ export function TransactionModal({ open, editing, groupTransfers = [], seriesEdi
     setCategoryTouched(!!editing);
     setConfirmDelete(false);
     setAdvancedOpen(false);
+    setInvestRedirect(false);
     const hasGroup = !!editing && editing.type === 'expense' && !!editing.groupId
       && groupTransfers.some(t => t.type === 'transfer');
     setShowMore(!!editing && (!!editing.recurring || hasGroup || !!editing.shared));
@@ -226,6 +232,9 @@ export function TransactionModal({ open, editing, groupTransfers = [], seriesEdi
       notes: notes.trim() || undefined,
       recurring, seriesId,
       ...(type === 'investment' && tfrClean ? { tfr: tfrClean } : {}),
+      // Investments keep their flow direction on edit ('out' stays a withdrawal);
+      // anything created here is a deposit ('in').
+      ...(type === 'investment' ? { direction: editing?.direction ?? 'in' as const } : {}),
       ...(groupId ? { groupId } : {}),
     }];
     if (hasFee) {
@@ -266,16 +275,40 @@ export function TransactionModal({ open, editing, groupTransfers = [], seriesEdi
             </p>
           )}
 
-          {/* Type segmented — hidden in quick mode (type is pre-set) */}
+          {/* Type segmented — hidden in quick mode (type is pre-set). The
+              investment tab stays visible (CSV import keeps the type) but for
+              NEW transactions it redirects to the dedicated screen. */}
           {!quickMode && (
             <div className="grid gap-1.5 bg-surface rounded-2xl p-1" style={{ gridTemplateColumns: `repeat(${availableTypes.length}, 1fr)` }}>
-              {availableTypes.map(t => (
-                <button key={t} type="button" onClick={() => setType(t)}
-                  className={`py-2 sm:py-2.5 rounded-xl text-[11px] sm:text-xs font-semibold transition-all ${type === t ? 'shadow-sm' : 'text-secondary'}`}
-                  style={type === t ? { backgroundColor: typeColor(t, theme), color: typeOnColor(theme) } : undefined}>
-                  {TYPE_META[t].label}
-                </button>
-              ))}
+              {availableTypes.map(t => {
+                const redirected = t === 'investment' && !editing;
+                return (
+                  <button key={t} type="button"
+                    onClick={() => {
+                      if (redirected) { setInvestRedirect(true); return; }
+                      setType(t); setInvestRedirect(false);
+                    }}
+                    className={`py-2 sm:py-2.5 rounded-xl text-[11px] sm:text-xs font-semibold transition-all ${type === t ? 'shadow-sm' : 'text-secondary'} ${redirected ? 'opacity-50' : ''}`}
+                    style={type === t ? { backgroundColor: typeColor(t, theme), color: typeOnColor(theme) } : undefined}>
+                    {TYPE_META[t].label}{redirected ? ' ↗' : ''}
+                  </button>
+                );
+              })}
+            </div>
+          )}
+
+          {investRedirect && (
+            <div className="rounded-2xl px-4 py-3.5 space-y-2.5"
+              style={{ border: '0.5px solid rgba(230,185,92,0.25)', backgroundColor: 'rgba(230,185,92,0.07)' }}>
+              <p className="text-[13px] text-primary leading-snug">
+                Gli investimenti si gestiscono dalla schermata Investimenti →
+              </p>
+              <button type="button"
+                onClick={() => { onClose(); navigate('/investments'); }}
+                className="w-full py-2.5 rounded-xl text-sm font-semibold"
+                style={{ backgroundColor: '#E6B95C', color: '#0D0D0D' }}>
+                Vai agli investimenti
+              </button>
             </div>
           )}
 

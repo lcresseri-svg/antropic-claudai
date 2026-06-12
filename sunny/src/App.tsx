@@ -325,6 +325,7 @@ function Main({ user, onLogOut, onDeleteAccount }: {
                     monthlyInvestments={tx.monthlyInvestments}
                     trend={tx.trend}
                     transactions={tx.transactions}
+                    onAddTransactions={tx.addTransactions}
                   />
                 </div>
               )
