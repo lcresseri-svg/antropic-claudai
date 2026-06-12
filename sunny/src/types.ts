@@ -51,7 +51,12 @@ export interface CategoryDef {
   initialBalance?: number; // investment categories only: capital already invested before Sunny
   fundType?: FundType;     // investment categories only: fund classification (detailed mode)
   tfrAmount?: number;      // pension funds only: portion of capital that is TFR
+  currentValue?: number;   // investment categories only: market value, entered manually
+  lastValueUpdate?: string; // ISO date of the last currentValue update
 }
+
+/** A currentValue older than this many days is considered stale. */
+export const STALE_DAYS = 30;
 
 /** User-editable account. */
 export interface AccountDef {
@@ -71,6 +76,7 @@ export interface Transaction {
   type: TransactionType;
   category: string;      // CategoryDef.id
   account: string;       // AccountDef.id — may be '' for a source-less investment (e.g. TFR / employer contribution)
+  direction?: 'in' | 'out'; // investments only: absent or 'in' = deposit, 'out' = withdrawal (credits the account)
   tfr?: number;          // investment into a pension fund only: portion of this contribution that is TFR
   toAccount?: string;    // AccountDef.id — transfers only
   notes?: string;
@@ -93,6 +99,11 @@ export type Freq = RecurrenceRule['freq'];
 /** The portion of an expense that is actually yours (excludes the shared part). */
 export function ownShare(t: Transaction): number {
   return t.type === 'expense' ? t.amount - (t.shared ?? 0) : t.amount;
+}
+
+/** Flow sign of an investment transaction: +1 deposit, −1 withdrawal. */
+export function investSign(t: Transaction): 1 | -1 {
+  return t.direction === 'out' ? -1 : 1;
 }
 
 /** Patch used by bulk edit. */

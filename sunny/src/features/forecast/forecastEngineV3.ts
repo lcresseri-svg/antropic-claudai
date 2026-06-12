@@ -756,7 +756,10 @@ export function medianMonthlyFlowV3(
     if (t.type !== type) continue;
     const key = t.date.slice(0, 7);
     if (key >= curKey) continue;
-    byMonth[key] = (byMonth[key] ?? 0) + ownShare(t);
+    // Investments are NET (deposits − withdrawals): a withdrawal must not
+    // inflate the projected monthly investment flow.
+    const sign = type === 'investment' && t.direction === 'out' ? -1 : 1;
+    byMonth[key] = (byMonth[key] ?? 0) + sign * ownShare(t);
   }
   const recent = Object.entries(byMonth)
     .sort(([a], [b]) => b.localeCompare(a))

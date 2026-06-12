@@ -1,4 +1,4 @@
-import { Transaction, CategoryDef, ownShare } from '../../types';
+import { Transaction, CategoryDef, ownShare, investSign } from '../../types';
 import { formatCurrency, capitalize } from '../../utils';
 import { monthProgress, forecastSavings, seasonalMonthlyAverage, seasonalVariableMonthly, robustAvg } from '../budget/budgetUtils';
 import { forecastSavingsV2 } from '../forecast/forecastEngine';
@@ -116,7 +116,7 @@ export function history(transactions: Transaction[], windowN = 3, now: Date = ne
       exp += ownShare(t);
       if (!t.seriesId && !t.recurring) varByMonth[k] = (varByMonth[k] ?? 0) + ownShare(t); // variable (non-recurring)
     }
-    else if (t.type === 'investment') inv += t.amount;
+    else if (t.type === 'investment') inv += investSign(t) * t.amount; // net: deposits − withdrawals
   }
   const n = Math.max(1, active.size);
   // Variable average across active months, winsorizing a single outlier month
@@ -153,7 +153,7 @@ function monthStats(txs: Transaction[], key: string): MonthStats {
     txCount++;
     if (t.type === 'income')     income  += t.amount;
     else if (t.type === 'expense')    expense += ownShare(t);
-    else if (t.type === 'investment') invest  += t.amount;
+    else if (t.type === 'investment') invest  += investSign(t) * t.amount;
   }
   const savings = income - expense - invest;
   return { key, income, expense, invest, savings, savingsRate: income > 0 ? savings / income : NaN, txCount };
@@ -172,7 +172,7 @@ function aggregateMonths(txs: Transaction[], keys: string[]): { income: number; 
     if (!set.has(t.date.slice(0, 7))) continue;
     if (t.type === 'income')          income  += t.amount;
     else if (t.type === 'expense')    expense += ownShare(t);
-    else if (t.type === 'investment') invest  += t.amount;
+    else if (t.type === 'investment') invest  += investSign(t) * t.amount;
   }
   return { income, expense, invest };
 }

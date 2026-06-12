@@ -13,7 +13,7 @@ export interface ExportPayload {
 /** Columns exported in the CSV, in order. */
 export const CSV_COLUMNS: (keyof Transaction)[] = [
   'date', 'description', 'amount', 'type', 'category',
-  'account', 'toAccount', 'notes', 'shared', 'groupId',
+  'account', 'toAccount', 'notes', 'shared', 'groupId', 'direction',
 ];
 
 function csvEscape(value: unknown): string {
