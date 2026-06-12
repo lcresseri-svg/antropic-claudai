@@ -9,7 +9,7 @@ import {
   suggestBudgets, generateBudgetInsights, seasonalHint,
   DEMO_CATEGORY_SPEND, DEMO_CATEGORY_BUDGETS,
 } from './budgetUtils';
-import { forecastSavingsV2, forecastByCategoryV2 } from '../forecast/forecastEngine';
+import { forecastSavingsV3, forecastByCategoryV3 } from '../forecast/forecastEngineV3';
 import { upcomingRecurringThisMonth, upcomingPlannedThisMonth, buildProjectedOccurrences, isPending } from '../../shared/recurrence';
 import { history } from '../insights/insightsEngine';
 import { SavingsGoalCard } from './SavingsGoalCard';
@@ -90,7 +90,7 @@ export function BudgetScreenV2({
   // adaptive engine as the global forecast). Empty in demo mode.
   const projectedSpend = useMemo(() => {
     if (isLearning) return {};
-    return forecastByCategoryV2(transactions, expenseCats);
+    return forecastByCategoryV3(transactions, expenseCats);
   }, [isLearning, transactions, expenseCats]);
 
   // "Programmato" per category: committed this month but not yet spent —
@@ -122,8 +122,8 @@ export function BudgetScreenV2({
     return sum > 0 ? sum : monthlyIncome;
   }, [budget.incomeBudgets, monthlyIncome]);
 
-  // End-of-month forecast — Forecast Engine V2 (admin-only screen). Expenses come
-  // from the multi-signal model; income/investment expectations are unchanged.
+  // End-of-month forecast — Forecast Engine V3. Expenses come from the
+  // behavior-aware model; income/investment expectations are unchanged.
   const forecastObj = useMemo(() => {
     if (isLearning) {
       return { expectedIncome: monthlyIncome, projectedExpenses: monthlyExpenses, expectedInvest: monthlyInvestments, savings: 420 };
@@ -138,7 +138,7 @@ export function BudgetScreenV2({
       + upcomingPlannedThisMonth(transactions, today, monthEnd, 'income');
     const upcomingInvest = upcomingRecurringThisMonth(transactions, today, monthEnd, 'investment')
       + upcomingPlannedThisMonth(transactions, today, monthEnd, 'investment');
-    return forecastSavingsV2({
+    return forecastSavingsV3({
       transactions,
       expenseCategories: expenseCats,
       monthlyIncome, monthlyInvestments,
@@ -182,6 +182,19 @@ export function BudgetScreenV2({
     [expenseCats, expenseSpend, activeExpBudgets, predicted, budget.savingsTarget],
   );
 
+  // Complete (past) months with at least one expense — V3 needs ~3 of them
+  // before its statistical signals (tail, pace, counts) become reliable.
+  const completedExpenseMonths = useMemo(() => {
+    const curKey = new Date().toISOString().slice(0, 7);
+    const months = new Set<string>();
+    for (const t of transactions) {
+      if (t.type === 'expense' && t.date.slice(0, 7) < curKey) {
+        months.add(t.date.slice(0, 7));
+      }
+    }
+    return months.size;
+  }, [transactions]);
+
   const [planOpen, setPlanOpen] = useState(true);
 
   const openEdit = (section: EditSection = 'expenses', catId?: string) => {
@@ -198,6 +211,20 @@ export function BudgetScreenV2({
         <div className="glass-card rounded-2xl px-4 py-3 flex items-center gap-2.5">
           <span className="text-gold">✦</span>
           <p className="text-[13px] text-secondary">Sto imparando le tue abitudini finanziarie.</p>
+        </div>
+      )}
+
+      {!isLearning && completedExpenseMonths < 3 && (
+        <div className="glass-card rounded-2xl px-4 py-3.5 flex items-start gap-3">
+          <span className="text-gold mt-0.5">📊</span>
+          <p className="text-[13px] text-secondary leading-snug">
+            La previsione migliora con più dati. Aggiungi almeno{' '}
+            <span className="text-primary font-medium">3 mesi</span> di movimenti
+            per stime più affidabili
+            {completedExpenseMonths > 0
+              ? ` (${completedExpenseMonths} ${completedExpenseMonths === 1 ? 'mese disponibile' : 'mesi disponibili'} su 3).`
+              : '.'}
+          </p>
         </div>
       )}
 
