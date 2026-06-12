@@ -237,7 +237,7 @@ function Main({ user, onLogOut, onDeleteAccount }: {
       )}
 
       {/* Desktop sidebar */}
-      <SideNav loading={tx.loading} onAdd={openAdd} onImport={() => setImportOpen(true)} isAdmin={isAdminUser(user)} uiV2={uiV2} />
+      <SideNav loading={tx.loading} onAdd={openAdd} onImport={() => setImportOpen(true)} isAdmin={isAdminUser(user)} aiEnabled={aiEnabled} uiV2={uiV2} />
 
       {/* Content (shifted right by sidebar on desktop) */}
       <div className="flex-1 md:ml-[220px] min-w-0">

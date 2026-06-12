@@ -37,7 +37,7 @@ interface Props {
 }
 
 export function Dashboard(p: Props) {
-  const { enableInvestments, getCat, insightDepth } = useSettings();
+  const { enableInvestments, getCat, insightDepth, categories } = useSettings();
   const [accMode, setAccMode] = useState<'balance' | 'spending'>('balance');
   const [period, setPeriod] = useState<Period>('1m');
   const [offset, setOffset] = useState(0); // months back from the most recent window (0 = current)
@@ -103,8 +103,9 @@ export function Dashboard(p: Props) {
       monthlyInvestments: p.monthlyInvestments,
       getCat,
       depth: insightDepth,
+      forecastV3Categories: categories.filter(c => c.kind === 'expense'),
     }),
-  [p.transactions, p.monthlyIncome, p.monthlyExpenses, p.monthlyInvestments, getCat, insightDepth]);
+  [p.transactions, p.monthlyIncome, p.monthlyExpenses, p.monthlyInvestments, getCat, insightDepth, categories]);
 
   const digestInput = useMemo(() => ({
     income: p.monthlyIncome,
