@@ -57,7 +57,7 @@ export function InsightsScreenV2(p: Props) {
     monthlyInvestments: p.monthlyInvestments,
     getCat,
     depth: insightDepth,
-    forecastV2Categories: categories.filter(c => c.kind === 'expense'),
+    forecastV3Categories: categories.filter(c => c.kind === 'expense'),
   });
 
   // Group insights into 4 display groups
