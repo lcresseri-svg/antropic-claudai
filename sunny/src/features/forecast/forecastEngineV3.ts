@@ -10,9 +10,12 @@
  *   6. Confidence intervals per category based on behavior type
  *   7. Bias correction (applied externally via biasFactor param)
  *
- * V3 is independent of V2 — it does not import from forecastEngine.ts or forecastMode.ts.
+ * V3 is independent of V2 at runtime — it does not import any code from
+ * forecastEngine.ts or forecastMode.ts (only the MonthForecastShape type,
+ * erased at compile time, for the drop-in adapters at the bottom).
  */
 import { Transaction, CategoryDef, ownShare } from '../../types';
+import type { MonthForecastShape } from './forecastEngine';
 import { robustMean, lerp, median } from './forecastStats';
 import { buildCategoryHistory, computeCatStats } from './forecastHistory';
 import {
@@ -760,4 +763,75 @@ export function medianMonthlyFlowV3(
     .slice(0, months)
     .map(([, v]) => v);
   return median(recent);
+}
+
+// ── V2-compatible adapters ────────────────────────────────────────────────────
+// Same shapes as forecastSavingsV2() / forecastByCategoryV2() so consumer
+// screens can swap to the V3 engine with no other code changes.
+
+/**
+ * Drop-in replacement di forecastSavingsV2, motore V3.
+ * Stessa firma, stesso output shape (MonthForecastShape).
+ */
+export function forecastSavingsV3(input: {
+  transactions: Transaction[];
+  expenseCategories: CategoryDef[];
+  monthlyIncome: number;
+  monthlyInvestments: number;
+  avgIncome?: number;
+  avgInvest?: number;
+  upcomingIncome?: number;
+  upcomingInvest?: number;
+  now?: Date;
+}): MonthForecastShape {
+  const ref = input.now ?? new Date();
+  const avgIncome = input.avgIncome ?? medianMonthlyFlowV3(input.transactions, 'income', ref);
+  const avgInvest = input.avgInvest ?? medianMonthlyFlowV3(input.transactions, 'investment', ref);
+  const r = computeForecastV3({
+    transactions: input.transactions,
+    expenseCategories: input.expenseCategories,
+    monthlyIncome: input.monthlyIncome,
+    monthlyInvestments: input.monthlyInvestments,
+    avgIncome,
+    avgInvest,
+    upcomingIncome: input.upcomingIncome,
+    upcomingInvest: input.upcomingInvest,
+    biasFactor: 1.0,
+    now: ref,
+  });
+  return {
+    expectedIncome: r.expectedIncome,
+    projectedExpenses: r.projectedExpenses,
+    expectedInvest: r.expectedInvest,
+    savings: r.savings,
+  };
+}
+
+/**
+ * Drop-in replacement di forecastByCategoryV2, motore V3.
+ * Stessa firma, stesso output shape (Record<categoryId, projected>).
+ */
+export function forecastByCategoryV3(
+  transactions: Transaction[],
+  expenseCategories: CategoryDef[],
+  now: Date = new Date(),
+): Record<string, number> {
+  const avgIncome = medianMonthlyFlowV3(transactions, 'income', now);
+  const avgInvest = medianMonthlyFlowV3(transactions, 'investment', now);
+  const r = computeForecastV3({
+    transactions,
+    expenseCategories,
+    monthlyIncome: 0,
+    monthlyInvestments: 0,
+    avgIncome,
+    avgInvest,
+    biasFactor: 1.0,
+    now,
+  });
+  const out: Record<string, number> = {};
+  for (const c of r.categories) {
+    // Mirror V2: omit categories with no projection at all.
+    if (c.projected > 0) out[c.categoryId] = c.projected;
+  }
+  return out;
 }
