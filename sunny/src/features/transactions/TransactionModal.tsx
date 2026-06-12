@@ -50,8 +50,11 @@ export function TransactionModal({ open, editing, groupTransfers = [], seriesEdi
   useEffect(() => {
     if (!open) return;
     if (editing) {
-      const hasGroup = editing.type === 'expense' && !!editing.groupId && groupTransfers.length > 0;
-      const transfersSum = groupTransfers.reduce((s, t) => s + t.amount, 0);
+      // Shared-expense reconstruction only folds the storni (transfers): an
+      // investment in the group is the fee parent and must not be summed in.
+      const groupStorni = groupTransfers.filter(t => t.type === 'transfer');
+      const hasGroup = editing.type === 'expense' && !!editing.groupId && groupStorni.length > 0;
+      const transfersSum = groupStorni.reduce((s, t) => s + t.amount, 0);
       setType(editing.type); setDescription(editing.description);
       setAmount(String(hasGroup ? editing.amount + transfersSum : editing.amount));
       setDate(editing.date);
@@ -60,12 +63,12 @@ export function TransactionModal({ open, editing, groupTransfers = [], seriesEdi
       setNotes(editing.notes ?? '');
       setIsShared(hasGroup || !!editing.shared);
       setReimbursements(hasGroup
-        ? groupTransfers.map(t => ({ amount: String(t.amount), account: t.toAccount ?? '' }))
+        ? groupStorni.map(t => ({ amount: String(t.amount), account: t.toAccount ?? '' }))
         : []);
       setIsRecurring(!!editing.recurring);
       setRecurringFreq(editing.recurring?.freq ?? 'monthly');
       setRecurringUntil(editing.recurring?.until ?? '');
-      setFee(editing.type === 'transfer'
+      setFee((editing.type === 'transfer' || editing.type === 'investment')
         ? String(groupTransfers.find(t => t.type === 'expense')?.amount ?? '')
         : '');
       setTfr(editing.tfr !== undefined ? String(editing.tfr) : '');
@@ -83,7 +86,8 @@ export function TransactionModal({ open, editing, groupTransfers = [], seriesEdi
     setCategoryTouched(!!editing);
     setConfirmDelete(false);
     setAdvancedOpen(false);
-    const hasGroup = !!editing && editing.type === 'expense' && !!editing.groupId && groupTransfers.length > 0;
+    const hasGroup = !!editing && editing.type === 'expense' && !!editing.groupId
+      && groupTransfers.some(t => t.type === 'transfer');
     setShowMore(!!editing && (!!editing.recurring || hasGroup || !!editing.shared));
   }, [open, editing, groupTransfers.length]);
 
@@ -152,7 +156,14 @@ export function TransactionModal({ open, editing, groupTransfers = [], seriesEdi
     // brand-new series, falling back to the legacy template's own id.
     const seriesId = editing?.seriesId ?? (isRecurring ? (editing?.id ?? crypto.randomUUID()) : undefined);
     const desc = description.trim() || defaultDesc.trim() || 'Senza nome';
-    const deleteIds = editing ? [editing.id, ...groupTransfers.map(t => t.id)] : [];
+    // Delete only the group members this edit reconstructs: editing an expense
+    // recreates its storni (transfers); editing a transfer/investment recreates
+    // its commission (expense). An investment linked to the commission expense
+    // being edited is NOT reconstructed and must survive.
+    const reconstructed = editing
+      ? groupTransfers.filter(t => editing.type === 'expense' ? t.type === 'transfer' : t.type === 'expense')
+      : [];
+    const deleteIds = editing ? [editing.id, ...reconstructed.map(t => t.id)] : [];
 
     // A brand-new recurring series whose start date is in the past gets its
     // overdue occurrences materialized right away (as realized instances), so it
@@ -192,9 +203,16 @@ export function TransactionModal({ open, editing, groupTransfers = [], seriesEdi
       return;
     }
 
-    const feeVal = type === 'transfer' ? parseFloat(fee.replace(',', '.')) : 0;
+    // Commission applies to transfers and investments with a source account
+    // (a source-less investment has no account to charge the fee to).
+    const feeApplicable = type === 'transfer' || (type === 'investment' && account !== '');
+    const feeVal = feeApplicable ? parseFloat(fee.replace(',', '.')) : 0;
     const hasFee = feeVal > 0;
-    const groupId = hasFee ? (editing?.groupId ?? crypto.randomUUID()) : undefined;
+    // Editing a plain expense that belongs to a group (e.g. the commission of an
+    // investment) must keep its groupId so the link to the parent survives.
+    const groupId = hasFee
+      ? (editing?.groupId ?? crypto.randomUUID())
+      : (type === 'expense' ? editing?.groupId : undefined);
 
     // TFR portion of a pension-fund contribution, capped at the amount.
     const tfrRaw = isPensionInvest ? parseFloat(tfr.replace(',', '.')) : NaN;
@@ -382,8 +400,8 @@ export function TransactionModal({ open, editing, groupTransfers = [], seriesEdi
             </Field>
           )}
 
-          {/* Commission — transfers only */}
-          {type === 'transfer' && (
+          {/* Commission — transfers and investments with a source account */}
+          {(type === 'transfer' || (type === 'investment' && account !== '')) && (
             <Field label="Commissione (opzionale)">
               <div className="relative">
                 <span className="absolute left-4 top-1/2 -translate-y-1/2 text-secondary text-sm">€</span>
