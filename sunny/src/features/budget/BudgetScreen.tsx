@@ -4,9 +4,10 @@ import { Transaction, ownShare } from '../../types';
 import { useSettings } from '../../shared/providers/settings';
 import { useBudget } from '../../shared/hooks/useBudget';
 import {
-  suggestBudgets, forecastSavings, generateBudgetInsights, seasonalHint,
-  seasonalVariableMonthly, forecastByCategory, DEMO_CATEGORY_SPEND, DEMO_CATEGORY_BUDGETS,
+  suggestBudgets, generateBudgetInsights, seasonalHint,
+  DEMO_CATEGORY_SPEND, DEMO_CATEGORY_BUDGETS,
 } from './budgetUtils';
+import { forecastSavingsV3, forecastByCategoryV3 } from '../forecast/forecastEngineV3';
 import { upcomingRecurringThisMonth, upcomingPlannedThisMonth, buildProjectedOccurrences, isPending } from '../../shared/recurrence';
 import { history } from '../insights/insightsEngine';
 import { SavingsGoalCard } from './SavingsGoalCard';
@@ -81,11 +82,10 @@ export function BudgetScreen({
     return suggestBudgets(transactions, expenseCats);
   }, [isLearning, transactions, expenseCats]);
 
-  // End-of-month projection per expense category (variable spend only; same
-  // adaptive engine as the global forecast). Empty in demo mode.
+  // End-of-month projection per expense category — V3 engine. Empty in demo mode.
   const projectedSpend = useMemo(() => {
     if (isLearning) return {};
-    return forecastByCategory(transactions, expenseCats.map(c => c.id));
+    return forecastByCategoryV3(transactions, expenseCats);
   }, [isLearning, transactions, expenseCats]);
 
   // "Programmato" per category: committed this month but not yet spent —
@@ -117,44 +117,26 @@ export function BudgetScreen({
     return sum > 0 ? sum : monthlyIncome;
   }, [budget.incomeBudgets, monthlyIncome]);
 
-  // End-of-month forecast — same engine the Insights use, so the two views
-  // never contradict each other.
+  // End-of-month forecast — V3 engine (same as BudgetScreenV2 and insights V3 path).
   const predicted = useMemo(() => {
     if (isLearning) return 420;
     const now = new Date();
     const h = history(transactions, 3);
-    const seasonalVar = seasonalVariableMonthly(transactions, now.getMonth(), now);
     const today = now.toISOString().slice(0, 10);
     const curKey = now.toISOString().slice(0, 7);
     const lastDay = new Date(now.getFullYear(), now.getMonth() + 1, 0).getDate();
     const monthEnd = `${curKey}-${String(lastDay).padStart(2, '0')}`;
-    // Upcoming committed spending still to come this month: recurring occurrences
-    // + planned one-off (future-dated) expenses. Both are added on top of what's
-    // already been spent, never as already-realized.
-    const upcomingRecurring = upcomingRecurringThisMonth(transactions, today, monthEnd)
-      + upcomingPlannedThisMonth(transactions, today, monthEnd);
-    // Same treatment for income and investments (programmato): recurring due +
-    // planned one-offs still to come this month.
     const upcomingIncome = upcomingRecurringThisMonth(transactions, today, monthEnd, 'income')
       + upcomingPlannedThisMonth(transactions, today, monthEnd, 'income');
     const upcomingInvest = upcomingRecurringThisMonth(transactions, today, monthEnd, 'investment')
       + upcomingPlannedThisMonth(transactions, today, monthEnd, 'investment');
-    let variableSpent = 0;
-    for (const t of transactions) {
-      if (t.type !== 'expense' || t.date.slice(0, 7) !== curKey) continue;
-      if (t.seriesId || t.recurring) continue;
-      if (t.date > today) continue; // planned: counted via upcomingRecurring, not as spent
-      variableSpent += ownShare(t);
-    }
-    return forecastSavings({
-      monthlyIncome, monthlyExpenses, monthlyInvestments,
-      variableSpent,
-      recentVariableAvg: h.avgVariableExpense,
-      seasonalVariableAvg: seasonalVar.avg, seasonalYears: seasonalVar.years,
+    return forecastSavingsV3({
+      transactions, expenseCategories: expenseCats,
+      monthlyIncome, monthlyInvestments,
       avgIncome: h.avgIncome, avgInvest: h.avgInvest,
-      upcomingRecurring, upcomingIncome, upcomingInvest,
+      upcomingIncome, upcomingInvest, now,
     }).savings;
-  }, [isLearning, transactions, monthlyIncome, monthlyExpenses, monthlyInvestments]);
+  }, [isLearning, transactions, expenseCats, monthlyIncome, monthlyInvestments]);
 
   const activeExpBudgets  = hasBudget ? budget.categoryBudgets  : (isLearning ? DEMO_CATEGORY_BUDGETS : {});
   const activeIncBudgets  = budget.incomeBudgets;

@@ -15,11 +15,12 @@ interface Props {
 }
 
 export function InsightTicker({ transactions, monthlyIncome, monthlyExpenses, monthlyInvestments, prebuilt, limit = 8, onSeeAll }: Props) {
-  const { getCat, insightDepth } = useSettings();
+  const { getCat, insightDepth, categories } = useSettings();
   const [detail, setDetail] = useState<Insight | null>(null);
 
   const insights = (prebuilt ?? buildInsights({
     transactions, monthlyIncome, monthlyExpenses, monthlyInvestments, getCat, depth: insightDepth,
+    forecastV3Categories: categories.filter(c => c.kind === 'expense'),
   })).slice(0, limit);
 
   if (insights.length === 0) return null;

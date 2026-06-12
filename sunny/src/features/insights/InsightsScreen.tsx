@@ -25,7 +25,7 @@ const CAT_META: Record<InsightCategory, { label: string; icon: string }> = {
 const CAT_ORDER: InsightCategory[] = ['alert', 'forecast', 'seasonal', 'trend', 'habit', 'highlight'];
 
 export function InsightsScreen(p: Props) {
-  const { getCat, insightDepth } = useSettings();
+  const { getCat, insightDepth, categories } = useSettings();
   const [detail, setDetail] = useState<Insight | null>(null);
 
   const insights = buildInsights({
@@ -35,6 +35,7 @@ export function InsightsScreen(p: Props) {
     monthlyInvestments: p.monthlyInvestments,
     getCat,
     depth: insightDepth,
+    forecastV3Categories: categories.filter(c => c.kind === 'expense'),
   });
 
   const grouped = new Map<InsightCategory, Insight[]>();
