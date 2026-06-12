@@ -222,7 +222,7 @@ function Main({ user, onLogOut, onDeleteAccount }: {
     }
   };
 
-  const groupTransfers = (editing?.groupId && (editing.type === 'expense' || editing.type === 'transfer'))
+  const groupTransfers = (editing?.groupId && (editing.type === 'expense' || editing.type === 'transfer' || editing.type === 'investment'))
     ? tx.transactions.filter(t => t.groupId === editing.groupId && t.id !== editing.id)
     : [];
 
