@@ -2,6 +2,7 @@ import { Transaction, CategoryDef, ownShare } from '../../types';
 import { formatCurrency, capitalize } from '../../utils';
 import { monthProgress, forecastSavings, seasonalMonthlyAverage, seasonalVariableMonthly, robustAvg } from '../budget/budgetUtils';
 import { forecastSavingsV2 } from '../forecast/forecastEngine';
+import { forecastSavingsV3 } from '../forecast/forecastEngineV3';
 import { addPeriod, recurringMonthlyEquivalent, upcomingPlannedThisMonth, upcomingRecurringThisMonth, isPending } from '../../shared/recurrence';
 
 export type InsightCategory = 'alert' | 'forecast' | 'seasonal' | 'trend' | 'habit' | 'highlight';
@@ -284,6 +285,11 @@ export interface InsightInput {
   /** When provided, the end-of-month forecast uses Forecast Engine V2 instead of
    *  forecastSavings(). Admin-only opt-in — normal callers omit this. */
   forecastV2Categories?: CategoryDef[];
+  /**
+   * When provided, the end-of-month forecast uses Forecast Engine V3.
+   * Takes priority over forecastV2Categories when both are present.
+   */
+  forecastV3Categories?: CategoryDef[];
 }
 
 export function buildInsights(input: InsightInput): Insight[] {
@@ -488,22 +494,30 @@ export function buildInsights(input: InsightInput): Insight[] {
       variableSpent += ownShare(t);
     }
 
-    const f = input.forecastV2Categories
-      ? forecastSavingsV2({
+    const f = input.forecastV3Categories
+      ? forecastSavingsV3({
           transactions: allTx,
-          expenseCategories: input.forecastV2Categories,
+          expenseCategories: input.forecastV3Categories,
           monthlyIncome, monthlyInvestments,
           avgIncome: h.avgIncome, avgInvest: h.avgInvest,
           upcomingIncome, upcomingInvest, now,
         })
-      : forecastSavings({
-          monthlyIncome, monthlyExpenses, monthlyInvestments,
-          variableSpent,
-          recentVariableAvg: h.avgVariableExpense,
-          seasonalVariableAvg: seasonalVar.avg, seasonalYears: seasonalVar.years,
-          avgIncome: h.avgIncome, avgInvest: h.avgInvest,
-          upcomingRecurring, upcomingIncome, upcomingInvest, now,
-        });
+      : input.forecastV2Categories
+        ? forecastSavingsV2({
+            transactions: allTx,
+            expenseCategories: input.forecastV2Categories,
+            monthlyIncome, monthlyInvestments,
+            avgIncome: h.avgIncome, avgInvest: h.avgInvest,
+            upcomingIncome, upcomingInvest, now,
+          })
+        : forecastSavings({
+            monthlyIncome, monthlyExpenses, monthlyInvestments,
+            variableSpent,
+            recentVariableAvg: h.avgVariableExpense,
+            seasonalVariableAvg: seasonalVar.avg, seasonalYears: seasonalVar.years,
+            avgIncome: h.avgIncome, avgInvest: h.avgInvest,
+            upcomingRecurring, upcomingIncome, upcomingInvest, now,
+          });
     const projExp = f.projectedExpenses, expInc = f.expectedIncome, expInv = f.expectedInvest;
     const forecast = f.savings;
     const basis    = h.months > 0 ? 'spese attuali e abitudini storiche' : 'ritmo attuale';
