@@ -283,7 +283,7 @@ function Main({ user, onLogOut, onDeleteAccount }: {
           </div>
         )}
 
-        <main className="max-w-2xl mx-auto md:max-w-none px-5 md:px-8 pt-14 md:pt-2">
+        <main className="max-w-2xl mx-auto md:max-w-none px-5 md:px-8 pt-14 md:pt-2 pb-24 md:pb-2">
           <Routes>
             <Route path="/" element={
               uiV2 ? (
