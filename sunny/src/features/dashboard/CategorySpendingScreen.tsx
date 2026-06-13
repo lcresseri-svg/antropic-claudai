@@ -211,9 +211,10 @@ export function CategorySpendingScreen({ transactions }: Props) {
                     {formatCurrency(amount)}
                   </span>
                 </div>
+                <p className={`text-xs mt-1 ml-11 ${deltaColor}`}>{deltaText}</p>
                 {/* Proportional bar */}
                 <div
-                  className="h-[3px] rounded-full overflow-hidden ml-11"
+                  className="h-[3px] rounded-full overflow-hidden ml-11 mt-2"
                   style={{ backgroundColor: 'var(--progress-track)' }}
                 >
                   <div
@@ -221,7 +222,6 @@ export function CategorySpendingScreen({ transactions }: Props) {
                     style={{ width: `${pct}%`, backgroundColor: cat.color }}
                   />
                 </div>
-                <p className={`text-xs mt-1 ml-11 ${deltaColor}`}>{deltaText}</p>
               </div>
             );
           })}
