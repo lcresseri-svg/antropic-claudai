@@ -82,10 +82,10 @@ export function CategoryBudgetList({
           const committed = actual + sched;
           const schedOverBudget = mode === 'expense' && planned > 0 && committed > planned && actual <= planned;
           const proj = mode === 'expense' ? (projected?.[cat.id] ?? 0) : 0;
-          // Only surface a forecast when it adds information (meaningfully above
-          // what's already been spent this month).
-          const showProj = proj - actual >= 5;
           const projOverBudget = planned > 0 && proj > planned;
+          // Dual-label footer (expense only): "Programmato" (budget cap) vs
+          // "Previsto" (V3 end-of-month forecast), same vocabulary as the totals.
+          const showDual = mode === 'expense' && (planned > 0 || proj > 0);
           return (
             <li key={cat.id}>
               <button onClick={() => onEditCategory(cat.id)} className="w-full text-left">
@@ -121,11 +121,20 @@ export function CategoryBudgetList({
                     </span>
                   </p>
                 )}
-                {showProj && (
-                  <p className="text-[11px] text-secondary mt-1">
-                    Stima fine mese ~<span className="balance-num">{formatCurrency(proj)}</span>
-                    {projOverBudget && <span className="text-gold"> · sopra il budget</span>}
-                  </p>
+                {showDual && (
+                  <div className="flex items-center gap-x-4 gap-y-0.5 flex-wrap mt-1.5 text-[11px]">
+                    {planned > 0 && (
+                      <span className="text-secondary">
+                        Programmato <span className="balance-num text-primary/80">{formatCurrency(planned)}</span>
+                      </span>
+                    )}
+                    {proj > 0 && (
+                      <span className="text-secondary">
+                        Previsto <span className="balance-num text-gold/90">{formatCurrency(proj)}</span>
+                        {projOverBudget && <span className="text-gold"> · sopra il budget</span>}
+                      </span>
+                    )}
+                  </div>
                 )}
               </button>
             </li>

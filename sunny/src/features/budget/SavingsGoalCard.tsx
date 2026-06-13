@@ -25,6 +25,9 @@ export function SavingsGoalCard({ predicted, target, onEdit }: Props) {
       <p className="text-[13px] text-secondary mt-2">
         Risparmio previsto a fine mese
       </p>
+      <p className="text-[11px] text-secondary/70 mt-0.5">
+        stima sul ritmo reale di spesa
+      </p>
 
       <div className="mt-5">
         <ProgressBar

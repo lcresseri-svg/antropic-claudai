@@ -249,7 +249,14 @@ export function BudgetScreenV2({
 
       {/* Panoramica */}
       <div className="space-y-3">
-        <BudgetOverview plannedIncome={plannedIncome} plannedExpenses={plannedExpenses} plannedInvestments={plannedInvestments} showInvest={enableInvestments} />
+        <BudgetOverview
+          plannedIncome={plannedIncome} plannedExpenses={plannedExpenses} plannedInvestments={plannedInvestments}
+          showInvest={enableInvestments}
+          forecastIncome={forecastObj.expectedIncome}
+          forecastExpenses={forecastObj.projectedExpenses}
+          forecastInvestments={forecastObj.expectedInvest}
+          forecastSavings={forecastObj.savings}
+        />
         <SavingsGoalCard predicted={predicted} target={budget.savingsTarget} onEdit={() => openEdit('savings')} />
       </div>
 

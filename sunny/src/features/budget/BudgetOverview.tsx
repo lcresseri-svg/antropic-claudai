@@ -5,48 +5,107 @@ interface Props {
   plannedExpenses: number;
   plannedInvestments: number;
   showInvest?: boolean;
+  /** Forecast V3 ("Previsto") counterparts. When provided, each row shows the
+   *  planned value ("Programmato") beside the statistical forecast ("Previsto").
+   *  These are computed once for the Obiettivo card and reused here — never
+   *  recomputed. The forecast column is hidden entirely when absent. */
+  forecastIncome?: number;
+  forecastExpenses?: number;
+  forecastInvestments?: number;
+  forecastSavings?: number;
 }
 
-/** Top-of-page snapshot of the month's plan: in, out, invest and what's left. */
-export function BudgetOverview({ plannedIncome, plannedExpenses, plannedInvestments, showInvest = true }: Props) {
+/** Top-of-page snapshot of the month's plan. Each metric is shown twice:
+ *  "Programmato" (manual budget/limits) and "Previsto" (V3 forecast on the real
+ *  spending pace). The two are semantically distinct — a budget cap vs. a
+ *  statistical estimate — so they're surfaced side by side, never conflated. */
+export function BudgetOverview({
+  plannedIncome, plannedExpenses, plannedInvestments, showInvest = true,
+  forecastIncome, forecastExpenses, forecastInvestments, forecastSavings,
+}: Props) {
   const effectiveInvest = showInvest ? plannedInvestments : 0;
   const leftover = plannedIncome - plannedExpenses - effectiveInvest;
   const max = Math.max(plannedIncome, 1);
   const seg = (v: number) => `${Math.min(100, (v / max) * 100)}%`;
 
+  const hasForecast = forecastSavings !== undefined;
+  const cols = hasForecast ? 'grid-cols-[1fr_auto_auto]' : 'grid-cols-[1fr_auto]';
+
   return (
     <div className="glass-card rounded-2xl p-5">
-      <div className="flex items-center justify-between mb-4">
-        <p className="label-caps text-secondary">Piano di {capitalize(currentMonthLabel())}</p>
-      </div>
+      <p className="label-caps text-secondary mb-4">Piano di {capitalize(currentMonthLabel())}</p>
 
-      {/* Stacked plan bar */}
+      {/* Stacked plan bar — based on the planned ("Programmato") figures */}
       <div className="h-2.5 rounded-full overflow-hidden flex" style={{ backgroundColor: 'var(--progress-track)' }}>
         <div style={{ width: seg(plannedExpenses), backgroundColor: '#E08B8B' }} />
         {showInvest && <div style={{ width: seg(plannedInvestments), backgroundColor: 'var(--accent-gold)' }} />}
         <div style={{ width: seg(Math.max(0, leftover)), backgroundColor: 'var(--accent-green)' }} />
       </div>
 
-      <div className="grid grid-cols-2 gap-x-4 gap-y-3 mt-4">
-        <Row color="var(--accent-green)" label="Entrate previste" value={plannedIncome} />
-        <Row color="#E08B8B" label="Spese pianificate" value={plannedExpenses} />
-        {showInvest && <Row color="var(--accent-gold)" label="Investimenti" value={plannedInvestments} />}
-        <Row color="var(--accent-green)" label="Resta da risparmiare" value={leftover} strong />
+      <div className={`grid ${cols} gap-x-5 gap-y-3 items-center mt-5`}>
+        {/* Column captions */}
+        {hasForecast && (
+          <>
+            <span />
+            <Caption>Programmato</Caption>
+            <Caption>Previsto</Caption>
+          </>
+        )}
+
+        <Metric color="var(--accent-green)" label="Entrate" planned={plannedIncome} forecast={forecastIncome} hasForecast={hasForecast} />
+        <Metric color="#E08B8B" label="Spese" planned={plannedExpenses} forecast={forecastExpenses} hasForecast={hasForecast} />
+        {showInvest && (
+          <Metric color="var(--accent-gold)" label="Investimenti" planned={plannedInvestments} forecast={forecastInvestments} hasForecast={hasForecast} />
+        )}
+
+        <div className={`${hasForecast ? 'col-span-3' : 'col-span-2'} h-px bg-divider`} />
+
+        <Metric
+          color="var(--accent-green)" label="Resta da risparmiare"
+          planned={leftover} forecast={forecastSavings} hasForecast={hasForecast} final
+        />
       </div>
     </div>
   );
 }
 
-function Row({ color, label, value, strong }: { color: string; label: string; value: number; strong?: boolean }) {
+function Caption({ children }: { children: React.ReactNode }) {
   return (
-    <div className="flex items-center gap-2 min-w-0">
-      <span className="w-2 h-2 rounded-full flex-shrink-0" style={{ backgroundColor: color }} />
-      <div className="min-w-0">
-        <p className="text-[11px] text-secondary truncate">{label}</p>
-        <p className={`balance-num ${strong ? 'text-[15px] font-semibold' : 'text-[13px] font-medium'} ${value < 0 ? 'text-red' : 'text-primary'}`}>
-          {formatCurrency(value)}
-        </p>
+    <span className="text-[9px] font-medium uppercase tracking-[0.08em] text-secondary/70 text-right">
+      {children}
+    </span>
+  );
+}
+
+function Metric({
+  color, label, planned, forecast, hasForecast, final,
+}: {
+  color: string; label: string; planned: number; forecast?: number; hasForecast: boolean; final?: boolean;
+}) {
+  return (
+    <>
+      <div className="flex items-center gap-2 min-w-0">
+        <span className="w-2 h-2 rounded-full flex-shrink-0" style={{ backgroundColor: color }} />
+        <p className={`truncate ${final ? 'text-[12px] text-primary font-medium' : 'text-[12px] text-secondary'}`}>{label}</p>
       </div>
-    </div>
+
+      {/* Programmato — the primary reference figure */}
+      <p className={`balance-num text-right ${final ? 'text-[14px] font-semibold' : 'text-[13px] font-medium'} ${
+        planned < 0 ? 'text-red/80' : 'text-primary'
+      }`}>
+        {formatCurrency(planned)}
+      </p>
+
+      {/* Previsto — visually quieter; the realistic positive outcome shown in calm gold */}
+      {hasForecast && (
+        <p className={`balance-num text-right ${final ? 'text-[14px] font-semibold' : 'text-[13px] font-medium'} ${
+          final
+            ? ((forecast ?? 0) >= 0 ? 'text-gold' : 'text-red/80')
+            : 'text-secondary'
+        }`}>
+          {formatCurrency(forecast ?? 0)}
+        </p>
+      )}
+    </>
   );
 }

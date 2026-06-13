@@ -118,8 +118,11 @@ export function BudgetScreen({
   }, [budget.incomeBudgets, monthlyIncome]);
 
   // End-of-month forecast — V3 engine (same as BudgetScreenV2 and insights V3 path).
-  const predicted = useMemo(() => {
-    if (isLearning) return 420;
+  // Full object reused for both the savings figure and the "Previsto" totals.
+  const forecastObj = useMemo(() => {
+    if (isLearning) {
+      return { expectedIncome: monthlyIncome, projectedExpenses: monthlyExpenses, expectedInvest: monthlyInvestments, savings: 420 };
+    }
     const now = new Date();
     const h = history(transactions, 3);
     const today = now.toISOString().slice(0, 10);
@@ -135,8 +138,10 @@ export function BudgetScreen({
       monthlyIncome, monthlyInvestments,
       avgIncome: h.avgIncome, avgInvest: h.avgInvest,
       upcomingIncome, upcomingInvest, now,
-    }).savings;
-  }, [isLearning, transactions, expenseCats, monthlyIncome, monthlyInvestments]);
+    });
+  }, [isLearning, transactions, expenseCats, monthlyIncome, monthlyInvestments, monthlyExpenses]);
+
+  const predicted = forecastObj.savings;
 
   const activeExpBudgets  = hasBudget ? budget.categoryBudgets  : (isLearning ? DEMO_CATEGORY_BUDGETS : {});
   const activeIncBudgets  = budget.incomeBudgets;
@@ -189,7 +194,14 @@ export function BudgetScreen({
 
       {/* Panoramica del mese */}
       <div className="space-y-3">
-        <BudgetOverview plannedIncome={plannedIncome} plannedExpenses={plannedExpenses} plannedInvestments={plannedInvestments} showInvest={enableInvestments} />
+        <BudgetOverview
+          plannedIncome={plannedIncome} plannedExpenses={plannedExpenses} plannedInvestments={plannedInvestments}
+          showInvest={enableInvestments}
+          forecastIncome={forecastObj.expectedIncome}
+          forecastExpenses={forecastObj.projectedExpenses}
+          forecastInvestments={forecastObj.expectedInvest}
+          forecastSavings={forecastObj.savings}
+        />
         <SavingsGoalCard predicted={predicted} target={budget.savingsTarget} onEdit={() => openEdit('savings')} />
       </div>
 
