@@ -31,6 +31,7 @@ import { SeriesEditChoiceSheet } from './features/transactions/SeriesEditChoiceS
 import { ImportModal } from './features/transactions/ImportModal';
 import { BottomNav } from './shared/components/BottomNav';
 import { SideNav } from './shared/components/SideNav';
+import { SplashScreen } from './shared/components/SplashScreen';
 import { isAdminUser, canUseUiV2, canUseForecastV2 } from './shared/featureFlags';
 import { ForecastV2Screen } from './features/forecast/ForecastV2Screen';
 import { ForecastV3Screen } from './features/forecast/ForecastV3Screen';
@@ -57,12 +58,26 @@ function Loader({ phase }: { phase: string }) {
 
 export default function App() {
   const { user, loading: authLoading, error: authError, signIn, logOut, deleteAccount } = useAuth();
-  if (authLoading) return <Loader phase="Accesso" />;
-  if (!user) return <LoginScreen onSignIn={signIn} error={authError} />;
+  const [splashReady, setSplashReady] = useState(false);
+
+  // Auth state resolved (logged in or not) → let the splash fade out.
+  useEffect(() => {
+    if (!authLoading) setSplashReady(true);
+  }, [authLoading]);
+
   return (
-    <SettingsProvider user={user}>
-      <OnboardingGate user={user} onLogOut={logOut} onDeleteAccount={deleteAccount} />
-    </SettingsProvider>
+    <>
+      <SplashScreen isReady={splashReady} />
+      {authLoading ? (
+        <Loader phase="Accesso" />
+      ) : !user ? (
+        <LoginScreen onSignIn={signIn} error={authError} />
+      ) : (
+        <SettingsProvider user={user}>
+          <OnboardingGate user={user} onLogOut={logOut} onDeleteAccount={deleteAccount} />
+        </SettingsProvider>
+      )}
+    </>
   );
 }
 
