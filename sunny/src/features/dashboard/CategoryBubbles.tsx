@@ -8,8 +8,8 @@ interface Props {
 }
 
 // SVG canvas — responsive via viewBox + aspect-ratio on the element.
-const VW = 320, VH = 190;
-const R_MAX = 46, R_MIN = 22;
+const VW = 320, VH = 200;
+const R_MAX = 52, R_MIN = 24;
 
 // Deterministic PRNG (mulberry32). The bubble layout is "random" but must stay
 // stable across re-renders — re-randomizing every render would make the bubbles
@@ -35,6 +35,14 @@ function readableText(hex: string): string {
   const r = parseInt(h.slice(0, 2), 16), g = parseInt(h.slice(2, 4), 16), b = parseInt(h.slice(4, 6), 16);
   const lum = (0.299 * r + 0.587 * g + 0.114 * b) / 255;
   return lum > 0.62 ? 'rgba(0,0,0,0.72)' : 'rgba(255,255,255,0.96)';
+}
+
+// Truncate a label to fit roughly within `availableWidth` px at `fontSize`.
+// Assumes ~0.58em per character (average for common sans-serif fonts).
+function truncate(label: string, availableWidth: number, fontSize: number): string {
+  const maxChars = Math.floor(availableWidth / (fontSize * 0.58));
+  if (maxChars <= 1) return '';
+  return label.length <= maxChars ? label : label.slice(0, maxChars - 1) + '…';
 }
 
 export function CategoryBubbles({ segments, count = 5 }: Props) {
@@ -80,30 +88,37 @@ export function CategoryBubbles({ segments, count = 5 }: Props) {
     <svg viewBox={`0 0 ${VW} ${VH}`} className="w-full" style={{ aspectRatio: `${VW} / ${VH}` }}>
       {sized.map((b, i) => {
         const { cx, cy, r } = placed[i];
-        const showAmount = r >= 32;
+        const fg = readableText(b.color);
+        // Available text width = ~85% of diameter.
+        const availW = r * 1.7;
+        const labelSize = Math.max(9, r * 0.26);
+        const amountSize = Math.max(8, r * 0.22);
+        const label = truncate(b.label, availW, labelSize);
+        const amount = formatCurrency(b.value);
+        // Two lines: label slightly above centre, amount slightly below.
+        const gap = r * 0.22;
         return (
           <g key={b.label}>
             <circle
               cx={cx} cy={cy} r={r} fill={b.color} opacity={0.92}
               stroke="rgba(255,255,255,0.10)" strokeWidth={1}
             />
-            <text
-              x={cx} y={showAmount ? cy - r * 0.16 : cy}
-              textAnchor="middle" dominantBaseline="central"
-              fontSize={showAmount ? r * 0.6 : r * 0.78}
-            >
-              {b.icon ?? '•'}
-            </text>
-            {showAmount && (
+            {label && (
               <text
-                x={cx} y={cy + r * 0.46}
+                x={cx} y={cy - gap}
                 textAnchor="middle" dominantBaseline="central"
-                fontSize={Math.max(8, r * 0.24)} fontWeight={600}
-                fill={readableText(b.color)}
+                fontSize={labelSize} fill={fg} opacity={0.85}
               >
-                {formatCurrency(b.value)}
+                {label}
               </text>
             )}
+            <text
+              x={cx} y={cy + gap}
+              textAnchor="middle" dominantBaseline="central"
+              fontSize={amountSize} fontWeight={700} fill={fg}
+            >
+              {amount}
+            </text>
           </g>
         );
       })}
