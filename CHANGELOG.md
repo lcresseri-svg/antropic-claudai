@@ -19,6 +19,8 @@ git.
 
 ## 2026-06-13
 
+- **[Claude]** **Delta period-aware in CategorySpendingScreen**: ogni riga categoria mostra ora il confronto con il periodo precedente equivalente (mese/trimestre/semestre/anno precedente), con testo colorato — rosso se si è speso di più, verde se meno, grigio se stabile o senza storico. `prevCatSpend` useMemo separato; `prevStart`/`prevEnd`/`prevLabel` calcolati nello stesso useMemo del range corrente.
+
 - **[Claude]** **3 nuovi reminder push** (`functions/src/index.ts`): `remindUpcomingPayments` (18:00 ogni giorno — pagamenti one-off e ricorrenti programmati per domani), `remindInactivity` (21:00 ogni giorno — nessun movimento reale da 5+ giorni, skip primissimi giorni del mese), `remindMonthEnd` (19:00 giorni 28-31 — solo sull'ultimo giorno del mese, riepilogo entrate/uscite/investiti). Toggle UI nelle impostazioni notifiche: "Pagamenti di domani" e "Promemoria inattività". Deploy aggiornato in `deploy-functions.yml`.
 
 ## 2026-06-02

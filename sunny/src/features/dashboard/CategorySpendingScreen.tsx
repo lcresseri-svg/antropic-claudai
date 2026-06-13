@@ -27,7 +27,7 @@ export function CategorySpendingScreen({ transactions }: Props) {
   const now = useMemo(() => new Date(), []);
   const months = PERIOD_OPTS.find(o => o.value === period)!.months;
 
-  const { start, end, label } = useMemo(() => {
+  const { start, end, label, prevStart, prevEnd, prevLabel } = useMemo(() => {
     const cm = now.getMonth(), cy = now.getFullYear();
     const endMonth = new Date(cy, cm - offset, 1);
     const startMonth = new Date(cy, cm - offset - (months - 1), 1);
@@ -42,8 +42,30 @@ export function CategorySpendingScreen({ transactions }: Props) {
     } else {
       label = `${fmtM(startMonth)} ${startMonth.getFullYear()} – ${fmtM(endMonth)} ${endMonth.getFullYear()}`;
     }
-    return { start: startMonth, end, label };
+    const prevEndMonth   = new Date(cy, cm - offset - months, 1);
+    const prevStartMonth = new Date(cy, cm - offset - months - (months - 1), 1);
+    const prevEnd        = new Date(prevEndMonth.getFullYear(), prevEndMonth.getMonth() + 1, 0, 23, 59, 59);
+    let prevLabel: string;
+    if (months === 1) {
+      prevLabel = capitalize(prevEndMonth.toLocaleString('it-IT', { month: 'long', year: 'numeric' }));
+    } else if (prevStartMonth.getFullYear() === prevEndMonth.getFullYear()) {
+      prevLabel = `${fmtM(prevStartMonth)}–${fmtM(prevEndMonth)} ${prevEndMonth.getFullYear()}`;
+    } else {
+      prevLabel = `${fmtM(prevStartMonth)} ${prevStartMonth.getFullYear()} – ${fmtM(prevEndMonth)} ${prevEndMonth.getFullYear()}`;
+    }
+    return { start: startMonth, end, label, prevStart: prevStartMonth, prevEnd, prevLabel };
   }, [now, offset, months]);
+
+  const prevCatSpend = useMemo(() => {
+    const r: Record<string, number> = {};
+    for (const t of transactions) {
+      if (t.type !== 'expense') continue;
+      const d = new Date(t.date);
+      if (d < prevStart || d > prevEnd) continue;
+      r[t.category] = (r[t.category] ?? 0) + ownShare(t);
+    }
+    return r;
+  }, [transactions, prevStart, prevEnd]);
 
   const { total, cats, segments } = useMemo(() => {
     const r: Record<string, number> = {};
@@ -61,13 +83,15 @@ export function CategorySpendingScreen({ transactions }: Props) {
         id,
         amount,
         pct: total > 0 ? Math.round((amount / total) * 100) : 0,
+        prevAmount: prevCatSpend[id] ?? 0,
+        delta: amount - (prevCatSpend[id] ?? 0),
       }));
     const segments = cats.map(({ id, amount }) => {
       const c = getCat(id);
       return { label: c.label, value: amount, color: c.color, icon: c.icon };
     });
     return { total, cats, segments };
-  }, [transactions, start, end, getCat]);
+  }, [transactions, start, end, getCat, prevCatSpend]);
 
   return (
     <div className="pb-32">
@@ -159,8 +183,18 @@ export function CategorySpendingScreen({ transactions }: Props) {
         </div>
       ) : (
         <div className="glass-card rounded-2xl overflow-hidden">
-          {cats.map(({ id, amount, pct }, i) => {
+          {cats.map(({ id, amount, pct, prevAmount, delta }, i) => {
             const cat = getCat(id);
+            const deltaText =
+              prevAmount === 0
+                ? `Nessuna spesa in ${prevLabel}`
+                : delta === 0
+                ? `Stabile rispetto a ${prevLabel}`
+                : `${delta > 0 ? '+' : '−'}${formatCurrency(Math.abs(delta))} rispetto a ${prevLabel}`;
+            const deltaColor =
+              delta > 0 ? 'text-[#E08B8B]'
+              : delta < 0 ? 'text-[#7B9E87]'
+              : 'text-secondary';
             return (
               <div
                 key={id}
@@ -189,6 +223,7 @@ export function CategorySpendingScreen({ transactions }: Props) {
                     style={{ width: `${pct}%`, backgroundColor: cat.color }}
                   />
                 </div>
+                <p className={`text-xs mt-1 ml-11 ${deltaColor}`}>{deltaText}</p>
               </div>
             );
           })}
