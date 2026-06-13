@@ -5,9 +5,11 @@ import { useSettings } from '../../shared/providers/settings';
 interface Props {
   categoryTotals: Record<string, number>;
   onClick?: () => void;
+  /** Drill into a single category (e.g. its transactions). Wired to the bubbles. */
+  onSelectCategory?: (id: string) => void;
 }
 
-export function CategoryCard({ categoryTotals, onClick }: Props) {
+export function CategoryCard({ categoryTotals, onClick, onSelectCategory }: Props) {
   const { getCat } = useSettings();
   const entries = Object.entries(categoryTotals).filter(([, v]) => v > 0).sort(([, a], [, b]) => b - a);
   const total = entries.reduce((s, [, v]) => s + v, 0);
@@ -15,7 +17,7 @@ export function CategoryCard({ categoryTotals, onClick }: Props) {
 
   const segments = entries.map(([id, value]) => {
     const c = getCat(id);
-    return { label: c.label, value, color: c.color, icon: c.icon };
+    return { id, label: c.label, value, color: c.color, icon: c.icon };
   });
 
   return (
@@ -35,7 +37,7 @@ export function CategoryCard({ categoryTotals, onClick }: Props) {
         </p>
         <span className="text-[13px] font-semibold balance-num text-primary">{formatCurrency(total)}</span>
       </div>
-      <CategoryBubbles segments={segments} count={5} />
+      <CategoryBubbles segments={segments} count={5} onSelect={onSelectCategory} />
     </div>
   );
 }

@@ -2,9 +2,12 @@ import { formatCurrency } from '../../utils';
 import type { Segment } from './Donut';
 
 interface Props {
-  segments: Segment[];
+  /** Segments may carry a category `id` to enable per-bubble drill-in. */
+  segments: (Segment & { id?: string })[];
   /** How many of the top categories to render as bubbles. */
   count?: number;
+  /** When set, each bubble becomes a button that drills into its category. */
+  onSelect?: (id: string) => void;
 }
 
 // SVG canvas — responsive via viewBox + aspect-ratio on the element.
@@ -45,7 +48,7 @@ function truncate(label: string, availableWidth: number, fontSize: number): stri
   return label.length <= maxChars ? label : label.slice(0, maxChars - 1) + '…';
 }
 
-export function CategoryBubbles({ segments, count = 5 }: Props) {
+export function CategoryBubbles({ segments, count = 5, onSelect }: Props) {
   const top = segments.filter(s => s.value > 0).slice(0, count);
   if (top.length === 0) return null;
 
@@ -97,8 +100,15 @@ export function CategoryBubbles({ segments, count = 5 }: Props) {
         const amount = formatCurrency(b.value);
         // Two lines: label slightly above centre, amount slightly below.
         const gap = r * 0.22;
+        const clickable = !!(onSelect && b.id);
         return (
-          <g key={b.label}>
+          <g
+            key={b.label}
+            role={clickable ? 'button' : undefined}
+            aria-label={clickable ? `${b.label}: ${amount}` : undefined}
+            onClick={clickable ? e => { e.stopPropagation(); onSelect!(b.id!); } : undefined}
+            style={clickable ? { cursor: 'pointer' } : undefined}
+          >
             <circle
               cx={cx} cy={cy} r={r} fill={b.color} opacity={0.92}
               stroke="rgba(255,255,255,0.10)" strokeWidth={1}

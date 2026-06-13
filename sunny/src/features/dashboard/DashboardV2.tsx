@@ -159,10 +159,12 @@ export function DashboardV2(p: Props) {
           />
         )}
 
-        {/* Spese per categoria (navigabile → /category-spending) */}
+        {/* Spese per categoria — bolle: tap su una bolla → movimenti della
+            categoria; tap altrove sulla card → ripartizione completa. */}
         <CategoryCard
           categoryTotals={currentMonthCategoryTotals}
           onClick={() => navigate('/category-spending')}
+          onSelectCategory={(id) => navigate(`/transactions?cat=${id}`)}
         />
 
         {/* Saldo per conto — full-width row */}

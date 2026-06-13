@@ -88,7 +88,7 @@ export function CategorySpendingScreen({ transactions }: Props) {
       }));
     const segments = cats.map(({ id, amount }) => {
       const c = getCat(id);
-      return { label: c.label, value: amount, color: c.color, icon: c.icon };
+      return { id, label: c.label, value: amount, color: c.color, icon: c.icon };
     });
     return { total, cats, segments };
   }, [transactions, start, end, getCat, prevCatSpend]);
@@ -161,7 +161,7 @@ export function CategorySpendingScreen({ transactions }: Props) {
             <p className="label-caps text-secondary">Distribuzione</p>
             <span className="text-[13px] font-semibold balance-num text-primary">{formatCurrency(total)}</span>
           </div>
-          <CategoryBubbles segments={segments} count={5} />
+          <CategoryBubbles segments={segments} count={5} onSelect={(id) => navigate(`/transactions?cat=${id}`)} />
           <ul className="mt-4 space-y-2.5">
             {segments.slice(0, 5).map(s => (
               <li key={s.label} className="flex items-center gap-2.5 min-w-0">

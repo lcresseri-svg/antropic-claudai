@@ -19,6 +19,8 @@ git.
 
 ## 2026-06-13
 
+- **[Claude]** **Bolle cliccabili → dettaglio categoria**: toccando una bolla (sia nella card Dashboard sia in `CategorySpendingScreen`) si apre la lista Movimenti filtrata su quella categoria (`/transactions?cat=<id>`). `TransactionList` legge il parametro `cat` dalla URL (filtro per ID categoria, sopravvive al refresh) e mostra una pill rimovibile con icona+nome. Nella card Dashboard il tap su una bolla apre la categoria; il tap altrove resta la ripartizione completa (`stopPropagation` sulle bolle).
+
 - **[Claude]** **Dashboard — bolle al posto del donut**: la card "Spese per categoria" (`CategoryCard`) ora mostra le **prime 5 categorie come bolle** sparse in posizione (pseudo-)casuale, con dimensione proporzionale alla spesa (area ∝ valore). Nuovo componente `CategoryBubbles.tsx` (SVG responsivo, placement seeded-random stabile tra i render con anti-sovrapposizione greedy, testo importo leggibile su colore chiaro/scuro). `Donut.tsx` resta invariato e ancora usato da `CategorySpendingScreen`, `InvestmentSummaryCard` e `InvestmentsScreen`.
 
 - **[Claude]** **Delta period-aware in CategorySpendingScreen**: ogni riga categoria mostra ora il confronto con il periodo precedente equivalente (mese/trimestre/semestre/anno precedente), con testo colorato — rosso se si è speso di più, verde se meno, grigio se stabile o senza storico. `prevCatSpend` useMemo separato; `prevStart`/`prevEnd`/`prevLabel` calcolati nello stesso useMemo del range corrente.
