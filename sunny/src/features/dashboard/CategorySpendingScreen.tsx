@@ -1,9 +1,8 @@
-import { useState, useMemo } from 'react';
+import { useState, useMemo, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { Transaction, ownShare } from '../../types';
 import { useSettings } from '../../shared/providers/settings';
 import { formatCurrency, capitalize } from '../../utils';
-import { CategoryBubbles } from './CategoryBubbles';
 
 type Period = '1m' | '3m' | '6m' | '1y';
 
@@ -14,6 +13,15 @@ const PERIOD_OPTS: { value: Period; label: string; months: number }[] = [
   { value: '1y', label: 'Anno',   months: 12 },
 ];
 
+// Bubble stage geometry (collision-push layout).
+const STAGE_W = 292, STAGE_H = 260;
+const R_MIN = 28, R_MAX = 68;
+const SEEDS: [number, number][] = [
+  [155, 72], [78, 130], [230, 138], [140, 188],
+  [55, 210], [230, 218], [260, 72], [60, 72], [180, 230],
+];
+const clamp = (v: number, lo: number, hi: number) => Math.max(lo, Math.min(hi, v));
+
 interface Props {
   transactions: Transaction[];
 }
@@ -23,9 +31,13 @@ export function CategorySpendingScreen({ transactions }: Props) {
   const { getCat } = useSettings();
   const [period, setPeriod] = useState<Period>('1m');
   const [offset, setOffset] = useState(0);
+  const [selectedCatId, setSelectedCatId] = useState<string | null>(null);
 
   const now = useMemo(() => new Date(), []);
   const months = PERIOD_OPTS.find(o => o.value === period)!.months;
+
+  // Changing the period/window invalidates the current selection.
+  useEffect(() => { setSelectedCatId(null); }, [period, offset]);
 
   const { start, end, label, prevStart, prevEnd, prevLabel } = useMemo(() => {
     const cm = now.getMonth(), cy = now.getFullYear();
@@ -67,13 +79,15 @@ export function CategorySpendingScreen({ transactions }: Props) {
     return r;
   }, [transactions, prevStart, prevEnd]);
 
-  const { total, cats, segments } = useMemo(() => {
+  const { total, cats } = useMemo(() => {
     const r: Record<string, number> = {};
+    const txCount: Record<string, number> = {};
     for (const t of transactions) {
       if (t.type !== 'expense') continue;
       const d = new Date(t.date);
       if (d < start || d > end) continue;
       r[t.category] = (r[t.category] ?? 0) + ownShare(t);
+      txCount[t.category] = (txCount[t.category] ?? 0) + 1;
     }
     const total = Object.values(r).reduce((s, v) => s + v, 0);
     const cats = Object.entries(r)
@@ -83,15 +97,54 @@ export function CategorySpendingScreen({ transactions }: Props) {
         id,
         amount,
         pct: total > 0 ? Math.round((amount / total) * 100) : 0,
+        txCount: txCount[id] ?? 0,
         prevAmount: prevCatSpend[id] ?? 0,
         delta: amount - (prevCatSpend[id] ?? 0),
       }));
-    const segments = cats.map(({ id, amount }) => {
-      const c = getCat(id);
-      return { id, label: c.label, value: amount, color: c.color, icon: c.icon };
+    return { total, cats };
+  }, [transactions, start, end, prevCatSpend]);
+
+  // Collision-push bubble layout. Seeded from the (amount-sorted) categories and
+  // relaxed over 120 iterations so bubbles spread out without overlapping. Recomputed
+  // only when the category set/period changes — stable across unrelated re-renders.
+  const bubbleLayout = useMemo(() => {
+    const maxAmount = cats.length > 0 ? cats[0].amount : 1;
+    const bubbles = cats.map(c => ({
+      id: c.id,
+      pct: c.pct,
+      r: Math.round(R_MIN + (c.amount / maxAmount) * (R_MAX - R_MIN)),
+    }));
+    const pos = bubbles.map((b, i) => {
+      const seed = i < SEEDS.length
+        ? SEEDS[i]
+        : [(i % 3) * 100 + 50, Math.floor(i / 3) * 80 + 40] as [number, number];
+      return {
+        x: clamp(seed[0], b.r, STAGE_W - b.r),
+        y: clamp(seed[1], b.r, STAGE_H - b.r),
+      };
     });
-    return { total, cats, segments };
-  }, [transactions, start, end, getCat, prevCatSpend]);
+    for (let iter = 0; iter < 120; iter++) {
+      for (let i = 0; i < pos.length; i++) {
+        for (let j = i + 1; j < pos.length; j++) {
+          const dx = pos[j].x - pos[i].x;
+          const dy = pos[j].y - pos[i].y;
+          const dist = Math.sqrt(dx * dx + dy * dy) || 0.01;
+          const minDist = bubbles[i].r + bubbles[j].r + 5;
+          if (dist < minDist) {
+            const push = (minDist - dist) / 2;
+            const nx = dx / dist, ny = dy / dist;
+            pos[i].x = clamp(pos[i].x - nx * push, bubbles[i].r, STAGE_W - bubbles[i].r);
+            pos[i].y = clamp(pos[i].y - ny * push, bubbles[i].r, STAGE_H - bubbles[i].r);
+            pos[j].x = clamp(pos[j].x + nx * push, bubbles[j].r, STAGE_W - bubbles[j].r);
+            pos[j].y = clamp(pos[j].y + ny * push, bubbles[j].r, STAGE_H - bubbles[j].r);
+          }
+        }
+      }
+    }
+    return bubbles.map((b, i) => ({ ...b, x: pos[i].x, y: pos[i].y }));
+  }, [cats]);
+
+  const selectedCat = cats.find(c => c.id === selectedCatId) ?? null;
 
   return (
     <div className="pb-32">
@@ -154,23 +207,97 @@ export function CategorySpendingScreen({ transactions }: Props) {
         </button>
       </div>
 
-      {/* Bubbles + legend */}
+      {/* Distribuzione — bubble chart (tap a bubble for inline detail) */}
       {total > 0 && (
-        <div className="glass-card rounded-2xl p-5 mb-4">
-          <div className="flex items-center justify-between mb-3">
-            <p className="label-caps text-secondary">Distribuzione</p>
-            <span className="text-[13px] font-semibold balance-num text-primary">{formatCurrency(total)}</span>
+        <div className="mb-4">
+          <div className="glass-card rounded-2xl p-5">
+            <div className="flex items-center justify-between mb-3">
+              <p className="label-caps text-secondary">Distribuzione</p>
+              <span className="text-[13px] font-semibold balance-num text-primary">{formatCurrency(total)}</span>
+            </div>
+            <div className="relative mx-auto" style={{ width: STAGE_W, height: STAGE_H }}>
+              {bubbleLayout.map(b => {
+                const cat = getCat(b.id);
+                const selected = selectedCatId === b.id;
+                return (
+                  <button
+                    key={b.id}
+                    type="button"
+                    onClick={() => setSelectedCatId(prev => (prev === b.id ? null : b.id))}
+                    aria-label={`${cat.label}: ${b.pct}%`}
+                    className="absolute flex flex-col items-center justify-center active:scale-90 transition-transform duration-100"
+                    style={{
+                      left: b.x - b.r,
+                      top: b.y - b.r,
+                      width: b.r * 2,
+                      height: b.r * 2,
+                      borderRadius: '50%',
+                      background: cat.color + '1E',
+                      border: `1.5px solid ${cat.color}33`,
+                      outline: selected ? `2px solid ${cat.color}B3` : undefined,
+                      outlineOffset: selected ? 2 : undefined,
+                    }}
+                  >
+                    <span className="leading-none" style={{ fontSize: b.r * 0.5 }}>{cat.icon}</span>
+                    <span className="text-[9px] text-secondary mt-0.5">{b.pct}%</span>
+                  </button>
+                );
+              })}
+            </div>
+            <p className="text-[10px] text-secondary/40 text-center mt-1.5">
+              Tocca una categoria per i dettagli
+            </p>
           </div>
-          <CategoryBubbles segments={segments} count={5} onSelect={(id) => navigate(`/transactions?cat=${id}`)} />
-          <ul className="mt-4 space-y-2.5">
-            {segments.slice(0, 5).map(s => (
-              <li key={s.label} className="flex items-center gap-2.5 min-w-0">
-                <span className="w-2.5 h-2.5 rounded-full flex-shrink-0" style={{ backgroundColor: s.color }} />
-                <span className="text-[13px] text-secondary truncate flex-1">{s.label}</span>
-                <span className="text-[13px] font-medium text-primary balance-num flex-shrink-0 w-14 text-right">{formatCurrency(s.value)}</span>
-              </li>
-            ))}
-          </ul>
+
+          {/* Detail panel */}
+          {selectedCat && (() => {
+            const cat = getCat(selectedCat.id);
+            const prevAmt = prevCatSpend[selectedCat.id] ?? 0;
+            const delta = selectedCat.amount - prevAmt;
+            return (
+              <div className="glass-card rounded-2xl overflow-hidden mt-3">
+                {/* Hero row */}
+                <div className="flex items-center gap-3 px-4 py-3 border-b border-white/[0.05]">
+                  <span
+                    className="w-10 h-10 rounded-full flex items-center justify-center text-xl flex-shrink-0"
+                    style={{ background: cat.color + '1E' }}
+                  >
+                    {cat.icon}
+                  </span>
+                  <div className="flex-1 min-w-0">
+                    <p className="text-[14px] font-semibold text-primary">{cat.label}</p>
+                    <p className="text-[11px] text-secondary mt-0.5">
+                      {selectedCat.pct}% del totale · {selectedCat.txCount} movimenti
+                    </p>
+                  </div>
+                  <div className="text-right flex-shrink-0">
+                    <p className="text-[16px] font-semibold balance-num text-primary">
+                      {formatCurrency(selectedCat.amount)}
+                    </p>
+                    {prevAmt > 0 && (
+                      <p className={`text-[11px] mt-0.5 balance-num ${delta > 0 ? 'text-[#E08B8B]' : delta < 0 ? 'text-[#7B9E87]' : 'text-secondary'}`}>
+                        {delta > 0 ? '+' : ''}{formatCurrency(delta)} vs {prevLabel}
+                      </p>
+                    )}
+                  </div>
+                </div>
+                {/* Mini barchart ultimi 6 mesi */}
+                <div className="px-4 py-3 border-b border-white/[0.05]">
+                  <p className="label-caps text-secondary mb-2">Ultimi 6 mesi</p>
+                  <MiniTrendBars catId={selectedCat.id} transactions={transactions} color={cat.color} />
+                </div>
+                {/* CTA */}
+                <button
+                  type="button"
+                  onClick={() => navigate(`/transactions?cat=${selectedCat.id}`)}
+                  className="w-full flex items-center justify-center gap-1.5 py-3 text-[12px] font-semibold text-gold active:opacity-70 transition-opacity"
+                >
+                  Vedi movimenti
+                  <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"><path d="m9 18 6-6-6-6"/></svg>
+                </button>
+              </div>
+            );
+          })()}
         </div>
       )}
 
@@ -227,6 +354,45 @@ export function CategorySpendingScreen({ transactions }: Props) {
           })}
         </div>
       )}
+    </div>
+  );
+}
+
+// Six-month spending sparkline for a single category. The current month is fully
+// opaque; previous months are dimmed. Heights are normalised to the period's max.
+function MiniTrendBars({ catId, transactions, color }: { catId: string; transactions: Transaction[]; color: string }) {
+  const bars = useMemo(() => {
+    const now = new Date();
+    return Array.from({ length: 6 }, (_, i) => {
+      const d = new Date(now.getFullYear(), now.getMonth() - (5 - i), 1);
+      const ym = `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}`;
+      const total = transactions
+        .filter(t => t.type === 'expense' && t.category === catId && t.date.startsWith(ym))
+        .reduce((s, t) => s + ownShare(t), 0);
+      return {
+        month: d.toLocaleString('it-IT', { month: 'short' }).replace('.', ''),
+        total,
+        isCurrent: i === 5,
+      };
+    });
+  }, [catId, transactions]);
+
+  const maxVal = Math.max(...bars.map(b => b.total), 1);
+  return (
+    <div className="flex items-end gap-1 h-10">
+      {bars.map((b, i) => (
+        <div key={i} className="flex-1 flex flex-col items-center gap-1">
+          <div
+            className="w-full rounded-t-sm"
+            style={{
+              height: `${Math.max(3, Math.round((b.total / maxVal) * 36))}px`,
+              backgroundColor: color,
+              opacity: b.isCurrent ? 1 : 0.28,
+            }}
+          />
+          <span className="text-[9px] text-secondary">{b.month}</span>
+        </div>
+      ))}
     </div>
   );
 }
