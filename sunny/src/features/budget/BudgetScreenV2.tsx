@@ -1,10 +1,8 @@
 import { useState, useMemo } from 'react';
-import { useNavigate } from 'react-router-dom';
 import { User } from 'firebase/auth';
 import { Transaction, ownShare } from '../../types';
 import { useSettings } from '../../shared/providers/settings';
 import { useBudget } from '../../shared/hooks/useBudget';
-import { canUseForecastV2 } from '../../shared/featureFlags';
 import {
   suggestBudgets, generateBudgetInsights, seasonalHint,
   DEMO_CATEGORY_SPEND, DEMO_CATEGORY_BUDGETS,
@@ -18,7 +16,6 @@ import { CategoryBudgetList } from './CategoryBudgetList';
 import { BudgetInsights } from './BudgetInsights';
 import { BudgetOverview } from './BudgetOverview';
 import { BudgetEditSheet } from './BudgetEditSheet';
-import { MonthGoalCard } from './MonthGoalCard';
 import { formatCurrency, currentMonthLabel, capitalize } from '../../utils';
 
 type EditSection = 'savings' | 'income' | 'expenses' | 'investments';
@@ -37,7 +34,6 @@ const currentMonth = new Date().toISOString().slice(0, 7);
 export function BudgetScreenV2({
   user, transactions, monthlyIncome, monthlyExpenses, monthlyInvestments, categoryTotals,
 }: Props) {
-  const navigate = useNavigate();
   const { categories, enableInvestments } = useSettings();
   const {
     budget, setSavingsTarget, setCategoryBudget, setIncomeBudget, setInvestmentBudget,
@@ -195,8 +191,6 @@ export function BudgetScreenV2({
     return months.size;
   }, [transactions]);
 
-  const [planOpen, setPlanOpen] = useState(true);
-
   const openEdit = (section: EditSection = 'expenses', catId?: string) => {
     setEditSection(section);
     setFocusCategory(catId ?? null);
@@ -228,45 +222,7 @@ export function BudgetScreenV2({
         </div>
       )}
 
-      {/* 1 — Obiettivo del mese */}
-      <MonthGoalCard
-        savingsTarget={budget.savingsTarget}
-        forecast={forecastObj}
-        onEdit={() => openEdit('savings')}
-      />
-
-      {/* Accesso Motori Previsione V2/V3 (admin-only) */}
-      {canUseForecastV2(user) && (
-        <div className="flex gap-2">
-          <button
-            type="button"
-            onClick={() => navigate('/forecast-v2')}
-            className="flex-1 glass-card rounded-2xl px-4 py-3.5 flex items-center gap-3 text-left hover:bg-card-hover transition-colors border border-gold/15"
-          >
-            <span className="w-8 h-8 rounded-xl flex items-center justify-center text-base flex-shrink-0" style={{ backgroundColor: 'rgba(230,185,92,0.12)' }}>🔮</span>
-            <div className="flex-1 min-w-0">
-              <p className="text-[13px] font-semibold text-primary">Previsione V2</p>
-              <p className="text-[11px] text-secondary">Multi-segnale · backtest</p>
-            </div>
-            <span className="text-tertiary flex-shrink-0">›</span>
-          </button>
-          <button
-            type="button"
-            onClick={() => navigate('/forecast-v3')}
-            className="flex-1 glass-card rounded-2xl px-4 py-3.5 flex items-center gap-3 text-left hover:bg-card-hover transition-colors border border-gold/15"
-          >
-            <span className="w-8 h-8 rounded-xl flex items-center justify-center text-base flex-shrink-0" style={{ backgroundColor: 'rgba(230,185,92,0.08)' }}>🧪</span>
-            <div className="flex-1 min-w-0">
-              <p className="text-[13px] font-semibold text-primary">Previsione V3</p>
-              <p className="text-[11px] text-secondary">Anti-double-count · cadenze</p>
-            </div>
-            <span className="text-xs font-medium px-1.5 py-0.5 rounded-full bg-gold/10 text-gold flex-shrink-0">Nuovo</span>
-            <span className="text-tertiary flex-shrink-0">›</span>
-          </button>
-        </div>
-      )}
-
-      {/* 2 — Sunny consiglia */}
+      {/* Sunny consiglia */}
       <BudgetInsights insights={insights} />
 
       {/* 3 — Suggerimento se non ha ancora budget */}
@@ -291,80 +247,64 @@ export function BudgetScreenV2({
         </div>
       )}
 
-      {/* 4 — Tutto il piano (espandibile) */}
-      <div className="glass-card rounded-2xl overflow-hidden">
-        <button
-          type="button"
-          onClick={() => setPlanOpen(o => !o)}
-          className="w-full flex items-center justify-between px-5 py-4 text-left"
-        >
-          <p className="text-[13px] font-semibold text-primary">Tutto il piano</p>
-          <span className="text-secondary text-[11px]">{planOpen ? '▲' : '▼'}</span>
-        </button>
+      {/* Panoramica */}
+      <div className="space-y-3">
+        <BudgetOverview plannedIncome={plannedIncome} plannedExpenses={plannedExpenses} plannedInvestments={plannedInvestments} showInvest={enableInvestments} />
+        <SavingsGoalCard predicted={predicted} target={budget.savingsTarget} onEdit={() => openEdit('savings')} />
+      </div>
 
-        {planOpen && (
-          <div className="px-5 pb-5 space-y-5 border-t border-white/[0.04]">
-            {/* Panoramica */}
-            <div className="pt-4 space-y-3">
-              <BudgetOverview plannedIncome={plannedIncome} plannedExpenses={plannedExpenses} plannedInvestments={plannedInvestments} showInvest={enableInvestments} />
-              <SavingsGoalCard predicted={predicted} target={budget.savingsTarget} onEdit={() => openEdit('savings')} />
-            </div>
-
-            {/* Entrate previste */}
-            <div className="space-y-3">
-              <CategoryBudgetList
-                categories={incomeCats}
-                spend={incomeCategoryTotals}
-                budgets={activeIncBudgets}
-                mode="income"
-                scheduled={scheduledByCategory}
-                onEditCategory={id => openEdit('income', id)}
-              />
-              {incomeCats.length > 0 && Object.keys(activeIncBudgets).length === 0 && (
-                <button
-                  onClick={() => openEdit('income')}
-                  className="w-full bg-elevated rounded-2xl px-4 py-3 flex items-center gap-2.5 text-left">
-                  <span className="text-gold">+</span>
-                  <p className="text-[13px] text-secondary">Aggiungi entrate previste per categoria</p>
-                </button>
-              )}
-            </div>
-
-            {/* Uscite */}
-            <CategoryBudgetList
-              categories={expenseCats}
-              spend={expenseSpend}
-              budgets={activeExpBudgets}
-              mode="expense"
-              projected={projectedSpend}
-              scheduled={scheduledByCategory}
-              onEditCategory={id => openEdit('expenses', id)}
-            />
-
-            {/* Investimenti */}
-            {enableInvestments && (
-              <div className="space-y-3">
-                <CategoryBudgetList
-                  categories={investmentCats}
-                  spend={investmentCategoryTotals}
-                  budgets={activeInvBudgets}
-                  mode="investment"
-                  scheduled={scheduledByCategory}
-                  onEditCategory={id => openEdit('investments', id)}
-                />
-                {investmentCats.length > 0 && Object.keys(activeInvBudgets).length === 0 && (
-                  <button
-                    onClick={() => openEdit('investments')}
-                    className="w-full bg-elevated rounded-2xl px-4 py-3 flex items-center gap-2.5 text-left">
-                    <span className="text-gold">+</span>
-                    <p className="text-[13px] text-secondary">Aggiungi obiettivi di investimento mensili</p>
-                  </button>
-                )}
-              </div>
-            )}
-          </div>
+      {/* Entrate previste */}
+      <div className="space-y-3">
+        <CategoryBudgetList
+          categories={incomeCats}
+          spend={incomeCategoryTotals}
+          budgets={activeIncBudgets}
+          mode="income"
+          scheduled={scheduledByCategory}
+          onEditCategory={id => openEdit('income', id)}
+        />
+        {incomeCats.length > 0 && Object.keys(activeIncBudgets).length === 0 && (
+          <button
+            onClick={() => openEdit('income')}
+            className="w-full bg-elevated rounded-2xl px-4 py-3 flex items-center gap-2.5 text-left">
+            <span className="text-gold">+</span>
+            <p className="text-[13px] text-secondary">Aggiungi entrate previste per categoria</p>
+          </button>
         )}
       </div>
+
+      {/* Uscite */}
+      <CategoryBudgetList
+        categories={expenseCats}
+        spend={expenseSpend}
+        budgets={activeExpBudgets}
+        mode="expense"
+        projected={projectedSpend}
+        scheduled={scheduledByCategory}
+        onEditCategory={id => openEdit('expenses', id)}
+      />
+
+      {/* Investimenti */}
+      {enableInvestments && (
+        <div className="space-y-3">
+          <CategoryBudgetList
+            categories={investmentCats}
+            spend={investmentCategoryTotals}
+            budgets={activeInvBudgets}
+            mode="investment"
+            scheduled={scheduledByCategory}
+            onEditCategory={id => openEdit('investments', id)}
+          />
+          {investmentCats.length > 0 && Object.keys(activeInvBudgets).length === 0 && (
+            <button
+              onClick={() => openEdit('investments')}
+              className="w-full bg-elevated rounded-2xl px-4 py-3 flex items-center gap-2.5 text-left">
+              <span className="text-gold">+</span>
+              <p className="text-[13px] text-secondary">Aggiungi obiettivi di investimento mensili</p>
+            </button>
+          )}
+        </div>
+      )}
 
       <BudgetEditSheet
         open={editOpen}
