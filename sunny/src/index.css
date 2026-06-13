@@ -82,6 +82,7 @@ html:not(.light) .ui-v2 {
     letter-spacing: -0.015em;
     font-feature-settings: 'cv11', 'ss01';
     transition: background-color 0.25s ease, color 0.25s ease;
+    overscroll-behavior: none;
   }
 }
 

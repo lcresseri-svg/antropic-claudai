@@ -7,7 +7,10 @@ interface Props {
 
 export function BottomNav({ onAdd, uiV2 = false }: Props) {
   return (
-    <nav className="fixed bottom-0 inset-x-0 z-30 safe-bottom pointer-events-none md:hidden">
+    <nav
+      className="fixed bottom-0 inset-x-0 z-30 safe-bottom pointer-events-none md:hidden"
+      style={{ transform: 'translateZ(0)', willChange: 'transform' }}
+    >
       <div className="max-w-md mx-auto px-3 pb-2 flex justify-center">
         <div className="pointer-events-auto w-full flex items-center justify-around glass-nav rounded-[28px] px-2 py-1.5 shadow-float">
           <NavBtn to="/" label={uiV2 ? 'Oggi' : 'Home'} icon={<HomeIcon />} />
