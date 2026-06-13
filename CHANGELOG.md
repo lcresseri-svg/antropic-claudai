@@ -19,6 +19,8 @@ git.
 
 ## 2026-06-13
 
+- **[Claude]** **Dashboard — bolle al posto del donut**: la card "Spese per categoria" (`CategoryCard`) ora mostra le **prime 5 categorie come bolle** sparse in posizione (pseudo-)casuale, con dimensione proporzionale alla spesa (area ∝ valore). Nuovo componente `CategoryBubbles.tsx` (SVG responsivo, placement seeded-random stabile tra i render con anti-sovrapposizione greedy, testo importo leggibile su colore chiaro/scuro). `Donut.tsx` resta invariato e ancora usato da `CategorySpendingScreen`, `InvestmentSummaryCard` e `InvestmentsScreen`.
+
 - **[Claude]** **Delta period-aware in CategorySpendingScreen**: ogni riga categoria mostra ora il confronto con il periodo precedente equivalente (mese/trimestre/semestre/anno precedente), con testo colorato — rosso se si è speso di più, verde se meno, grigio se stabile o senza storico. `prevCatSpend` useMemo separato; `prevStart`/`prevEnd`/`prevLabel` calcolati nello stesso useMemo del range corrente.
 
 - **[Claude]** **3 nuovi reminder push** (`functions/src/index.ts`): `remindUpcomingPayments` (18:00 ogni giorno — pagamenti one-off e ricorrenti programmati per domani), `remindInactivity` (21:00 ogni giorno — nessun movimento reale da 5+ giorni, skip primissimi giorni del mese), `remindMonthEnd` (19:00 giorni 28-31 — solo sull'ultimo giorno del mese, riepilogo entrate/uscite/investiti). Toggle UI nelle impostazioni notifiche: "Pagamenti di domani" e "Promemoria inattività". Deploy aggiornato in `deploy-functions.yml`.
