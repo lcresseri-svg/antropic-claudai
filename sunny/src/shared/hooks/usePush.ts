@@ -8,12 +8,14 @@ import {
 } from '../push';
 
 export interface ReminderPrefs {
-  logExpenses: boolean;  // midday + evening "log your expenses" nudges
-  recurring: boolean;    // a recurring entry was auto-recorded today
-  monthly: boolean;      // start-of-month summary of the previous month
+  logExpenses: boolean;       // midday + evening "log your expenses" nudges
+  recurring: boolean;         // a recurring entry was auto-recorded today
+  monthly: boolean;           // start-of-month summary of the previous month
+  upcomingPayments: boolean;  // pagamenti programmati/ricorrenti il giorno prima
+  inactivityReminder: boolean; // nessun movimento da 5+ giorni
 }
 
-const DEFAULT_PREFS: ReminderPrefs = { logExpenses: true, recurring: true, monthly: true };
+const DEFAULT_PREFS: ReminderPrefs = { logExpenses: true, recurring: true, monthly: true, upcomingPayments: true, inactivityReminder: true };
 
 export function usePush(user: User | null) {
   const [supported, setSupported] = useState(false);

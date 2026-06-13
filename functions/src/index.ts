@@ -46,7 +46,7 @@ async function sendToUser(
   userId: string,
   title: string,
   body: string,
-  requireReminder?: 'logExpenses' | 'recurring' | 'monthly',
+  requireReminder?: 'logExpenses' | 'recurring' | 'monthly' | 'upcomingPayments' | 'inactivityReminder',
   tag?: string,
 ): Promise<void> {
   const ref = db.doc(`users/${userId}/meta/push`);
@@ -90,7 +90,7 @@ async function sendToUser(
 }
 
 /** Users who have at least one token and haven't disabled the given reminder. */
-async function usersWithReminder(key: 'logExpenses' | 'recurring' | 'monthly'): Promise<string[]> {
+async function usersWithReminder(key: 'logExpenses' | 'recurring' | 'monthly' | 'upcomingPayments' | 'inactivityReminder'): Promise<string[]> {
   const snap = await db.collectionGroup('meta').get();
   const out: string[] = [];
   for (const d of snap.docs) {
@@ -329,6 +329,170 @@ export const sendMonthlySummary = onSchedule(
         `Entrate ${euro(income)} · Uscite ${euro(expenses)} (${expPct}%) · Investito ${euro(investments)} (${invPct}%) · ${txCount} movimenti.`,
         'monthly',
         'monthly',
+      );
+    }
+  }
+);
+
+// Upcoming payments reminder — 18:00 daily Europe/Rome.
+// Checks tomorrow's one-off transactions and recurring templates due tomorrow.
+// Deduplicates by description (case-insensitive) and composes a human-readable
+// summary so the user can prepare cash or verify the amounts.
+export const remindUpcomingPayments = onSchedule(
+  { schedule: '0 18 * * *', timeZone: 'Europe/Rome', region: 'europe-west1' },
+  async () => {
+    // fr-CA locale gives YYYY-MM-DD in Rome TZ.
+    const todayRome = new Intl.DateTimeFormat('fr-CA', {
+      timeZone: 'Europe/Rome', year: 'numeric', month: '2-digit', day: '2-digit',
+    }).format(new Date());
+    const tomorrow = addPeriod(todayRome, 'daily');
+
+    const users = await usersWithReminder('upcomingPayments');
+    for (const userId of users) {
+      const txsRef = db.collection(`users/${userId}/transactions`);
+
+      // One-off transactions already on Firestore with a future date.
+      const oneOffSnap = await txsRef
+        .where('date', '==', tomorrow)
+        .get();
+
+      // Recurring templates: `date` = next occurrence (kept current by processRecurring).
+      const recurringSnap = await txsRef
+        .where('recurring', '!=', null)
+        .get();
+
+      type TxRow = { desc: string; amount: number };
+      const seen = new Set<string>();
+      const items: TxRow[] = [];
+
+      const add = (d: FirebaseFirestore.QueryDocumentSnapshot) => {
+        const t = d.data() as { type?: string; amount?: number; description?: string; recurring?: unknown };
+        if (t.type === 'transfer') return;
+        const desc = (t.description ?? '').trim();
+        const key = desc.toLowerCase();
+        if (seen.has(key)) return;
+        seen.add(key);
+        items.push({ desc: desc || '—', amount: Number(t.amount) || 0 });
+      };
+
+      oneOffSnap.forEach(d => {
+        const t = d.data() as { recurring?: unknown };
+        if (t.recurring != null) return; // skip templates (handled below)
+        add(d);
+      });
+
+      recurringSnap.forEach(d => {
+        const t = d.data() as { date?: string };
+        if (t.date === tomorrow) add(d);
+      });
+
+      if (items.length === 0) continue;
+
+      let body: string;
+      if (items.length === 1) {
+        body = `📅 Domani: ${items[0].desc} ${euro(items[0].amount)}`;
+      } else if (items.length === 2) {
+        body = `📅 Domani: ${items[0].desc} ${euro(items[0].amount)} e ${items[1].desc} ${euro(items[1].amount)}`;
+      } else {
+        body = `📅 Domani: ${items[0].desc}, ${items[1].desc} e altri ${items.length - 2} pagamenti`;
+      }
+
+      await sendToUser(userId, 'Pagamenti di domani 📅', body, 'upcomingPayments', 'upcoming-payments');
+    }
+  }
+);
+
+// Inactivity reminder — 21:00 daily Europe/Rome.
+// Finds the most recent non-projected transaction and nudges when it's 5+ days
+// old. Skipped in the first 3 days of the month (user may be starting fresh).
+export const remindInactivity = onSchedule(
+  { schedule: '0 21 * * *', timeZone: 'Europe/Rome', region: 'europe-west1' },
+  async () => {
+    const todayRome = new Intl.DateTimeFormat('fr-CA', {
+      timeZone: 'Europe/Rome', year: 'numeric', month: '2-digit', day: '2-digit',
+    }).format(new Date());
+    const dayOfMonth = Number(new Intl.DateTimeFormat('en-GB', {
+      timeZone: 'Europe/Rome', day: 'numeric',
+    }).format(new Date()));
+    // Skip the first 3 days — the user may simply be starting fresh for the month.
+    if (dayOfMonth <= 3) return;
+
+    const users = await usersWithReminder('inactivityReminder');
+    for (const userId of users) {
+      // Find the most recent transaction that is not a projection.
+      const snap = await db.collection(`users/${userId}/transactions`)
+        .where('date', '<=', todayRome)
+        .orderBy('date', 'desc')
+        .limit(1)
+        .get();
+
+      if (snap.empty) continue; // new user with no transactions yet — skip
+
+      const lastDoc = snap.docs[0].data() as { date?: string; projected?: boolean };
+      if (lastDoc.projected === true) continue; // projection placeholder — skip
+
+      const lastDate = lastDoc.date ?? '';
+      if (!lastDate) continue;
+
+      // Whole-day difference: parse as UTC midnight strings.
+      const msPerDay = 86400000;
+      const daysSince = Math.floor(
+        (new Date(todayRome + 'T00:00:00Z').getTime() - new Date(lastDate + 'T00:00:00Z').getTime()) / msPerDay,
+      );
+
+      if (daysSince < 5) continue;
+
+      const title = daysSince >= 7
+        ? '🤔 Una settimana senza movimenti'
+        : `🤔 Nessun movimento da ${daysSince} giorni`;
+      const body = daysSince >= 7
+        ? `Non registri spese da ${daysSince} giorni — tutto ok?`
+        : 'Hai spese da registrare? Bastano pochi secondi.';
+
+      await sendToUser(userId, title, body, 'inactivityReminder', 'inactivity');
+    }
+  }
+);
+
+// Month-end summary — 19:00 on days 28–31, Europe/Rome.
+// Fires only on the actual last day of the month; the other late-month
+// invocations exit immediately after the guard check. Uses the same `monthly`
+// reminder key as `sendMonthlySummary` — one preference covers both.
+export const remindMonthEnd = onSchedule(
+  { schedule: '0 19 28-31 * *', timeZone: 'Europe/Rome', region: 'europe-west1' },
+  async () => {
+    const todayRome = new Intl.DateTimeFormat('fr-CA', {
+      timeZone: 'Europe/Rome', year: 'numeric', month: '2-digit', day: '2-digit',
+    }).format(new Date());
+    // If tomorrow is the 1st, today is the last day of the month.
+    const tomorrowDay = Number(addPeriod(todayRome, 'daily').slice(8, 10));
+    if (tomorrowDay !== 1) return;
+
+    const ym = todayRome.slice(0, 7); // YYYY-MM
+
+    const users = await usersWithReminder('monthly');
+    for (const userId of users) {
+      const snap = await db.collection(`users/${userId}/transactions`)
+        .where('date', '>=', `${ym}-01`)
+        .where('date', '<=', todayRome)
+        .get();
+
+      let income = 0, expenses = 0, investments = 0;
+      snap.forEach(d => {
+        const t = d.data() as { type?: string; amount?: number; shared?: number };
+        const amount = Number(t.amount) || 0;
+        if (t.type === 'income') income += amount;
+        else if (t.type === 'expense') expenses += amount - (Number(t.shared) || 0);
+        else if (t.type === 'investment') investments += amount;
+      });
+      if (income === 0 && expenses === 0 && investments === 0) continue;
+
+      await sendToUser(
+        userId,
+        '🗓️ Oggi chiude il mese — com\'è andata?',
+        `Finora: entrate ${euro(income)} · uscite ${euro(expenses)} · investito ${euro(investments)}. Apri Sunny per il quadro completo.`,
+        'monthly',
+        'month-end',
       );
     }
   }

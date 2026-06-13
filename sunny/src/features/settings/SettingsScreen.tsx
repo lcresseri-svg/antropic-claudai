@@ -274,7 +274,7 @@ export function SettingsScreen({ user, transactions, uiV2 = false, onLogOut, onD
         sub={
           !push.supported ? 'Non supportate su questo dispositivo'
           : push.enabled ? 'Attive su questo dispositivo'
-          : 'Promemoria spese, ricorrenti e riepilogo mensile'
+          : 'Promemoria spese, pagamenti in arrivo, inattività e riepilogo mensile'
         }
         on={push.enabled}
         onToggle={async () => {
@@ -305,6 +305,18 @@ export function SettingsScreen({ user, transactions, uiV2 = false, onLogOut, onD
             sub="A inizio mese, il resoconto del mese precedente"
             on={push.reminders.monthly}
             onToggle={() => push.setReminder('monthly', !push.reminders.monthly)}
+          />
+          <ToggleRow
+            icon="📅" label="Pagamenti di domani"
+            sub="Ricorrenti, abbonamenti e movimenti programmati previsti il giorno dopo"
+            on={push.reminders.upcomingPayments}
+            onToggle={() => push.setReminder('upcomingPayments', !push.reminders.upcomingPayments)}
+          />
+          <ToggleRow
+            icon="💤" label="Promemoria inattività"
+            sub="Se non registri movimenti da 5 giorni"
+            on={push.reminders.inactivityReminder}
+            onToggle={() => push.setReminder('inactivityReminder', !push.reminders.inactivityReminder)}
           />
           <div className="p-4 space-y-2">
             <button

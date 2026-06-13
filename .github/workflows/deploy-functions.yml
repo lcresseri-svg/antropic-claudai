@@ -90,4 +90,4 @@ jobs:
       #    the roles once (see repo notes), then re-run this workflow.
       - name: Deploy scheduled & trigger functions
         if: github.event_name == 'push'
-        run: npx -y firebase-tools@latest deploy --only functions:processRecurringTransactions,functions:remindLogExpenses,functions:sendMonthlySummary,functions:onUserDeleted,functions:onFeedbackCreated --project sunny-a2a98 --non-interactive --force
+        run: npx -y firebase-tools@latest deploy --only functions:processRecurringTransactions,functions:remindLogExpenses,functions:sendMonthlySummary,functions:remindUpcomingPayments,functions:remindInactivity,functions:remindMonthEnd,functions:onUserDeleted,functions:onFeedbackCreated --project sunny-a2a98 --non-interactive --force

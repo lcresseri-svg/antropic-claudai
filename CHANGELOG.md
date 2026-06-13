@@ -17,6 +17,10 @@ git.
 
 ---
 
+## 2026-06-13
+
+- **[Claude]** **3 nuovi reminder push** (`functions/src/index.ts`): `remindUpcomingPayments` (18:00 ogni giorno — pagamenti one-off e ricorrenti programmati per domani), `remindInactivity` (21:00 ogni giorno — nessun movimento reale da 5+ giorni, skip primissimi giorni del mese), `remindMonthEnd` (19:00 giorni 28-31 — solo sull'ultimo giorno del mese, riepilogo entrate/uscite/investiti). Toggle UI nelle impostazioni notifiche: "Pagamenti di domani" e "Promemoria inattività". Deploy aggiornato in `deploy-functions.yml`.
+
 ## 2026-06-02
 
 - **[Claude]** **Ritocchi UX**: editor categorie/conti (`EditDefSheet`) — selettore icone ora compatto (3 file) con "Mostra altre icone" che si richiude alla selezione; nuove emoji (computer/tech, arrampicata/outdoor, altri sport); **Invio = Salva** da tastiera. Movimenti: in modalità selezione, l'intestazione di ogni gruppo ha un pallino per **selezionare l'intero raggruppamento** in un tocco. — `(pending)`
