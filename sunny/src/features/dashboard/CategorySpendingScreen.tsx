@@ -3,7 +3,7 @@ import { useNavigate } from 'react-router-dom';
 import { Transaction, ownShare } from '../../types';
 import { useSettings } from '../../shared/providers/settings';
 import { formatCurrency, capitalize } from '../../utils';
-import { Donut } from './Donut';
+import { CategoryBubbles } from './CategoryBubbles';
 
 type Period = '1m' | '3m' | '6m' | '1y';
 
@@ -154,25 +154,23 @@ export function CategorySpendingScreen({ transactions }: Props) {
         </button>
       </div>
 
-      {/* Donut + legend */}
+      {/* Bubbles + legend */}
       {total > 0 && (
         <div className="glass-card rounded-2xl p-5 mb-4">
-          <div className="flex items-center justify-between mb-4">
+          <div className="flex items-center justify-between mb-3">
             <p className="label-caps text-secondary">Distribuzione</p>
             <span className="text-[13px] font-semibold balance-num text-primary">{formatCurrency(total)}</span>
           </div>
-          <div className="flex items-center gap-5">
-            <Donut segments={segments} centerLabel="Spese" size={96} />
-            <ul className="flex-1 space-y-2.5 min-w-0">
-              {segments.slice(0, 6).map(s => (
-                <li key={s.label} className="flex items-center gap-2.5 min-w-0">
-                  <span className="w-2.5 h-2.5 rounded-full flex-shrink-0" style={{ backgroundColor: s.color }} />
-                  <span className="text-[13px] text-secondary truncate flex-1">{s.label}</span>
-                  <span className="text-[13px] font-medium text-primary balance-num flex-shrink-0 w-14 text-right">{formatCurrency(s.value)}</span>
-                </li>
-              ))}
-            </ul>
-          </div>
+          <CategoryBubbles segments={segments} count={5} />
+          <ul className="mt-4 space-y-2.5">
+            {segments.slice(0, 5).map(s => (
+              <li key={s.label} className="flex items-center gap-2.5 min-w-0">
+                <span className="w-2.5 h-2.5 rounded-full flex-shrink-0" style={{ backgroundColor: s.color }} />
+                <span className="text-[13px] text-secondary truncate flex-1">{s.label}</span>
+                <span className="text-[13px] font-medium text-primary balance-num flex-shrink-0 w-14 text-right">{formatCurrency(s.value)}</span>
+              </li>
+            ))}
+          </ul>
         </div>
       )}
 
