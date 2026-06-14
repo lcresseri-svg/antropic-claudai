@@ -17,6 +17,10 @@ git.
 
 ---
 
+## 2026-06-14
+
+- **[Claude]** **Redesign CategorySpendingScreen — bubble chart fisico + dettaglio a tab + vista "Altro"**: riscrittura completa della schermata. Il bubble chart usa ora un **engine di layout fisico** (`computeBubbleLayout`: seed polare con PRNG Mulberry32 + 600 iterazioni di repulsione a coppie e gravità decrescente verso il centro, altezza dello stage auto-calcolata dall'area delle bolle). Le categorie **sotto il 3%** del totale vengono raccolte in una bolla **"Altro"** (`+`); toccarla apre una **sotto-vista in-screen** ("Altre categorie", con breadcrumb e proprio bubble chart) senza nuove route. Toccando una bolla si apre un **pannello dettaglio con 3 tab** — Riepilogo (3 stat + sparkline 6 mesi), Storico (media mensile grande + sparkline alto + min/media/max), Movimenti (prime 5 transazioni del periodo + "Vedi tutti gli N" → lista filtrata) — con auto-scroll del pannello in vista (`scrollIntoView`). Rimossa la lista categorie orizzontale con barre. CTA movimenti via `/transactions?cat=<id>` (filtro effettivamente letto da `TransactionList`).
+
 ## 2026-06-13
 
 - **[Claude]** **Bubble chart interattivo in CategorySpendingScreen**: l'area "Distribuzione" passa da bolle SVG + legenda testuale a un bubble chart organico con layout **collision-push** deterministico (stage fisso 292×260, raggi 28–68px ∝ importo, 120 iterazioni di repulsione su posizioni seed ordinate per spesa). Ogni bolla è un pulsante (emoji + % sul totale); toccarla apre/chiude un **pannello dettaglio inline** con riga hero (icona, %, n. movimenti, importo, delta vs periodo precedente colorato), uno **sparkline a barre degli ultimi 6 mesi** (`MiniTrendBars`, mese corrente in evidenza) e CTA "Vedi movimenti" → lista filtrata sulla categoria (`/transactions?cat=<id>`). La selezione si azzera al cambio di periodo/offset. `cats` ora porta anche `txCount`. La lista categorie sottostante (barre + delta) resta invariata.
