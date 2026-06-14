@@ -1,15 +1,13 @@
-import { CategoryBubbles } from './CategoryBubbles';
+import { Donut } from './Donut';
 import { formatCurrency } from '../../utils';
 import { useSettings } from '../../shared/providers/settings';
 
 interface Props {
   categoryTotals: Record<string, number>;
   onClick?: () => void;
-  /** Drill into a single category (e.g. its transactions). Wired to the bubbles. */
-  onSelectCategory?: (id: string) => void;
 }
 
-export function CategoryCard({ categoryTotals, onClick, onSelectCategory }: Props) {
+export function CategoryCard({ categoryTotals, onClick }: Props) {
   const { getCat } = useSettings();
   const entries = Object.entries(categoryTotals).filter(([, v]) => v > 0).sort(([, a], [, b]) => b - a);
   const total = entries.reduce((s, [, v]) => s + v, 0);
@@ -17,7 +15,7 @@ export function CategoryCard({ categoryTotals, onClick, onSelectCategory }: Prop
 
   const segments = entries.map(([id, value]) => {
     const c = getCat(id);
-    return { id, label: c.label, value, color: c.color, icon: c.icon };
+    return { label: c.label, value, color: c.color, icon: c.icon };
   });
 
   return (
@@ -37,7 +35,18 @@ export function CategoryCard({ categoryTotals, onClick, onSelectCategory }: Prop
         </p>
         <span className="text-[13px] font-semibold balance-num text-primary">{formatCurrency(total)}</span>
       </div>
-      <CategoryBubbles segments={segments} count={5} onSelect={onSelectCategory} />
+      <div className="flex items-center gap-5">
+        <Donut segments={segments} centerLabel="Spese" size={96} />
+        <ul className="flex-1 space-y-2.5 min-w-0">
+          {segments.slice(0, 6).map(s => (
+            <li key={s.label} className="flex items-center gap-2.5 min-w-0">
+              <span className="w-2.5 h-2.5 rounded-full flex-shrink-0" style={{ backgroundColor: s.color }} />
+              <span className="text-[13px] text-secondary truncate flex-1">{s.label}</span>
+              <span className="text-[13px] font-medium text-primary balance-num flex-shrink-0 w-14 text-right">{formatCurrency(s.value)}</span>
+            </li>
+          ))}
+        </ul>
+      </div>
     </div>
   );
 }
