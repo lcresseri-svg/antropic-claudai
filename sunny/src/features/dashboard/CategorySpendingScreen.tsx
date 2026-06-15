@@ -77,23 +77,26 @@ export function CategorySpendingScreen({ transactions, categoryBudgets }: Props)
       </div>
       <p className="text-[13px] text-secondary mb-5 ml-12">Analizza come cambiano le tue spese nel tempo.</p>
 
-      {/* Period selector */}
-      <div className="flex items-center gap-1.5 mb-3">
-        {PERIOD_OPTS.map(opt => (
-          <button
-            key={opt.value}
-            onClick={() => { setPeriod(opt.value); setOffset(0); }}
-            className={`px-3.5 py-1.5 rounded-full text-xs font-semibold transition-colors ${
-              period === opt.value ? 'bg-gold/10 text-gold' : 'text-secondary hover:text-primary'
-            }`}
-          >
-            {opt.label}
-          </button>
-        ))}
-      </div>
+      {/* Sticky controls — remain visible while scrolling the category list */}
+      <div className="sticky top-0 z-10 -mx-5 px-5 md:-mx-8 md:px-8 pt-1 pb-3 bg-bg border-b border-divider mb-5">
 
-      {/* Period navigator */}
-      <div className="flex items-center justify-between bg-card rounded-xl px-1.5 py-1.5 mb-5">
+        {/* Period selector */}
+        <div className="flex items-center gap-1.5 mb-3">
+          {PERIOD_OPTS.map(opt => (
+            <button
+              key={opt.value}
+              onClick={() => { setPeriod(opt.value); setOffset(0); }}
+              className={`px-3.5 py-1.5 rounded-full text-xs font-semibold transition-colors ${
+                period === opt.value ? 'bg-gold/10 text-gold' : 'text-secondary hover:text-primary'
+              }`}
+            >
+              {opt.label}
+            </button>
+          ))}
+        </div>
+
+        {/* Period navigator */}
+        <div className="flex items-center justify-between bg-card rounded-xl px-1.5 py-1.5">
         <button
           onClick={() => setOffset(o => o + 1)}
           aria-label="Periodo precedente"
@@ -119,7 +122,8 @@ export function CategorySpendingScreen({ transactions, categoryBudgets }: Props)
             <path d="m9 18 6-6-6-6" />
           </svg>
         </button>
-      </div>
+        </div>
+      </div>{/* end sticky controls */}
 
       {agg.total === 0 ? (
         <div className="glass-card rounded-2xl px-5 py-12 text-center">

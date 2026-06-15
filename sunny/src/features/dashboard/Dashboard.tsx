@@ -32,8 +32,10 @@ interface Props {
   accountBalances: Record<string, number>;
   trend: { key: string; income: number; expense: number; invest: number }[];
   transactions: Transaction[];
+  portfolio?: { controvalore: number; versato: number };
   onSeeInsights: () => void;
   onSeeInvestments: () => void;
+  onSeeCategories?: () => void;
 }
 
 export function Dashboard(p: Props) {
@@ -104,8 +106,9 @@ export function Dashboard(p: Props) {
       getCat,
       depth: insightDepth,
       forecastV3Categories: categories.filter(c => c.kind === 'expense'),
+      portfolio: p.portfolio,
     }),
-  [p.transactions, p.monthlyIncome, p.monthlyExpenses, p.monthlyInvestments, getCat, insightDepth, categories]);
+  [p.transactions, p.monthlyIncome, p.monthlyExpenses, p.monthlyInvestments, getCat, insightDepth, categories, p.portfolio]);
 
   const digestInput = useMemo(() => ({
     income: p.monthlyIncome,
@@ -216,7 +219,7 @@ export function Dashboard(p: Props) {
           {enableInvestments && <InvestmentSummaryCard investmentByCategory={p.investmentByCategory} total={p.investmentTotal} onClick={p.onSeeInvestments} />}
         </div>
         <div className="space-y-3">
-          <CategoryCard categoryTotals={periodCategoryTotals} />
+          <CategoryCard categoryTotals={periodCategoryTotals} onClick={p.onSeeCategories} />
           <AccountsCard
             accountBalances={p.accountBalances}
             expenseByAccount={periodExpenseByAccount}

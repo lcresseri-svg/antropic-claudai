@@ -72,10 +72,15 @@ html:not(.light) .ui-v2 {
 
 @layer base {
   html {
+    height: 100%;
     background-color: rgb(var(--c-bg));
     -webkit-text-size-adjust: 100%;
   }
   body {
+    height: 100%;
+    /* Prevent body from scrolling so iOS Safari address-bar show/hide doesn't
+       change window.innerHeight — that's what makes position:fixed elements jump. */
+    overflow: hidden;
     background-color: rgb(var(--c-bg));
     color: rgb(var(--c-primary));
     font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'SF Pro Display', system-ui, sans-serif;
@@ -85,6 +90,9 @@ html:not(.light) .ui-v2 {
     font-feature-settings: 'cv11', 'ss01';
     transition: background-color 0.25s ease, color 0.25s ease;
     overscroll-behavior: none;
+  }
+  #root {
+    height: 100%;
   }
 }
 

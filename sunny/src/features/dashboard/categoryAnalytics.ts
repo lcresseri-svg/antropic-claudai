@@ -40,8 +40,10 @@ const longMonth = (d: Date) => capitalize(d.toLocaleString('it-IT', { month: 'lo
 export function getPeriodRange(period: PeriodType, offset: number, now: Date = new Date()): PeriodRange {
   const months = PERIOD_MONTHS[period];
   const cy = now.getFullYear(), cm = now.getMonth();
-  const endMonth = new Date(cy, cm - offset * months, 1);
-  const startMonth = new Date(cy, cm - offset * months - (months - 1), 1);
+  // offset is in months (not periods): each arrow press moves by 1 month,
+  // so a 3M/6M/12M window slides month-by-month rather than jumping a full block.
+  const endMonth = new Date(cy, cm - offset, 1);
+  const startMonth = new Date(cy, cm - offset - (months - 1), 1);
   const isCurrent = offset === 0;
   const fullEnd = new Date(endMonth.getFullYear(), endMonth.getMonth() + 1, 0, 23, 59, 59, 999);
   const end = isCurrent ? now : fullEnd;
@@ -60,7 +62,8 @@ export function getPeriodRange(period: PeriodType, offset: number, now: Date = n
 
 /** The non-overlapping period immediately before the given one. */
 export function getPreviousPeriodRange(period: PeriodType, offset: number, now: Date = new Date()): PeriodRange {
-  return getPeriodRange(period, offset + 1, now);
+  const months = PERIOD_MONTHS[period];
+  return getPeriodRange(period, offset + months, now);
 }
 
 /** Fraction (0..1) of the current period already elapsed. 1 for past periods. */

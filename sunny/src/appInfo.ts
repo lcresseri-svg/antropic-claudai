@@ -1,4 +1,4 @@
-export const APP_VERSION = '1.9.26';
+export const APP_VERSION = '1.9.32';
 
 /**
  * Release channel. While in 'beta' the app is still under active development
@@ -15,6 +15,55 @@ export interface VersionEntry {
 
 /** Registro versioni mostrato in Impostazioni → Registro versioni. */
 export const VERSIONS: VersionEntry[] = [
+  {
+    version: '1.9.32', date: '2026-06-15', title: 'Messaggi di incoraggiamento',
+    changes: [
+      'Nuova notifica opzionale: ogni paio di giorni Sunny può mandarti un dato positivo sui tuoi conti.',
+      'Attivabile da Impostazioni → Notifiche (disattivata di default).',
+    ],
+  },
+  {
+    version: '1.9.31', date: '2026-06-15', title: 'Analisi avanzate (modalità esperto)',
+    changes: [
+      'Categorie con spesa imprevedibile, segnalate in base alla classificazione del motore di previsione.',
+      'Streak di mesi entro il budget pianificato.',
+      'Rilevamento robusto delle spese di categoria fuori norma (mediana ± MAD).',
+      'Avviso quando le uscite anticipano le entrate, con rischio di scoperto a inizio mese.',
+    ],
+  },
+  {
+    version: '1.9.30', date: '2026-06-15', title: 'Consigli su investimenti e abitudini',
+    changes: [
+      'Andamento del portafoglio: plusvalenza o minusvalenza latente rispetto al capitale versato.',
+      'Nuovo massimo di patrimonio quando risparmi e investimenti toccano un record.',
+      'Avviso di rincaro quando un abbonamento ricorrente aumenta di prezzo.',
+      'Effetto stipendio e spese in anticipo sul mese, per riconoscere le abitudini di spesa.',
+    ],
+  },
+  {
+    version: '1.9.29', date: '2026-06-15', title: 'Nuovi consigli essenziali',
+    changes: [
+      'Autonomia di cassa: per quanti mesi il saldo contabile coprirebbe le tue spese.',
+      'Tasso di risparmio confrontato con il riferimento del 20%, sempre con tono informativo.',
+      'Segnalazione delle categorie che tornano dopo una pausa e delle giornate con spesa concentrata.',
+      'Evidenziato il primo acquisto presso un esercente mai visto prima.',
+    ],
+  },
+  {
+    version: '1.9.28', date: '2026-06-15', title: 'Consigli più puliti',
+    changes: [
+      'Le previsioni di fine mese non si ripetono più: quando più analisi descrivono lo stesso andamento del mese, viene mostrata solo la più rilevante.',
+    ],
+  },
+  {
+    version: '1.9.27', date: '2026-06-15', title: 'Categorie, navbar fissa e icona scura',
+    changes: [
+      'Nuova schermata "Categorie" (analisi spese per periodo) accessibile a tutti dalla card "Spese per categoria" in dashboard.',
+      'La barra di navigazione e l\'header non scorrono più: in modalità PWA/standalone restano fissi mentre si scorre il contenuto.',
+      'Il filtro temporale 3M/6M/12M ora scorre di un mese alla volta mantenendo la finestra scelta, invece di saltare di un blocco intero.',
+      'L\'icona salvata sulla home (PWA) ha ora uno sfondo scuro coerente con l\'app.',
+    ],
+  },
   {
     version: '1.9.26', date: '2026-06-09', title: 'Impostazioni divise per sezione',
     changes: [

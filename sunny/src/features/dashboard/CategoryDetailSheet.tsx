@@ -13,6 +13,7 @@ import {
   historicalMonthlyAverage, periodElapsedFraction, CategorySpendingSummary,
 } from './categoryAnalytics';
 import { CategoryTrendLineChart } from './CategoryTrendLineChart';
+import { useScrollLock } from '../../shared/useScrollLock';
 
 interface Props {
   summary: CategorySpendingSummary;
@@ -38,12 +39,11 @@ export function CategoryDetailSheet({
   const [metric, setMetric] = useState<Metric>('amount');
 
   // Lock background scroll + close on Esc while open.
+  useScrollLock();
   useEffect(() => {
     const onKey = (e: KeyboardEvent) => { if (e.key === 'Escape') onClose(); };
     window.addEventListener('keydown', onKey);
-    const prev = document.body.style.overflow;
-    document.body.style.overflow = 'hidden';
-    return () => { window.removeEventListener('keydown', onKey); document.body.style.overflow = prev; };
+    return () => { window.removeEventListener('keydown', onKey); };
   }, [onClose]);
 
   const range = useMemo(() => getPeriodRange(period, offset, now), [period, offset, now]);

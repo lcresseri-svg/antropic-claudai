@@ -318,6 +318,12 @@ export function SettingsScreen({ user, transactions, uiV2 = false, onLogOut, onD
             on={push.reminders.inactivityReminder}
             onToggle={() => push.setReminder('inactivityReminder', !push.reminders.inactivityReminder)}
           />
+          <ToggleRow
+            icon="✨" label="Messaggi di incoraggiamento"
+            sub="Ogni paio di giorni, un dato positivo sui tuoi conti"
+            on={push.reminders.encouragement}
+            onToggle={() => push.setReminder('encouragement', !push.reminders.encouragement)}
+          />
           <div className="p-4 space-y-2">
             <button
               onClick={async () => {

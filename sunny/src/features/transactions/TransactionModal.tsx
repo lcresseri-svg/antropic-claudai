@@ -5,6 +5,7 @@ import { formatCurrency, formatDate, guessCategory } from '../../utils';
 import { useSettings } from '../../shared/providers/settings';
 import { expandRecurringOnCreate } from '../../shared/recurrence';
 import { useEscapeKey } from '../../shared/hooks/useEscapeKey';
+import { useScrollLock } from '../../shared/useScrollLock';
 
 interface Props {
   open: boolean;
@@ -97,12 +98,7 @@ export function TransactionModal({ open, editing, groupTransfers = [], seriesEdi
     setShowMore(!!editing && (!!editing.recurring || hasGroup || !!editing.shared));
   }, [open, editing, groupTransfers.length]);
 
-  useEffect(() => {
-    if (!open) return;
-    const prev = document.body.style.overflow;
-    document.body.style.overflow = 'hidden';
-    return () => { document.body.style.overflow = prev; };
-  }, [open]);
+  useScrollLock(open);
 
   useEscapeKey(onClose, open);
 

@@ -1,11 +1,17 @@
-import { useState } from 'react';
+import { useEffect, useState } from 'react';
 import { User } from 'firebase/auth';
+import { doc, setDoc, serverTimestamp } from 'firebase/firestore';
 import { Transaction } from '../../types';
+import { db } from '../../lib/firebase';
 import { useSettings } from '../../shared/providers/settings';
 import { buildInsights, Insight, InsightCategory } from './insightsEngine';
 import { InsightDetailSheet } from './InsightDetailSheet';
 import { InsightFeedback } from '../feedback/InsightFeedback';
 import { formatCurrency } from '../../utils';
+
+// Once-per-app-session guard: we persist the positive-insight pool at most once
+// per user per foreground session, not on every render/navigation.
+const encouragingPoolWritten = new Set<string>();
 
 interface Props {
   user?: User | null;
@@ -13,6 +19,9 @@ interface Props {
   monthlyIncome: number;
   monthlyExpenses: number;
   monthlyInvestments: number;
+  portfolio?: { controvalore: number; versato: number };
+  isAdmin?: boolean;
+  budgets?: Record<string, number>;
 }
 
 const CAT_META: Record<InsightCategory, { label: string; icon: string }> = {
@@ -58,7 +67,28 @@ export function InsightsScreenV2(p: Props) {
     getCat,
     depth: insightDepth,
     forecastV3Categories: categories.filter(c => c.kind === 'expense'),
+    portfolio: p.portfolio,
+    isAdmin: p.isAdmin,
+    budgets: p.budgets,
   });
+
+  // Persist a pool of positive insights for the "encouraging push" Cloud Function.
+  // Debounced to once per user per app session (not every render). Only positive
+  // insights are stored, each with its minDepth so the function can match the
+  // user's analysis level.
+  useEffect(() => {
+    if (!user || encouragingPoolWritten.has(user.uid)) return;
+    const items = insights
+      .filter(i => i.tone === 'positive')
+      .map(i => ({ title: i.title, detail: i.detail, minDepth: i.minDepth ?? 'advanced' }));
+    if (items.length === 0) return; // wait until there's something positive to store
+    encouragingPoolWritten.add(user.uid);
+    setDoc(
+      doc(db, 'users', user.uid, 'derived', 'encouraging'),
+      { items, updatedAt: serverTimestamp() },
+      { merge: true },
+    ).catch(() => encouragingPoolWritten.delete(user.uid)); // allow a retry if the write failed
+  }, [user, insights]);
 
   // Group insights into 4 display groups
   const grouped = new Map<DisplayGroup, Insight[]>();

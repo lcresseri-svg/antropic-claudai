@@ -139,6 +139,19 @@ function Main({ user, onLogOut, onDeleteAccount }: {
   const { accounts, categories, includeInvestments, enableInvestments, enableBudget, aiCoachWidgetEnabled, settingsLoaded, insightDepth, aiEnabled } = useSettings();
   const tx = useTransactions(user, accounts, includeInvestments, categories, enableInvestments);
   const budget = useBudget(user);
+
+  // Portfolio snapshot for the insight engine: paid-in capital (versato) and
+  // current market value (controvalore = each investment category's currentValue,
+  // falling back to the deposited capital when no market value is set).
+  const portfolio = useMemo(() => {
+    if (!enableInvestments || tx.investmentTotal <= 0) return undefined;
+    let controvalore = 0;
+    for (const c of categories) {
+      if (c.kind !== 'investment') continue;
+      controvalore += c.currentValue ?? tx.investmentByCategory[c.id] ?? 0;
+    }
+    return { controvalore, versato: tx.investmentTotal };
+  }, [enableInvestments, categories, tx.investmentTotal, tx.investmentByCategory]);
   const uiV2 = canUseUiV2(user);
   const [editing, setEditing] = useState<Transaction | null>(null);
   const [seriesEdit, setSeriesEdit] = useState(false);
@@ -245,7 +258,7 @@ function Main({ user, onLogOut, onDeleteAccount }: {
     tx.replaceGroup(deleteIds, create);
 
   return (
-    <div className={`min-h-screen md:flex${uiV2 ? ' ui-v2' : ''}`}>
+    <div className={`h-full md:flex${uiV2 ? ' ui-v2' : ''}`}>
       {/* Global backdrop for settings dropdown — outside the header stacking context */}
       {settingsOpen && !isSettings && (
         <div className="fixed inset-0 z-[35]" onClick={() => setSettingsOpen(false)} />
@@ -255,10 +268,10 @@ function Main({ user, onLogOut, onDeleteAccount }: {
       <SideNav loading={tx.loading} onAdd={openAdd} onImport={() => setImportOpen(true)} isAdmin={isAdminUser(user)} aiEnabled={aiEnabled} uiV2={uiV2} />
 
       {/* Content (shifted right by sidebar on desktop) */}
-      <div className="flex-1 md:ml-[220px] min-w-0">
+      <div className="flex-1 md:ml-[220px] min-w-0 flex flex-col h-full overflow-hidden">
 
-        {/* Mobile-only header — z-[40] so it sits above the z-[35] backdrop */}
-        <header className="fixed top-0 inset-x-0 z-[40] glass-header md:hidden">
+        {/* Mobile-only header — in-flow (shrink-0) so it doesn't trigger iOS viewport resize */}
+        <header className="shrink-0 z-[40] glass-header md:hidden">
           <div className="max-w-2xl mx-auto px-5 h-14 flex items-center justify-between">
             <div className="flex items-center gap-2.5 min-w-0">
               <ArcLogo size={28} />
@@ -289,6 +302,10 @@ function Main({ user, onLogOut, onDeleteAccount }: {
           </div>
         </header>
 
+        {/* Scroll container — the ONLY element that scrolls; body stays still.
+            id lets sheets lock THIS scroller (not body) while open. */}
+        <div id="app-scroll" className="flex-1 overflow-y-auto overscroll-contain">
+
         {tx.error && (
           <div className="max-w-2xl mx-auto md:max-w-none px-5 md:px-8 pt-2">
             <div className="bg-[#E08B8B]/12 border border-[#E08B8B]/25 rounded-xl px-3.5 py-2.5 flex items-center gap-2.5">
@@ -298,7 +315,7 @@ function Main({ user, onLogOut, onDeleteAccount }: {
           </div>
         )}
 
-        <main className="max-w-2xl mx-auto md:max-w-none px-5 md:px-8 pt-14 md:pt-2 pb-24 md:pb-2">
+        <main className="max-w-2xl mx-auto md:max-w-none px-5 md:px-8 pt-4 md:pt-2 pb-24 md:pb-2">
           <Routes>
             <Route path="/" element={
               uiV2 ? (
@@ -310,6 +327,7 @@ function Main({ user, onLogOut, onDeleteAccount }: {
                   investmentByCategory={tx.investmentByCategory}
                   accountBalances={tx.accountBalances}
                   trend={tx.trend} transactions={tx.transactions}
+                  portfolio={portfolio}
                   savingsTarget={budget.budget.savingsTarget}
                   onSeeInsights={() => navigate('/insights')}
                   onSeeInvestments={() => navigate('/investments')}
@@ -326,8 +344,10 @@ function Main({ user, onLogOut, onDeleteAccount }: {
                   investmentByCategory={tx.investmentByCategory}
                   accountBalances={tx.accountBalances}
                   trend={tx.trend} transactions={tx.transactions}
+                  portfolio={portfolio}
                   onSeeInsights={() => navigate('/insights')}
                   onSeeInvestments={() => navigate('/investments')}
+                  onSeeCategories={() => navigate('/category-spending')}
                 />
               )
             } />
@@ -350,11 +370,12 @@ function Main({ user, onLogOut, onDeleteAccount }: {
                 {uiV2 ? (
                   <InsightsScreenV2 user={user} transactions={tx.transactions}
                     monthlyIncome={tx.monthlyIncome} monthlyExpenses={tx.monthlyExpenses}
-                    monthlyInvestments={tx.monthlyInvestments} />
+                    monthlyInvestments={tx.monthlyInvestments} portfolio={portfolio}
+                    isAdmin={isAdminUser(user)} budgets={budget.budget.categoryBudgets} />
                 ) : (
                   <InsightsScreen transactions={tx.transactions}
                     monthlyIncome={tx.monthlyIncome} monthlyExpenses={tx.monthlyExpenses}
-                    monthlyInvestments={tx.monthlyInvestments} />
+                    monthlyInvestments={tx.monthlyInvestments} portfolio={portfolio} />
                 )}
               </div>
             } />
@@ -405,13 +426,11 @@ function Main({ user, onLogOut, onDeleteAccount }: {
                 </div>
               } />
             )}
-            {isAdminUser(user) && (
-              <Route path="/category-spending" element={
-                <div className="pt-4 md:pt-6">
-                  <CategorySpendingScreen transactions={tx.transactions} categoryBudgets={budget.budget.categoryBudgets} />
-                </div>
-              } />
-            )}
+            <Route path="/category-spending" element={
+              <div className="pt-4 md:pt-6">
+                <CategorySpendingScreen transactions={tx.transactions} categoryBudgets={budget.budget.categoryBudgets} />
+              </div>
+            } />
             <Route path="/forecast-v2" element={
               canUseForecastV2(user) ? (
                 <div className="pt-4 md:pt-6">
@@ -452,6 +471,8 @@ function Main({ user, onLogOut, onDeleteAccount }: {
             <Route path="*" element={<Navigate to="/" replace />} />
           </Routes>
         </main>
+
+        </div>{/* end scroll container */}
 
         {/* Mobile-only bottom nav */}
         {!isSettings && <BottomNav onAdd={openAdd} uiV2={uiV2} />}
