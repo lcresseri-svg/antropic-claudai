@@ -42,10 +42,11 @@ describe('getPeriodRange', () => {
     expect(r.label).toContain('–');
   });
 
-  it('steps back by whole periods via offset', () => {
+  it('steps back one month at a time via offset (sliding window)', () => {
     const r = getPeriodRange('3m', 1, NOW);
-    expect(localISO(r.start)).toBe('2026-01-01');
-    expect(localISO(r.end)).toBe('2026-03-31');
+    // offset=1 → end = May 2026, start = Mar 2026 (3-month window slid 1 month back)
+    expect(localISO(r.start)).toBe('2026-03-01');
+    expect(localISO(r.end)).toBe('2026-05-31');
     expect(r.isCurrent).toBe(false);
   });
 
