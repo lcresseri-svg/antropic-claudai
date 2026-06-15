@@ -5,6 +5,17 @@ import { forecastSavingsV2 } from '../forecast/forecastEngine';
 import { forecastSavingsV3 } from '../forecast/forecastEngineV3';
 import { addPeriod, recurringMonthlyEquivalent, upcomingPlannedThisMonth, upcomingRecurringThisMonth, isPending } from '../../shared/recurrence';
 
+/**
+ * minDepth convention for push():
+ *   'minimal'  — shown to all users regardless of insightDepth setting
+ *   'medium'   — shown when insightDepth is 'medium' or 'advanced'
+ *   'advanced' — shown only when insightDepth is 'advanced' (default)
+ *
+ * tone convention:
+ *   'positive' — good news, savings, improvements
+ *   'neutral'  — informational, reminders
+ *   'caution'  — attention needed, overspending, risks
+ */
 export type InsightCategory = 'alert' | 'forecast' | 'seasonal' | 'trend' | 'habit' | 'highlight';
 
 /** Small chart embedded in an insight explanation. */
@@ -30,8 +41,10 @@ export interface Insight {
   title: string;
   detail: string;
   accent: string;
+  tone: 'positive' | 'neutral' | 'caution';
   urgent?: boolean;
   category: InsightCategory;
+  _family?: string;
   explain?: InsightExplain;
 }
 
@@ -359,6 +372,7 @@ export function buildInsights(input: InsightInput): Insight[] {
       title: `${t.description} — scade ${dueLabel}`,
       detail: `${formatCurrency(t.amount)} · ogni ${freqLabel}`,
       accent: days <= 2 ? ACCENT.warn : ACCENT.info,
+      tone: days <= 2 ? 'caution' : 'neutral',
       explain: {
         what: 'Un pagamento ricorrente che hai segnato sta per ripresentarsi.',
         how: `Prendo l'ultima occorrenza di "${t.description}" (${t.date}) e aggiungo la frequenza (${freqLabel}) per stimare la prossima scadenza.`,
@@ -409,6 +423,7 @@ export function buildInsights(input: InsightInput): Insight[] {
         title: `${thisMonthExp.length} spese ricorrenti · ${formatCurrency(total)}`,
         detail: thisMonthExp.length > 3 ? `${top3} · +${thisMonthExp.length - 3} altre` : top3,
         accent: ACCENT.gold,
+        tone: 'neutral',
         explain: {
           what: 'Tutte le spese ricorrenti attese nel mese corrente, basate sulle scadenze calcolate.',
           how: 'Per ogni spesa taggata "Ricorrente" avanzo la data dell\'ultima occorrenza della frequenza impostata finché non rientra in questo mese, poi conto quante ne cadono entro fine mese.',
@@ -430,6 +445,7 @@ export function buildInsights(input: InsightInput): Insight[] {
         title: `${thisMonthInv.length} investimenti ricorrenti · ${formatCurrency(total)}`,
         detail: thisMonthInv.length > 3 ? `${top3} · +${thisMonthInv.length - 3} altri` : top3,
         accent: ACCENT.gold,
+        tone: 'neutral',
         explain: {
           what: 'Tutti gli investimenti ricorrenti attesi nel mese corrente, basati sulle scadenze calcolate.',
           how: 'Per ogni investimento taggato "Ricorrente" avanzo la data dell\'ultima occorrenza della frequenza impostata finché non rientra in questo mese, poi conto quante ne cadono entro fine mese.',
@@ -454,6 +470,7 @@ export function buildInsights(input: InsightInput): Insight[] {
       title: `Sforamento di ${formatCurrency(-saved)}`,
       detail: 'Le uscite superano le entrate questo mese',
       accent: ACCENT.warn,
+      tone: 'caution',
       explain: {
         what: 'Questo mese stai spendendo e investendo più di quanto incassi.',
         how: 'Entrate − Uscite − Investimenti del mese corrente. Se è negativo, stai intaccando i risparmi.',
@@ -536,14 +553,14 @@ export function buildInsights(input: InsightInput): Insight[] {
       upcomingRecurring > 0 ? 'ricorrenti programmate' : null,
     ].filter(Boolean).join(' · ') || 'ritmo attuale';
     push(forecast >= 0
-      ? { icon: '🔮', category: 'forecast', title: `Fine mese stimato: +${formatCurrency(forecast)}`, detail: `Risparmio proiettato su ${basis}`, accent: ACCENT.good,
+      ? { icon: '🔮', category: 'forecast', title: `Fine mese stimato: +${formatCurrency(forecast)}`, detail: `Risparmio proiettato su ${basis}`, accent: ACCENT.good, tone: 'positive', _family: 'eom-projection',
           explain: {
             what: 'Stima di quanto ti resterà a fine mese se mantieni questo ritmo.',
             how: `${howExp}${howInc} Il risparmio stimato è quello che resta: entrate previste, meno le uscite previste, meno gli investimenti.`,
             basis: forecastBasis,
             chart: { labels: ['Entrate', 'Uscite stim.', 'Investito'], values: [Math.round(expInc), projExp, Math.round(expInv)], format: 'currency', highlightIndex: 0 },
           } }
-      : { icon: '🔮', category: 'forecast', title: `Fine mese stimato: −${formatCurrency(-forecast)}`, detail: `Le uscite supererebbero le entrate su ${basis}`, accent: ACCENT.warn,
+      : { icon: '🔮', category: 'forecast', title: `Fine mese stimato: −${formatCurrency(-forecast)}`, detail: `Le uscite supererebbero le entrate su ${basis}`, accent: ACCENT.warn, tone: 'caution', _family: 'eom-projection',
           explain: {
             what: 'A questo ritmo chiuderesti il mese in negativo.',
             how: `${howExp}${howInc} Mettendo insieme entrate previste, uscite previste e investimenti, il conto finale risulta negativo.`,
@@ -559,6 +576,7 @@ export function buildInsights(input: InsightInput): Insight[] {
       title: `Risparmiato finora: ${formatCurrency(saved)}`,
       detail: `${pct(saved, monthlyIncome)}% delle entrate di questo mese`,
       accent: ACCENT.good,
+      tone: 'positive',
       explain: {
         what: 'Quanto hai messo da parte finora questo mese.',
         how: 'Entrate − Uscite − Investimenti, calcolato sui movimenti già registrati nel mese.',
@@ -572,13 +590,13 @@ export function buildInsights(input: InsightInput): Insight[] {
   if (h.avgIncome > 0) {
     const incChart: InsightChart = { labels: spanLbl, values: span.map(m => Math.round(m.income)), format: 'currency', refLine: Math.round(h.avgIncome), refLabel: 'media' };
     if (monthlyIncome >= h.avgIncome * 1.1) {
-      push({ icon: '💰', category: 'forecast', title: `Entrate sopra la media (+${pct(monthlyIncome - h.avgIncome, h.avgIncome)}%)`, detail: `Di solito incassi ~${formatCurrency(h.avgIncome)}/mese`, accent: ACCENT.good,
+      push({ icon: '💰', category: 'forecast', title: `Entrate sopra la media (+${pct(monthlyIncome - h.avgIncome, h.avgIncome)}%)`, detail: `Di solito incassi ~${formatCurrency(h.avgIncome)}/mese`, accent: ACCENT.good, tone: 'positive',
         explain: { what: 'Questo mese stai incassando più del solito.', how: `Entrate del mese (${formatCurrency(monthlyIncome)}) confrontate con la media degli ultimi ${h.months} mesi attivi.`, basis: 'Ultimi 3 mesi con dati.', chart: incChart } }, 'medium');
     } else if (prog > 0.45 && monthlyIncome < h.avgIncome * 0.85) {
-      push({ icon: '📥', category: 'forecast', title: `Entrate ancora sotto la media`, detail: `Finora ${formatCurrency(monthlyIncome)} vs ~${formatCurrency(h.avgIncome)} tipici`, accent: ACCENT.info,
+      push({ icon: '📥', category: 'forecast', title: `Entrate ancora sotto la media`, detail: `Finora ${formatCurrency(monthlyIncome)} vs ~${formatCurrency(h.avgIncome)} tipici`, accent: ACCENT.info, tone: 'neutral',
         explain: { what: 'Sei oltre metà mese ma le entrate sono sotto la tua norma.', how: `Confronto tra entrate correnti e media storica, considerando che è trascorso il ${Math.round(prog * 100)}% del mese.`, basis: 'Ultimi 3 mesi con dati.', chart: incChart } }, 'medium');
     } else if (monthlyIncome === 0) {
-      push({ icon: '📥', category: 'forecast', title: `Entrate previste: ~${formatCurrency(h.avgIncome)}`, detail: 'Stima sulla media degli ultimi mesi', accent: ACCENT.info,
+      push({ icon: '📥', category: 'forecast', title: `Entrate previste: ~${formatCurrency(h.avgIncome)}`, detail: 'Stima sulla media degli ultimi mesi', accent: ACCENT.info, tone: 'neutral',
         explain: { what: 'Non hai ancora registrato entrate: ecco quanto incassi di solito.', how: 'Media delle entrate sugli ultimi mesi attivi.', basis: 'Ultimi 3 mesi con dati.', chart: incChart } }, 'medium');
     }
   }
@@ -587,14 +605,14 @@ export function buildInsights(input: InsightInput): Insight[] {
   if (h.avgInvest > 0 || monthlyInvestments > 0) {
     const invChart: InsightChart = { labels: spanLbl, values: span.map(m => Math.round(m.invest)), format: 'currency', refLine: Math.round(h.avgInvest), refLabel: 'media' };
     if (h.avgInvest > 0 && monthlyInvestments === 0 && prog > 0.5) {
-      push({ icon: '📈', category: 'forecast', title: `Non hai ancora investito questo mese`, detail: `Di solito investi ~${formatCurrency(h.avgInvest)}/mese`, accent: ACCENT.gold,
+      push({ icon: '📈', category: 'forecast', title: `Non hai ancora investito questo mese`, detail: `Di solito investi ~${formatCurrency(h.avgInvest)}/mese`, accent: ACCENT.gold, tone: 'neutral',
         explain: { what: 'Promemoria: di solito a questo punto del mese hai già investito.', how: 'Confronto tra investimenti del mese (0) e la media storica mensile.', basis: 'Ultimi 3 mesi con dati.', chart: invChart } });
     } else if (h.avgInvest > 0 && monthlyInvestments < h.avgInvest * 0.8 && prog > 0.5) {
-      push({ icon: '📈', category: 'forecast', title: `Investimenti sotto la media`, detail: `${formatCurrency(monthlyInvestments)} vs ~${formatCurrency(h.avgInvest)} di solito`, accent: ACCENT.gold,
+      push({ icon: '📈', category: 'forecast', title: `Investimenti sotto la media`, detail: `${formatCurrency(monthlyInvestments)} vs ~${formatCurrency(h.avgInvest)} di solito`, accent: ACCENT.gold, tone: 'neutral',
         explain: { what: 'Stai investendo meno del tuo ritmo abituale.', how: 'Investimenti del mese vs media storica mensile.', basis: 'Ultimi 3 mesi con dati.', chart: invChart } });
     } else if (monthlyInvestments > 0) {
       const ref = h.avgInvest > 0 ? h.avgInvest : monthlyInvestments;
-      push({ icon: '📈', category: 'forecast', title: `Investiti ${formatCurrency(monthlyInvestments)} questo mese`, detail: `A questo ritmo ~${formatCurrency(ref * 12)}/anno`, accent: ACCENT.gold,
+      push({ icon: '📈', category: 'forecast', title: `Investiti ${formatCurrency(monthlyInvestments)} questo mese`, detail: `A questo ritmo ~${formatCurrency(ref * 12)}/anno`, accent: ACCENT.gold, tone: 'neutral',
         explain: { what: 'Il tuo ritmo di investimento e la proiezione annuale.', how: `Investimenti mensili × 12 = ${formatCurrency(ref * 12)} stimati all'anno.`, basis: 'Mese corrente + media storica.', chart: invChart } });
     }
   }
@@ -609,6 +627,7 @@ export function buildInsights(input: InsightInput): Insight[] {
       title: `${mName} è di solito un mese forte per ${c.label}`,
       detail: `Negli anni passati hai speso ~${formatCurrency(s.monthAvg)} in ${c.label} a ${mName}, contro una media di ${formatCurrency(s.overallAvg)}/mese`,
       accent: ACCENT.info,
+      tone: 'neutral',
       explain: {
         what: `Pattern stagionale: a ${mName} questa categoria tende a salire. Tienilo a mente nel budget.`,
         how: `Confronto la spesa media in ${c.label} nei mesi di ${mName} degli anni scorsi (${formatCurrency(s.monthAvg)}) con la tua media mensile su tutto l'anno (${formatCurrency(s.overallAvg)}). Rapporto ${s.ratio.toFixed(1)}×.`,
@@ -631,6 +650,7 @@ export function buildInsights(input: InsightInput): Insight[] {
         title: `Preparati: ${mName} pesa su ${c.label}`,
         detail: `Storicamente a ${mName} spendi ~${formatCurrency(top.monthAvg)} in ${c.label}. Mettine un po' da parte.`,
         accent: ACCENT.gold,
+        tone: 'neutral',
         explain: {
           what: `Anticipo sul mese prossimo: ${c.label} tende a salire a ${mName}.`,
           how: `Spesa media in ${c.label} nei mesi di ${mName} passati (${formatCurrency(top.monthAvg)}) vs media mensile generale (${formatCurrency(top.overallAvg)}).`,
@@ -664,6 +684,7 @@ export function buildInsights(input: InsightInput): Insight[] {
           title: `${up ? '+' : '−'}${Math.abs(delta)}% di spese vs ${longMonth(lyKey)} ${now.getFullYear() - 1}`,
           detail: `Proiezione ${formatCurrency(proj)} questo mese vs ${formatCurrency(ly.expense)} lo stesso mese l'anno scorso`,
           accent: up ? ACCENT.warn : ACCENT.good,
+          tone: up ? 'caution' : 'positive',
           explain: {
             what: 'Confronto anno-su-anno dello stesso mese, per cogliere effetti stagionali.',
             how: `Uscite proiettate del mese corrente (${formatCurrency(proj)}) confrontate con le uscite effettive dello stesso mese dell'anno scorso (${formatCurrency(ly.expense)}).`,
@@ -682,10 +703,10 @@ export function buildInsights(input: InsightInput): Insight[] {
     const relSlope = avgExp > 0 ? slope / avgExp : 0;
     const expChart: InsightChart = { labels: spanLbl, values: span.map(m => Math.round(m.expense)), format: 'currency', refLine: Math.round(avgExp), refLabel: 'media' };
     if (relSlope > 0.06) {
-      push({ icon: '📊', category: 'trend', title: `Spese in crescita costante`, detail: `+${Math.round(relSlope * 100)}% al mese negli ultimi ${months6.length} mesi`, accent: ACCENT.warn,
+      push({ icon: '📊', category: 'trend', title: `Spese in crescita costante`, detail: `+${Math.round(relSlope * 100)}% al mese negli ultimi ${months6.length} mesi`, accent: ACCENT.warn, tone: 'caution',
         explain: { what: 'La traiettoria delle spese mensili è in aumento.', how: 'Confronto le uscite mese per mese e guardo se, nel complesso, la linea tende a salire in modo costante.', basis: `Ultimi ${months6.length} mesi con dati.`, chart: expChart } });
     } else if (relSlope < -0.06) {
-      push({ icon: '📊', category: 'trend', title: `Stai riducendo le spese`, detail: `−${Math.round(Math.abs(relSlope) * 100)}% al mese negli ultimi ${months6.length} mesi`, accent: ACCENT.good,
+      push({ icon: '📊', category: 'trend', title: `Stai riducendo le spese`, detail: `−${Math.round(Math.abs(relSlope) * 100)}% al mese negli ultimi ${months6.length} mesi`, accent: ACCENT.good, tone: 'positive',
         explain: { what: 'Le tue uscite mensili stanno calando in modo costante.', how: 'Confronto le uscite mese per mese e guardo se, nel complesso, la linea tende a scendere in modo costante.', basis: `Ultimi ${months6.length} mesi con dati.`, chart: expChart } });
     }
   }
@@ -697,10 +718,10 @@ export function buildInsights(input: InsightInput): Insight[] {
     const rateChart: InsightChart = { labels: withIncome.map(m => shortMonth(m.key)), values: withIncome.map(m => Math.round(m.savingsRate * 100)), format: 'percent' };
     if (rateSlope > 0.02) {
       const curRate = withIncome[withIncome.length - 1]?.savingsRate ?? 0;
-      push({ icon: '🚀', category: 'trend', title: `Tasso di risparmio in crescita`, detail: `Ora al ${Math.round(curRate * 100)}% · la tendenza è positiva`, accent: ACCENT.good,
+      push({ icon: '🚀', category: 'trend', title: `Tasso di risparmio in crescita`, detail: `Ora al ${Math.round(curRate * 100)}% · la tendenza è positiva`, accent: ACCENT.good, tone: 'positive',
         explain: { what: 'La quota di reddito che riesci a risparmiare sta aumentando.', how: 'Per ogni mese calcolo quanta parte delle entrate ti resta dopo spese e investimenti, e guardo se questa quota cresce nel tempo.', basis: 'Mesi con entrate negli ultimi 6.', chart: rateChart } });
     } else if (rateSlope < -0.03) {
-      push({ icon: '📉', category: 'trend', title: `Tasso di risparmio in calo`, detail: `La quota risparmiata sul reddito sta diminuendo`, accent: ACCENT.warn,
+      push({ icon: '📉', category: 'trend', title: `Tasso di risparmio in calo`, detail: `La quota risparmiata sul reddito sta diminuendo`, accent: ACCENT.warn, tone: 'caution',
         explain: { what: 'Stai risparmiando una fetta sempre minore del tuo reddito.', how: 'Per ogni mese guardo quanta parte delle entrate ti resta dopo spese e investimenti, e noto che questa quota sta diminuendo.', basis: 'Mesi con entrate negli ultimi 6.', chart: rateChart } });
     }
   }
@@ -715,9 +736,9 @@ export function buildInsights(input: InsightInput): Insight[] {
       chart: { labels: ['Investito', 'Reddito'], values: [Math.round(h6.avgInvest), Math.round(h6.avgIncome)], format: 'currency', highlightIndex: 0 },
     };
     if (investRate >= 15) {
-      push({ icon: '💎', category: 'trend', title: `Stai investendo il ${investRate}% del reddito`, detail: `Ottimo ritmo — proietti ${formatCurrency(h6.avgInvest * 12)} investiti all'anno`, accent: ACCENT.gold, explain: base });
+      push({ icon: '💎', category: 'trend', title: `Stai investendo il ${investRate}% del reddito`, detail: `Ottimo ritmo — proietti ${formatCurrency(h6.avgInvest * 12)} investiti all'anno`, accent: ACCENT.gold, tone: 'positive', explain: base });
     } else {
-      push({ icon: '📈', category: 'trend', title: `Investi il ${investRate}% del reddito`, detail: `A questo ritmo ${formatCurrency(h6.avgInvest * 12)}/anno · la soglia consigliata è 15%`, accent: ACCENT.info, explain: base });
+      push({ icon: '📈', category: 'trend', title: `Investi il ${investRate}% del reddito`, detail: `A questo ritmo ${formatCurrency(h6.avgInvest * 12)}/anno · la soglia consigliata è 15%`, accent: ACCENT.info, tone: 'neutral', explain: base });
     }
   }
 
@@ -760,6 +781,7 @@ export function buildInsights(input: InsightInput): Insight[] {
       title: `Proiezione annuale: ${yrSav >= 0 ? '+' : '−'}${formatCurrency(Math.abs(yrSav))} risparmiati`,
       detail: `+ ${formatCurrency(yrInv)} investiti · totale ${formatCurrency(Math.abs(yrSav) + yrInv)}`,
       accent: yrSav >= 0 ? ACCENT.good : ACCENT.warn,
+      tone: yrSav >= 0 ? 'positive' : 'caution',
       explain: {
         what: 'Quanto accumuleresti nei prossimi 12 mesi tenendo conto della stagionalità delle spese e delle ricorrenti note.',
         how: `Stimo le uscite mese per mese per i prossimi 12 mesi: per ogni mese uso la media storica di quel mese in anni precedenti (es. dicembre storicamente più caro). Dove manca la storica uso la media recente (ultimi ${baseWindowLabel} mesi). Applico poi un pavimento sulle ricorrenti già programmate così gli impegni fissi non vengono mai sottostimati. Per gli investimenti stesso approccio. Le entrate annuali sono la media mensile × 12.`,
@@ -785,7 +807,7 @@ export function buildInsights(input: InsightInput): Insight[] {
     if (fastCat && fastSlope > 0.15) {
       const c = getCat(fastCat);
       const vals = catSeries[fastCat]!;
-      push({ icon: c.icon, category: 'trend', title: `${c.label} in forte crescita`, detail: `Media mensile ${formatCurrency(avg(vals))} · +${Math.round(fastSlope * 100)}% mese su mese`, accent: ACCENT.warn,
+      push({ icon: c.icon, category: 'trend', title: `${c.label} in forte crescita`, detail: `Media mensile ${formatCurrency(avg(vals))} · +${Math.round(fastSlope * 100)}% mese su mese`, accent: ACCENT.warn, tone: 'caution',
         explain: { what: `La spesa in ${c.label} sta accelerando.`, how: 'Confronto quanto spendi in questa categoria mese dopo mese: l\'aumento è marcato rispetto a dove eri partito.', basis: 'Ultimi 3 mesi con dati.', chart: { labels: months3.map(m => shortMonth(m.key)), values: vals.map(v => Math.round(v)), format: 'currency' } } });
     }
   }
@@ -794,7 +816,7 @@ export function buildInsights(input: InsightInput): Insight[] {
   if (months12.length >= 3) {
     const best = months12.reduce((a, b) => a.savings > b.savings ? a : b);
     if (best.savings > 0) {
-      push({ icon: '🏆', category: 'trend', title: `Miglior mese: ${longMonth(best.key)} (${formatCurrency(best.savings)})`, detail: `Il tuo record di risparmio nell'ultimo anno`, accent: ACCENT.good,
+      push({ icon: '🏆', category: 'trend', title: `Miglior mese: ${longMonth(best.key)} (${formatCurrency(best.savings)})`, detail: `Il tuo record di risparmio nell'ultimo anno`, accent: ACCENT.good, tone: 'positive',
         explain: { what: 'Il mese in cui hai messo da parte di più nell\'ultimo anno.', how: 'Per ogni mese: Entrate − Uscite − Investimenti. Viene scelto il massimo.', basis: 'Ultimi 12 mesi con entrate.', chart: { labels: months12.map(m => shortMonth(m.key)), values: months12.map(m => Math.round(m.savings)), format: 'currency', highlightIndex: months12.indexOf(best) } } });
     }
   }
@@ -813,10 +835,10 @@ export function buildInsights(input: InsightInput): Insight[] {
       const ratio = weAvg / wdAvg;
       const chart: InsightChart = { labels: ['Feriali', 'Weekend'], values: [Math.round(wdAvg), Math.round(weAvg)], format: 'currency', highlightIndex: ratio > 1 ? 1 : 0 };
       if (ratio > 1.35) {
-        push({ icon: '🗓️', category: 'habit', title: `Spendi il ${Math.round((ratio - 1) * 100)}% in più nel weekend`, detail: `Media ${formatCurrency(weAvg)}/transazione (weekend) vs ${formatCurrency(wdAvg)} (feriali)`, accent: ACCENT.info,
+        push({ icon: '🗓️', category: 'habit', title: `Spendi il ${Math.round((ratio - 1) * 100)}% in più nel weekend`, detail: `Media ${formatCurrency(weAvg)}/transazione (weekend) vs ${formatCurrency(wdAvg)} (feriali)`, accent: ACCENT.info, tone: 'neutral',
           explain: { what: 'Il weekend è più costoso per te, a parità di singola spesa.', how: 'Spesa media per transazione nei giorni feriali vs sabato/domenica.', basis: 'Ultimi 3 mesi di uscite.', chart } });
       } else if (ratio < 0.72) {
-        push({ icon: '🗓️', category: 'habit', title: `Più disciplinato nel weekend`, detail: `${formatCurrency(wdAvg)}/transazione nei feriali vs ${formatCurrency(weAvg)} nel weekend`, accent: ACCENT.good,
+        push({ icon: '🗓️', category: 'habit', title: `Più disciplinato nel weekend`, detail: `${formatCurrency(wdAvg)}/transazione nei feriali vs ${formatCurrency(weAvg)} nel weekend`, accent: ACCENT.good, tone: 'positive',
           explain: { what: 'Nel weekend spendi meno per transazione rispetto ai feriali.', how: 'Spesa media per transazione, feriali vs weekend.', basis: 'Ultimi 3 mesi di uscite.', chart } });
       }
     }
@@ -828,7 +850,7 @@ export function buildInsights(input: InsightInput): Insight[] {
     const elapsed = Math.floor(prog * daysInMonth(now));
     const noDays  = elapsed - spendDays.size;
     if (elapsed >= 7 && spendDays.size > 0 && noDays >= 3) {
-      push({ icon: '🎯', category: 'habit', title: `${noDays} giorni senza spese questo mese`, detail: `Su ${elapsed} giorni · ${Math.round((noDays / elapsed) * 100)}% dei giorni "zero uscite"`, accent: ACCENT.good,
+      push({ icon: '🎯', category: 'habit', title: `${noDays} giorni senza spese questo mese`, detail: `Su ${elapsed} giorni · ${Math.round((noDays / elapsed) * 100)}% dei giorni "zero uscite"`, accent: ACCENT.good, tone: 'positive',
         explain: { what: 'I giorni in cui non hai speso nulla — un\'abitudine che aiuta a risparmiare.', how: 'Giorni trascorsi nel mese meno i giorni con almeno una spesa registrata.', basis: 'Mese corrente.', chart: { labels: ['Con spese', 'Senza spese'], values: [spendDays.size, noDays], highlightIndex: 1 } } }, 'medium');
     }
   }
@@ -846,7 +868,7 @@ export function buildInsights(input: InsightInput): Insight[] {
     }
     const count = Object.values(seen).filter(s => s.size >= 2).length;
     if (count > 0) {
-      push({ icon: '🔁', category: 'habit', title: `${count} pagament${count === 1 ? 'o' : 'i'} ricorrenti non taggati`, detail: 'Aprili e attiva "Ricorrente" per ricevere promemoria', accent: ACCENT.info,
+      push({ icon: '🔁', category: 'habit', title: `${count} pagament${count === 1 ? 'o' : 'i'} ricorrenti non taggati`, detail: 'Aprili e attiva "Ricorrente" per ricevere promemoria', accent: ACCENT.info, tone: 'neutral',
         explain: { what: 'Spese con la stessa descrizione che ricompaiono ogni mese: probabili abbonamenti.', how: 'Raggruppo le uscite per descrizione e conto quante compaiono in ≥2 degli ultimi 3 mesi.', basis: 'Ultimi 3 mesi, spese non già marcate ricorrenti.' } }, 'medium');
     }
   }
@@ -856,10 +878,10 @@ export function buildInsights(input: InsightInput): Insight[] {
     const expRatio = Math.round((h.avgExpense / h.avgIncome) * 100);
     const chart: InsightChart = { labels: ['Uscite', 'Reddito'], values: [Math.round(h.avgExpense), Math.round(h.avgIncome)], format: 'currency' };
     if (expRatio <= 50) {
-      push({ icon: '⚖️', category: 'habit', title: `Spendi il ${expRatio}% del reddito in uscite`, detail: `Ottima efficienza · rimane il ${100 - expRatio}% per risparmio e investimenti`, accent: ACCENT.good,
+      push({ icon: '⚖️', category: 'habit', title: `Spendi il ${expRatio}% del reddito in uscite`, detail: `Ottima efficienza · rimane il ${100 - expRatio}% per risparmio e investimenti`, accent: ACCENT.good, tone: 'positive',
         explain: { what: 'Quota del reddito assorbita dalle spese correnti.', how: 'Media uscite mensili ÷ media entrate mensili.', basis: 'Ultimi 3 mesi con dati.', chart } });
     } else if (expRatio >= 85) {
-      push({ icon: '⚖️', category: 'habit', title: `Le uscite assorbono il ${expRatio}% del reddito`, detail: `Poco margine rimasto per risparmiare o investire`, accent: ACCENT.warn,
+      push({ icon: '⚖️', category: 'habit', title: `Le uscite assorbono il ${expRatio}% del reddito`, detail: `Poco margine rimasto per risparmiare o investire`, accent: ACCENT.warn, tone: 'caution',
         explain: { what: 'Le spese correnti mangiano gran parte di ciò che incassi.', how: 'Media uscite mensili ÷ media entrate mensili.', basis: 'Ultimi 3 mesi con dati.', chart } });
     }
   }
@@ -868,7 +890,7 @@ export function buildInsights(input: InsightInput): Insight[] {
   {
     const incCats = new Set(transactions.filter(t => t.type === 'income' && t.date.startsWith(curMon)).map(t => t.category));
     if (incCats.size >= 3) {
-      push({ icon: '💼', category: 'habit', title: `${incCats.size} fonti di entrata questo mese`, detail: `Entrate diversificate — buona resilienza finanziaria`, accent: ACCENT.good,
+      push({ icon: '💼', category: 'habit', title: `${incCats.size} fonti di entrata questo mese`, detail: `Entrate diversificate — buona resilienza finanziaria`, accent: ACCENT.good, tone: 'positive',
         explain: { what: 'Più fonti di reddito riducono il rischio se una viene a mancare.', how: 'Conteggio delle categorie distinte di entrata nel mese corrente.', basis: 'Mese corrente.' } });
     }
   }
@@ -885,7 +907,7 @@ export function buildInsights(input: InsightInput): Insight[] {
     if (bestCat && Math.abs(bestDelta) >= 0.15) {
       const up = bestDelta > 0;
       const c = getCat(bestCat);
-      push({ icon: c.icon, category: 'highlight', title: `${up ? '+' : '−'}${Math.abs(Math.round(bestDelta * 100))}% in ${c.label} vs mese scorso`, detail: `${formatCurrency(curCat[bestCat])} questo mese vs ${formatCurrency(prevCat[bestCat] ?? 0)} il mese scorso`, accent: up ? ACCENT.warn : ACCENT.good,
+      push({ icon: c.icon, category: 'highlight', title: `${up ? '+' : '−'}${Math.abs(Math.round(bestDelta * 100))}% in ${c.label} vs mese scorso`, detail: `${formatCurrency(curCat[bestCat])} questo mese vs ${formatCurrency(prevCat[bestCat] ?? 0)} il mese scorso`, accent: up ? ACCENT.warn : ACCENT.good, tone: up ? 'caution' : 'positive',
         explain: { what: `La variazione più marcata tra le categorie di spesa rispetto al mese scorso.`, how: '(spesa categoria mese corrente − mese scorso) ÷ mese scorso. Mostrata la categoria con scarto maggiore.', basis: 'Mese corrente vs precedente.', chart: { labels: [shortMonth(monthKey(1, now)), shortMonth(curMon)], values: [Math.round(prevCat[bestCat] ?? 0), Math.round(curCat[bestCat])], format: 'currency', highlightIndex: 1 } } }, 'medium');
     }
   }
@@ -897,7 +919,7 @@ export function buildInsights(input: InsightInput): Insight[] {
     if (topCat && monthlyExpenses > 0) {
       const c = getCat(topCat);
       const top5 = Object.entries(curCat).sort((a, b) => b[1] - a[1]).slice(0, 5);
-      push({ icon: c.icon, category: 'highlight', title: `Voce più pesante: ${c.label}`, detail: `${formatCurrency(topVal)} · ${pct(topVal, monthlyExpenses)}% delle uscite del mese`, accent: ACCENT.info,
+      push({ icon: c.icon, category: 'highlight', title: `Voce più pesante: ${c.label}`, detail: `${formatCurrency(topVal)} · ${pct(topVal, monthlyExpenses)}% delle uscite del mese`, accent: ACCENT.info, tone: 'neutral',
         explain: { what: 'La categoria su cui hai speso di più questo mese.', how: 'Somma delle uscite per categoria nel mese corrente; viene scelta la maggiore.', basis: 'Mese corrente.', chart: { labels: top5.map(([id]) => getCat(id).label), values: top5.map(([, v]) => Math.round(v)), format: 'currency', highlightIndex: 0 } } }, 'medium');
     }
   }
@@ -913,7 +935,7 @@ export function buildInsights(input: InsightInput): Insight[] {
         const catAvg = avg(catHist);
         if (bigAmt > catAvg * 2.5) {
           const c = getCat(biggest.category);
-          push({ icon: '🔎', category: 'highlight', title: `Spesa insolita: ${formatCurrency(bigAmt)} in ${c.label}`, detail: `${biggest.description || c.label} · media tipica ${formatCurrency(catAvg)} per questa categoria`, accent: ACCENT.warn,
+          push({ icon: '🔎', category: 'highlight', title: `Spesa insolita: ${formatCurrency(bigAmt)} in ${c.label}`, detail: `${biggest.description || c.label} · media tipica ${formatCurrency(catAvg)} per questa categoria`, accent: ACCENT.warn, tone: 'caution',
             explain: { what: 'Una singola spesa molto più alta del normale per la sua categoria.', how: `Confronto l'importo (${formatCurrency(bigAmt)}) con la media storica delle spese in ${c.label} (${formatCurrency(catAvg)}). Segnalata se oltre 2,5×.`, basis: 'Storico della categoria, mese corrente escluso.', chart: { labels: ['Questa spesa', 'Media categoria'], values: [Math.round(bigAmt), Math.round(catAvg)], format: 'currency', highlightIndex: 0 } } });
         }
       }
@@ -928,7 +950,7 @@ export function buildInsights(input: InsightInput): Insight[] {
       const top3Pct = pct(top3Sum, monthlyExpenses);
       if (top3Pct >= 70) {
         const names = catEntries.slice(0, 3).map(([id]) => getCat(id).label).join(', ');
-        push({ icon: '🗂️', category: 'highlight', title: `3 categorie = ${top3Pct}% delle spese`, detail: names, accent: ACCENT.info,
+        push({ icon: '🗂️', category: 'highlight', title: `3 categorie = ${top3Pct}% delle spese`, detail: names, accent: ACCENT.info, tone: 'neutral',
           explain: { what: 'Le tue spese sono concentrate in poche categorie.', how: 'Somma delle 3 categorie maggiori ÷ uscite totali del mese.', basis: 'Mese corrente.', chart: { labels: ['Top 3', 'Resto'], values: [Math.round(top3Sum), Math.round(monthlyExpenses - top3Sum)], format: 'currency', highlightIndex: 0 } } });
       }
     }
@@ -939,10 +961,10 @@ export function buildInsights(input: InsightInput): Insight[] {
     const proj = projectExpenses(monthlyExpenses, now);
     const chart: InsightChart = { labels: spanLbl, values: span.map(m => Math.round(m.expense)), format: 'currency', refLine: Math.round(h.avgExpense), refLabel: 'media' };
     if (proj > h.avgExpense * 1.15) {
-      push({ icon: '📊', category: 'highlight', title: `Spese in crescita rispetto alla media`, detail: `Proiezione ${formatCurrency(proj)} vs media ${formatCurrency(h.avgExpense)}/mese`, accent: ACCENT.warn,
+      push({ icon: '📊', category: 'highlight', title: `Spese in crescita rispetto alla media`, detail: `Proiezione ${formatCurrency(proj)} vs media ${formatCurrency(h.avgExpense)}/mese`, accent: ACCENT.warn, tone: 'caution', _family: 'eom-projection',
         explain: { what: 'Il mese corrente, proiettato, supera la tua media di spesa.', how: `Uscite proiettate a fine mese (${formatCurrency(proj)}) vs media degli ultimi mesi.`, basis: 'Mese corrente + ultimi 3 mesi.', chart } });
     } else if (proj < h.avgExpense * 0.85) {
-      push({ icon: '📊', category: 'highlight', title: `Spese sotto la tua media storica`, detail: `Proiezione ${formatCurrency(proj)} vs media ${formatCurrency(h.avgExpense)}/mese`, accent: ACCENT.good,
+      push({ icon: '📊', category: 'highlight', title: `Spese sotto la tua media storica`, detail: `Proiezione ${formatCurrency(proj)} vs media ${formatCurrency(h.avgExpense)}/mese`, accent: ACCENT.good, tone: 'positive', _family: 'eom-projection',
         explain: { what: 'Stai spendendo meno della tua media abituale.', how: `Uscite proiettate a fine mese vs media storica mensile.`, basis: 'Mese corrente + ultimi 3 mesi.', chart } });
     }
   }
@@ -955,10 +977,10 @@ export function buildInsights(input: InsightInput): Insight[] {
     const cv = mean > 0 ? stddev / mean : 0;
     const chart: InsightChart = { labels: spanLbl, values: span.map(m => Math.round(m.expense)), format: 'currency', refLine: Math.round(mean), refLabel: 'media' };
     if (cv < 0.12) {
-      push({ icon: '🧘', category: 'highlight', title: `Spese molto costanti`, detail: `Variazione mensile sotto il 12% — ottima prevedibilità`, accent: ACCENT.good,
+      push({ icon: '🧘', category: 'highlight', title: `Spese molto costanti`, detail: `Variazione mensile sotto il 12% — ottima prevedibilità`, accent: ACCENT.good, tone: 'positive',
         explain: { what: 'Le tue uscite mensili sono molto stabili, facili da pianificare.', how: 'Guardo quanto le uscite di ogni mese si discostano dalla media: qui restano molto vicine, quindi sono prevedibili.', basis: `Ultimi ${months6.length} mesi con dati.`, chart } });
     } else if (cv > 0.4) {
-      push({ icon: '🌊', category: 'highlight', title: `Spese molto variabili`, detail: `Fluttuazione del ${Math.round(cv * 100)}% tra i mesi — difficile pianificare`, accent: ACCENT.info,
+      push({ icon: '🌊', category: 'highlight', title: `Spese molto variabili`, detail: `Fluttuazione del ${Math.round(cv * 100)}% tra i mesi — difficile pianificare`, accent: ACCENT.info, tone: 'neutral',
         explain: { what: 'Le uscite oscillano molto da un mese all\'altro.', how: 'Guardo quanto le uscite di ogni mese si discostano dalla media: qui variano parecchio, quindi sono difficili da prevedere.', basis: `Ultimi ${months6.length} mesi con dati.`, chart } });
     }
   }
@@ -978,6 +1000,7 @@ export function buildInsights(input: InsightInput): Insight[] {
           title: `Spese trimestre ${up ? '+' : '−'}${Math.abs(delta)}% vs trimestre prima`,
           detail: `${formatCurrency(rA.expense)} negli ultimi 3 mesi vs ${formatCurrency(pA.expense)} nei 3 precedenti`,
           accent: up ? ACCENT.warn : ACCENT.good,
+          tone: up ? 'caution' : 'positive',
           explain: {
             what: 'Confronto tra gli ultimi 3 mesi completi e i 3 mesi ancora precedenti.',
             how: 'Somma delle uscite del trimestre recente vs il trimestre precedente, variazione percentuale.',
@@ -1002,6 +1025,7 @@ export function buildInsights(input: InsightInput): Insight[] {
         title: `Risparmio trimestrale ${up ? 'in crescita' : 'in calo'}`,
         detail: `${formatCurrency(rSav)} negli ultimi 3 mesi vs ${formatCurrency(pSav)} nei 3 precedenti`,
         accent: up ? ACCENT.good : ACCENT.warn,
+        tone: up ? 'positive' : 'caution',
         explain: {
           what: 'Quanto hai messo da parte negli ultimi 3 mesi rispetto al trimestre precedente.',
           how: '(Entrate − Uscite − Investimenti) sommate sui due trimestri e confrontate.',
@@ -1028,6 +1052,8 @@ export function buildInsights(input: InsightInput): Insight[] {
           title: `${mName} proiettato ${up ? '+' : '−'}${Math.abs(delta)}% vs solito`,
           detail: `Stima ${formatCurrency(proj)} vs ~${formatCurrency(seasonalAvg)} tipici di ${mName}`,
           accent: up ? ACCENT.warn : ACCENT.good,
+          tone: up ? 'caution' : 'positive',
+          _family: 'eom-projection',
           explain: {
             what: `Proiezione di fine mese confrontata con quanto spendi di solito a ${mName}.`,
             how: `Uscite proiettate (${formatCurrency(proj)}) vs media di ${mName} negli ultimi ${past.length} anni (${formatCurrency(seasonalAvg)}).`,
@@ -1059,6 +1085,7 @@ export function buildInsights(input: InsightInput): Insight[] {
         title: `Spese fisse: ${share}% del reddito`,
         detail: `~${formatCurrency(fixedMonthly)}/mese di ricorrenti su ~${formatCurrency(h.avgIncome)} di entrate`,
         accent: heavy ? ACCENT.warn : ACCENT.info,
+        tone: heavy ? 'caution' : 'neutral',
         explain: {
           what: 'Quanta parte del reddito è già impegnata in costi fissi ricorrenti.',
           how: 'Sommo tutte le spese ricorrenti riportate al mese (settimanali ×4,33, annuali ÷12, giornaliere ×30) e le divido per la media delle entrate.',
@@ -1081,6 +1108,7 @@ export function buildInsights(input: InsightInput): Insight[] {
         title: `${streak} mesi di fila in positivo`,
         detail: `Chiudi il mese risparmiando da ${streak} mesi consecutivi`,
         accent: ACCENT.good,
+        tone: 'positive',
         explain: {
           what: 'Mesi consecutivi più recenti chiusi con risparmio positivo.',
           how: 'Scorro i mesi dal più recente e conto quanti di fila hanno Entrate − Uscite − Investimenti > 0.',
@@ -1101,6 +1129,7 @@ export function buildInsights(input: InsightInput): Insight[] {
         title: `Da inizio anno: ${ytdSav >= 0 ? '+' : '−'}${formatCurrency(Math.abs(ytdSav))} risparmiati`,
         detail: `+ ${formatCurrency(a.invest)} investiti su ${formatCurrency(a.income)} di entrate nel ${now.getFullYear()}`,
         accent: ytdSav >= 0 ? ACCENT.good : ACCENT.warn,
+        tone: ytdSav >= 0 ? 'positive' : 'caution',
         explain: {
           what: `Bilancio cumulato da gennaio a ${monthNameFromIndex(now.getMonth())}.`,
           how: 'Sommo entrate, uscite e investimenti di tutti i mesi dell\'anno corrente; il risparmio è la differenza.',
@@ -1132,6 +1161,7 @@ export function buildInsights(input: InsightInput): Insight[] {
           title: `${names[maxDow]} è il tuo giorno di spesa`,
           detail: `Il ${share}% delle uscite degli ultimi 3 mesi cade di ${names[maxDow].toLowerCase()}`,
           accent: ACCENT.info,
+          tone: 'neutral',
           explain: {
             what: 'Il giorno della settimana in cui concentri più spesa.',
             how: 'Sommo le uscite degli ultimi 3 mesi per giorno della settimana e prendo il maggiore.',
@@ -1156,6 +1186,7 @@ export function buildInsights(input: InsightInput): Insight[] {
           title: `Entrate trimestre ${up ? '+' : '−'}${Math.abs(delta)}%`,
           detail: `${formatCurrency(rA.income)} negli ultimi 3 mesi vs ${formatCurrency(pA.income)} nei 3 precedenti`,
           accent: up ? ACCENT.good : ACCENT.info,
+          tone: up ? 'positive' : 'neutral',
           explain: {
             what: 'Andamento delle entrate tra gli ultimi due trimestri.',
             how: 'Somma delle entrate del trimestre recente vs precedente, variazione percentuale.',
@@ -1182,6 +1213,7 @@ export function buildInsights(input: InsightInput): Insight[] {
           title: `Scontrino medio ${up ? 'in aumento' : 'in calo'} (${up ? '+' : '−'}${Math.abs(delta)}%)`,
           detail: `Da ${formatCurrency(first)} a ${formatCurrency(last)} a transazione negli ultimi mesi`,
           accent: up ? ACCENT.warn : ACCENT.good,
+          tone: up ? 'caution' : 'positive',
           explain: {
             what: 'Come cambia l\'importo medio di una singola spesa.',
             how: 'Per ogni mese: uscite totali ÷ numero di transazioni di spesa. Confronto il primo e l\'ultimo mese con dati.',
@@ -1194,7 +1226,20 @@ export function buildInsights(input: InsightInput): Insight[] {
 
   // ── Empty state ───────────────────────────────────────────────────────────
   if (out.length === 0) {
-    push({ icon: '📊', category: 'highlight', title: 'Nessun insight ancora', detail: 'Aggiungi transazioni per analisi personalizzate', accent: ACCENT.neutral }, 'medium');
+    push({ icon: '📊', category: 'highlight', title: 'Nessun insight ancora', detail: 'Aggiungi transazioni per analisi personalizzate', accent: ACCENT.neutral, tone: 'neutral' }, 'medium');
+  }
+
+  // ── eom-projection dedup ──────────────────────────────────────────────────
+  // The end-of-month forecast (#2), the seasonal projection (#28) and the
+  // pace-vs-average highlight (#24) all answer the same question ("how will
+  // this month close?"). Keep only the highest-priority one. Priority follows
+  // insertion order — #2 is pushed before #28 before #24 — so the first
+  // family member in `out` wins and the rest are dropped.
+  const firstEom = out.find(i => i._family === 'eom-projection');
+  if (firstEom) {
+    for (let i = out.length - 1; i >= 0; i--) {
+      if (out[i]._family === 'eom-projection' && out[i] !== firstEom) out.splice(i, 1);
+    }
   }
 
   const catOrder: InsightCategory[] = ['alert', 'forecast', 'seasonal', 'trend', 'habit', 'highlight'];

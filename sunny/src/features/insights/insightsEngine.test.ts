@@ -66,4 +66,41 @@ describe('buildInsights', () => {
     expect(res).toHaveLength(1);
     expect(res[0].title).toMatch(/Nessun insight/);
   });
+
+  // A data-rich scenario that fires many insights, including several members of
+  // the end-of-month projection family (#2 forecast, #24 pace-vs-avg, #28 seasonal).
+  const richTxs: Transaction[] = [
+    // Same month last year — seasonal baseline for #28.
+    tx({ type: 'expense', amount: 1000, date: '2025-06-10' }),
+    // Recent complete months — history average (~300/mo) for #24.
+    tx({ type: 'income', amount: 2000, date: '2026-03-05' }), tx({ type: 'expense', amount: 300, date: '2026-03-12' }),
+    tx({ type: 'income', amount: 2000, date: '2026-04-05' }), tx({ type: 'expense', amount: 300, date: '2026-04-12' }),
+    tx({ type: 'income', amount: 2000, date: '2026-05-05' }), tx({ type: 'expense', amount: 300, date: '2026-05-12' }),
+    // Current (partial) month — high pace pushes the projection well above both
+    // the recent average and the seasonal baseline.
+    tx({ type: 'income', amount: 2000, date: '2026-06-02' }),
+    tx({ type: 'expense', amount: 800, date: '2026-06-05' }),
+  ];
+
+  it('assigns a valid tone to every insight', () => {
+    const res = buildInsights({
+      transactions: richTxs, monthlyIncome: 2000, monthlyExpenses: 800, monthlyInvestments: 0,
+      getCat: cat, now: NOW,
+    });
+    expect(res.length).toBeGreaterThan(1);
+    for (const i of res) {
+      expect(['positive', 'neutral', 'caution']).toContain(i.tone);
+    }
+  });
+
+  it('keeps at most one end-of-month projection insight', () => {
+    const res = buildInsights({
+      transactions: richTxs, monthlyIncome: 2000, monthlyExpenses: 800, monthlyInvestments: 0,
+      getCat: cat, now: NOW,
+    });
+    const eom = res.filter(i => i._family === 'eom-projection');
+    expect(eom.length).toBeLessThanOrEqual(1);
+    // The highest-priority family member (#2 forecast, 🔮) is the survivor.
+    expect(eom[0]?.icon).toBe('🔮');
+  });
 });

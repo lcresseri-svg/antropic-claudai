@@ -1,4 +1,4 @@
-export const APP_VERSION = '1.9.27';
+export const APP_VERSION = '1.9.28';
 
 /**
  * Release channel. While in 'beta' the app is still under active development
@@ -15,6 +15,12 @@ export interface VersionEntry {
 
 /** Registro versioni mostrato in Impostazioni → Registro versioni. */
 export const VERSIONS: VersionEntry[] = [
+  {
+    version: '1.9.28', date: '2026-06-15', title: 'Consigli più puliti',
+    changes: [
+      'Le previsioni di fine mese non si ripetono più: quando più analisi descrivono lo stesso andamento del mese, viene mostrata solo la più rilevante.',
+    ],
+  },
   {
     version: '1.9.27', date: '2026-06-15', title: 'Categorie, navbar fissa e icona scura',
     changes: [
