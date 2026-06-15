@@ -1,4 +1,4 @@
-export const APP_VERSION = '1.9.31';
+export const APP_VERSION = '1.9.32';
 
 /**
  * Release channel. While in 'beta' the app is still under active development
@@ -15,6 +15,13 @@ export interface VersionEntry {
 
 /** Registro versioni mostrato in Impostazioni → Registro versioni. */
 export const VERSIONS: VersionEntry[] = [
+  {
+    version: '1.9.32', date: '2026-06-15', title: 'Messaggi di incoraggiamento',
+    changes: [
+      'Nuova notifica opzionale: ogni paio di giorni Sunny può mandarti un dato positivo sui tuoi conti.',
+      'Attivabile da Impostazioni → Notifiche (disattivata di default).',
+    ],
+  },
   {
     version: '1.9.31', date: '2026-06-15', title: 'Analisi avanzate (modalità esperto)',
     changes: [

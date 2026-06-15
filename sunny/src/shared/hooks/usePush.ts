@@ -13,9 +13,11 @@ export interface ReminderPrefs {
   monthly: boolean;           // start-of-month summary of the previous month
   upcomingPayments: boolean;  // pagamenti programmati/ricorrenti il giorno prima
   inactivityReminder: boolean; // nessun movimento da 5+ giorni
+  encouragement: boolean;     // ~ogni 48h un insight positivo (opt-in, default OFF)
 }
 
-const DEFAULT_PREFS: ReminderPrefs = { logExpenses: true, recurring: true, monthly: true, upcomingPayments: true, inactivityReminder: true };
+// Encouragement defaults OFF — like the AI suggestions, it's opt-in.
+const DEFAULT_PREFS: ReminderPrefs = { logExpenses: true, recurring: true, monthly: true, upcomingPayments: true, inactivityReminder: true, encouragement: false };
 
 export function usePush(user: User | null) {
   const [supported, setSupported] = useState(false);

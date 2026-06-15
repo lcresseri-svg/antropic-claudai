@@ -499,6 +499,71 @@ export const remindMonthEnd = onSchedule(
 );
 
 // ─────────────────────────────────────────────────────────────────────────────
+// ENCOURAGING INSIGHT — every ~48h at 11:00 Europe/Rome (a slot no other
+// reminder uses). Sends ONE positive insight, chosen at random, from a pool the
+// client pre-computes at users/{uid}/derived/encouraging:
+//   { items: [{ title, detail, minDepth }], updatedAt, lastSentTitle?, lastSentAt? }
+// Only users who opted in (meta/push.reminders.encouragement === true) and have
+// at least one FCM token receive it. This preference defaults OFF.
+//
+// "Random" = the chosen insight is random, NOT the time of day. Per-user random
+// send times would need per-user scheduling, which is out of scope.
+//
+// Cron caveat: cron can't express a true rolling 48h. `*/2` on day-of-month
+// resets at month boundaries (e.g. the 31st → the 2nd), so the real gap is
+// 24–48h around month ends. Accepted approximation.
+// ─────────────────────────────────────────────────────────────────────────────
+
+const INSIGHT_DEPTH_ORDER = ['minimal', 'medium', 'advanced'];
+
+export const sendEncouragingInsight = onSchedule(
+  { schedule: '0 11 */2 * *', timeZone: 'Europe/Rome', region: 'europe-west1' },
+  async () => {
+    const metaSnap = await db.collectionGroup('meta').get();
+    for (const d of metaSnap.docs) {
+      if (d.id !== 'push') continue;
+      const data = d.data() ?? {};
+      const tokens = (data.tokens ?? {}) as Record<string, boolean>;
+      if (Object.keys(tokens).length === 0) continue;
+      const reminders = (data.reminders ?? {}) as Record<string, boolean>;
+      if (reminders.encouragement !== true) continue; // opt-in only; default OFF
+      const userId = d.ref.parent.parent?.id;
+      if (!userId) continue;
+
+      // Per-user analysis depth (default 'medium', matching the app default).
+      const settingsSnap = await db.doc(`users/${userId}/meta/settings`).get();
+      const depth = ((settingsSnap.data()?.insightDepth) as string | undefined) ?? 'medium';
+      const depthIdx = Math.max(0, INSIGHT_DEPTH_ORDER.indexOf(depth));
+
+      // Client-precomputed pool of positive insights for this user.
+      const poolRef = db.doc(`users/${userId}/derived/encouraging`);
+      const pool = (await poolRef.get()).data();
+      if (!pool) continue;
+      const items = ((pool.items ?? []) as Array<{ title?: string; detail?: string; minDepth?: string }>)
+        .filter(it => it.title && INSIGHT_DEPTH_ORDER.indexOf(it.minDepth ?? 'advanced') <= depthIdx);
+      if (items.length === 0) continue; // no fake fallback — just skip this user
+
+      // Avoid repeating the last sent insight when an alternative exists.
+      const lastSentTitle = (pool.lastSentTitle as string | undefined) ?? '';
+      const pickable = items.filter(it => it.title !== lastSentTitle);
+      const choices = pickable.length > 0 ? pickable : items;
+      const chosen = choices[Math.floor(Math.random() * choices.length)];
+      const title = chosen.title as string;
+      const body = chosen.detail && (title.length + chosen.detail.length + 3) <= 120
+        ? `${title} — ${chosen.detail}`
+        : title;
+
+      // Opt-in already enforced above, so no requireReminder gate here.
+      await sendToUser(userId, 'Sunny', body, undefined, 'encouragement');
+      await poolRef.set(
+        { lastSentTitle: title, lastSentAt: admin.firestore.FieldValue.serverTimestamp() },
+        { merge: true },
+      );
+    }
+  }
+);
+
+// ─────────────────────────────────────────────────────────────────────────────
 // USER CLEANUP
 //
 // When a user document is deleted (e.g. via account deletion flow),
