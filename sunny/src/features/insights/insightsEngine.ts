@@ -1,7 +1,8 @@
 import { Transaction, CategoryDef, ownShare, investSign } from '../../types';
 import { formatCurrency, capitalize } from '../../utils';
 import { monthProgress, forecastSavings, seasonalMonthlyAverage, seasonalVariableMonthly, robustAvg } from '../budget/budgetUtils';
-import { forecastSavingsV3 } from '../forecast/forecastEngineV3';
+import { forecastSavingsV3, computeForecastV3 } from '../forecast/forecastEngineV3';
+import { mad } from '../forecast/forecastStats';
 import { addPeriod, recurringMonthlyEquivalent, upcomingPlannedThisMonth, upcomingRecurringThisMonth, isPending } from '../../shared/recurrence';
 
 /**
@@ -43,6 +44,8 @@ export interface Insight {
   tone: 'positive' | 'neutral' | 'caution';
   urgent?: boolean;
   category: InsightCategory;
+  /** Minimum analysis depth at which this insight is shown. Stamped by push(). */
+  minDepth?: InsightDepth;
   _family?: string;
   explain?: InsightExplain;
 }
@@ -314,6 +317,10 @@ export interface InsightInput {
    * paid-in capital. Optional — screens without investment context omit it.
    */
   portfolio?: { controvalore: number; versato: number };
+  /** When true, unlocks the advanced admin-only insights (FASE 4). Default false. */
+  isAdmin?: boolean;
+  /** Current per-category monthly budget limits, used by the budget-adherence insight. */
+  budgets?: Record<string, number>;
 }
 
 export function buildInsights(input: InsightInput): Insight[] {
@@ -331,7 +338,7 @@ export function buildInsights(input: InsightInput): Insight[] {
   const DEPTH_ORDER: InsightDepth[] = ['minimal', 'medium', 'advanced'];
   const depthLevel = DEPTH_ORDER.indexOf(input.depth ?? 'advanced');
   const push = (i: Insight, minDepth: InsightDepth = 'advanced') => {
-    if (DEPTH_ORDER.indexOf(minDepth) <= depthLevel) out.push(i);
+    if (DEPTH_ORDER.indexOf(minDepth) <= depthLevel) out.push(Object.assign(i, { minDepth }));
   };
 
   // Common slices ────────────────────────────────────────────────────────────
@@ -378,6 +385,13 @@ export function buildInsights(input: InsightInput): Insight[] {
   const PAYDAY_MIN_SHARE      = 0.35;  // surface when the window holds ≥35% of monthly spend
   const FRONTLOAD_RATIO       = 1.25;  // spent ≥1.25× the usual cumulative-by-today
   const FRONTLOAD_MIN_DAY     = 4;     // not before day 4 (too little signal early)
+
+  // ── FASE 4 thresholds (admin-only advanced insights) ─────────────────────
+  const BUDGET_STREAK_MIN    = 2;      // celebrate after ≥2 consecutive on-budget months
+  const ANOMALY_K_MAD        = 3;      // category month flagged beyond median + k·MAD
+  const ANOMALY_MIN_SAMPLES  = 4;      // need ≥4 active months for a robust band
+  const CASHFLOW_DIP_RATIO   = 0.5;    // intra-month dip ≥50% of the month's final savings
+  const CASHFLOW_MIN_MONTHS  = 2;      // risky in ≥2 of the last 3 months → flag
 
   // ── 0. ALERT — Upcoming recurring payments ────────────────────────────────
   const seriesMap = new Map<string, Transaction>();
@@ -949,7 +963,9 @@ export function buildInsights(input: InsightInput): Insight[] {
   }
 
   // ── 22. HIGHLIGHT — Anomalously large transaction ─────────────────────────
-  {
+  // Non-admin only: admins get the richer category-level MAD anomaly (#47) instead,
+  // so the two anomaly cards never appear together (coordination required by FASE 4).
+  if (!input.isAdmin) {
     const curExp = transactions.filter(t => t.type === 'expense' && t.date.startsWith(curMon));
     if (curExp.length > 3) {
       const biggest = curExp.reduce((a, b) => ownShare(a) > ownShare(b) ? a : b);
@@ -1589,6 +1605,153 @@ export function buildInsights(input: InsightInput): Insight[] {
           }, 'medium');
         }
       }
+    }
+  }
+
+  // ══ FASE 4 — admin-only advanced insights ═════════════════════════════════
+  // All gated behind input.isAdmin (the same allowlist as Forecast V3).
+
+  // ── 45. TREND — Unpredictable categories (V3 confidence) ─────────────────
+  if (input.isAdmin && input.forecastV3Categories && input.forecastV3Categories.length > 0) {
+    const r = computeForecastV3({
+      transactions: allTx,
+      expenseCategories: input.forecastV3Categories,
+      monthlyIncome: 0, monthlyInvestments: 0, now,
+    });
+    const unpredictable = r.categories.filter(c =>
+      c.projected > 0 && (
+        c.behavior === 'rare_variable' ||
+        ((c.behavior === 'variable_frequent' || c.behavior === 'variable_sparse' || c.behavior === 'volatile_mixed')
+          && c.behaviorResult.confidence === 'low')
+      ),
+    );
+    if (unpredictable.length > 0) {
+      const top = [...unpredictable].sort((a, b) => b.projected - a.projected).slice(0, 3);
+      const names = top.map(c => getCat(c.categoryId).label).join(', ');
+      push({
+        icon: '🎲', category: 'trend',
+        title: `${unpredictable.length} categori${unpredictable.length === 1 ? 'a' : 'e'} con spesa imprevedibile`,
+        detail: names,
+        accent: ACCENT.neutral,
+        tone: 'neutral',
+        explain: {
+          what: 'Categorie in cui la spesa è difficile da prevedere: poche occorrenze o forte variabilità, quindi le stime sono meno affidabili.',
+          how: 'Uso la classificazione del motore di previsione V3: categorie "rare" oppure variabili con bassa confidenza nel comportamento.',
+          basis: 'Classificazione comportamentale V3 sulle categorie di spesa.',
+        },
+      }, 'advanced');
+    }
+  }
+
+  // ── 46. TREND — Budget adherence streak ──────────────────────────────────
+  if (input.isAdmin && input.budgets) {
+    const planned = Object.values(input.budgets).reduce((s, v) => s + v, 0);
+    if (planned > 0) {
+      const last = recentMonths(transactions, 6, now).filter(m => m.txCount > 0);
+      if (last.length >= 3) {
+        const within = last.map(m => m.expense <= planned);
+        const withinCount = within.filter(Boolean).length;
+        let streak = 0;
+        for (let i = within.length - 1; i >= 0; i--) { if (within[i]) streak++; else break; }
+        if (streak >= BUDGET_STREAK_MIN) {
+          push({
+            icon: '🎯', category: 'trend',
+            title: `${streak} mesi di fila entro il budget`,
+            detail: `${withinCount} degli ultimi ${last.length} mesi sotto il piano di ${formatCurrency(planned)}/mese`,
+            accent: ACCENT.good,
+            tone: 'positive',
+            explain: {
+              what: 'Quante volte di recente hai chiuso il mese entro il budget pianificato.',
+              how: 'Confronto le uscite totali di ogni mese con la somma dei budget di categoria. Lo streak conta i mesi consecutivi più recenti entro il piano.',
+              basis: 'Ultimi 6 mesi vs budget attuale (lo storico mensile del budget non è memorizzato: uso il piano corrente come riferimento).',
+              chart: { labels: last.map(m => shortMonth(m.key)), values: last.map(m => Math.round(m.expense)), format: 'currency', refLine: Math.round(planned), refLabel: 'piano' },
+            },
+          }, 'medium');
+        }
+      }
+    }
+  }
+
+  // ── 47. TREND — Robust category anomaly (median ± k·MAD) ─────────────────
+  // Replaces #22 for admins: a category whose monthly total this month falls
+  // outside its robust historical band. Reuses V3's MAD approach.
+  if (input.isAdmin) {
+    const histKeys = Array.from({ length: 12 }, (_, i) => monthKey(i + 1, now));
+    let aCat = '', aCur = 0, aMed = 0, aUpper = 0;
+    for (const [catId, curAmt] of Object.entries(curCat)) {
+      if (curAmt <= 0) continue;
+      const series: number[] = [];
+      for (const k of histKeys) {
+        let s = 0;
+        for (const t of transactions) {
+          if (t.type === 'expense' && t.category === catId && t.date.startsWith(k)) s += ownShare(t);
+        }
+        if (s > 0) series.push(s);
+      }
+      if (series.length < ANOMALY_MIN_SAMPLES) continue;
+      const med = median(series);
+      const madVal = mad(series);
+      if (med <= 0 || madVal <= 0) continue;
+      const upper = med + ANOMALY_K_MAD * madVal;
+      if (curAmt > upper && (curAmt - upper) > (aCur - aUpper)) {
+        aCat = catId; aCur = curAmt; aMed = med; aUpper = upper;
+      }
+    }
+    if (aCat) {
+      const c = getCat(aCat);
+      push({
+        icon: '📡', category: 'trend',
+        title: `${c.label}: spesa fuori norma questo mese`,
+        detail: `${formatCurrency(aCur)} vs tipico ~${formatCurrency(Math.round(aMed))}/mese`,
+        accent: ACCENT.warn,
+        tone: 'caution',
+        explain: {
+          what: `La spesa in ${c.label} questo mese è statisticamente anomala rispetto alla sua distribuzione storica.`,
+          how: `Uso mediana e deviazione assoluta mediana (MAD) dei mesi attivi: segnalo quando il mese corrente supera mediana + ${ANOMALY_K_MAD}×MAD. È un metodo robusto agli outlier, come nel motore di previsione V3.`,
+          basis: 'Mesi attivi della categoria negli ultimi 12 mesi.',
+          chart: { labels: ['Tipico', 'Questo mese'], values: [Math.round(aMed), Math.round(aCur)], format: 'currency', highlightIndex: 1 },
+        },
+      }, 'advanced');
+    }
+  }
+
+  // ── 48. TREND — Cash-flow timing risk ────────────────────────────────────
+  // Months that close positive but dip underwater mid-month (expenses land
+  // before income). Simulated from a zero opening balance — a timing signal,
+  // not the real bank balance (made explicit in the explain).
+  if (input.isAdmin) {
+    const months = [monthKey(1, now), monthKey(2, now), monthKey(3, now)];
+    let riskyMonths = 0, consideredMonths = 0;
+    for (const k of months) {
+      const byDay = new Array(32).fill(0) as number[];
+      let total = 0;
+      for (const t of transactions) {
+        if (!t.date.startsWith(k)) continue;
+        const v = t.type === 'income' ? t.amount
+          : t.type === 'expense' ? -ownShare(t)
+          : -investSign(t) * t.amount;
+        byDay[localDate(t.date).getDate()] += v;
+        total += v;
+      }
+      if (total <= 0) continue; // only months that closed non-negative
+      consideredMonths++;
+      let run = 0, minRun = 0;
+      for (let d = 1; d <= 31; d++) { run += byDay[d]; if (run < minRun) minRun = run; }
+      if (minRun < 0 && -minRun >= total * CASHFLOW_DIP_RATIO) riskyMonths++;
+    }
+    if (riskyMonths >= CASHFLOW_MIN_MONTHS) {
+      push({
+        icon: '🌊', category: 'trend',
+        title: 'Le uscite anticipano le entrate',
+        detail: `In ${riskyMonths} degli ultimi ${consideredMonths} mesi il saldo del mese sarebbe sceso sotto zero prima dell'accredito`,
+        accent: ACCENT.warn,
+        tone: 'caution',
+        explain: {
+          what: 'Anche se il mese si chiude in positivo, le spese arrivano prima delle entrate: a metà mese rischi di andare in rosso pur risparmiando a fine mese.',
+          how: 'Simulo l\'andamento giornaliero del mese (entrate − uscite − investimenti, partendo da zero il primo del mese) e guardo il punto più basso. Se scende sotto zero in modo marcato pur chiudendo positivo, c\'è un rischio di tempistica.',
+          basis: 'Ultimi 3 mesi completi. Parte da zero a inizio mese: misura la tempistica dei flussi, non il saldo reale del conto.',
+        },
+      }, 'advanced');
     }
   }
 

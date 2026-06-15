@@ -370,7 +370,8 @@ function Main({ user, onLogOut, onDeleteAccount }: {
                 {uiV2 ? (
                   <InsightsScreenV2 user={user} transactions={tx.transactions}
                     monthlyIncome={tx.monthlyIncome} monthlyExpenses={tx.monthlyExpenses}
-                    monthlyInvestments={tx.monthlyInvestments} portfolio={portfolio} />
+                    monthlyInvestments={tx.monthlyInvestments} portfolio={portfolio}
+                    isAdmin={isAdminUser(user)} budgets={budget.budget.categoryBudgets} />
                 ) : (
                   <InsightsScreen transactions={tx.transactions}
                     monthlyIncome={tx.monthlyIncome} monthlyExpenses={tx.monthlyExpenses}

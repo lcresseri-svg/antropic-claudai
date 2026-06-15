@@ -1,4 +1,4 @@
-export const APP_VERSION = '1.9.30';
+export const APP_VERSION = '1.9.31';
 
 /**
  * Release channel. While in 'beta' the app is still under active development
@@ -15,6 +15,15 @@ export interface VersionEntry {
 
 /** Registro versioni mostrato in Impostazioni → Registro versioni. */
 export const VERSIONS: VersionEntry[] = [
+  {
+    version: '1.9.31', date: '2026-06-15', title: 'Analisi avanzate (modalità esperto)',
+    changes: [
+      'Categorie con spesa imprevedibile, segnalate in base alla classificazione del motore di previsione.',
+      'Streak di mesi entro il budget pianificato.',
+      'Rilevamento robusto delle spese di categoria fuori norma (mediana ± MAD).',
+      'Avviso quando le uscite anticipano le entrate, con rischio di scoperto a inizio mese.',
+    ],
+  },
   {
     version: '1.9.30', date: '2026-06-15', title: 'Consigli su investimenti e abitudini',
     changes: [

@@ -351,3 +351,107 @@ describe('buildInsights — FASE 3 medium insights', () => {
     });
   });
 });
+
+describe('buildInsights — FASE 4 admin insights', () => {
+  const expCat = (id: string): import('../../types').CategoryDef =>
+    ({ id, label: id, icon: '•', color: '#888888', kind: 'expense' });
+  const build = (txs: Transaction[], over: Partial<Parameters<typeof buildInsights>[0]> = {}) =>
+    buildInsights({
+      transactions: txs, monthlyIncome: 0, monthlyExpenses: 0, monthlyInvestments: 0,
+      getCat: cat, now: NOW, ...over,
+    });
+
+  // #45 — Unpredictable categories (V3 confidence)
+  describe('unpredictable categories', () => {
+    // 'regali' appears rarely and irregularly → V3 classifies it as rare_variable.
+    const rare: Transaction[] = [
+      tx({ amount: 40, date: '2025-08-12', category: 'regali' }),
+      tx({ amount: 200, date: '2026-02-09', category: 'regali' }),
+      tx({ amount: 30, date: '2026-06-05', category: 'regali' }),
+    ];
+    it('flags rare/low-confidence categories for admins', () => {
+      const res = build(rare, { isAdmin: true, forecastV3Categories: [expCat('regali')] });
+      expect(res.some(x => /spesa imprevedibile/.test(x.title))).toBe(true);
+    });
+    it('stays hidden for non-admins', () => {
+      const res = build(rare, { forecastV3Categories: [expCat('regali')] });
+      expect(res.some(x => /spesa imprevedibile/.test(x.title))).toBe(false);
+    });
+  });
+
+  // #46 — Budget adherence streak
+  describe('budget adherence', () => {
+    const onBudget: Transaction[] = [
+      tx({ amount: 300, date: '2026-03-10' }),
+      tx({ amount: 300, date: '2026-04-10' }),
+      tx({ amount: 300, date: '2026-05-10' }),
+    ];
+    it('celebrates a streak of months within budget (admin)', () => {
+      const res = build(onBudget, { isAdmin: true, budgets: { spesa: 500 } });
+      const i = res.find(x => /entro il budget/.test(x.title));
+      expect(i).toBeDefined();
+      expect(i!.tone).toBe('positive');
+    });
+    it('stays silent when months are over budget', () => {
+      const over = [
+        tx({ amount: 600, date: '2026-03-10' }),
+        tx({ amount: 600, date: '2026-04-10' }),
+        tx({ amount: 600, date: '2026-05-10' }),
+      ];
+      const res = build(over, { isAdmin: true, budgets: { spesa: 500 } });
+      expect(res.some(x => /entro il budget/.test(x.title))).toBe(false);
+    });
+    it('stays hidden for non-admins', () => {
+      const res = build(onBudget, { budgets: { spesa: 500 } });
+      expect(res.some(x => /entro il budget/.test(x.title))).toBe(false);
+    });
+  });
+
+  // #47 — Robust category anomaly (MAD); replaces #22 for admins
+  describe('robust anomaly', () => {
+    const spike: Transaction[] = [
+      tx({ amount: 100, date: '2026-01-10' }), tx({ amount: 120, date: '2026-02-10' }),
+      tx({ amount: 90, date: '2026-03-10' }), tx({ amount: 110, date: '2026-04-10' }),
+      tx({ amount: 95, date: '2026-05-10' }),
+      tx({ amount: 1000, date: '2026-06-05' }), // anomalous spike this month
+    ];
+    it('flags a category month outside the robust band (admin)', () => {
+      const res = build(spike, { isAdmin: true });
+      const i = res.find(x => /fuori norma/.test(x.title));
+      expect(i).toBeDefined();
+      expect(i!.tone).toBe('caution');
+    });
+    it('stays hidden for non-admins', () => {
+      const res = build(spike);
+      expect(res.some(x => /fuori norma/.test(x.title))).toBe(false);
+    });
+  });
+
+  // #48 — Cash-flow timing risk
+  describe('cash-flow timing', () => {
+    const lateIncome: Transaction[] = [
+      tx({ amount: 1000, date: '2026-03-03' }), tx({ type: 'income', amount: 1500, date: '2026-03-28' }),
+      tx({ amount: 1000, date: '2026-04-03' }), tx({ type: 'income', amount: 1500, date: '2026-04-28' }),
+      tx({ amount: 1000, date: '2026-05-03' }), tx({ type: 'income', amount: 1500, date: '2026-05-28' }),
+    ];
+    it('warns when expenses land before income (admin)', () => {
+      const res = build(lateIncome, { isAdmin: true });
+      const i = res.find(x => /anticipano le entrate/.test(x.title));
+      expect(i).toBeDefined();
+      expect(i!.tone).toBe('caution');
+    });
+    it('stays silent when income lands first', () => {
+      const earlyIncome = [
+        tx({ type: 'income', amount: 1500, date: '2026-03-02' }), tx({ amount: 1000, date: '2026-03-20' }),
+        tx({ type: 'income', amount: 1500, date: '2026-04-02' }), tx({ amount: 1000, date: '2026-04-20' }),
+        tx({ type: 'income', amount: 1500, date: '2026-05-02' }), tx({ amount: 1000, date: '2026-05-20' }),
+      ];
+      const res = build(earlyIncome, { isAdmin: true });
+      expect(res.some(x => /anticipano le entrate/.test(x.title))).toBe(false);
+    });
+    it('stays hidden for non-admins', () => {
+      const res = build(lateIncome);
+      expect(res.some(x => /anticipano le entrate/.test(x.title))).toBe(false);
+    });
+  });
+});
