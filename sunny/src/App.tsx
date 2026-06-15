@@ -245,7 +245,7 @@ function Main({ user, onLogOut, onDeleteAccount }: {
     tx.replaceGroup(deleteIds, create);
 
   return (
-    <div className={`min-h-screen md:flex${uiV2 ? ' ui-v2' : ''}`}>
+    <div className={`h-full md:flex${uiV2 ? ' ui-v2' : ''}`}>
       {/* Global backdrop for settings dropdown — outside the header stacking context */}
       {settingsOpen && !isSettings && (
         <div className="fixed inset-0 z-[35]" onClick={() => setSettingsOpen(false)} />
@@ -255,10 +255,10 @@ function Main({ user, onLogOut, onDeleteAccount }: {
       <SideNav loading={tx.loading} onAdd={openAdd} onImport={() => setImportOpen(true)} isAdmin={isAdminUser(user)} aiEnabled={aiEnabled} uiV2={uiV2} />
 
       {/* Content (shifted right by sidebar on desktop) */}
-      <div className="flex-1 md:ml-[220px] min-w-0">
+      <div className="flex-1 md:ml-[220px] min-w-0 flex flex-col h-full overflow-hidden">
 
-        {/* Mobile-only header — z-[40] so it sits above the z-[35] backdrop */}
-        <header className="fixed top-0 inset-x-0 z-[40] glass-header md:hidden">
+        {/* Mobile-only header — in-flow (shrink-0) so it doesn't trigger iOS viewport resize */}
+        <header className="shrink-0 z-[40] glass-header md:hidden">
           <div className="max-w-2xl mx-auto px-5 h-14 flex items-center justify-between">
             <div className="flex items-center gap-2.5 min-w-0">
               <ArcLogo size={28} />
@@ -289,6 +289,9 @@ function Main({ user, onLogOut, onDeleteAccount }: {
           </div>
         </header>
 
+        {/* Scroll container — the ONLY element that scrolls; body stays still */}
+        <div className="flex-1 overflow-y-auto overscroll-contain">
+
         {tx.error && (
           <div className="max-w-2xl mx-auto md:max-w-none px-5 md:px-8 pt-2">
             <div className="bg-[#E08B8B]/12 border border-[#E08B8B]/25 rounded-xl px-3.5 py-2.5 flex items-center gap-2.5">
@@ -298,7 +301,7 @@ function Main({ user, onLogOut, onDeleteAccount }: {
           </div>
         )}
 
-        <main className="max-w-2xl mx-auto md:max-w-none px-5 md:px-8 pt-14 md:pt-2 pb-24 md:pb-2">
+        <main className="max-w-2xl mx-auto md:max-w-none px-5 md:px-8 pt-4 md:pt-2 pb-24 md:pb-2">
           <Routes>
             <Route path="/" element={
               uiV2 ? (
@@ -451,6 +454,8 @@ function Main({ user, onLogOut, onDeleteAccount }: {
             <Route path="*" element={<Navigate to="/" replace />} />
           </Routes>
         </main>
+
+        </div>{/* end scroll container */}
 
         {/* Mobile-only bottom nav */}
         {!isSettings && <BottomNav onAdd={openAdd} uiV2={uiV2} />}

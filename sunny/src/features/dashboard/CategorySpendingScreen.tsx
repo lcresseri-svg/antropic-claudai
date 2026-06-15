@@ -78,7 +78,7 @@ export function CategorySpendingScreen({ transactions, categoryBudgets }: Props)
       <p className="text-[13px] text-secondary mb-5 ml-12">Analizza come cambiano le tue spese nel tempo.</p>
 
       {/* Sticky controls — remain visible while scrolling the category list */}
-      <div className="sticky top-14 md:top-0 z-10 -mx-5 px-5 md:-mx-8 md:px-8 pt-1 pb-3 bg-bg border-b border-divider mb-5">
+      <div className="sticky top-0 z-10 -mx-5 px-5 md:-mx-8 md:px-8 pt-1 pb-3 bg-bg border-b border-divider mb-5">
 
         {/* Period selector */}
         <div className="flex items-center gap-1.5 mb-3">
