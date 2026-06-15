@@ -104,3 +104,124 @@ describe('buildInsights', () => {
     expect(eom[0]?.icon).toBe('🔮');
   });
 });
+
+describe('buildInsights — FASE 2 minimal insights', () => {
+  const build = (txs: Transaction[], over: Partial<Parameters<typeof buildInsights>[0]> = {}) =>
+    buildInsights({
+      transactions: txs, monthlyIncome: 0, monthlyExpenses: 0, monthlyInvestments: 0,
+      getCat: cat, now: NOW, ...over,
+    });
+
+  // #35 — Cash runway
+  describe('cash runway', () => {
+    const healthy: Transaction[] = [
+      tx({ type: 'income', amount: 2000, date: '2026-03-05' }), tx({ type: 'expense', amount: 300, date: '2026-03-12' }),
+      tx({ type: 'income', amount: 2000, date: '2026-04-05' }), tx({ type: 'expense', amount: 300, date: '2026-04-12' }),
+      tx({ type: 'income', amount: 2000, date: '2026-05-05' }), tx({ type: 'expense', amount: 300, date: '2026-05-12' }),
+    ];
+    it('surfaces a positive runway when the balance covers ≥2 months of spend', () => {
+      const res = build(healthy);
+      const i = res.find(x => x.icon === '🏦');
+      expect(i).toBeDefined();
+      expect(i!.tone).toBe('positive');
+    });
+    it('does not surface a runway when there is no expense history', () => {
+      const res = build([tx({ type: 'income', amount: 2000, date: '2026-05-05' })]);
+      expect(res.some(x => x.icon === '🏦' || x.icon === '⏳')).toBe(false);
+    });
+  });
+
+  // #36 — Dormant category reawakening
+  describe('dormant category', () => {
+    it('flags a category that returns after ≥3 zero months', () => {
+      const txs = [
+        tx({ type: 'expense', amount: 60, date: '2026-01-10', category: 'ristoranti' }),
+        tx({ type: 'expense', amount: 60, date: '2026-02-10', category: 'ristoranti' }),
+        // March, April, May: no 'ristoranti' spend
+        tx({ type: 'expense', amount: 120, date: '2026-06-10', category: 'ristoranti' }),
+      ];
+      const res = build(txs);
+      expect(res.some(x => /tornata dopo una pausa/.test(x.title))).toBe(true);
+    });
+    it('does not flag a category that was active last month', () => {
+      const txs = [
+        tx({ type: 'expense', amount: 60, date: '2026-01-10', category: 'ristoranti' }),
+        tx({ type: 'expense', amount: 60, date: '2026-05-10', category: 'ristoranti' }),
+        tx({ type: 'expense', amount: 120, date: '2026-06-10', category: 'ristoranti' }),
+      ];
+      const res = build(txs);
+      expect(res.some(x => /tornata dopo una pausa/.test(x.title))).toBe(false);
+    });
+  });
+
+  // #37 — Impulse cluster
+  describe('impulse cluster', () => {
+    it('flags a single day with ≥4 expenses', () => {
+      const txs = [
+        tx({ amount: 50, date: '2026-06-05' }), tx({ amount: 50, date: '2026-06-05' }),
+        tx({ amount: 50, date: '2026-06-05' }), tx({ amount: 50, date: '2026-06-05' }),
+      ];
+      const res = build(txs, { monthlyExpenses: 200 });
+      expect(res.some(x => /Giornata di spesa intensa/.test(x.title))).toBe(true);
+      expect(res.find(x => /Giornata di spesa intensa/.test(x.title))!.tone).toBe('caution');
+    });
+    it('does not flag spending spread thinly across days', () => {
+      const txs = [
+        tx({ amount: 100, date: '2026-06-03' }),
+        tx({ amount: 100, date: '2026-06-08' }),
+        tx({ amount: 100, date: '2026-06-12' }),
+      ];
+      const res = build(txs, { monthlyExpenses: 300 });
+      expect(res.some(x => /Giornata di spesa intensa/.test(x.title))).toBe(false);
+    });
+  });
+
+  // #38 — First-time merchant
+  describe('first-time merchant', () => {
+    it('flags a never-seen description above the threshold', () => {
+      const txs = [
+        tx({ amount: 40, date: '2026-05-10', description: 'Esselunga' }),
+        tx({ amount: 80, date: '2026-06-08', description: 'Decathlon' }),
+      ];
+      const res = build(txs);
+      expect(res.some(x => /Prima volta: Decathlon/.test(x.title))).toBe(true);
+    });
+    it('does not flag a description seen in a prior month', () => {
+      const txs = [
+        tx({ amount: 40, date: '2026-05-10', description: 'Esselunga' }),
+        tx({ amount: 80, date: '2026-06-08', description: 'Esselunga' }),
+      ];
+      const res = build(txs);
+      expect(res.some(x => /Prima volta/.test(x.title))).toBe(false);
+    });
+    it('does not flag a new description below the amount threshold', () => {
+      const txs = [
+        tx({ amount: 40, date: '2026-05-10', description: 'Esselunga' }),
+        tx({ amount: 30, date: '2026-06-08', description: 'Decathlon' }),
+      ];
+      const res = build(txs);
+      expect(res.some(x => /Prima volta/.test(x.title))).toBe(false);
+    });
+  });
+
+  // #39 — Savings rate vs benchmark
+  describe('savings rate benchmark', () => {
+    const months = (income: number, expense: number): Transaction[] => [
+      tx({ type: 'income', amount: income, date: '2026-04-05' }), tx({ type: 'expense', amount: expense, date: '2026-04-12' }),
+      tx({ type: 'income', amount: income, date: '2026-05-05' }), tx({ type: 'expense', amount: expense, date: '2026-05-12' }),
+    ];
+    it('celebrates a savings rate at or above 20%', () => {
+      const res = build(months(2000, 300)); // rate 85%
+      const i = res.find(x => x.icon === '🌟');
+      expect(i).toBeDefined();
+      expect(i!.tone).toBe('positive');
+    });
+    it('reports a below-benchmark rate neutrally, never blaming', () => {
+      const res = build(months(2000, 1800)); // rate 10%
+      const i = res.find(x => x.icon === '🌱');
+      expect(i).toBeDefined();
+      expect(i!.tone).toBe('neutral');
+      expect(res.some(x => x.icon === '🌟')).toBe(false);
+    });
+  });
+});

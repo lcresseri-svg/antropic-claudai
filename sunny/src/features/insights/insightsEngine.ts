@@ -345,6 +345,15 @@ export function buildInsights(input: InsightInput): Insight[] {
 
   const avg = (a: number[]) => a.length ? a.reduce((s, v) => s + v, 0) / a.length : 0;
 
+  // ── FASE 2 thresholds (minimal-tier insights) ─────────────────────────────
+  const CASH_AUTONOMY_MIN_MONTHS = 2;    // runway below this → caution, else positive
+  const SAVINGS_RATE_BENCHMARK   = 0.20; // 20% of income is the common "healthy" target
+  const DORMANT_GAP_MONTHS       = 3;    // consecutive zero months before a re-spend counts
+  const DORMANT_MIN_ACTIVE       = 2;    // skip near-new categories (<2 active months ever)
+  const CLUSTER_MIN_TX           = 4;    // ≥4 expense tx in a single day → cluster
+  const CLUSTER_DAY_SHARE        = 0.35; // or one day holding ≥35% of the month's spend
+  const FIRST_TIME_MIN_AMOUNT    = 50;   // minimum amount to surface a brand-new merchant
+
   // ── 0. ALERT — Upcoming recurring payments ────────────────────────────────
   const seriesMap = new Map<string, Transaction>();
   for (const t of transactions) {
@@ -1211,6 +1220,159 @@ export function buildInsights(input: InsightInput): Insight[] {
             chart: { labels: months3.map(m => shortMonth(m.key)), values: avgSize.map(v => Math.round(v)), format: 'currency' },
           } });
       }
+    }
+  }
+
+  // ── 35. HIGHLIGHT — Cash runway (accounting balance ÷ avg monthly spend) ──
+  if (h.avgExpense > 0) {
+    let netBalance = 0;
+    for (const t of transactions) {
+      if (t.type === 'income')          netBalance += t.amount;
+      else if (t.type === 'expense')    netBalance -= ownShare(t);
+      else if (t.type === 'investment') netBalance -= investSign(t) * t.amount;
+    }
+    if (netBalance > 0) {
+      const monthsCovered = netBalance / h.avgExpense;
+      const healthy = monthsCovered >= CASH_AUTONOMY_MIN_MONTHS;
+      const mLabel = monthsCovered >= 10 ? `${Math.round(monthsCovered)}` : monthsCovered.toFixed(1);
+      push({
+        icon: healthy ? '🏦' : '⏳', category: 'highlight',
+        title: healthy
+          ? `Il saldo copre ~${mLabel} mesi di spese`
+          : `Saldo sotto i ${CASH_AUTONOMY_MIN_MONTHS} mesi di spese`,
+        detail: `${formatCurrency(netBalance)} di saldo contabile · ~${formatCurrency(Math.round(h.avgExpense))}/mese di uscite`,
+        accent: healthy ? ACCENT.good : ACCENT.warn,
+        tone: healthy ? 'positive' : 'caution',
+        explain: {
+          what: 'Per quanti mesi il saldo coprirebbe le spese se le entrate si fermassero: un\'autonomia teorica, non un consiglio.',
+          how: 'Saldo contabile (tutte le entrate − uscite − investimenti registrati nell\'app) ÷ media delle uscite degli ultimi mesi.',
+          basis: 'Saldo contabile dell\'app (non il saldo reale in banca) + media uscite recenti.',
+          chart: { labels: ['Saldo', 'Uscite/mese'], values: [Math.round(netBalance), Math.round(h.avgExpense)], format: 'currency', highlightIndex: 0 },
+        },
+      }, 'minimal');
+    }
+  }
+
+  // ── 36. HABIT — A dormant category woke up this month ────────────────────
+  {
+    // Active months per expense category across all history (current excluded).
+    const catMonths: Record<string, Set<string>> = {};
+    for (const t of transactions) {
+      if (t.type !== 'expense' || t.date.slice(0, 7) === curMon) continue;
+      (catMonths[t.category] ??= new Set()).add(t.date.slice(0, 7));
+    }
+    const gapKeys = Array.from({ length: DORMANT_GAP_MONTHS }, (_, i) => monthKey(i + 1, now));
+    let wokeCat = '', wokeAmount = 0;
+    for (const [cat, amount] of Object.entries(curCat)) {
+      if (amount <= 0) continue;
+      const active = catMonths[cat];
+      if (!active || active.size < DORMANT_MIN_ACTIVE) continue; // skip near-new categories
+      if (gapKeys.every(k => !active.has(k)) && amount > wokeAmount) { wokeAmount = amount; wokeCat = cat; }
+    }
+    if (wokeCat) {
+      const c = getCat(wokeCat);
+      push({
+        icon: c.icon, category: 'habit',
+        title: `${c.label} è tornata dopo una pausa`,
+        detail: `${formatCurrency(wokeAmount)} questo mese · nessuna spesa nei ${DORMANT_GAP_MONTHS} mesi precedenti`,
+        accent: ACCENT.info,
+        tone: 'neutral',
+        explain: {
+          what: `Hai ripreso a spendere in ${c.label} dopo almeno ${DORMANT_GAP_MONTHS} mesi senza movimenti.`,
+          how: `Guardo le spese per categoria mese per mese: ${c.label} era a zero negli ultimi ${DORMANT_GAP_MONTHS} mesi e ricompare questo mese.`,
+          basis: 'Storico spese per categoria (solo categorie con almeno 2 mesi di attività).',
+        },
+      }, 'medium');
+    }
+  }
+
+  // ── 37. HABIT — Impulsive spending cluster in a single day ───────────────
+  if (monthlyExpenses > 0) {
+    const byDay: Record<string, { count: number; sum: number }> = {};
+    for (const t of transactions) {
+      if (t.type !== 'expense' || !t.date.startsWith(curMon)) continue;
+      const d = (byDay[t.date] ??= { count: 0, sum: 0 });
+      d.count++; d.sum += ownShare(t);
+    }
+    let topDay = '', peak = { count: 0, sum: 0 };
+    for (const [day, d] of Object.entries(byDay)) {
+      const hit = d.count >= CLUSTER_MIN_TX || d.sum / monthlyExpenses > CLUSTER_DAY_SHARE;
+      if (hit && d.sum > peak.sum) { topDay = day; peak = d; }
+    }
+    if (topDay) {
+      const share = pct(peak.sum, monthlyExpenses);
+      const dayLabel = capitalize(localDate(topDay).toLocaleDateString('it-IT', { day: 'numeric', month: 'long' }));
+      push({
+        icon: '🛍️', category: 'habit',
+        title: `Giornata di spesa intensa: ${dayLabel}`,
+        detail: `${peak.count} spese per ${formatCurrency(peak.sum)} · il ${share}% delle uscite del mese`,
+        accent: ACCENT.warn,
+        tone: 'caution',
+        explain: {
+          what: 'Un giorno in cui hai concentrato molte spese o una grossa fetta del mese: utile per riconoscere gli acquisti d\'impulso.',
+          how: `Sommo spese e numero di transazioni per ogni giorno del mese. Segnalo il giorno con almeno ${CLUSTER_MIN_TX} spese oppure oltre il ${Math.round(CLUSTER_DAY_SHARE * 100)}% delle uscite mensili.`,
+          basis: 'Spese del mese corrente, raggruppate per giorno.',
+        },
+      }, 'medium');
+    }
+  }
+
+  // ── 38. HIGHLIGHT — First time spending on a new merchant ────────────────
+  {
+    const norm = (s: string) => s.toLowerCase().trim();
+    const seenBefore = new Set<string>();
+    for (const t of transactions) {
+      if (t.type !== 'expense' || t.date.startsWith(curMon)) continue;
+      const d = norm(t.description);
+      if (d) seenBefore.add(d);
+    }
+    let newDesc = '', newAmount = 0, newCat = '';
+    for (const t of transactions) {
+      if (t.type !== 'expense' || !t.date.startsWith(curMon)) continue;
+      const d = norm(t.description);
+      if (!d || seenBefore.has(d)) continue;
+      const a = ownShare(t);
+      if (a >= FIRST_TIME_MIN_AMOUNT && a > newAmount) { newAmount = a; newDesc = t.description.trim(); newCat = t.category; }
+    }
+    if (newDesc) {
+      const c = getCat(newCat);
+      push({
+        icon: '🆕', category: 'highlight',
+        title: `Prima volta: ${newDesc.length > 28 ? newDesc.slice(0, 27) + '…' : newDesc}`,
+        detail: `${formatCurrency(newAmount)} in ${c.label} · descrizione mai vista prima`,
+        accent: ACCENT.info,
+        tone: 'neutral',
+        explain: {
+          what: 'Una spesa con una descrizione mai usata finora: può essere un nuovo esercente o un acquisto una tantum.',
+          how: `Confronto le descrizioni (in minuscolo, senza spazi extra) delle spese di questo mese con tutto lo storico. Segnalo la più alta tra le nuove, sopra ${formatCurrency(FIRST_TIME_MIN_AMOUNT)}.`,
+          basis: 'Tutte le descrizioni di spesa precedenti vs mese corrente.',
+        },
+      }, 'advanced');
+    }
+  }
+
+  // ── 39. HIGHLIGHT — Savings rate vs the 20% benchmark ────────────────────
+  if (h.avgIncome > 0 && h.months >= 2) {
+    const rate = (h.avgIncome - h.avgExpense - h.avgInvest) / h.avgIncome;
+    const ratePct = Math.round(rate * 100);
+    if (rate > 0) {
+      const meets = rate >= SAVINGS_RATE_BENCHMARK;
+      const benchPct = Math.round(SAVINGS_RATE_BENCHMARK * 100);
+      push({
+        icon: meets ? '🌟' : '🌱', category: 'highlight',
+        title: meets ? `Risparmi il ${ratePct}% del reddito` : `Tasso di risparmio: ${ratePct}%`,
+        detail: meets
+          ? `Sopra il ${benchPct}% di riferimento — un buon ritmo`
+          : `Riferimento comune: ${benchPct}% · ogni punto in più aiuta`,
+        accent: meets ? ACCENT.good : ACCENT.info,
+        tone: meets ? 'positive' : 'neutral',
+        explain: {
+          what: 'La quota media del reddito che ti resta dopo spese e investimenti, confrontata con il riferimento del 20%. Investimenti esclusi dal risparmio.',
+          how: '(Entrate medie − Uscite medie − Investimenti medi) ÷ Entrate medie, sugli ultimi mesi con dati.',
+          basis: `Ultimi ${h.months} mesi con dati.`,
+          chart: { labels: ['Tu', 'Riferimento'], values: [ratePct, benchPct], format: 'percent', highlightIndex: 0 },
+        },
+      }, 'minimal');
     }
   }
 

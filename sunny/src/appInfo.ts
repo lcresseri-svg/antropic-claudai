@@ -1,4 +1,4 @@
-export const APP_VERSION = '1.9.28';
+export const APP_VERSION = '1.9.29';
 
 /**
  * Release channel. While in 'beta' the app is still under active development
@@ -15,6 +15,15 @@ export interface VersionEntry {
 
 /** Registro versioni mostrato in Impostazioni → Registro versioni. */
 export const VERSIONS: VersionEntry[] = [
+  {
+    version: '1.9.29', date: '2026-06-15', title: 'Nuovi consigli essenziali',
+    changes: [
+      'Autonomia di cassa: per quanti mesi il saldo contabile coprirebbe le tue spese.',
+      'Tasso di risparmio confrontato con il riferimento del 20%, sempre con tono informativo.',
+      'Segnalazione delle categorie che tornano dopo una pausa e delle giornate con spesa concentrata.',
+      'Evidenziato il primo acquisto presso un esercente mai visto prima.',
+    ],
+  },
   {
     version: '1.9.28', date: '2026-06-15', title: 'Consigli più puliti',
     changes: [
