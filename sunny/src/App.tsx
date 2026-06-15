@@ -139,6 +139,19 @@ function Main({ user, onLogOut, onDeleteAccount }: {
   const { accounts, categories, includeInvestments, enableInvestments, enableBudget, aiCoachWidgetEnabled, settingsLoaded, insightDepth, aiEnabled } = useSettings();
   const tx = useTransactions(user, accounts, includeInvestments, categories, enableInvestments);
   const budget = useBudget(user);
+
+  // Portfolio snapshot for the insight engine: paid-in capital (versato) and
+  // current market value (controvalore = each investment category's currentValue,
+  // falling back to the deposited capital when no market value is set).
+  const portfolio = useMemo(() => {
+    if (!enableInvestments || tx.investmentTotal <= 0) return undefined;
+    let controvalore = 0;
+    for (const c of categories) {
+      if (c.kind !== 'investment') continue;
+      controvalore += c.currentValue ?? tx.investmentByCategory[c.id] ?? 0;
+    }
+    return { controvalore, versato: tx.investmentTotal };
+  }, [enableInvestments, categories, tx.investmentTotal, tx.investmentByCategory]);
   const uiV2 = canUseUiV2(user);
   const [editing, setEditing] = useState<Transaction | null>(null);
   const [seriesEdit, setSeriesEdit] = useState(false);
@@ -314,6 +327,7 @@ function Main({ user, onLogOut, onDeleteAccount }: {
                   investmentByCategory={tx.investmentByCategory}
                   accountBalances={tx.accountBalances}
                   trend={tx.trend} transactions={tx.transactions}
+                  portfolio={portfolio}
                   savingsTarget={budget.budget.savingsTarget}
                   onSeeInsights={() => navigate('/insights')}
                   onSeeInvestments={() => navigate('/investments')}
@@ -330,6 +344,7 @@ function Main({ user, onLogOut, onDeleteAccount }: {
                   investmentByCategory={tx.investmentByCategory}
                   accountBalances={tx.accountBalances}
                   trend={tx.trend} transactions={tx.transactions}
+                  portfolio={portfolio}
                   onSeeInsights={() => navigate('/insights')}
                   onSeeInvestments={() => navigate('/investments')}
                   onSeeCategories={() => navigate('/category-spending')}
@@ -355,11 +370,11 @@ function Main({ user, onLogOut, onDeleteAccount }: {
                 {uiV2 ? (
                   <InsightsScreenV2 user={user} transactions={tx.transactions}
                     monthlyIncome={tx.monthlyIncome} monthlyExpenses={tx.monthlyExpenses}
-                    monthlyInvestments={tx.monthlyInvestments} />
+                    monthlyInvestments={tx.monthlyInvestments} portfolio={portfolio} />
                 ) : (
                   <InsightsScreen transactions={tx.transactions}
                     monthlyIncome={tx.monthlyIncome} monthlyExpenses={tx.monthlyExpenses}
-                    monthlyInvestments={tx.monthlyInvestments} />
+                    monthlyInvestments={tx.monthlyInvestments} portfolio={portfolio} />
                 )}
               </div>
             } />

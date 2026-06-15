@@ -225,3 +225,129 @@ describe('buildInsights — FASE 2 minimal insights', () => {
     });
   });
 });
+
+describe('buildInsights — FASE 3 medium insights', () => {
+  const build = (txs: Transaction[], over: Partial<Parameters<typeof buildInsights>[0]> = {}) =>
+    buildInsights({
+      transactions: txs, monthlyIncome: 0, monthlyExpenses: 0, monthlyInvestments: 0,
+      getCat: cat, now: NOW, ...over,
+    });
+
+  // #40 — Portfolio performance
+  describe('portfolio performance', () => {
+    it('reports a latent gain positively', () => {
+      const res = build([], { portfolio: { controvalore: 12000, versato: 10000 } });
+      const i = res.find(x => /Investimenti in guadagno/.test(x.title));
+      expect(i).toBeDefined();
+      expect(i!.tone).toBe('positive');
+    });
+    it('reports a latent loss as caution', () => {
+      const res = build([], { portfolio: { controvalore: 8000, versato: 10000 } });
+      const i = res.find(x => /Investimenti in perdita/.test(x.title));
+      expect(i).toBeDefined();
+      expect(i!.tone).toBe('caution');
+    });
+    it('stays silent on a flat portfolio (<1%)', () => {
+      const res = build([], { portfolio: { controvalore: 10050, versato: 10000 } });
+      expect(res.some(x => /Investimenti in (guadagno|perdita)/.test(x.title))).toBe(false);
+    });
+  });
+
+  // #41 — Net worth trajectory
+  describe('net worth trajectory', () => {
+    const climbing: Transaction[] = [
+      tx({ type: 'income', amount: 2000, date: '2026-03-05' }), tx({ type: 'expense', amount: 300, date: '2026-03-12' }),
+      tx({ type: 'income', amount: 2000, date: '2026-04-05' }), tx({ type: 'expense', amount: 300, date: '2026-04-12' }),
+      tx({ type: 'income', amount: 2000, date: '2026-05-05' }), tx({ type: 'expense', amount: 300, date: '2026-05-12' }),
+      tx({ type: 'income', amount: 2000, date: '2026-06-05' }), tx({ type: 'expense', amount: 300, date: '2026-06-10' }),
+    ];
+    it('celebrates a new all-time net-worth high', () => {
+      const res = build(climbing);
+      const i = res.find(x => /Nuovo massimo di patrimonio/.test(x.title));
+      expect(i).toBeDefined();
+      expect(i!.tone).toBe('positive');
+    });
+    it('stays silent when the latest month is not a new high', () => {
+      const dipping = [
+        tx({ type: 'income', amount: 2000, date: '2026-03-05' }), tx({ type: 'expense', amount: 300, date: '2026-03-12' }),
+        tx({ type: 'income', amount: 2000, date: '2026-04-05' }), tx({ type: 'expense', amount: 300, date: '2026-04-12' }),
+        tx({ type: 'income', amount: 2000, date: '2026-05-05' }), tx({ type: 'expense', amount: 300, date: '2026-05-12' }),
+        // June: big spend, cumulative dips below May's peak
+        tx({ type: 'expense', amount: 2000, date: '2026-06-10' }),
+      ];
+      const res = build(dipping);
+      expect(res.some(x => /Nuovo massimo di patrimonio/.test(x.title))).toBe(false);
+    });
+  });
+
+  // #42 — Subscription price creep
+  describe('price creep', () => {
+    const series = (amounts: number[]): Transaction[] =>
+      amounts.map((a, i) => tx({
+        type: 'expense', amount: a, seriesId: 'netflix', description: 'Netflix',
+        date: `2026-0${3 + i}-01`,
+      }));
+    it('flags a stable subscription that jumped ≥10%', () => {
+      const res = build(series([10, 10, 10, 13]));
+      const i = res.find(x => /Rincaro/.test(x.title));
+      expect(i).toBeDefined();
+      expect(i!.tone).toBe('caution');
+    });
+    it('ignores a subscription with a flat price', () => {
+      const res = build(series([10, 10, 10, 10]));
+      expect(res.some(x => /Rincaro/.test(x.title))).toBe(false);
+    });
+    it('ignores a naturally-variable series (unstable baseline)', () => {
+      const res = build(series([5, 15, 10, 20]));
+      expect(res.some(x => /Rincaro/.test(x.title))).toBe(false);
+    });
+  });
+
+  // #43 — Payday effect
+  describe('payday effect', () => {
+    const paycheck = tx({ type: 'income', amount: 2000, description: 'Stipendio', recurring: { freq: 'monthly' }, date: '2026-05-27' });
+    it('flags spending clustered right after payday', () => {
+      const txs = [
+        paycheck,
+        // window [27, end]: heavy; rest of month: light
+        tx({ amount: 300, date: '2026-03-28' }), tx({ amount: 100, date: '2026-03-05' }),
+        tx({ amount: 300, date: '2026-04-28' }), tx({ amount: 100, date: '2026-04-05' }),
+        tx({ amount: 300, date: '2026-05-28' }), tx({ amount: 100, date: '2026-05-05' }),
+      ];
+      const res = build(txs);
+      const i = res.find(x => /Effetto stipendio/.test(x.title));
+      expect(i).toBeDefined();
+      expect(i!.tone).toBe('neutral');
+    });
+    it('stays silent when spending is spread through the month', () => {
+      const txs = [
+        paycheck,
+        tx({ amount: 100, date: '2026-03-05' }), tx({ amount: 100, date: '2026-03-12' }), tx({ amount: 100, date: '2026-03-19' }),
+        tx({ amount: 100, date: '2026-04-05' }), tx({ amount: 100, date: '2026-04-12' }), tx({ amount: 100, date: '2026-04-19' }),
+        tx({ amount: 100, date: '2026-05-05' }), tx({ amount: 100, date: '2026-05-12' }), tx({ amount: 100, date: '2026-05-19' }),
+      ];
+      const res = build(txs);
+      expect(res.some(x => /Effetto stipendio/.test(x.title))).toBe(false);
+    });
+  });
+
+  // #44 — Month front-loading
+  describe('front-loading', () => {
+    // Historically spend lands late (day 25); only €100 by day 15 of a €1000 month.
+    const lateSpenders: Transaction[] = [
+      tx({ amount: 100, date: '2026-03-05' }), tx({ amount: 900, date: '2026-03-25' }),
+      tx({ amount: 100, date: '2026-04-05' }), tx({ amount: 900, date: '2026-04-25' }),
+      tx({ amount: 100, date: '2026-05-05' }), tx({ amount: 900, date: '2026-05-25' }),
+    ];
+    it('warns when this month is well ahead of the usual cumulative pace', () => {
+      const res = build(lateSpenders, { monthlyExpenses: 200 }); // usual-by-day-15 ≈ €100
+      const i = res.find(x => /Spese in anticipo sul mese/.test(x.title));
+      expect(i).toBeDefined();
+      expect(i!.tone).toBe('caution');
+    });
+    it('stays silent when spending is in line with the usual pace', () => {
+      const res = build(lateSpenders, { monthlyExpenses: 100 });
+      expect(res.some(x => /Spese in anticipo sul mese/.test(x.title))).toBe(false);
+    });
+  });
+});

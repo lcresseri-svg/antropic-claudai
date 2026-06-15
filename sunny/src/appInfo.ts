@@ -1,4 +1,4 @@
-export const APP_VERSION = '1.9.29';
+export const APP_VERSION = '1.9.30';
 
 /**
  * Release channel. While in 'beta' the app is still under active development
@@ -15,6 +15,15 @@ export interface VersionEntry {
 
 /** Registro versioni mostrato in Impostazioni → Registro versioni. */
 export const VERSIONS: VersionEntry[] = [
+  {
+    version: '1.9.30', date: '2026-06-15', title: 'Consigli su investimenti e abitudini',
+    changes: [
+      'Andamento del portafoglio: plusvalenza o minusvalenza latente rispetto al capitale versato.',
+      'Nuovo massimo di patrimonio quando risparmi e investimenti toccano un record.',
+      'Avviso di rincaro quando un abbonamento ricorrente aumenta di prezzo.',
+      'Effetto stipendio e spese in anticipo sul mese, per riconoscere le abitudini di spesa.',
+    ],
+  },
   {
     version: '1.9.29', date: '2026-06-15', title: 'Nuovi consigli essenziali',
     changes: [

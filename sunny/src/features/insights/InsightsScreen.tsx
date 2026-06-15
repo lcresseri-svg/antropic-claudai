@@ -11,6 +11,7 @@ interface Props {
   monthlyIncome: number;
   monthlyExpenses: number;
   monthlyInvestments: number;
+  portfolio?: { controvalore: number; versato: number };
 }
 
 const CAT_META: Record<InsightCategory, { label: string; icon: string }> = {
@@ -36,6 +37,7 @@ export function InsightsScreen(p: Props) {
     getCat,
     depth: insightDepth,
     forecastV3Categories: categories.filter(c => c.kind === 'expense'),
+    portfolio: p.portfolio,
   });
 
   const grouped = new Map<InsightCategory, Insight[]>();

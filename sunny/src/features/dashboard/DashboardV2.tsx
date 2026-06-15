@@ -25,6 +25,7 @@ interface Props {
   accountBalances: Record<string, number>;
   trend: { key: string; income: number; expense: number; invest: number }[];
   transactions: Transaction[];
+  portfolio?: { controvalore: number; versato: number };
   // The following props are kept for backward compat with the App.tsx call site
   // but are not used in this layout.
   savingsTarget: number;
@@ -67,8 +68,9 @@ export function DashboardV2(p: Props) {
       getCat,
       depth: insightDepth,
       forecastV3Categories: categories.filter(c => c.kind === 'expense'),
+      portfolio: p.portfolio,
     }),
-  [p.transactions, p.monthlyIncome, p.monthlyExpenses, p.monthlyInvestments, getCat, insightDepth, categories]);
+  [p.transactions, p.monthlyIncome, p.monthlyExpenses, p.monthlyInvestments, getCat, insightDepth, categories, p.portfolio]);
 
   const digestInput = useMemo(() => ({
     income: p.monthlyIncome,

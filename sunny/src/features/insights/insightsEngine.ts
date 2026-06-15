@@ -146,6 +146,13 @@ function pct(part: number, whole: number): number {
   return whole > 0 ? Math.round((part / whole) * 100) : 0;
 }
 
+function median(arr: number[]): number {
+  if (arr.length === 0) return 0;
+  const s = [...arr].sort((a, b) => a - b);
+  const mid = Math.floor(s.length / 2);
+  return s.length % 2 ? s[mid] : (s[mid - 1] + s[mid]) / 2;
+}
+
 // ── Monthly stat helpers ──────────────────────────────────────────────────────
 
 interface MonthStats {
@@ -301,6 +308,12 @@ export interface InsightInput {
    * passes this, so V3 is the live path for all cards.
    */
   forecastV3Categories?: CategoryDef[];
+  /**
+   * Current investment portfolio snapshot, used by the portfolio-performance and
+   * net-worth insights. `controvalore` = current market value, `versato` = net
+   * paid-in capital. Optional — screens without investment context omit it.
+   */
+  portfolio?: { controvalore: number; versato: number };
 }
 
 export function buildInsights(input: InsightInput): Insight[] {
@@ -353,6 +366,18 @@ export function buildInsights(input: InsightInput): Insight[] {
   const CLUSTER_MIN_TX           = 4;    // ≥4 expense tx in a single day → cluster
   const CLUSTER_DAY_SHARE        = 0.35; // or one day holding ≥35% of the month's spend
   const FIRST_TIME_MIN_AMOUNT    = 50;   // minimum amount to surface a brand-new merchant
+
+  // ── FASE 3 thresholds (medium-tier insights) ─────────────────────────────
+  const PORTFOLIO_MIN_PCT     = 1;     // skip portfolio insight when |P/L| < 1%
+  const NETWORTH_MIN_MONTHS   = 3;     // need ≥3 months of history for a trajectory
+  const CREEP_MIN_OCCURRENCES = 3;     // ≥3 occurrences (≥2 baseline + 1 latest)
+  const CREEP_PCT             = 0.10;  // latest ≥ +10% over the baseline median
+  const CREEP_STABILITY       = 1.15;  // baseline must cluster tightly (max ≤ median×1.15)
+  const CREEP_MIN_DELTA       = 1;     // and rise by at least €1 (avoid trivial creep)
+  const PAYDAY_WINDOW_DAYS    = 7;     // spending window right after payday
+  const PAYDAY_MIN_SHARE      = 0.35;  // surface when the window holds ≥35% of monthly spend
+  const FRONTLOAD_RATIO       = 1.25;  // spent ≥1.25× the usual cumulative-by-today
+  const FRONTLOAD_MIN_DAY     = 4;     // not before day 4 (too little signal early)
 
   // ── 0. ALERT — Upcoming recurring payments ────────────────────────────────
   const seriesMap = new Map<string, Transaction>();
@@ -1373,6 +1398,197 @@ export function buildInsights(input: InsightInput): Insight[] {
           chart: { labels: ['Tu', 'Riferimento'], values: [ratePct, benchPct], format: 'percent', highlightIndex: 0 },
         },
       }, 'minimal');
+    }
+  }
+
+  // ── 40. HIGHLIGHT — Portfolio performance (latent gain/loss) ─────────────
+  if (input.portfolio && input.portfolio.versato > 0) {
+    const { controvalore, versato } = input.portfolio;
+    const pl = controvalore - versato;
+    const rawPct = (pl / versato) * 100;
+    const plPct = Math.round(rawPct);
+    if (Math.abs(rawPct) >= PORTFOLIO_MIN_PCT) {
+      const gain = pl >= 0;
+      push({
+        icon: gain ? '📈' : '📉', category: 'highlight',
+        title: gain
+          ? `Investimenti in guadagno: +${formatCurrency(pl)} (+${plPct}%)`
+          : `Investimenti in perdita: −${formatCurrency(-pl)} (${plPct}%)`,
+        detail: `Controvalore ${formatCurrency(controvalore)} su ${formatCurrency(versato)} versati`,
+        accent: gain ? ACCENT.good : ACCENT.warn,
+        tone: gain ? 'positive' : 'caution',
+        explain: {
+          what: 'La plusvalenza o minusvalenza latente del portafoglio: quanto vale oggi rispetto a quanto hai versato. È un valore non realizzato, cambia con i mercati.',
+          how: 'Controvalore attuale − capitale versato. La percentuale è calcolata sul versato.',
+          basis: 'Valori di mercato impostati sulle categorie di investimento + versamenti netti.',
+          chart: { labels: ['Versato', 'Controvalore'], values: [Math.round(versato), Math.round(controvalore)], format: 'currency', highlightIndex: 1 },
+        },
+      }, 'minimal');
+    }
+  }
+
+  // ── 41. HIGHLIGHT — Net worth trajectory (new all-time high) ─────────────
+  if (h.months >= NETWORTH_MIN_MONTHS) {
+    const allKeys = new Set<string>();
+    for (const t of transactions) allKeys.add(t.date.slice(0, 7));
+    const sortedKeys = [...allKeys].sort();
+    if (sortedKeys.length >= NETWORTH_MIN_MONTHS) {
+      const controvalore = input.portfolio?.controvalore ?? 0;
+      let cum = 0;
+      const nw: { key: string; value: number }[] = [];
+      for (const k of sortedKeys) {
+        cum += monthStats(transactions, k).savings;
+        nw.push({ key: k, value: cum + controvalore });
+      }
+      const latest = nw[nw.length - 1];
+      const prevMax = Math.max(...nw.slice(0, -1).map(p => p.value));
+      if (latest.value > prevMax && latest.value > 0) {
+        const last6 = nw.slice(-6);
+        push({
+          icon: '🏔️', category: 'highlight',
+          title: `Nuovo massimo di patrimonio: ${formatCurrency(Math.round(latest.value))}`,
+          detail: controvalore > 0
+            ? `Risparmi accumulati + investimenti (${formatCurrency(Math.round(controvalore))})`
+            : 'Risparmi accumulati nel tempo',
+          accent: ACCENT.good,
+          tone: 'positive',
+          explain: {
+            what: 'Il patrimonio stimato — risparmi accumulati più il valore attuale degli investimenti — ha toccato un nuovo massimo.',
+            how: 'Sommo mese dopo mese il risparmio (entrate − uscite − investimenti) e aggiungo il controvalore attuale degli investimenti. Il valore di questo mese supera tutti i precedenti.',
+            basis: controvalore > 0 ? 'Tutto lo storico dei movimenti + controvalore investimenti.' : 'Tutto lo storico dei movimenti.',
+            chart: { labels: last6.map(p => shortMonth(p.key)), values: last6.map(p => Math.round(p.value)), format: 'currency', highlightIndex: last6.length - 1 },
+          },
+        }, 'medium');
+      }
+    }
+  }
+
+  // ── 42. HABIT — Subscription price creep ─────────────────────────────────
+  // Group recurring expense occurrences by series; flag a latest amount that is
+  // ≥CREEP_PCT above the baseline median, but only when the baseline is tight
+  // (so naturally-variable bills don't false-positive).
+  {
+    const norm = (s: string) => s.toLowerCase().trim();
+    const seriesAmounts: Record<string, { label: string; items: { date: string; amount: number }[] }> = {};
+    for (const t of transactions) {
+      if (t.type !== 'expense') continue;
+      const key = t.seriesId ?? (t.recurring ? `rec:${norm(t.description)}` : null);
+      if (!key) continue;
+      const g = (seriesAmounts[key] ??= { label: t.description.trim() || 'Abbonamento', items: [] });
+      g.items.push({ date: t.date, amount: t.amount });
+    }
+    let creepLabel = '', creepFrom = 0, creepTo = 0, creepPct = 0;
+    for (const g of Object.values(seriesAmounts)) {
+      if (g.items.length < CREEP_MIN_OCCURRENCES) continue;
+      const sorted = [...g.items].sort((a, b) => a.date.localeCompare(b.date));
+      const latest = sorted[sorted.length - 1].amount;
+      const baseline = sorted.slice(0, -1).map(i => i.amount);
+      const med = median(baseline);
+      if (med <= 0) continue;
+      const maxBaseline = Math.max(...baseline);
+      if (maxBaseline > med * CREEP_STABILITY) continue;       // baseline not stable → skip
+      if (latest < med * (1 + CREEP_PCT) || latest - med < CREEP_MIN_DELTA) continue;
+      const incPct = Math.round(((latest - med) / med) * 100);
+      if (incPct > creepPct) { creepPct = incPct; creepLabel = g.label; creepFrom = med; creepTo = latest; }
+    }
+    if (creepLabel) {
+      push({
+        icon: '🧾', category: 'habit',
+        title: `Rincaro: ${creepLabel.length > 24 ? creepLabel.slice(0, 23) + '…' : creepLabel} +${creepPct}%`,
+        detail: `Da ~${formatCurrency(creepFrom)} a ${formatCurrency(creepTo)} sull'ultimo addebito`,
+        accent: ACCENT.warn,
+        tone: 'caution',
+        explain: {
+          what: 'Un pagamento ricorrente è aumentato rispetto al suo solito importo: utile per accorgersi dei rincari degli abbonamenti.',
+          how: `Confronto l'ultimo addebito con la mediana degli addebiti precedenti della stessa serie (almeno ${CREEP_MIN_OCCURRENCES} occorrenze). Segnalo solo se gli importi precedenti erano stabili e l'aumento supera il ${Math.round(CREEP_PCT * 100)}%.`,
+          basis: 'Storico degli addebiti ricorrenti della stessa serie.',
+          chart: { labels: ['Prima', 'Ultimo'], values: [Math.round(creepFrom), Math.round(creepTo)], format: 'currency', highlightIndex: 1 },
+        },
+      }, 'medium');
+    }
+  }
+
+  // ── 43. HABIT — Payday effect ────────────────────────────────────────────
+  // Detect the main recurring paycheck (largest recurring income series), then
+  // measure how much spending clusters in the PAYDAY_WINDOW_DAYS right after it.
+  {
+    let payday: Transaction | null = null;
+    for (const [, t] of seriesMap) {
+      if (t.type !== 'income') continue;
+      if (!payday || t.amount > payday.amount) payday = t;
+    }
+    if (payday) {
+      const paydayDom = localDate(payday.date).getDate();
+      const histKeys = [monthKey(1, now), monthKey(2, now), monthKey(3, now)];
+      let windowSpend = 0, totalSpend = 0;
+      for (const k of histKeys) {
+        const [y, m] = k.split('-').map(Number);
+        const dim = new Date(y, m, 0).getDate();
+        const start = Math.min(paydayDom, dim);
+        const end = Math.min(paydayDom + PAYDAY_WINDOW_DAYS - 1, dim);
+        for (const t of transactions) {
+          if (t.type !== 'expense' || t.date.slice(0, 7) !== k) continue;
+          const s = ownShare(t);
+          totalSpend += s;
+          const dom = localDate(t.date).getDate();
+          if (dom >= start && dom <= end) windowSpend += s;
+        }
+      }
+      if (totalSpend > 0) {
+        const share = windowSpend / totalSpend;
+        if (share >= PAYDAY_MIN_SHARE) {
+          push({
+            icon: '💸', category: 'habit',
+            title: `Effetto stipendio: ${Math.round(share * 100)}% di spese nei giorni dopo l'accredito`,
+            detail: `Concentri le uscite nei ${PAYDAY_WINDOW_DAYS} giorni dopo il ${paydayDom} del mese`,
+            accent: ACCENT.info,
+            tone: 'neutral',
+            explain: {
+              what: 'Tendi a spendere di più subito dopo l\'arrivo dello stipendio. Riconoscerlo aiuta a distribuire meglio le spese nel mese.',
+              how: `Individuo l'entrata ricorrente principale (il ${paydayDom} del mese) e sommo le uscite nei ${PAYDAY_WINDOW_DAYS} giorni successivi, confrontandole col totale del mese.`,
+              basis: 'Ultimi 3 mesi di uscite vs entrata ricorrente principale.',
+            },
+          }, 'advanced');
+        }
+      }
+    }
+  }
+
+  // ── 44. HABIT — Month front-loading (spending earlier than usual) ────────
+  if (h.avgExpense > 0 && monthlyExpenses > 0) {
+    const D = now.getDate();
+    if (D >= FRONTLOAD_MIN_DAY && prog < 0.9) {
+      const histKeys = [monthKey(1, now), monthKey(2, now), monthKey(3, now)];
+      const fractions: number[] = [];
+      for (const k of histKeys) {
+        let total = 0, byD = 0;
+        for (const t of transactions) {
+          if (t.type !== 'expense' || t.date.slice(0, 7) !== k) continue;
+          const s = ownShare(t);
+          total += s;
+          if (localDate(t.date).getDate() <= D) byD += s;
+        }
+        if (total > 0) fractions.push(byD / total);
+      }
+      if (fractions.length >= 2) {
+        const expectedByD = avg(fractions) * h.avgExpense;
+        if (expectedByD > 0 && monthlyExpenses >= expectedByD * FRONTLOAD_RATIO) {
+          const aheadPct = Math.round((monthlyExpenses / expectedByD - 1) * 100);
+          push({
+            icon: '⏩', category: 'habit',
+            title: `Spese in anticipo sul mese (+${aheadPct}%)`,
+            detail: `Hai già speso ${formatCurrency(monthlyExpenses)} · di solito a questo punto sei a ~${formatCurrency(Math.round(expectedByD))}`,
+            accent: ACCENT.warn,
+            tone: 'caution',
+            explain: {
+              what: 'Stai spendendo prima del solito: a questo giorno del mese hai già superato il tuo ritmo cumulato abituale. È un avviso anticipato, non una proiezione di fine mese.',
+              how: `Confronto quanto hai speso entro il giorno ${D} con quanto avevi tipicamente speso entro lo stesso giorno nei mesi scorsi (frazione media × media mensile).`,
+              basis: 'Spesa cumulata a oggi vs profilo cumulato degli ultimi mesi.',
+              chart: { labels: ['Solito a oggi', 'Ora'], values: [Math.round(expectedByD), Math.round(monthlyExpenses)], format: 'currency', highlightIndex: 1 },
+            },
+          }, 'medium');
+        }
+      }
     }
   }
 
