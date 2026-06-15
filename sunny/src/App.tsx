@@ -408,7 +408,7 @@ function Main({ user, onLogOut, onDeleteAccount }: {
             {isAdminUser(user) && (
               <Route path="/category-spending" element={
                 <div className="pt-4 md:pt-6">
-                  <CategorySpendingScreen transactions={tx.transactions} />
+                  <CategorySpendingScreen transactions={tx.transactions} categoryBudgets={budget.budget.categoryBudgets} />
                 </div>
               } />
             )}

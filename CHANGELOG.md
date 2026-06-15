@@ -17,6 +17,10 @@ git.
 
 ---
 
+## 2026-06-15
+
+- **[Claude]** **Nuova schermata analitica "Categorie"** (`CategorySpendingScreen` riscritta): sostituisce donut+lista con un'analisi delle spese per categoria nel tempo. Selettore periodo **Mese / 3M / 6M / 12M** con navigazione tra periodi precedenti/successivi (step a periodo intero, niente futuro), **riepilogo periodo** con totale e variazione vs periodo precedente, **insight Sunny deterministico** (driver dell'aumento / categoria più pesante), **barra composizione** top 4 + Altro, e **ranking a barre orizzontali** (niente bolle, niente donut come grafico principale). Il tap su una categoria apre una **scheda dettaglio** — bottom sheet su mobile, side panel a destra su desktop — con KPI, **grafico a linee** dell'andamento (con toggle Importo/Movimenti/Spesa media in modalità avanzata), nota Sunny e movimenti recenti; "Vedi tutti i movimenti" porta a Movimenti filtrati per categoria (`/transactions?cat=<id>`). La **densità informativa** segue il "Livello di analisi" esistente (Minimal/Media/Smanettone → `insightDepth`): Minimal mostra l'essenziale, Media aggiunge confronti e composizione, Smanettone aggiunge media storica, scostamento, budget usato, proiezione, ticket mediano e concentrazione top-3. Logica pura in `categoryAnalytics.ts` (range/aggregazioni/trend, con test). Nuovi componenti `CategoryTrendLineChart` e `CategoryDetailSheet`. Curata su mobile/desktop e dark/light. La schermata resta sotto la rotta esistente `/category-spending` (gate admin invariato).
+
 ## 2026-06-14
 
 - **[Claude]** **Annullate le bolle "Spese per categoria"**: ripristinato il grafico a **donut + lista** sia nella schermata dedicata `CategorySpendingScreen` sia nella card della dashboard `CategoryCard`. Rimosso il componente `CategoryBubbles.tsx` e il filtro per categoria via URL (`?cat=<id>`) in `TransactionList` (non più usato). Il **delta period-aware** per categoria resta (confronto col periodo precedente, testo colorato).

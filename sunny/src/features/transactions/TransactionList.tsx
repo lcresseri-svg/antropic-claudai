@@ -1,4 +1,5 @@
 import { useState, useMemo, useEffect } from 'react';
+import { useSearchParams } from 'react-router-dom';
 import { Transaction, TransactionType, TYPE_META, TYPE_ORDER, TransactionPatch, typeColor } from '../../types';
 import { formatCurrency, formatDate, formatMonthLong, capitalize } from '../../utils';
 import { useSettings } from '../../shared/providers/settings';
@@ -69,6 +70,12 @@ function projectedCutoffISO(v: ProjView, now: Date): string | null {
 
 export function TransactionList({ transactions, projected = [], onEdit, onDelete, onBulkUpdate, onBulkDelete, onAdd, uiV2 = false }: Props) {
   const { categories, accounts, getAcc, getCat, theme } = useSettings();
+  // Optional category filter driven by the URL (?cat=<id>) — set when arriving
+  // from the "Vedi tutti i movimenti" CTA of the Categorie analytics screen.
+  // TODO: also honour a ?period= param to scope the list to a specific window.
+  const [searchParams, setSearchParams] = useSearchParams();
+  const catFilter = searchParams.get('cat');
+  const clearCatFilter = () => setSearchParams(p => { p.delete('cat'); return p; }, { replace: true });
   const [search, setSearch] = useState('');
   const [typeFilter, setTypeFilter] = useState<TransactionType | 'all'>('all');
   const [groupMode, setGroupMode] = useState<GroupMode>('month');
@@ -141,6 +148,7 @@ export function TransactionList({ transactions, projected = [], onEdit, onDelete
 
     return [...realized, ...visibleProjected]
       .filter(t => typeFilter === 'all' || t.type === typeFilter)
+      .filter(t => !catFilter || t.category === catFilter)
       .filter(t => !cutoff || new Date(t.date) >= cutoff)
       .filter(matches)
       .sort((a, b) => {
@@ -155,7 +163,7 @@ export function TransactionList({ transactions, projected = [], onEdit, onDelete
         }
         return sortDir === 'desc' ? diff : -diff;
       });
-  }, [transactions, projected, projView, typeFilter, period, search, sortKey, sortDir, categories, accounts]);
+  }, [transactions, projected, projView, typeFilter, period, search, sortKey, sortDir, categories, accounts, catFilter]);
 
   const groups = useMemo(() => {
     const map = new Map<string, Transaction[]>();
@@ -360,8 +368,17 @@ export function TransactionList({ transactions, projected = [], onEdit, onDelete
         </div>
 
         {/* Filtri attivi — pill rimovibili */}
-        {(period !== 'all' || projView !== PROJ_DEFAULT) && (
+        {(period !== 'all' || projView !== PROJ_DEFAULT || catFilter) && (
           <div className="flex flex-wrap gap-2">
+            {catFilter && (
+              <button onClick={clearCatFilter}
+                className="inline-flex items-center gap-1.5 bg-gold/10 text-gold rounded-full pl-3 pr-2 py-1 text-xs font-medium">
+                {getCat(catFilter).icon} {getCat(catFilter).label}
+                <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round">
+                  <path d="M18 6 6 18M6 6l12 12" />
+                </svg>
+              </button>
+            )}
             {period !== 'all' && (
               <button onClick={() => setPeriod('all')}
                 className="inline-flex items-center gap-1.5 bg-gold/10 text-gold rounded-full pl-3 pr-2 py-1 text-xs font-medium">
