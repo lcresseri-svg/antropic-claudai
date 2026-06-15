@@ -328,6 +328,7 @@ function Main({ user, onLogOut, onDeleteAccount }: {
                   trend={tx.trend} transactions={tx.transactions}
                   onSeeInsights={() => navigate('/insights')}
                   onSeeInvestments={() => navigate('/investments')}
+                  onSeeCategories={() => navigate('/category-spending')}
                 />
               )
             } />
@@ -405,13 +406,11 @@ function Main({ user, onLogOut, onDeleteAccount }: {
                 </div>
               } />
             )}
-            {isAdminUser(user) && (
-              <Route path="/category-spending" element={
-                <div className="pt-4 md:pt-6">
-                  <CategorySpendingScreen transactions={tx.transactions} categoryBudgets={budget.budget.categoryBudgets} />
-                </div>
-              } />
-            )}
+            <Route path="/category-spending" element={
+              <div className="pt-4 md:pt-6">
+                <CategorySpendingScreen transactions={tx.transactions} categoryBudgets={budget.budget.categoryBudgets} />
+              </div>
+            } />
             <Route path="/forecast-v2" element={
               canUseForecastV2(user) ? (
                 <div className="pt-4 md:pt-6">

@@ -34,6 +34,7 @@ interface Props {
   transactions: Transaction[];
   onSeeInsights: () => void;
   onSeeInvestments: () => void;
+  onSeeCategories?: () => void;
 }
 
 export function Dashboard(p: Props) {
@@ -216,7 +217,7 @@ export function Dashboard(p: Props) {
           {enableInvestments && <InvestmentSummaryCard investmentByCategory={p.investmentByCategory} total={p.investmentTotal} onClick={p.onSeeInvestments} />}
         </div>
         <div className="space-y-3">
-          <CategoryCard categoryTotals={periodCategoryTotals} />
+          <CategoryCard categoryTotals={periodCategoryTotals} onClick={p.onSeeCategories} />
           <AccountsCard
             accountBalances={p.accountBalances}
             expenseByAccount={periodExpenseByAccount}
