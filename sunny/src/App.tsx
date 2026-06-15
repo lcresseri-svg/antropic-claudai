@@ -289,8 +289,9 @@ function Main({ user, onLogOut, onDeleteAccount }: {
           </div>
         </header>
 
-        {/* Scroll container — the ONLY element that scrolls; body stays still */}
-        <div className="flex-1 overflow-y-auto overscroll-contain">
+        {/* Scroll container — the ONLY element that scrolls; body stays still.
+            id lets sheets lock THIS scroller (not body) while open. */}
+        <div id="app-scroll" className="flex-1 overflow-y-auto overscroll-contain">
 
         {tx.error && (
           <div className="max-w-2xl mx-auto md:max-w-none px-5 md:px-8 pt-2">

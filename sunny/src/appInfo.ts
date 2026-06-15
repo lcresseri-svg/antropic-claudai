@@ -1,4 +1,4 @@
-export const APP_VERSION = '1.9.26';
+export const APP_VERSION = '1.9.27';
 
 /**
  * Release channel. While in 'beta' the app is still under active development
@@ -15,6 +15,15 @@ export interface VersionEntry {
 
 /** Registro versioni mostrato in Impostazioni → Registro versioni. */
 export const VERSIONS: VersionEntry[] = [
+  {
+    version: '1.9.27', date: '2026-06-15', title: 'Categorie, navbar fissa e icona scura',
+    changes: [
+      'Nuova schermata "Categorie" (analisi spese per periodo) accessibile a tutti dalla card "Spese per categoria" in dashboard.',
+      'La barra di navigazione e l\'header non scorrono più: in modalità PWA/standalone restano fissi mentre si scorre il contenuto.',
+      'Il filtro temporale 3M/6M/12M ora scorre di un mese alla volta mantenendo la finestra scelta, invece di saltare di un blocco intero.',
+      'L\'icona salvata sulla home (PWA) ha ora uno sfondo scuro coerente con l\'app.',
+    ],
+  },
   {
     version: '1.9.26', date: '2026-06-09', title: 'Impostazioni divise per sezione',
     changes: [

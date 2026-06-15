@@ -9,6 +9,9 @@
       <feMerge><feMergeNode in="blur"/><feMergeNode in="SourceGraphic"/></feMerge>
     </filter>
   </defs>
+  <!-- Opaque dark background so the saved PWA / home-screen icon always sits on
+       a dark surface (iOS composites transparent icons unpredictably otherwise). -->
+  <rect x="0" y="0" width="512" height="512" fill="#0D0D0D"/>
   <!-- 270° arc, gap at bottom: r=170, circ≈1068.14, 270°=801.11, 90°gap=267.04 -->
   <circle cx="256" cy="256" r="170"
     fill="none" stroke="url(#g)" stroke-width="60" stroke-linecap="round"

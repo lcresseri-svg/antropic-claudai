@@ -1,6 +1,7 @@
 import { useEffect } from 'react';
 import { Insight, InsightChart } from './insightsEngine';
 import { formatCurrency } from '../../utils';
+import { useScrollLock } from '../../shared/useScrollLock';
 
 interface Props {
   insight: Insight | null;
@@ -8,13 +9,12 @@ interface Props {
 }
 
 export function InsightDetailSheet({ insight, onClose }: Props) {
+  useScrollLock(!!insight);
   useEffect(() => {
     if (!insight) return;
     const onKey = (e: KeyboardEvent) => { if (e.key === 'Escape') onClose(); };
     window.addEventListener('keydown', onKey);
-    const prev = document.body.style.overflow;
-    document.body.style.overflow = 'hidden';
-    return () => { window.removeEventListener('keydown', onKey); document.body.style.overflow = prev; };
+    return () => { window.removeEventListener('keydown', onKey); };
   }, [insight, onClose]);
 
   if (!insight) return null;
