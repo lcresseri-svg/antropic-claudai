@@ -55,9 +55,9 @@ export function InsightsScreen(p: Props) {
 
       {p.monthlyIncome > 0 && (
         <div className="grid grid-cols-3 gap-2 mb-6">
-          <SummaryPill label="Entrate" value={formatCurrency(p.monthlyIncome)} color="#8A9270" />
-          <SummaryPill label="Uscite"  value={formatCurrency(p.monthlyExpenses)} color="#8B8B8B" />
-          <SummaryPill label={saved >= 0 ? 'Risparmiato' : 'Sforamento'} value={formatCurrency(Math.abs(saved))} color={saved >= 0 ? '#E6B95C' : '#E08B8B'} />
+          <SummaryPill label="Entrate" value={formatCurrency(p.monthlyIncome)} color="var(--accent-green)" />
+          <SummaryPill label="Uscite"  value={formatCurrency(p.monthlyExpenses)} color="rgb(var(--c-secondary))" />
+          <SummaryPill label={saved >= 0 ? 'Risparmiato' : 'Sforamento'} value={formatCurrency(Math.abs(saved))} color={saved >= 0 ? 'var(--accent)' : 'var(--accent-red)'} />
         </div>
       )}
 

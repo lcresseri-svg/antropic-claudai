@@ -18,9 +18,9 @@ interface Props {
   onAddTransactions: (txs: Omit<Transaction, 'id'>[]) => void;
 }
 
-const GREEN = '#8FB89A';
-const RED = '#E05555';
-const AMBER = '#C9A24B';
+const GREEN = 'var(--accent-green)';
+const RED = 'var(--accent-red)';
+const AMBER = 'var(--accent)';
 
 export function InvestmentsScreen({ investmentByCategory, investmentTotal, monthlyInvestments, trend, transactions, onAddTransactions }: Props) {
   const navigate = useNavigate();
@@ -168,7 +168,7 @@ export function InvestmentsScreen({ investmentByCategory, investmentTotal, month
       <div className="flex gap-2.5">
         <button onClick={() => setDepositOpen(true)}
           className="flex-1 py-3 rounded-2xl font-semibold text-sm transition-transform active:scale-[0.98]"
-          style={{ backgroundColor: '#E6B95C', color: '#0D0D0D' }}>
+          style={{ backgroundColor: 'var(--accent-hi)', color: 'var(--accent-on)' }}>
           + Versa
         </button>
         <button onClick={() => openWithdraw()}
@@ -288,7 +288,7 @@ export function InvestmentsScreen({ investmentByCategory, investmentTotal, month
                 <div key={t.key} className="flex-1 flex flex-col items-center justify-end min-w-0">
                   {t.invest !== 0 && (
                     <span className="text-[10px] balance-num mb-1 truncate w-full text-center leading-tight"
-                      style={{ color: neg ? RED : 'var(--c-text-secondary, #9A9A9A)' }}>
+                      style={{ color: neg ? RED : 'rgb(var(--c-secondary))' }}>
                       {neg ? '−' : ''}{formatCurrency(Math.abs(t.invest))}
                     </span>
                   )}
@@ -418,7 +418,7 @@ function OpRow({ t, icon, color, label, accLabel }: {
         <p className="text-[13px] text-primary truncate">{label ?? t.description}</p>
         <p className="text-[11px] text-secondary">{formatDate(t.date)} · {accLabel}</p>
       </div>
-      <span className="text-[13px] font-semibold balance-num flex-shrink-0" style={{ color: out ? RED : '#E6B95C' }}>
+      <span className="text-[13px] font-semibold balance-num flex-shrink-0" style={{ color: out ? RED : 'var(--accent)' }}>
         {out ? '−' : ''}{formatCurrency(t.amount)}
       </span>
     </div>

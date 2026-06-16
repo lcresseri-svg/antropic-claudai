@@ -1,4 +1,4 @@
-export const APP_VERSION = '1.9.32';
+export const APP_VERSION = '1.10.0';
 
 /**
  * Release channel. While in 'beta' the app is still under active development
@@ -15,6 +15,15 @@ export interface VersionEntry {
 
 /** Registro versioni mostrato in Impostazioni → Registro versioni. */
 export const VERSIONS: VersionEntry[] = [
+  {
+    version: '1.10.0', date: '2026-06-16', title: 'Nuovo look: tema chiaro e scuro più curati',
+    changes: [
+      'Restyling visivo completo: palette monocromatica calda con l\'oro come unico accento, usato solo su valori chiave, azione principale e stato attivo.',
+      'Tema chiaro e scuro ridisegnati: di default seguono le impostazioni del sistema operativo (puoi sempre forzarne uno da Impostazioni → Aspetto).',
+      'Superfici più piatte separate da bordi sottili, più spazio attorno ai contenuti e niente più aloni o ombre marcate.',
+      'Contrasti dei testi rivisti e conformi AA in entrambi i temi; nessuna modifica a funzioni, calcoli o previsioni.',
+    ],
+  },
   {
     version: '1.9.32', date: '2026-06-15', title: 'Messaggi di incoraggiamento',
     changes: [
