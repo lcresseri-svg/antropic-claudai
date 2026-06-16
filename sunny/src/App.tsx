@@ -17,6 +17,7 @@ import { Dashboard } from './features/dashboard/Dashboard';
 import { DashboardV2 } from './features/dashboard/DashboardV2';
 import { InvestmentsScreen } from './features/dashboard/InvestmentsScreen';
 import { CategorySpendingScreen } from './features/dashboard/CategorySpendingScreen';
+import { AccountBalanceScreen } from './features/dashboard/AccountBalanceScreen';
 import { InsightsScreen } from './features/insights/InsightsScreen';
 import { InsightsScreenV2 } from './features/insights/InsightsScreenV2';
 import { BudgetScreen } from './features/budget/BudgetScreen';
@@ -334,6 +335,7 @@ function Main({ user, onLogOut, onDeleteAccount }: {
                   savingsTarget={budget.budget.savingsTarget}
                   onSeeInsights={() => navigate('/insights')}
                   onSeeInvestments={() => navigate('/investments')}
+                  onSeeAccountBalance={isAdminUser(user) ? () => navigate('/account-balance') : undefined}
                   onAddExpense={() => openAddWithType('expense')}
                   onAddIncome={() => openAddWithType('income')}
                   onImportCSV={() => setImportOpen(true)}
@@ -351,6 +353,7 @@ function Main({ user, onLogOut, onDeleteAccount }: {
                   onSeeInsights={() => navigate('/insights')}
                   onSeeInvestments={() => navigate('/investments')}
                   onSeeCategories={() => navigate('/category-spending')}
+                  onSeeAccountBalance={isAdminUser(user) ? () => navigate('/account-balance') : undefined}
                 />
               )
             } />
@@ -434,6 +437,13 @@ function Main({ user, onLogOut, onDeleteAccount }: {
                 <CategorySpendingScreen transactions={tx.transactions} categoryBudgets={budget.budget.categoryBudgets} />
               </div>
             } />
+            {isAdminUser(user) && (
+              <Route path="/account-balance" element={
+                <div className="pt-4 md:pt-6">
+                  <AccountBalanceScreen transactions={tx.transactions} />
+                </div>
+              } />
+            )}
             <Route path="/forecast-v2" element={
               canUseForecastV2(user) ? (
                 <div className="pt-4 md:pt-6">

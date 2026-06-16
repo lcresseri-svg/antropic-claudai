@@ -36,6 +36,7 @@ interface Props {
   onSeeInsights: () => void;
   onSeeInvestments: () => void;
   onSeeCategories?: () => void;
+  onSeeAccountBalance?: () => void;
 }
 
 export function Dashboard(p: Props) {
@@ -225,6 +226,7 @@ export function Dashboard(p: Props) {
             expenseByAccount={periodExpenseByAccount}
             mode={accMode}
             onToggle={() => setAccMode(m => m === 'balance' ? 'spending' : 'balance')}
+            onOpenDetail={p.onSeeAccountBalance}
           />
         </div>
       </div>

@@ -1,4 +1,4 @@
-export const APP_VERSION = '1.10.7';
+export const APP_VERSION = '1.11.0';
 
 /**
  * Release channel. While in 'beta' the app is still under active development
@@ -15,6 +15,14 @@ export interface VersionEntry {
 
 /** Registro versioni mostrato in Impostazioni → Registro versioni. */
 export const VERSIONS: VersionEntry[] = [
+  {
+    version: '1.11.0', date: '2026-06-16', title: 'Saldo per conto',
+    changes: [
+      'Nuova schermata "Saldo per conto": scegli un periodo (Mese / 3M / 6M / 12M), naviga avanti e indietro nel tempo e vedi la liquidità totale e il saldo di ogni conto con la variazione del periodo.',
+      'Toccando un conto si apre il dettaglio con l\'andamento del saldo nel periodo e i flussi (entrate, uscite, investimenti).',
+      'Accessibile dalla card "Saldo per conto" in dashboard (in anteprima).',
+    ],
+  },
   {
     version: '1.10.7', date: '2026-06-16', title: 'Card del tema chiaro più chiare',
     changes: [
