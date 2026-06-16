@@ -64,7 +64,7 @@
 html.light {
   /* Semantic layer */
   --bg:            #FCFAF5;            /* lightest: near-white warm base */
-  --surface-1:     #F1EDE4;            /* cards sit a touch DARKER than the bg */
+  --surface-1:     #F5F1EA;            /* cards sit a touch DARKER than the bg (lightened) */
   --surface-2:     #FAF7F1;            /* sheets float back up toward the bg */
   --border:        rgba(26, 23, 20, 0.12);
   --border-strong: rgba(26, 23, 20, 0.18);
@@ -78,8 +78,8 @@ html.light {
   /* Tailwind-bridge channels */
   --c-bg:         252 250 245;        /* --bg (lightest base) */
   --c-surface:    252 250 245;        /* nav / chrome = bg (bright) */
-  --c-card:       241 237 228;        /* --surface-1 — a touch darker than --bg */
-  --c-card-hover: 246 243 235;        /* hover lifts toward the bg */
+  --c-card:       245 241 234;        /* --surface-1 — slightly darker than --bg */
+  --c-card-hover: 248 245 238;        /* hover lifts toward the bg */
   --c-elevated:   250 247 241;        /* --surface-2 (sheets, near bg) */
   --c-primary:    23 20 15;           /* --text-1 */
   --c-secondary:  100 95 84;          /* --text-2 (~5.3:1 on bg, AA) */
