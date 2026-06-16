@@ -19,8 +19,11 @@ export function SideNav({ loading, onAdd, onImport, isAdmin, aiEnabled = true, u
       {/* Brand */}
       <div className="flex items-center gap-2.5 px-5 h-14 shrink-0"
         style={{ borderBottom: '1px solid rgba(255,255,255,0.04)' }}>
-        <SunnyLogo />
-        <span className="font-semibold text-primary tracking-[-0.02em]">Sunny</span>
+        <button type="button" onClick={() => navigate('/')} aria-label="Vai alla dashboard"
+          className="flex items-center gap-2.5 min-w-0 active:opacity-70 transition-opacity">
+          <SunnyLogo />
+          <span className="font-semibold text-primary tracking-[-0.02em]">Sunny</span>
+        </button>
         {loading && <span className="w-1.5 h-1.5 rounded-full bg-gold animate-pulse ml-auto flex-shrink-0" />}
       </div>
 

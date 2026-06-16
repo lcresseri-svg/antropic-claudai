@@ -1,4 +1,4 @@
-export const APP_VERSION = '1.10.5';
+export const APP_VERSION = '1.10.6';
 
 /**
  * Release channel. While in 'beta' the app is still under active development
@@ -15,6 +15,12 @@ export interface VersionEntry {
 
 /** Registro versioni mostrato in Impostazioni → Registro versioni. */
 export const VERSIONS: VersionEntry[] = [
+  {
+    version: '1.10.6', date: '2026-06-16', title: 'Logo → dashboard',
+    changes: [
+      'Tocca il logo Sunny in alto a sinistra per tornare alla dashboard principale da qualsiasi schermata.',
+    ],
+  },
   {
     version: '1.10.5', date: '2026-06-16', title: 'Tema chiaro: sfondo più chiaro, card più scure',
     changes: [
