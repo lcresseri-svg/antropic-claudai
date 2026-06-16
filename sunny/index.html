@@ -2,16 +2,20 @@
 <html lang="it" class="dark">
   <head>
     <meta charset="UTF-8" />
-    <!-- Default theme follows the OS (prefers-color-scheme). Applied before paint
-         to avoid a flash; a saved per-user preference (Firestore) overrides this
-         once settings load. -->
+    <!-- Apply the theme before first paint to avoid a light/dark flash.
+         Priority: the locally cached saved mode (set after the cloud settings
+         load) → otherwise the OS preference (prefers-color-scheme). -->
     <script>
       (function () {
         try {
-          if (window.matchMedia &&
-              window.matchMedia('(prefers-color-scheme: light)').matches) {
-            document.documentElement.classList.add('light');
-          }
+          var saved = localStorage.getItem('sunny-theme');
+          var light = (saved === 'light' || saved === 'dark')
+            ? saved === 'light'
+            : (window.matchMedia &&
+               window.matchMedia('(prefers-color-scheme: light)').matches);
+          var el = document.documentElement;
+          if (light) el.classList.add('light');
+          else el.classList.remove('light');
         } catch (e) {}
       })();
     </script>

@@ -43,6 +43,8 @@ const SettingsContext = createContext<SettingsValue | null>(null);
 
 const MERGE = { merge: true } as const;
 
+const THEME_KEY = 'sunny-theme';
+
 // Default theme follows the OS unless the user has saved an explicit preference.
 function systemTheme(): Theme {
   if (typeof window !== 'undefined' && window.matchMedia) {
@@ -51,10 +53,20 @@ function systemTheme(): Theme {
   return 'dark';
 }
 
+// Last applied theme, cached locally so the next launch can paint the saved mode
+// synchronously (before the cloud settings round-trip) — no light/dark flash.
+function initialTheme(): Theme {
+  try {
+    const saved = localStorage.getItem(THEME_KEY);
+    if (saved === 'light' || saved === 'dark') return saved;
+  } catch { /* ignore */ }
+  return systemTheme();
+}
+
 export function SettingsProvider({ user, children }: { user: User | null; children: ReactNode }) {
   const [categories, setCategories] = useState<CategoryDef[]>(DEFAULT_CATEGORIES);
   const [accounts, setAccounts] = useState<AccountDef[]>(DEFAULT_ACCOUNTS);
-  const [theme, setTheme] = useState<Theme>(systemTheme);
+  const [theme, setTheme] = useState<Theme>(initialTheme);
   const [includeInvestments, setIncludeInvestments] = useState(true);
   const [enableInvestments, setEnableInvestments] = useState(true);
   const [enableBudget, setEnableBudget] = useState(true);
@@ -63,16 +75,18 @@ export function SettingsProvider({ user, children }: { user: User | null; childr
   const [aiCoachWidgetEnabled, setAiCoachWidgetEnabled] = useState(true);
   const [settingsLoaded, setSettingsLoaded] = useState(false);
 
-  // Apply theme class to <html> immediately when state changes
+  // Apply theme class to <html> immediately when state changes, and cache it so
+  // the boot script (index.html) can restore the saved mode on the next launch.
   useEffect(() => {
     document.documentElement.classList.toggle('light', theme === 'light');
+    try { localStorage.setItem(THEME_KEY, theme); } catch { /* ignore */ }
   }, [theme]);
 
   useEffect(() => {
     if (!user) {
       setCategories(DEFAULT_CATEGORIES);
       setAccounts(DEFAULT_ACCOUNTS);
-      setTheme(systemTheme());
+      setTheme(initialTheme());
       setIncludeInvestments(true);
       setEnableInvestments(true);
       setEnableBudget(true);
