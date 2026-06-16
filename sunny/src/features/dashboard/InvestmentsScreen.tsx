@@ -236,24 +236,23 @@ export function InvestmentsScreen({ investmentByCategory, investmentTotal, month
                     <div className="h-full rounded-full" style={{ width: `${Math.min(100, pctOf * 100)}%`, backgroundColor: p.cat.color }} />
                   </div>
                   {/* Row 3 — operational */}
-                  <div className="mt-2.5 flex items-center gap-2 text-[11px]">
+                  <div className="mt-2.5 flex flex-wrap items-center gap-x-2 gap-y-1 text-[11px]">
                     <span className="text-secondary balance-num">Versato {formatCurrency(p.versato)}</span>
                     {pmPctCat != null && (
                       <span className="font-semibold balance-num" style={{ color: pmPctCat >= 0 ? GREEN : RED }}>
                         {pmPctCat >= 0 ? '+' : '−'}{Math.abs(pmPctCat).toFixed(1)}%
                       </span>
                     )}
-                    {(p.controvalore == null || p.stale) && (
-                      <span role="button" tabIndex={0}
-                        onClick={e => { e.stopPropagation(); setValueCat(p.cat); }}
-                        onKeyDown={e => { if (e.key === 'Enter') { e.stopPropagation(); setValueCat(p.cat); } }}
-                        className="flex items-center gap-1 font-medium cursor-pointer" style={{ color: AMBER }}>
-                        <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-                          <path d="M17 3a2.8 2.8 0 1 1 4 4L7.5 20.5 2 22l1.5-5.5z" />
-                        </svg>
-                        {p.controvalore == null ? 'imposta controvalore' : 'valore da aggiornare'}
-                      </span>
-                    )}
+                    <span role="button" tabIndex={0}
+                      onClick={e => { e.stopPropagation(); setValueCat(p.cat); }}
+                      onKeyDown={e => { if (e.key === 'Enter') { e.stopPropagation(); setValueCat(p.cat); } }}
+                      className="flex items-center gap-1 font-medium cursor-pointer"
+                      style={{ color: (p.controvalore == null || p.stale) ? AMBER : 'rgb(var(--c-secondary))' }}>
+                      <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                        <path d="M17 3a2.8 2.8 0 1 1 4 4L7.5 20.5 2 22l1.5-5.5z" />
+                      </svg>
+                      {p.controvalore == null ? 'imposta controvalore' : p.stale ? 'valore da aggiornare' : 'aggiorna valore'}
+                    </span>
                     {p.versato > 0 && (
                       <span role="button" tabIndex={0}
                         onClick={e => { e.stopPropagation(); openWithdraw(p.cat.id); }}

@@ -1,4 +1,4 @@
-export const APP_VERSION = '1.10.2';
+export const APP_VERSION = '1.10.3';
 
 /**
  * Release channel. While in 'beta' the app is still under active development
@@ -15,6 +15,12 @@ export interface VersionEntry {
 
 /** Registro versioni mostrato in Impostazioni → Registro versioni. */
 export const VERSIONS: VersionEntry[] = [
+  {
+    version: '1.10.3', date: '2026-06-16', title: 'Controvalore sempre modificabile',
+    changes: [
+      'Negli Investimenti puoi aggiornare il controvalore di una posizione in qualsiasi momento: il comando "aggiorna valore" è ora sempre disponibile (prima compariva solo quando il valore mancava o era datato).',
+    ],
+  },
   {
     version: '1.10.2', date: '2026-06-16', title: 'Niente più sfarfallio del tema',
     changes: [
