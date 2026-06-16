@@ -76,6 +76,11 @@ export function TransactionList({ transactions, projected = [], onEdit, onDelete
   const [searchParams, setSearchParams] = useSearchParams();
   const catFilter = searchParams.get('cat');
   const clearCatFilter = () => setSearchParams(p => { p.delete('cat'); return p; }, { replace: true });
+  // Optional account filter (?account=<id>) — set when arriving from the "Vedi
+  // tutti i movimenti" CTA of the Saldo-per-conto analytics. Matches either leg
+  // of a transfer (account or toAccount).
+  const accFilter = searchParams.get('account');
+  const clearAccFilter = () => setSearchParams(p => { p.delete('account'); return p; }, { replace: true });
   const [search, setSearch] = useState('');
   const [typeFilter, setTypeFilter] = useState<TransactionType | 'all'>('all');
   const [groupMode, setGroupMode] = useState<GroupMode>('month');
@@ -149,6 +154,7 @@ export function TransactionList({ transactions, projected = [], onEdit, onDelete
     return [...realized, ...visibleProjected]
       .filter(t => typeFilter === 'all' || t.type === typeFilter)
       .filter(t => !catFilter || t.category === catFilter)
+      .filter(t => !accFilter || t.account === accFilter || t.toAccount === accFilter)
       .filter(t => !cutoff || new Date(t.date) >= cutoff)
       .filter(matches)
       .sort((a, b) => {
@@ -163,7 +169,7 @@ export function TransactionList({ transactions, projected = [], onEdit, onDelete
         }
         return sortDir === 'desc' ? diff : -diff;
       });
-  }, [transactions, projected, projView, typeFilter, period, search, sortKey, sortDir, categories, accounts, catFilter]);
+  }, [transactions, projected, projView, typeFilter, period, search, sortKey, sortDir, categories, accounts, catFilter, accFilter]);
 
   const groups = useMemo(() => {
     const map = new Map<string, Transaction[]>();
@@ -368,12 +374,21 @@ export function TransactionList({ transactions, projected = [], onEdit, onDelete
         </div>
 
         {/* Filtri attivi — pill rimovibili */}
-        {(period !== 'all' || projView !== PROJ_DEFAULT || catFilter) && (
+        {(period !== 'all' || projView !== PROJ_DEFAULT || catFilter || accFilter) && (
           <div className="flex flex-wrap gap-2">
             {catFilter && (
               <button onClick={clearCatFilter}
                 className="inline-flex items-center gap-1.5 bg-gold/10 text-gold rounded-full pl-3 pr-2 py-1 text-xs font-medium">
                 {getCat(catFilter).icon} {getCat(catFilter).label}
+                <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round">
+                  <path d="M18 6 6 18M6 6l12 12" />
+                </svg>
+              </button>
+            )}
+            {accFilter && (
+              <button onClick={clearAccFilter}
+                className="inline-flex items-center gap-1.5 bg-gold/10 text-gold rounded-full pl-3 pr-2 py-1 text-xs font-medium">
+                {getAcc(accFilter).icon} {getAcc(accFilter).label}
                 <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round">
                   <path d="M18 6 6 18M6 6l12 12" />
                 </svg>

@@ -31,6 +31,7 @@ interface Props {
   savingsTarget: number;
   onSeeInsights: () => void;
   onSeeInvestments: () => void;
+  onSeeAccountBalance?: () => void;
   onAddExpense: () => void;
   onAddIncome: () => void;
   onImportCSV: () => void;
@@ -174,6 +175,7 @@ export function DashboardV2(p: Props) {
             expenseByAccount={currentMonthExpenseByAccount}
             mode={accMode}
             onToggle={() => setAccMode(m => m === 'balance' ? 'spending' : 'balance')}
+            onOpenDetail={p.onSeeAccountBalance}
           />
         </div>
       </div>

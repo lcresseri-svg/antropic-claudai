@@ -8,11 +8,13 @@ interface Props {
   expenseByAccount: Record<string, number>;
   mode: 'balance' | 'spending';
   onToggle: () => void;
+  /** When set (balance mode), the header becomes an entry point to the "Saldo per conto" screen. */
+  onOpenDetail?: () => void;
 }
 
 const COLLAPSED_COUNT = 3;
 
-export function AccountsCard({ accountBalances, expenseByAccount, mode, onToggle }: Props) {
+export function AccountsCard({ accountBalances, expenseByAccount, mode, onToggle, onOpenDetail }: Props) {
   const { accounts, getAcc } = useSettings();
   const [showAll, setShowAll] = useState(false);
   const source = mode === 'balance' ? accountBalances : expenseByAccount;
@@ -42,7 +44,16 @@ export function AccountsCard({ accountBalances, expenseByAccount, mode, onToggle
   return (
     <div className="glass-card rounded-2xl p-5">
       <div className="flex items-center justify-between mb-4">
-        <p className="label-caps text-secondary">{mode === 'balance' ? 'Saldo per conto' : 'Spese per conto'}</p>
+        {mode === 'balance' && onOpenDetail ? (
+          <button onClick={onOpenDetail} className="flex items-center gap-1 label-caps text-secondary active:text-primary transition-colors">
+            Saldo per conto
+            <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
+              <path d="m9 18 6-6-6-6" />
+            </svg>
+          </button>
+        ) : (
+          <p className="label-caps text-secondary">{mode === 'balance' ? 'Saldo per conto' : 'Spese per conto'}</p>
+        )}
         <button onClick={onToggle} className="text-xs font-medium text-gold">
           {mode === 'balance' ? 'Vedi spese' : 'Vedi saldi'}
         </button>
