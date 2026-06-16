@@ -274,8 +274,11 @@ function Main({ user, onLogOut, onDeleteAccount }: {
         <header className="shrink-0 z-[40] glass-header md:hidden">
           <div className="max-w-2xl mx-auto px-5 h-14 flex items-center justify-between">
             <div className="flex items-center gap-2.5 min-w-0">
-              <ArcLogo size={28} />
-              <span className="font-semibold text-primary tracking-[-0.02em] truncate">{brand}</span>
+              <button type="button" onClick={() => navigate('/')} aria-label="Vai alla dashboard"
+                className="flex items-center gap-2.5 min-w-0 active:opacity-70 transition-opacity">
+                <ArcLogo size={28} />
+                <span className="font-semibold text-primary tracking-[-0.02em] truncate">{brand}</span>
+              </button>
               {tx.loading && <span className="w-1.5 h-1.5 rounded-full bg-gold animate-pulse flex-shrink-0" />}
             </div>
             {!isSettings && (
