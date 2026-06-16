@@ -63,9 +63,9 @@
 /* ─── Light theme — warm monochrome, "native BS" ────────────────────────────── */
 html.light {
   /* Semantic layer */
-  --bg:            #EFEADF;            /* warm off-white, a touch deeper */
-  --surface-1:     #FFFFFF;
-  --surface-2:     #F7F4EC;
+  --bg:            #F7F4EE;            /* warm near-white, almost equal to the cards */
+  --surface-1:     #FCFAF4;
+  --surface-2:     #FFFFFF;
   --border:        rgba(26, 23, 20, 0.12);
   --border-strong: rgba(26, 23, 20, 0.18);
   --text-1:        #17140F;
@@ -76,19 +76,19 @@ html.light {
   --accent-on:     #17140F;            /* text over a gold fill */
 
   /* Tailwind-bridge channels */
-  --c-bg:         239 234 223;        /* --bg */
-  --c-surface:    255 255 255;
-  --c-card:       255 255 255;        /* --surface-1 */
-  --c-card-hover: 247 244 236;        /* --surface-2 */
-  --c-elevated:   255 255 255;
+  --c-bg:         247 244 238;        /* --bg (warm near-white, ≈ card) */
+  --c-surface:    252 250 244;        /* nav / chrome ≈ card */
+  --c-card:       252 250 244;        /* --surface-1 — only a hair lighter than --bg */
+  --c-card-hover: 255 255 255;        /* hover lifts toward white */
+  --c-elevated:   255 255 255;        /* --surface-2 (sheets, whitest) */
   --c-primary:    23 20 15;           /* --text-1 */
   --c-secondary:  100 95 84;          /* --text-2 (~5.3:1 on bg, AA) */
   --c-tertiary:   168 162 150;        /* --text-3 */
   --c-gold:       196 151 44;         /* --accent (#C4972C) */
   --c-green:      44 133 38;          /* functional positive (AA on white) */
   --c-red:        197 57 47;          /* functional negative (AA on white) */
-  --c-divider:    213 209 199;        /* solid hairline ≈ --border over --bg */
-  --c-divider-strong: 201 196 186;    /* solid ≈ --border-strong over --bg */
+  --c-divider:    220 217 212;        /* solid hairline ≈ --border over --bg */
+  --c-divider-strong: 207 204 199;    /* solid ≈ --border-strong over --bg */
 
   --accent-green: #2C8526;
   --accent-gold:  #C4972C;
