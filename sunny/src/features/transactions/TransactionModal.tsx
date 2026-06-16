@@ -302,7 +302,7 @@ export function TransactionModal({ open, editing, groupTransfers = [], seriesEdi
               <button type="button"
                 onClick={() => { onClose(); navigate('/investments'); }}
                 className="w-full py-2.5 rounded-xl text-sm font-semibold"
-                style={{ backgroundColor: '#E6B95C', color: '#0D0D0D' }}>
+                style={{ backgroundColor: 'var(--accent-hi)', color: 'var(--accent-on)' }}>
                 Vai agli investimenti
               </button>
             </div>

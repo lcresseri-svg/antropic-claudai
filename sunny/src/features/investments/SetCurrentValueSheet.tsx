@@ -59,7 +59,7 @@ export function SetCurrentValueSheet({ open, category, deposited, onSave, onClos
 
         <button type="submit"
           className="w-full py-3 rounded-2xl font-semibold transition-transform active:scale-[0.98]"
-          style={{ backgroundColor: '#E6B95C', color: '#0D0D0D' }}>
+          style={{ backgroundColor: 'var(--accent-hi)', color: 'var(--accent-on)' }}>
           Salva controvalore
         </button>
       </form>

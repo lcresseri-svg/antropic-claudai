@@ -43,10 +43,18 @@ const SettingsContext = createContext<SettingsValue | null>(null);
 
 const MERGE = { merge: true } as const;
 
+// Default theme follows the OS unless the user has saved an explicit preference.
+function systemTheme(): Theme {
+  if (typeof window !== 'undefined' && window.matchMedia) {
+    return window.matchMedia('(prefers-color-scheme: light)').matches ? 'light' : 'dark';
+  }
+  return 'dark';
+}
+
 export function SettingsProvider({ user, children }: { user: User | null; children: ReactNode }) {
   const [categories, setCategories] = useState<CategoryDef[]>(DEFAULT_CATEGORIES);
   const [accounts, setAccounts] = useState<AccountDef[]>(DEFAULT_ACCOUNTS);
-  const [theme, setTheme] = useState<Theme>('dark');
+  const [theme, setTheme] = useState<Theme>(systemTheme);
   const [includeInvestments, setIncludeInvestments] = useState(true);
   const [enableInvestments, setEnableInvestments] = useState(true);
   const [enableBudget, setEnableBudget] = useState(true);
@@ -64,7 +72,7 @@ export function SettingsProvider({ user, children }: { user: User | null; childr
     if (!user) {
       setCategories(DEFAULT_CATEGORIES);
       setAccounts(DEFAULT_ACCOUNTS);
-      setTheme('dark');
+      setTheme(systemTheme());
       setIncludeInvestments(true);
       setEnableInvestments(true);
       setEnableBudget(true);
@@ -83,7 +91,7 @@ export function SettingsProvider({ user, children }: { user: User | null; childr
         // and writing here would clobber a real user's settings. Also use merge
         // so we never blow away fields we didn't include.
         if (!snap.metadata.fromCache) {
-          setDoc(ref, { categories: DEFAULT_CATEGORIES, accounts: DEFAULT_ACCOUNTS, theme: 'dark' }, MERGE);
+          setDoc(ref, { categories: DEFAULT_CATEGORIES, accounts: DEFAULT_ACCOUNTS, theme: systemTheme() }, MERGE);
           setSettingsLoaded(true);
         }
         return;
@@ -91,7 +99,7 @@ export function SettingsProvider({ user, children }: { user: User | null; childr
       const d = snap.data();
       setCategories((d.categories as CategoryDef[]) ?? DEFAULT_CATEGORIES);
       setAccounts((d.accounts as AccountDef[]) ?? DEFAULT_ACCOUNTS);
-      setTheme((d.theme as Theme) ?? 'dark');
+      setTheme((d.theme as Theme) ?? systemTheme());
       setIncludeInvestments(d.includeInvestments ?? true);
       setEnableInvestments(d.enableInvestments ?? true);
       setEnableBudget(d.enableBudget ?? true);

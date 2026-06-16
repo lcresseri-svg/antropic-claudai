@@ -6,17 +6,19 @@ export default {
       colors: {
         // All tokens resolve via CSS custom properties so dark/light just swaps the vars.
         // The `<alpha-value>` placeholder lets Tailwind's opacity modifiers work (e.g. bg-gold/20).
-        bg:           'rgb(var(--c-bg) / <alpha-value>)',
-        surface:      'rgb(var(--c-surface) / <alpha-value>)',
-        card:         'rgb(var(--c-card) / <alpha-value>)',
-        'card-hover': 'rgb(var(--c-card-hover) / <alpha-value>)',
-        elevated:     'rgb(var(--c-elevated) / <alpha-value>)',
-        primary:      'rgb(var(--c-primary) / <alpha-value>)',
-        secondary:    'rgb(var(--c-secondary) / <alpha-value>)',
-        gold:         'rgb(var(--c-gold) / <alpha-value>)',
-        green:        'rgb(var(--c-green) / <alpha-value>)',
-        red:          'rgb(var(--c-red) / <alpha-value>)',
-        divider:      'rgb(var(--c-divider) / <alpha-value>)',
+        bg:              'rgb(var(--c-bg) / <alpha-value>)',
+        surface:         'rgb(var(--c-surface) / <alpha-value>)',
+        card:            'rgb(var(--c-card) / <alpha-value>)',
+        'card-hover':    'rgb(var(--c-card-hover) / <alpha-value>)',
+        elevated:        'rgb(var(--c-elevated) / <alpha-value>)',
+        primary:         'rgb(var(--c-primary) / <alpha-value>)',
+        secondary:       'rgb(var(--c-secondary) / <alpha-value>)',
+        tertiary:        'rgb(var(--c-tertiary) / <alpha-value>)',
+        gold:            'rgb(var(--c-gold) / <alpha-value>)',
+        green:           'rgb(var(--c-green) / <alpha-value>)',
+        red:             'rgb(var(--c-red) / <alpha-value>)',
+        divider:         'rgb(var(--c-divider) / <alpha-value>)',
+        'divider-strong':'rgb(var(--c-divider-strong) / <alpha-value>)',
       },
       fontFamily: {
         sans: ['Inter', '-apple-system', 'BlinkMacSystemFont', 'SF Pro Display', 'system-ui', 'sans-serif'],
@@ -27,10 +29,12 @@ export default {
         '3xl':'1.75rem',
       },
       boxShadow: {
-        card:        '0 1px 3px rgba(0,0,0,0.3)',
-        float:       '0 2px 8px rgba(0,0,0,0.5)',
+        // Flat surfaces: separation comes from hairline borders, not shadow.
+        // A single faint shadow is reserved for bottom sheets / floating overlays.
+        card:        'none',
+        float:       '0 2px 12px rgba(0,0,0,0.18)',
         glow:        'none',
-        'gold-glow': '0 2px 6px rgba(200,160,90,0.12)',
+        'gold-glow': 'none',
       },
       keyframes: {
         'fade-in': {
