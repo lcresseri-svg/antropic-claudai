@@ -72,7 +72,7 @@ export function SettingsProvider({ user, children }: { user: User | null; childr
   const [enableBudget, setEnableBudget] = useState(true);
   const [insightDepth, setInsightDepth] = useState<InsightDepth>('medium');
   const [aiEnabled, setAiEnabled] = useState(false);
-  const [aiCoachWidgetEnabled, setAiCoachWidgetEnabled] = useState(true);
+  const [aiCoachWidgetEnabled, setAiCoachWidgetEnabled] = useState(false);
   const [settingsLoaded, setSettingsLoaded] = useState(false);
 
   // Apply theme class to <html> immediately when state changes, and cache it so
@@ -92,7 +92,7 @@ export function SettingsProvider({ user, children }: { user: User | null; childr
       setEnableBudget(true);
       setInsightDepth('medium');
       setAiEnabled(false);
-      setAiCoachWidgetEnabled(true);
+      setAiCoachWidgetEnabled(false);
       setSettingsLoaded(false);
       return;
     }
@@ -119,7 +119,7 @@ export function SettingsProvider({ user, children }: { user: User | null; childr
       setEnableBudget(d.enableBudget ?? true);
       setInsightDepth((d.insightDepth as InsightDepth) ?? 'medium');
       setAiEnabled(d.aiEnabled ?? false);
-      setAiCoachWidgetEnabled(d.aiCoachWidgetEnabled ?? true);
+      setAiCoachWidgetEnabled(d.aiCoachWidgetEnabled ?? false);
       setSettingsLoaded(true);
     });
   // uid, not user object — avoids listener recreation on every token refresh.

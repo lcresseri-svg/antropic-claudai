@@ -31,6 +31,7 @@ interface Props {
   savingsTarget: number;
   onSeeInsights: () => void;
   onSeeInvestments: () => void;
+  onSeeCategories?: () => void;
   onSeeAccountBalance?: () => void;
   onAddExpense: () => void;
   onAddIncome: () => void;
@@ -165,7 +166,7 @@ export function DashboardV2(p: Props) {
         {/* Spese per categoria (navigabile → /category-spending) */}
         <CategoryCard
           categoryTotals={currentMonthCategoryTotals}
-          onClick={() => navigate('/category-spending')}
+          onClick={p.onSeeCategories ?? (() => navigate('/category-spending'))}
         />
 
         {/* Saldo per conto — full-width row */}

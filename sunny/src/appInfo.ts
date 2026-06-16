@@ -1,4 +1,4 @@
-export const APP_VERSION = '1.11.0';
+export const APP_VERSION = '1.12.0';
 
 /**
  * Release channel. While in 'beta' the app is still under active development
@@ -15,6 +15,13 @@ export interface VersionEntry {
 
 /** Registro versioni mostrato in Impostazioni → Registro versioni. */
 export const VERSIONS: VersionEntry[] = [
+  {
+    version: '1.12.0', date: '2026-06-16', title: 'Funzioni avanzate per tutti',
+    changes: [
+      'Le funzioni finora in anteprima sono ora disponibili per tutti: "Saldo per conto", previsioni avanzate, investimenti dettagliati e analisi più approfondite.',
+      'Le funzioni con intelligenza artificiale restano opzionali e disattivate di default: le attivi da Impostazioni quando vuoi (nessuna chiamata AI finché sono spente).',
+    ],
+  },
   {
     version: '1.11.0', date: '2026-06-16', title: 'Saldo per conto',
     changes: [
