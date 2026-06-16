@@ -23,79 +23,79 @@
   /* ── Dark theme (default) ── */
 
   /* Semantic layer */
-  --bg:            #0D0D0D;
-  --surface-1:     #0F0F0F;
-  --surface-2:     #141414;
-  --border:        rgba(240, 234, 214, 0.07);
-  --border-strong: rgba(240, 234, 214, 0.12);
-  --text-1:        #F0EAD6;
+  --bg:            #090909;
+  --surface-1:     #0C0C0C;
+  --surface-2:     #121212;
+  --border:        rgba(240, 234, 214, 0.08);
+  --border-strong: rgba(240, 234, 214, 0.14);
+  --text-1:        #F2ECD8;
   --text-2:        #A8A296;
-  --text-3:        #6B665C;
-  --accent:        #E6B95C;            /* gold accent (text / line / state) */
-  --accent-hi:     #F5C842;            /* hi-light gold — micro-highlight / CTA fill */
-  --accent-on:     #0D0D0D;            /* text over a gold fill */
+  --text-3:        #6E6959;
+  --accent:        #F0BE4D;            /* gold accent (text / line / state) */
+  --accent-hi:     #F7CB45;            /* hi-light gold — micro-highlight / CTA fill */
+  --accent-on:     #090909;            /* text over a gold fill */
 
   /* Tailwind-bridge channels (RGB, space-separated for /alpha modifiers) */
-  --c-bg:         13 13 13;            /* --bg */
-  --c-surface:    15 15 15;            /* nav / chrome — surface-1 level */
-  --c-card:       15 15 15;            /* --surface-1 (cards / panels) */
-  --c-card-hover: 20 20 20;            /* subtle hover lift */
-  --c-elevated:   20 20 20;            /* --surface-2 (sheets / overlays) */
-  --c-primary:    240 234 214;        /* --text-1 */
-  --c-secondary:  168 162 150;        /* --text-2 */
-  --c-tertiary:   107 102 92;         /* --text-3 */
-  --c-gold:       230 185 92;         /* --accent */
-  --c-green:      122 158 110;        /* functional: positive / income */
-  --c-red:        192 96 90;          /* functional: negative / over-budget */
-  --c-divider:    29 28 26;           /* solid hairline ≈ --border over --bg */
-  --c-divider-strong: 40 39 37;       /* solid ≈ --border-strong over --bg */
+  --c-bg:         9 9 9;               /* --bg */
+  --c-surface:    12 12 12;            /* nav / chrome — surface-1 level */
+  --c-card:       12 12 12;            /* --surface-1 (cards / panels) */
+  --c-card-hover: 18 18 18;            /* subtle hover lift */
+  --c-elevated:   18 18 18;            /* --surface-2 (sheets / overlays) */
+  --c-primary:    242 236 216;        /* --text-1 */
+  --c-secondary:  170 164 152;        /* --text-2 */
+  --c-tertiary:   110 105 89;         /* --text-3 */
+  --c-gold:       240 190 77;         /* --accent */
+  --c-green:      116 184 92;         /* functional: positive / income */
+  --c-red:        221 91 79;          /* functional: negative / over-budget */
+  --c-divider:    27 26 25;           /* solid hairline ≈ --border over --bg */
+  --c-divider-strong: 41 40 38;       /* solid ≈ --border-strong over --bg */
 
   /* Accent colors for SVG / inline styles — full hex for compatibility */
-  --accent-green: #7A9E6E;
-  --accent-gold:  #E6B95C;
-  --accent-red:   #C0605A;
-  --accent-blue:  #88B0C0;
+  --accent-green: #74B85C;
+  --accent-gold:  #F0BE4D;
+  --accent-red:   #DD5B4F;
+  --accent-blue:  #7FB6CC;
 
-  --progress-track: rgba(240, 234, 214, 0.06);
-  --modal-hdr-bg:   rgb(20, 20, 20);
+  --progress-track: rgba(240, 234, 214, 0.07);
+  --modal-hdr-bg:   rgb(18, 18, 18);
 }
 
 /* ─── Light theme — warm monochrome, "native BS" ────────────────────────────── */
 html.light {
   /* Semantic layer */
-  --bg:            #F4F1E9;            /* warm off-white, not cold white */
+  --bg:            #EFEADF;            /* warm off-white, a touch deeper */
   --surface-1:     #FFFFFF;
-  --surface-2:     #FBF9F3;
-  --border:        rgba(26, 23, 20, 0.10);
-  --border-strong: rgba(26, 23, 20, 0.16);
-  --text-1:        #1A1714;
-  --text-2:        #6B665C;
+  --surface-2:     #F7F4EC;
+  --border:        rgba(26, 23, 20, 0.12);
+  --border-strong: rgba(26, 23, 20, 0.18);
+  --text-1:        #17140F;
+  --text-2:        #645F54;
   --text-3:        #A8A296;
-  --accent:        #C29A3B;            /* darker gold so gold TEXT clears AA on light */
-  --accent-hi:     #E6B95C;            /* bright gold — allowed only as CTA fill */
-  --accent-on:     #1A1714;            /* text over a gold fill */
+  --accent:        #C4972C;            /* deeper gold so gold TEXT stays legible on light */
+  --accent-hi:     #EEBF4A;            /* bright gold — allowed only as CTA fill */
+  --accent-on:     #17140F;            /* text over a gold fill */
 
   /* Tailwind-bridge channels */
-  --c-bg:         244 241 233;        /* --bg */
+  --c-bg:         239 234 223;        /* --bg */
   --c-surface:    255 255 255;
   --c-card:       255 255 255;        /* --surface-1 */
-  --c-card-hover: 251 249 243;        /* --surface-2 */
+  --c-card-hover: 247 244 236;        /* --surface-2 */
   --c-elevated:   255 255 255;
-  --c-primary:    26 23 20;           /* --text-1 */
-  --c-secondary:  107 102 92;         /* --text-2 (~5:1 on white, AA) */
+  --c-primary:    23 20 15;           /* --text-1 */
+  --c-secondary:  100 95 84;          /* --text-2 (~5.3:1 on bg, AA) */
   --c-tertiary:   168 162 150;        /* --text-3 */
-  --c-gold:       194 154 59;         /* --accent (#C29A3B) — gold text clears AA */
-  --c-green:      54 116 48;          /* functional positive (AA on white) */
-  --c-red:        178 58 58;          /* functional negative (AA on white) */
-  --c-divider:    222 219 212;        /* solid hairline ≈ --border over --bg */
-  --c-divider-strong: 209 206 199;    /* solid ≈ --border-strong over --bg */
+  --c-gold:       196 151 44;         /* --accent (#C4972C) */
+  --c-green:      44 133 38;          /* functional positive (AA on white) */
+  --c-red:        197 57 47;          /* functional negative (AA on white) */
+  --c-divider:    213 209 199;        /* solid hairline ≈ --border over --bg */
+  --c-divider-strong: 201 196 186;    /* solid ≈ --border-strong over --bg */
 
-  --accent-green: #3D7A36;
-  --accent-gold:  #C29A3B;
-  --accent-red:   #B04040;
-  --accent-blue:  #3A7A9A;
+  --accent-green: #2C8526;
+  --accent-gold:  #C4972C;
+  --accent-red:   #C5392F;
+  --accent-blue:  #2F7396;
 
-  --progress-track: rgba(26, 23, 20, 0.08);
+  --progress-track: rgba(26, 23, 20, 0.10);
   --modal-hdr-bg:   rgba(255, 255, 255, 1);
 }
 
@@ -103,10 +103,10 @@ html.light {
    Quieter, deeper dark surfaces for the "financial copilot" redesign. Scoped to
    the .ui-v2 wrapper so only opted-in users get it; light theme is unchanged. */
 html:not(.light) .ui-v2 {
-  --c-card:       14 14 14;
-  --c-card-hover: 19 19 19;
-  --c-elevated:   19 19 19;
-  --c-divider:    26 25 23;
+  --c-card:       11 11 11;
+  --c-card-hover: 16 16 16;
+  --c-elevated:   16 16 16;
+  --c-divider:    24 23 21;
 }
 
 @layer base {
