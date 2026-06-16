@@ -1,4 +1,4 @@
-export const APP_VERSION = '1.10.4';
+export const APP_VERSION = '1.10.5';
 
 /**
  * Release channel. While in 'beta' the app is still under active development
@@ -15,6 +15,12 @@ export interface VersionEntry {
 
 /** Registro versioni mostrato in Impostazioni → Registro versioni. */
 export const VERSIONS: VersionEntry[] = [
+  {
+    version: '1.10.5', date: '2026-06-16', title: 'Tema chiaro: sfondo più chiaro, card più scure',
+    changes: [
+      'Nel tema chiaro lo sfondo è ora il tono più chiaro e le card sono leggermente più scure, sempre vicine e separate da bordi sottili.',
+    ],
+  },
   {
     version: '1.10.4', date: '2026-06-16', title: 'Tema chiaro più uniforme',
     changes: [

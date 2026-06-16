@@ -63,9 +63,9 @@
 /* ─── Light theme — warm monochrome, "native BS" ────────────────────────────── */
 html.light {
   /* Semantic layer */
-  --bg:            #F7F4EE;            /* warm near-white, almost equal to the cards */
-  --surface-1:     #FCFAF4;
-  --surface-2:     #FFFFFF;
+  --bg:            #FCFAF5;            /* lightest: near-white warm base */
+  --surface-1:     #F1EDE4;            /* cards sit a touch DARKER than the bg */
+  --surface-2:     #FAF7F1;            /* sheets float back up toward the bg */
   --border:        rgba(26, 23, 20, 0.12);
   --border-strong: rgba(26, 23, 20, 0.18);
   --text-1:        #17140F;
@@ -76,19 +76,19 @@ html.light {
   --accent-on:     #17140F;            /* text over a gold fill */
 
   /* Tailwind-bridge channels */
-  --c-bg:         247 244 238;        /* --bg (warm near-white, ≈ card) */
-  --c-surface:    252 250 244;        /* nav / chrome ≈ card */
-  --c-card:       252 250 244;        /* --surface-1 — only a hair lighter than --bg */
-  --c-card-hover: 255 255 255;        /* hover lifts toward white */
-  --c-elevated:   255 255 255;        /* --surface-2 (sheets, whitest) */
+  --c-bg:         252 250 245;        /* --bg (lightest base) */
+  --c-surface:    252 250 245;        /* nav / chrome = bg (bright) */
+  --c-card:       241 237 228;        /* --surface-1 — a touch darker than --bg */
+  --c-card-hover: 246 243 235;        /* hover lifts toward the bg */
+  --c-elevated:   250 247 241;        /* --surface-2 (sheets, near bg) */
   --c-primary:    23 20 15;           /* --text-1 */
   --c-secondary:  100 95 84;          /* --text-2 (~5.3:1 on bg, AA) */
   --c-tertiary:   168 162 150;        /* --text-3 */
   --c-gold:       196 151 44;         /* --accent (#C4972C) */
   --c-green:      44 133 38;          /* functional positive (AA on white) */
   --c-red:        197 57 47;          /* functional negative (AA on white) */
-  --c-divider:    220 217 212;        /* solid hairline ≈ --border over --bg */
-  --c-divider-strong: 207 204 199;    /* solid ≈ --border-strong over --bg */
+  --c-divider:    225 223 218;        /* solid hairline ≈ --border over --bg */
+  --c-divider-strong: 211 209 205;    /* solid ≈ --border-strong over --bg */
 
   --accent-green: #2C8526;
   --accent-gold:  #C4972C;
