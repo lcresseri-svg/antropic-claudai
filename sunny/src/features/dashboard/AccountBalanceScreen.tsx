@@ -8,9 +8,9 @@ import { useState, useMemo, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { Transaction } from '../../types';
 import { useSettings } from '../../shared/providers/settings';
-import { formatCurrency, capitalize } from '../../utils';
+import { formatCurrency, capitalize, formatDateFull } from '../../utils';
 import { PERIOD_OPTS, PeriodType, getPeriodRange, localISO } from './categoryAnalytics';
-import { aggregateAccountFlow, balanceAsOf, totalLiquidity } from './accountAnalytics';
+import { aggregateAccountFlow } from './accountAnalytics';
 import { AccountDetailSheet } from './AccountDetailSheet';
 
 interface Props {
@@ -33,17 +33,19 @@ export function AccountBalanceScreen({ transactions }: Props) {
   const cashAccounts = useMemo(() => accounts.filter(a => !a.isInvestment), [accounts]);
 
   const rows = useMemo(() => {
-    const todayISO = localISO(now);
     return cashAccounts
-      .map(acc => ({
-        acc,
-        current: balanceAsOf(transactions, acc, todayISO),
-        delta: aggregateAccountFlow(transactions, acc, range, { now }).delta,
-      }))
+      .map(acc => {
+        // `current` = balance at the END of the analysed period (capped to today
+        // by aggregateAccountFlow). Navigating back in time therefore shows the
+        // saldo as it stood at the close of that period — not always today's.
+        const flow = aggregateAccountFlow(transactions, acc, range, { now });
+        return { acc, current: flow.closingBalance, delta: flow.delta };
+      })
       .sort((a, b) => b.current - a.current);
   }, [cashAccounts, transactions, range, now]);
 
-  const liquidity = useMemo(() => totalLiquidity(transactions, accounts, now), [transactions, accounts, now]);
+  const liquidity = useMemo(() => rows.reduce((s, r) => s + r.current, 0), [rows]);
+  const totalDelta = useMemo(() => rows.reduce((s, r) => s + r.delta, 0), [rows]);
   const maxAbs = useMemo(() => Math.max(1, ...rows.map(r => Math.abs(r.current))), [rows]);
 
   // Changing the window closes any open detail.
@@ -123,13 +125,23 @@ export function AccountBalanceScreen({ transactions }: Props) {
         </div>
       ) : (
         <>
-          {/* Hero — current total liquidity */}
+          {/* Hero — total liquidity at the end of the analysed period */}
           <div className="glass-card rounded-2xl p-5 mb-3">
             <p className="label-caps text-secondary mb-1.5">Liquidità totale</p>
             <p className={`text-[34px] leading-none font-bold balance-num ${liquidity < 0 ? 'text-red' : 'text-primary'}`}>
               {formatCurrency(liquidity)}
             </p>
-            <p className="text-[12px] text-secondary mt-2">Somma dei saldi dei conti, oggi.</p>
+            {showDelta && Math.abs(totalDelta) > 0.005 && (
+              <p className={`text-[12px] mt-1.5 balance-num ${tone(totalDelta)}`}>
+                {formatCurrency(totalDelta, { sign: true })}
+                <span className="text-secondary"> nel periodo</span>
+              </p>
+            )}
+            <p className="text-[12px] text-secondary mt-2">
+              {range.isCurrent
+                ? 'Somma dei saldi dei conti, oggi.'
+                : `Somma dei saldi dei conti al ${formatDateFull(localISO(range.end))}.`}
+            </p>
           </div>
 
           {/* Account ranking */}
