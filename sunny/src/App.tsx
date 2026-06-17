@@ -33,7 +33,7 @@ import { ImportModal } from './features/transactions/ImportModal';
 import { BottomNav } from './shared/components/BottomNav';
 import { SideNav } from './shared/components/SideNav';
 import { SplashScreen } from './shared/components/SplashScreen';
-import { isAdminUser, canUseUiV2, canUseForecastV2 } from './shared/featureFlags';
+import { canUseUiV2, canUseForecastV2 } from './shared/featureFlags';
 import { ForecastV2Screen } from './features/forecast/ForecastV2Screen';
 import { ForecastV3Screen } from './features/forecast/ForecastV3Screen';
 import { PushPromoSheet } from './shared/components/PushPromoSheet';
@@ -525,8 +525,8 @@ function Main({ user, onLogOut, onDeleteAccount }: {
         onGoToSettings={() => { dismissPushPromo(); navigate('/settings'); }}
       />
 
-      {/* "Novità" popup — shown once per highlighted release, admin-only for now. */}
-      <WhatsNewModal isAdmin={isAdminUser(user)} />
+      {/* "Novità" popup — shown once per highlighted release, to all users. */}
+      <WhatsNewModal />
     </div>
   );
 }

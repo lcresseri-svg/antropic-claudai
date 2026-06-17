@@ -1,4 +1,4 @@
-export const APP_VERSION = '1.12.1';
+export const APP_VERSION = '1.13.0';
 
 /**
  * Release channel. While in 'beta' the app is still under active development
@@ -20,8 +20,16 @@ export interface VersionEntry {
 /** Registro versioni mostrato in Impostazioni → Registro versioni. */
 export const VERSIONS: VersionEntry[] = [
   {
+    version: '1.13.0', date: '2026-06-17', title: 'Aggiungi spese da iPhone',
+    highlight: true, // ← accende il popup "Novità" per tutti gli utenti
+    changes: [
+      'Nuova scorciatoia per iPhone: registra una spesa al volo dal telefono, anche senza aprire l\'app. La trovi in Impostazioni → "Spese da iPhone".',
+      'Generi un token sicuro, importi la scorciatoia una volta e poi aggiungi le spese in pochi tocchi.',
+      'Ad ogni spesa aggiunta ricevi una notifica di conferma con categoria, importo e conto.',
+    ],
+  },
+  {
     version: '1.12.1', date: '2026-06-17', title: 'Saldo per conto: saldo a fine periodo',
-    highlight: true, // ← accende il popup "Novità" per questa release (preview admin)
     changes: [
       'In "Saldo per conto", spostandoti nel tempo ora cambia anche il saldo: la liquidità totale e il saldo di ogni conto mostrano il valore a fine del periodo selezionato (non più sempre quello di oggi).',
       'La liquidità totale indica la variazione complessiva nel periodo e la data a cui si riferisce.',

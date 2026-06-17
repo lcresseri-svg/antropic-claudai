@@ -1,14 +1,13 @@
-// "Novità" popup — shows the changes of a release, but ONLY when the admin has
-// opted that specific release in (VersionEntry.highlight === true) AND only to
-// the admin (preview before rollout). Reuses the premium-popup style of
-// PushPromoSheet; the title uses DM Serif Display, like the wordmark.
+// "Novità" popup — announces the changes of a release to ALL users, but ONLY
+// when a specific release is opted in (VersionEntry.highlight === true). The
+// admin still controls WHICH release fires the popup, by flagging its changelog
+// entry. Reuses the premium-popup style of PushPromoSheet; the title uses DM
+// Serif Display, like the wordmark.
 //
-// ── ROLLOUT (future — documented, NOT implemented here) ──────────────────────
-//   • To show this to ALL users, simply drop the `isAdmin` check below and mount
-//     it with no admin gate; the highlight + "already seen" logic stays as-is.
-//   • For multi-user correctness, move the "already seen" flag from localStorage
-//     to a per-user Firestore field (e.g. users/{uid}/meta/settings.whatsNewSeen)
-//     so it follows the user across devices instead of being per-browser.
+// "Already seen" is tracked per-version in localStorage (per browser/device).
+// FUTURE (multi-device): move the flag to a per-user Firestore field
+// (e.g. users/{uid}/meta/settings.whatsNewSeen) so it follows the user across
+// devices instead of being per-browser.
 // ─────────────────────────────────────────────────────────────────────────────
 
 import { useState, useEffect } from 'react';
@@ -17,23 +16,18 @@ import { useEscapeKey } from '../hooks/useEscapeKey';
 
 const seenKey = (version: string) => `sunny_whatsnew_seen_${version}`;
 
-interface Props {
-  /** Gate: only the admin sees the popup in this phase. */
-  isAdmin: boolean;
-}
-
-export function WhatsNewModal({ isAdmin }: Props) {
+export function WhatsNewModal() {
   // Most recent highlighted release (VERSIONS is newest-first).
   const entry = VERSIONS.find(v => v.highlight);
 
   const [open, setOpen] = useState(false);
 
   useEffect(() => {
-    if (!isAdmin || !entry) return;
+    if (!entry) return;
     let alreadySeen = false;
     try { alreadySeen = localStorage.getItem(seenKey(entry.version)) === '1'; } catch { /* ignore */ }
     if (!alreadySeen) setOpen(true);
-  }, [isAdmin, entry?.version]);
+  }, [entry?.version]);
 
   const close = () => {
     if (entry) {

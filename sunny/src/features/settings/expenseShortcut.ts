@@ -8,8 +8,8 @@ import { getAuth } from 'firebase/auth';
 const FN_BASE =
   `https://europe-west1-${import.meta.env.VITE_FIREBASE_PROJECT_ID as string}.cloudfunctions.net`;
 
-// iCloud share link of the PUBLISHED Shortcut. Placeholder until published once —
-// replace with the real iCloud URL after publishing (see docs/shortcut-spese.md).
+// iCloud share link of the PUBLISHED "Aggiungi spesa" Shortcut, opened by the
+// in-app button after a token is generated (see docs/shortcut-spese.md).
 export const SUNNY_EXPENSE_SHORTCUT_URL =
   'https://www.icloud.com/shortcuts/86d16fba92e34559ad5de93820426beb';
 
