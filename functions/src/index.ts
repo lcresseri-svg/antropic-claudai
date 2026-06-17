@@ -2,6 +2,7 @@ import * as admin from 'firebase-admin';
 import { onSchedule } from 'firebase-functions/v2/scheduler';
 import { onDocumentDeleted, onDocumentCreated } from 'firebase-functions/v2/firestore';
 import { onRequest } from 'firebase-functions/v2/https';
+import { createHash, randomBytes } from 'crypto';
 
 admin.initializeApp();
 const db = admin.firestore();
@@ -1020,4 +1021,307 @@ export const onFeedbackCreated = onDocumentCreated(
       console.error('onFeedbackCreated: notify failed:', err);
     }
   }
+);
+
+// ─────────────────────────────────────────────────────────────────────────────
+// EXPENSE SHORTCUT API (admin-gated, token-authenticated)
+//
+// Lets an iOS Shortcut add an EXPENSE headlessly, authenticated with a minted
+// bearer token (NOT a Firebase session). In THIS phase everything is admin-only:
+// only the admin can mint a token (issueExpenseToken) and only the admin sees the
+// management UI; the runtime endpoints (getExpenseOptions / addExpense) trust the
+// token, which only the admin can obtain.
+//
+// STYLE NOTE — onRequest, not onCall: this whole file authenticates HTTP
+// endpoints with a Bearer header on purpose. The callable (onCall) protocol was
+// returning "internal" before the handler ran in this project (see generateDigest
+// above), so we never use it. Admin-management endpoints verify a Firebase ID
+// token (verifyBearer) + admin uid; the runtime endpoints verify a minted token.
+//
+// Tokens live in the top-level `expenseTokens` collection with doc id =
+// sha256(token), so the plaintext token is NEVER stored. Client access is denied
+// in firestore.rules — only the Admin SDK (these functions) can read/write them.
+// ─────────────────────────────────────────────────────────────────────────────
+
+const EXPENSE_SCOPE = 'expenses:write';
+// Per-token safety cap: max authenticated requests in a rolling hour → 429. One
+// shortcut run spends 2 (getExpenseOptions + addExpense), so ~15 adds/hour.
+const MAX_EXPENSE_REQS_PER_HOUR = 30;
+
+const sha256 = (s: string): string => createHash('sha256').update(s).digest('hex');
+
+/** YYYY-MM-DD for "now" in Europe/Rome (same trick as the reminder helpers). */
+function todayRomeISO(): string {
+  return new Intl.DateTimeFormat('fr-CA', {
+    timeZone: 'Europe/Rome', year: 'numeric', month: '2-digit', day: '2-digit',
+  }).format(new Date());
+}
+
+/** Drop undefined values — Firestore rejects writes containing `undefined`. */
+function dropUndefined<T extends Record<string, unknown>>(obj: T): T {
+  return Object.fromEntries(Object.entries(obj).filter(([, v]) => v !== undefined)) as T;
+}
+
+interface ExpenseTokenDoc {
+  uid: string;
+  scope: string;
+  revoked: boolean;
+  createdAt?: FirebaseFirestore.Timestamp;
+  lastUsedAt?: FirebaseFirestore.Timestamp | null;
+  label?: string;
+  rateWindowStart?: number; // ms epoch — start of the current rate-limit window
+  rateCount?: number;       // requests counted in the current window
+}
+
+type ExpenseAuth =
+  | { ok: true; uid: string; tokenHash: string }
+  | { ok: false; status: number; error: string };
+
+/** Shared Bearer middleware for the RUNTIME endpoints. Verifies a minted
+ *  shortcut token (exists, not revoked, scope === expenses:write), enforces a
+ *  rolling hourly rate limit, and stamps lastUsedAt. Returns the owning uid. */
+async function authExpenseToken(authHeader?: string): Promise<ExpenseAuth> {
+  const m = (authHeader ?? '').match(/^Bearer (.+)$/);
+  if (!m) return { ok: false, status: 401, error: 'unauthorized' };
+  const token = m[1].trim();
+  if (!token) return { ok: false, status: 401, error: 'unauthorized' };
+
+  const hash = sha256(token);
+  const ref = db.doc(`expenseTokens/${hash}`);
+  const snap = await ref.get();
+  if (!snap.exists) return { ok: false, status: 401, error: 'unauthorized' };
+
+  const data = snap.data() as ExpenseTokenDoc;
+  if (data.revoked) return { ok: false, status: 401, error: 'revoked' };
+  if (data.scope !== EXPENSE_SCOPE) return { ok: false, status: 403, error: 'forbidden-scope' };
+
+  // Rolling 1h rate-limit window kept on the token doc itself.
+  const now = Date.now();
+  const inWindow = data.rateWindowStart != null && (now - data.rateWindowStart) < 3_600_000;
+  const windowStart = inWindow ? (data.rateWindowStart as number) : now;
+  const count = inWindow ? (data.rateCount ?? 0) : 0;
+  if (count >= MAX_EXPENSE_REQS_PER_HOUR) return { ok: false, status: 429, error: 'rate-limit' };
+
+  await ref.update({
+    lastUsedAt: admin.firestore.FieldValue.serverTimestamp(),
+    rateWindowStart: windowStart,
+    rateCount: count + 1,
+  });
+
+  return { ok: true, uid: data.uid, tokenHash: hash };
+}
+
+type AdminAuth = { ok: true; uid: string } | { ok: false; status: number; error: string };
+
+/** Verify a Firebase ID token AND that it belongs to the admin. */
+async function authAdmin(authHeader?: string): Promise<AdminAuth> {
+  const uid = await verifyBearer(authHeader);
+  if (!uid) return { ok: false, status: 401, error: 'unauthorized' };
+  if (uid !== ADMIN_UID) return { ok: false, status: 403, error: 'forbidden' };
+  return { ok: true, uid };
+}
+
+// ── Admin management endpoints (Firebase ID token + admin uid) ───────────────
+
+/** Mint a new shortcut token. Returns the plaintext token ONCE; only the
+ *  sha256 is persisted. Admin-only. */
+export const issueExpenseToken = onRequest(
+  { region: 'europe-west1', cors: ALLOWED_ORIGINS },
+  async (req, res) => {
+    try {
+      if (req.method !== 'POST') { res.status(405).json({ ok: false, error: 'method-not-allowed' }); return; }
+      const auth = await authAdmin(req.headers.authorization);
+      if (!auth.ok) { res.status(auth.status).json({ ok: false, error: auth.error }); return; }
+
+      const label = String((req.body?.label as string | undefined) ?? '').trim().slice(0, 60) || 'Shortcut spese';
+
+      const token = randomBytes(32).toString('base64url'); // robust, URL-safe
+      const hash = sha256(token);
+
+      await db.doc(`expenseTokens/${hash}`).set({
+        uid: auth.uid,
+        scope: EXPENSE_SCOPE,
+        revoked: false,
+        createdAt: admin.firestore.FieldValue.serverTimestamp(),
+        lastUsedAt: null,
+        label,
+      });
+
+      // The plaintext token is returned here and NEVER again.
+      res.json({ ok: true, token, id: hash, label });
+    } catch (err) {
+      console.error('issueExpenseToken failed:', err);
+      res.status(500).json({ ok: false, error: 'internal' });
+    }
+  },
+);
+
+/** List the admin's tokens — metadata only, never the token itself. */
+export const listExpenseTokens = onRequest(
+  { region: 'europe-west1', cors: ALLOWED_ORIGINS },
+  async (req, res) => {
+    try {
+      if (req.method !== 'GET') { res.status(405).json({ ok: false, error: 'method-not-allowed' }); return; }
+      const auth = await authAdmin(req.headers.authorization);
+      if (!auth.ok) { res.status(auth.status).json({ ok: false, error: auth.error }); return; }
+
+      // Equality-only query → no composite index needed; sort client-side.
+      const snap = await db.collection('expenseTokens').where('uid', '==', auth.uid).get();
+      const toMs = (t?: FirebaseFirestore.Timestamp | null) => (t ? t.toMillis() : null);
+      const tokens = snap.docs
+        .map(d => {
+          const x = d.data() as ExpenseTokenDoc;
+          return {
+            id: d.id,
+            label: x.label ?? '',
+            revoked: !!x.revoked,
+            createdAt: toMs(x.createdAt ?? null),
+            lastUsedAt: toMs(x.lastUsedAt ?? null),
+          };
+        })
+        .sort((a, b) => (b.createdAt ?? 0) - (a.createdAt ?? 0));
+
+      res.json({ ok: true, tokens });
+    } catch (err) {
+      console.error('listExpenseTokens failed:', err);
+      res.status(500).json({ ok: false, error: 'internal' });
+    }
+  },
+);
+
+/** Revoke one of the admin's tokens (soft delete: revoked = true). */
+export const revokeExpenseToken = onRequest(
+  { region: 'europe-west1', cors: ALLOWED_ORIGINS },
+  async (req, res) => {
+    try {
+      if (req.method !== 'POST') { res.status(405).json({ ok: false, error: 'method-not-allowed' }); return; }
+      const auth = await authAdmin(req.headers.authorization);
+      if (!auth.ok) { res.status(auth.status).json({ ok: false, error: auth.error }); return; }
+
+      const id = String((req.body?.id as string | undefined) ?? '').trim();
+      if (!id) { res.status(400).json({ ok: false, error: 'missing-id' }); return; }
+
+      const ref = db.doc(`expenseTokens/${id}`);
+      const snap = await ref.get();
+      // Don't leak existence of tokens that aren't the caller's.
+      if (!snap.exists || (snap.data() as ExpenseTokenDoc).uid !== auth.uid) {
+        res.status(404).json({ ok: false, error: 'not-found' }); return;
+      }
+      await ref.update({ revoked: true });
+      res.json({ ok: true });
+    } catch (err) {
+      console.error('revokeExpenseToken failed:', err);
+      res.status(500).json({ ok: false, error: 'internal' });
+    }
+  },
+);
+
+// ── Runtime endpoints called by the Shortcut (minted token auth) ─────────────
+
+/** GET: the user's expense categories and accounts (names), so the Shortcut can
+ *  present a "Choose from List". Empty lists are returned as `ok:true` + []. */
+export const getExpenseOptions = onRequest(
+  { region: 'europe-west1', cors: ALLOWED_ORIGINS },
+  async (req, res) => {
+    try {
+      if (req.method !== 'GET') { res.status(405).json({ ok: false, error: 'method-not-allowed' }); return; }
+      const auth = await authExpenseToken(req.headers.authorization);
+      if (!auth.ok) { res.status(auth.status).json({ ok: false, error: auth.error }); return; }
+
+      const settingsSnap = await db.doc(`users/${auth.uid}/meta/settings`).get();
+      const settings = (settingsSnap.data() ?? {}) as {
+        categories?: { label?: string; kind?: string }[];
+        accounts?: { label?: string }[];
+      };
+      const categories = (settings.categories ?? [])
+        .filter(c => c.kind === 'expense' && (c.label ?? '').trim())
+        .map(c => (c.label as string).trim());
+      const accounts = (settings.accounts ?? [])
+        .filter(a => (a.label ?? '').trim())
+        .map(a => (a.label as string).trim());
+
+      res.json({ ok: true, categories, accounts });
+    } catch (err) {
+      console.error('getExpenseOptions failed:', err);
+      res.status(500).json({ ok: false, error: 'internal' });
+    }
+  },
+);
+
+/** POST: create ONE expense for the token's user. type is FORCED to 'expense'. */
+export const addExpense = onRequest(
+  { region: 'europe-west1', cors: ALLOWED_ORIGINS },
+  async (req, res) => {
+    try {
+      if (req.method !== 'POST') { res.status(405).json({ ok: false, error: 'method-not-allowed' }); return; }
+      const auth = await authExpenseToken(req.headers.authorization);
+      if (!auth.ok) { res.status(auth.status).json({ ok: false, error: auth.error }); return; }
+
+      const body = (req.body ?? {}) as { amount?: unknown; category?: unknown; account?: unknown; description?: unknown };
+
+      // amount: accept "12,50" or "12.50"; must be finite and > 0; stored positive.
+      const amount = Number(String(body.amount ?? '').replace(',', '.'));
+      if (!Number.isFinite(amount) || amount <= 0) {
+        res.status(400).json({ ok: false, error: 'Importo non valido: inserisci un numero maggiore di zero.' });
+        return;
+      }
+      const amountRounded = Math.round(amount * 100) / 100;
+
+      // Resolve category/account by NAME (label), case-insensitive, against the
+      // user's settings. Category is matched among EXPENSE categories only.
+      const settingsSnap = await db.doc(`users/${auth.uid}/meta/settings`).get();
+      const settings = (settingsSnap.data() ?? {}) as {
+        categories?: { id?: string; label?: string; kind?: string }[];
+        accounts?: { id?: string; label?: string }[];
+      };
+      const expenseCats = (settings.categories ?? []).filter(c => c.kind === 'expense' && c.id && c.label);
+      const accs = (settings.accounts ?? []).filter(a => a.id && a.label);
+
+      const norm = (s: unknown) => String(s ?? '').trim().toLowerCase();
+      const cat = expenseCats.find(c => norm(c.label) === norm(body.category));
+      if (!cat) {
+        res.status(400).json({
+          ok: false,
+          error: `Categoria "${String(body.category ?? '')}" non trovata.`,
+          validCategories: expenseCats.map(c => c.label),
+        });
+        return;
+      }
+      const acc = accs.find(a => norm(a.label) === norm(body.account));
+      if (!acc) {
+        res.status(400).json({
+          ok: false,
+          error: `Conto "${String(body.account ?? '')}" non trovato.`,
+          validAccounts: accs.map(a => a.label),
+        });
+        return;
+      }
+
+      const description = String(body.description ?? '').trim() || (cat.label as string);
+      const date = todayRomeISO();
+
+      // EXACTLY the existing Transaction write shape (cf. useTransactions
+      // withCreatedAt): auto-id doc, createdAt = ms epoch, type forced to
+      // 'expense'. We never set seriesId / recurring / projected / shared /
+      // groupId. Undefined fields are stripped.
+      const txData = dropUndefined({
+        date,
+        description,
+        amount: amountRounded,
+        type: 'expense',
+        category: cat.id as string,
+        account: acc.id as string,
+        createdAt: Date.now(),
+      });
+      const ref = await db.collection(`users/${auth.uid}/transactions`).add(txData);
+
+      const amountStr = new Intl.NumberFormat('it-IT', { style: 'currency', currency: 'EUR' }).format(amountRounded);
+      const summary = `−${amountStr} · ${cat.label} · ${acc.label}`;
+
+      res.json({ ok: true, id: ref.id, summary });
+    } catch (err) {
+      console.error('addExpense failed:', err);
+      res.status(500).json({ ok: false, error: 'internal' });
+    }
+  },
 );
