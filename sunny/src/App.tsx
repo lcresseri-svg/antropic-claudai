@@ -166,7 +166,14 @@ function Main({ user, onLogOut, onDeleteAccount }: {
   const isSettings = location.pathname.startsWith('/settings');
   const firstName = user.displayName?.split(' ')[0] ?? 'utente';
 
-  useEffect(() => { window.scrollTo(0, 0); }, [location.pathname]);
+  // Reset scroll to top on every route change. The real scroller is the
+  // #app-scroll container (the body/window never scrolls — see its overflow
+  // setup below), so window.scrollTo alone is a no-op on desktop: reset that
+  // element too.
+  useEffect(() => {
+    document.getElementById('app-scroll')?.scrollTo(0, 0);
+    window.scrollTo(0, 0);
+  }, [location.pathname]);
 
   // Show the push promo sheet once to iOS PWA users who haven't enabled push.
   useEffect(() => {
