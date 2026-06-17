@@ -1271,7 +1271,7 @@ export const addExpense = onRequest(
       // user's settings. Category is matched among EXPENSE categories only.
       const settingsSnap = await db.doc(`users/${auth.uid}/meta/settings`).get();
       const settings = (settingsSnap.data() ?? {}) as {
-        categories?: { id?: string; label?: string; kind?: string }[];
+        categories?: { id?: string; label?: string; kind?: string; icon?: string }[];
         accounts?: { id?: string; label?: string }[];
       };
       const expenseCats = (settings.categories ?? []).filter(c => c.kind === 'expense' && c.id && c.label);
@@ -1317,6 +1317,22 @@ export const addExpense = onRequest(
 
       const amountStr = new Intl.NumberFormat('it-IT', { style: 'currency', currency: 'EUR' }).format(amountRounded);
       const summary = `−${amountStr} · ${cat.label} · ${acc.label}`;
+
+      // Best-effort native push, coherent with the app: category emoji + amount
+      // + real category/account names. Reuses sendToUser (same path as
+      // sendTestPush: multicast to every device token + invalid-token cleanup).
+      // NEVER fails the request — the expense is already saved. Reuses the
+      // category/account already resolved above (no second meta/settings read).
+      try {
+        const icon = (cat.icon ?? '').trim();
+        // Same IT amount formatting as `summary`, but absolute and without the €
+        // symbol (the template adds " €") — e.g. "50,00".
+        const amountPlain = new Intl.NumberFormat('it-IT', { minimumFractionDigits: 2, maximumFractionDigits: 2 }).format(amountRounded);
+        const pushBody = `${icon ? `${icon} ` : ''}${amountPlain} € in ${cat.label} da ${acc.label}`;
+        await sendToUser(auth.uid, 'Spesa aggiunta', pushBody, undefined, 'expense-added');
+      } catch (err) {
+        console.error('addExpense: push notification failed (ignored):', err);
+      }
 
       res.json({ ok: true, id: ref.id, summary });
     } catch (err) {
