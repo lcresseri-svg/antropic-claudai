@@ -11,12 +11,17 @@ export interface VersionEntry {
   date: string;        // YYYY-MM-GG
   title: string;
   changes: string[];
+  /** When true, this release lights up the "Novità" popup (WhatsNewModal).
+   *  Setting it is the explicit, per-release control: the admin decides which
+   *  release is worth a popup by flagging its changelog entry. */
+  highlight?: boolean;
 }
 
 /** Registro versioni mostrato in Impostazioni → Registro versioni. */
 export const VERSIONS: VersionEntry[] = [
   {
     version: '1.12.1', date: '2026-06-17', title: 'Saldo per conto: saldo a fine periodo',
+    highlight: true, // ← accende il popup "Novità" per questa release (preview admin)
     changes: [
       'In "Saldo per conto", spostandoti nel tempo ora cambia anche il saldo: la liquidità totale e il saldo di ogni conto mostrano il valore a fine del periodo selezionato (non più sempre quello di oggi).',
       'La liquidità totale indica la variazione complessiva nel periodo e la data a cui si riferisce.',

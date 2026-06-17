@@ -41,6 +41,14 @@ service cloud.firestore {
         && request.auth.uid == 'qPtCOJGRrwOZ2EfjxMHwW6ZISXX2';
     }
 
+    // Expense-shortcut tokens (doc id = sha256 of the token). These are managed
+    // exclusively by Cloud Functions via the Admin SDK (which bypasses rules):
+    // NO client may ever read or write them. Explicit deny on top of the
+    // default-deny below, to document the intent.
+    match /expenseTokens/{id} {
+      allow read, write: if false;
+    }
+
     // Deny everything else by default
     match /{document=**} {
       allow read, write: if false;
