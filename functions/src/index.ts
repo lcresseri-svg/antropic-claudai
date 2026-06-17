@@ -1024,19 +1024,19 @@ export const onFeedbackCreated = onDocumentCreated(
 );
 
 // ─────────────────────────────────────────────────────────────────────────────
-// EXPENSE SHORTCUT API (admin-gated, token-authenticated)
+// EXPENSE SHORTCUT API (token-authenticated)
 //
 // Lets an iOS Shortcut add an EXPENSE headlessly, authenticated with a minted
-// bearer token (NOT a Firebase session). In THIS phase everything is admin-only:
-// only the admin can mint a token (issueExpenseToken) and only the admin sees the
-// management UI; the runtime endpoints (getExpenseOptions / addExpense) trust the
-// token, which only the admin can obtain.
+// bearer token (NOT a Firebase session). Available to ALL signed-in users: each
+// user mints/manages tokens for THEIR OWN account (issueExpenseToken &co), and a
+// token grants writes only to its owner's data. The runtime endpoints
+// (getExpenseOptions / addExpense) trust the minted token.
 //
 // STYLE NOTE — onRequest, not onCall: this whole file authenticates HTTP
 // endpoints with a Bearer header on purpose. The callable (onCall) protocol was
 // returning "internal" before the handler ran in this project (see generateDigest
-// above), so we never use it. Admin-management endpoints verify a Firebase ID
-// token (verifyBearer) + admin uid; the runtime endpoints verify a minted token.
+// above), so we never use it. The management endpoints verify a Firebase ID
+// token (verifyBearer, any user); the runtime endpoints verify a minted token.
 //
 // Tokens live in the top-level `expenseTokens` collection with doc id =
 // sha256(token), so the plaintext token is NEVER stored. Client access is denied
@@ -1111,17 +1111,18 @@ async function authExpenseToken(authHeader?: string): Promise<ExpenseAuth> {
   return { ok: true, uid: data.uid, tokenHash: hash };
 }
 
-type AdminAuth = { ok: true; uid: string } | { ok: false; status: number; error: string };
+type UserAuth = { ok: true; uid: string } | { ok: false; status: number; error: string };
 
-/** Verify a Firebase ID token AND that it belongs to the admin. */
-async function authAdmin(authHeader?: string): Promise<AdminAuth> {
+/** Verify a Firebase ID token. Any signed-in user may manage THEIR OWN
+ *  expense-shortcut tokens — every token is scoped to the caller's uid, and a
+ *  token only ever grants writes to that same account. */
+async function authUser(authHeader?: string): Promise<UserAuth> {
   const uid = await verifyBearer(authHeader);
   if (!uid) return { ok: false, status: 401, error: 'unauthorized' };
-  if (uid !== ADMIN_UID) return { ok: false, status: 403, error: 'forbidden' };
   return { ok: true, uid };
 }
 
-// ── Admin management endpoints (Firebase ID token + admin uid) ───────────────
+// ── Token management endpoints (any signed-in user; per-user scoped) ──────────
 
 /** Mint a new shortcut token. Returns the plaintext token ONCE; only the
  *  sha256 is persisted. Admin-only. */
@@ -1130,7 +1131,7 @@ export const issueExpenseToken = onRequest(
   async (req, res) => {
     try {
       if (req.method !== 'POST') { res.status(405).json({ ok: false, error: 'method-not-allowed' }); return; }
-      const auth = await authAdmin(req.headers.authorization);
+      const auth = await authUser(req.headers.authorization);
       if (!auth.ok) { res.status(auth.status).json({ ok: false, error: auth.error }); return; }
 
       const label = String((req.body?.label as string | undefined) ?? '').trim().slice(0, 60) || 'Shortcut spese';
@@ -1162,7 +1163,7 @@ export const listExpenseTokens = onRequest(
   async (req, res) => {
     try {
       if (req.method !== 'GET') { res.status(405).json({ ok: false, error: 'method-not-allowed' }); return; }
-      const auth = await authAdmin(req.headers.authorization);
+      const auth = await authUser(req.headers.authorization);
       if (!auth.ok) { res.status(auth.status).json({ ok: false, error: auth.error }); return; }
 
       // Equality-only query → no composite index needed; sort client-side.
@@ -1195,7 +1196,7 @@ export const revokeExpenseToken = onRequest(
   async (req, res) => {
     try {
       if (req.method !== 'POST') { res.status(405).json({ ok: false, error: 'method-not-allowed' }); return; }
-      const auth = await authAdmin(req.headers.authorization);
+      const auth = await authUser(req.headers.authorization);
       if (!auth.ok) { res.status(auth.status).json({ ok: false, error: auth.error }); return; }
 
       const id = String((req.body?.id as string | undefined) ?? '').trim();
