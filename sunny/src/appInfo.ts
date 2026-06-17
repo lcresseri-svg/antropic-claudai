@@ -1,4 +1,4 @@
-export const APP_VERSION = '1.11.1';
+export const APP_VERSION = '1.12.1';
 
 /**
  * Release channel. While in 'beta' the app is still under active development
@@ -16,11 +16,18 @@ export interface VersionEntry {
 /** Registro versioni mostrato in Impostazioni → Registro versioni. */
 export const VERSIONS: VersionEntry[] = [
   {
-    version: '1.11.1', date: '2026-06-17', title: 'Saldo per conto: saldo a fine periodo',
+    version: '1.12.1', date: '2026-06-17', title: 'Saldo per conto: saldo a fine periodo',
     changes: [
       'In "Saldo per conto", spostandoti nel tempo ora cambia anche il saldo: la liquidità totale e il saldo di ogni conto mostrano il valore a fine del periodo selezionato (non più sempre quello di oggi).',
       'La liquidità totale indica la variazione complessiva nel periodo e la data a cui si riferisce.',
       'Cambiando schermata la pagina torna sempre in cima, anche da computer.',
+    ],
+  },
+  {
+    version: '1.12.0', date: '2026-06-16', title: 'Funzioni avanzate per tutti',
+    changes: [
+      'Le funzioni finora in anteprima sono ora disponibili per tutti: "Saldo per conto", previsioni avanzate, investimenti dettagliati e analisi più approfondite.',
+      'Le funzioni con intelligenza artificiale restano opzionali e disattivate di default: le attivi da Impostazioni quando vuoi (nessuna chiamata AI finché sono spente).',
     ],
   },
   {

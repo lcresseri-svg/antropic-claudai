@@ -33,7 +33,7 @@ import { ImportModal } from './features/transactions/ImportModal';
 import { BottomNav } from './shared/components/BottomNav';
 import { SideNav } from './shared/components/SideNav';
 import { SplashScreen } from './shared/components/SplashScreen';
-import { isAdminUser, canUseUiV2, canUseForecastV2 } from './shared/featureFlags';
+import { canUseUiV2, canUseForecastV2 } from './shared/featureFlags';
 import { ForecastV2Screen } from './features/forecast/ForecastV2Screen';
 import { ForecastV3Screen } from './features/forecast/ForecastV3Screen';
 import { PushPromoSheet } from './shared/components/PushPromoSheet';
@@ -273,7 +273,7 @@ function Main({ user, onLogOut, onDeleteAccount }: {
       )}
 
       {/* Desktop sidebar */}
-      <SideNav loading={tx.loading} onAdd={openAdd} onImport={() => setImportOpen(true)} isAdmin={isAdminUser(user)} aiEnabled={aiEnabled} uiV2={uiV2} />
+      <SideNav loading={tx.loading} onAdd={openAdd} onImport={() => setImportOpen(true)} aiEnabled={aiEnabled} uiV2={uiV2} />
 
       {/* Content (shifted right by sidebar on desktop) */}
       <div className="flex-1 md:ml-[220px] min-w-0 flex flex-col h-full overflow-hidden">
@@ -342,7 +342,8 @@ function Main({ user, onLogOut, onDeleteAccount }: {
                   savingsTarget={budget.budget.savingsTarget}
                   onSeeInsights={() => navigate('/insights')}
                   onSeeInvestments={() => navigate('/investments')}
-                  onSeeAccountBalance={isAdminUser(user) ? () => navigate('/account-balance') : undefined}
+                  onSeeCategories={() => navigate('/category-spending')}
+                  onSeeAccountBalance={() => navigate('/account-balance')}
                   onAddExpense={() => openAddWithType('expense')}
                   onAddIncome={() => openAddWithType('income')}
                   onImportCSV={() => setImportOpen(true)}
@@ -360,7 +361,7 @@ function Main({ user, onLogOut, onDeleteAccount }: {
                   onSeeInsights={() => navigate('/insights')}
                   onSeeInvestments={() => navigate('/investments')}
                   onSeeCategories={() => navigate('/category-spending')}
-                  onSeeAccountBalance={isAdminUser(user) ? () => navigate('/account-balance') : undefined}
+                  onSeeAccountBalance={() => navigate('/account-balance')}
                 />
               )
             } />
@@ -384,7 +385,7 @@ function Main({ user, onLogOut, onDeleteAccount }: {
                   <InsightsScreenV2 user={user} transactions={tx.transactions}
                     monthlyIncome={tx.monthlyIncome} monthlyExpenses={tx.monthlyExpenses}
                     monthlyInvestments={tx.monthlyInvestments} portfolio={portfolio}
-                    isAdmin={isAdminUser(user)} budgets={budget.budget.categoryBudgets} />
+                    isAdmin={true} budgets={budget.budget.categoryBudgets} />
                 ) : (
                   <InsightsScreen transactions={tx.transactions}
                     monthlyIncome={tx.monthlyIncome} monthlyExpenses={tx.monthlyExpenses}
@@ -432,7 +433,7 @@ function Main({ user, onLogOut, onDeleteAccount }: {
                   onLogOut={onLogOut} onDeleteAll={tx.deleteAll} onDeleteAccount={onDeleteAccount} />
               </div>
             } />
-            {isAdminUser(user) && (
+            {aiEnabled && (
               <Route path="/ai-coach" element={
                 <div className="pt-4 md:pt-6">
                   <AICoachScreen />
@@ -444,13 +445,11 @@ function Main({ user, onLogOut, onDeleteAccount }: {
                 <CategorySpendingScreen transactions={tx.transactions} categoryBudgets={budget.budget.categoryBudgets} />
               </div>
             } />
-            {isAdminUser(user) && (
-              <Route path="/account-balance" element={
-                <div className="pt-4 md:pt-6">
-                  <AccountBalanceScreen transactions={tx.transactions} />
-                </div>
-              } />
-            )}
+            <Route path="/account-balance" element={
+              <div className="pt-4 md:pt-6">
+                <AccountBalanceScreen transactions={tx.transactions} />
+              </div>
+            } />
             <Route path="/forecast-v2" element={
               canUseForecastV2(user) ? (
                 <div className="pt-4 md:pt-6">
@@ -472,7 +471,7 @@ function Main({ user, onLogOut, onDeleteAccount }: {
                     expenseCategories={categories.filter(c => c.kind === 'expense')}
                     monthlyIncome={tx.monthlyIncome}
                     monthlyInvestments={tx.monthlyInvestments}
-                    isAdmin={isAdminUser(user)}
+                    isAdmin={true}
                     allCategories={categories}
                     accounts={accounts}
                     budget={budget.budget}
@@ -498,7 +497,7 @@ function Main({ user, onLogOut, onDeleteAccount }: {
         {!isSettings && <BottomNav onAdd={openAdd} uiV2={uiV2} />}
       </div>
 
-      {settingsLoaded && isAdminUser(user) && aiCoachWidgetEnabled && <AICoachWidget />}
+      {settingsLoaded && aiEnabled && aiCoachWidgetEnabled && <AICoachWidget />}
 
       <TransactionModal
         open={modalOpen} editing={editing} groupTransfers={groupTransfers} seriesEdit={seriesEdit}
