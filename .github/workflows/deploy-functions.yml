@@ -56,16 +56,31 @@ jobs:
 
       # 0) Firestore indexes — required by processRecurringTransactions
       #    (collectionGroup query on `recurring` field needs the composite index).
-      #    Idempotent: safe to re-deploy on every push.
+      #    Idempotent: safe to re-deploy on every push. Retried: the Firebase
+      #    Rules/Firestore API occasionally returns a transient 503.
       - name: Deploy Firestore indexes
         if: github.event_name == 'push'
-        run: npx -y firebase-tools@latest deploy --only firestore:indexes --project sunny-a2a98 --non-interactive --force
+        run: |
+          for i in 1 2 3; do
+            npx -y firebase-tools@latest deploy --only firestore:indexes --project sunny-a2a98 --non-interactive --force && exit 0
+            echo "::warning::firestore:indexes deploy attempt $i failed; retrying in 15s"
+            sleep 15
+          done
+          exit 1
 
-      # 0b) Firestore security rules — feedback collection needs its create/read
-      #     rule live. Idempotent: safe to re-deploy on every push.
+      # 0b) Firestore security rules — feedback collection + expenseTokens deny.
+      #     Idempotent: safe to re-deploy on every push. Retried: this step has
+      #     hit a transient 503 from firebaserules.googleapis.com, which (under
+      #     `bash -e`) aborted the whole job and skipped the function deploys.
       - name: Deploy Firestore rules
         if: github.event_name == 'push'
-        run: npx -y firebase-tools@latest deploy --only firestore:rules --project sunny-a2a98 --non-interactive --force
+        run: |
+          for i in 1 2 3; do
+            npx -y firebase-tools@latest deploy --only firestore:rules --project sunny-a2a98 --non-interactive --force && exit 0
+            echo "::warning::firestore:rules deploy attempt $i failed; retrying in 15s"
+            sleep 15
+          done
+          exit 1
 
       # Clean up obsolete functions that were removed from source. Because the
       # deploy steps below use `--only functions:<names>`, deleting a function
@@ -80,10 +95,12 @@ jobs:
       # owner (Cloud Scheduler / Pub/Sub / Eventarc service-agent roles).
 
       # 1) HTTP functions — never need special IAM, deploy first so the AI
-      #    digest and the push self-test are always available.
+      #    digest, the push self-test and the expense-shortcut API are always
+      #    available. NB: this list is explicit (--only) — any NEW HTTP function
+      #    must be added here or it will never be deployed.
       - name: Deploy HTTP functions
         if: github.event_name == 'push'
-        run: npx -y firebase-tools@latest deploy --only functions:generateDigest,functions:sendTestPush,functions:generateAffordabilityAdvice --project sunny-a2a98 --non-interactive --force
+        run: npx -y firebase-tools@latest deploy --only functions:generateDigest,functions:sendTestPush,functions:generateAffordabilityAdvice,functions:issueExpenseToken,functions:listExpenseTokens,functions:revokeExpenseToken,functions:getExpenseOptions,functions:addExpense --project sunny-a2a98 --non-interactive --force
 
       # 2) Scheduled + trigger functions — require the service-agent IAM
       #    bindings. If this step fails with an IAM error, an owner must grant
