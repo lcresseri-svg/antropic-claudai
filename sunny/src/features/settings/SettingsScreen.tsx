@@ -8,7 +8,6 @@ import { EditDefSheet, DefDraft } from './EditDefSheet';
 import { FeedbackSheet } from '../feedback/FeedbackSheet';
 import { ExpenseShortcutSection } from './ExpenseShortcutSection';
 import { buildExportPayload, downloadJson, downloadCsv } from './dataExport';
-import { isAdminUser } from '../../shared/featureFlags';
 import { APP_VERSION, APP_CHANNEL, VERSIONS } from '../../appInfo';
 
 interface Props {
@@ -41,7 +40,6 @@ function reorder<T>(arr: T[], from: number, to: number): T[] {
 export function SettingsScreen({ user, transactions, uiV2 = false, onLogOut, onDeleteAll, onDeleteAccount }: Props) {
   const navigate = useNavigate();
   const location = useLocation();
-  const isAdmin = isAdminUser(user);
   const { categories, accounts, theme, includeInvestments, enableInvestments, enableBudget, insightDepth, aiEnabled, aiCoachWidgetEnabled, detailedInvestments, saveCategories, saveAccounts, saveTheme, saveIncludeInvestments, saveEnableInvestments, saveEnableBudget, saveInsightDepth, saveAiEnabled, saveAiCoachWidgetEnabled } = useSettings();
   const [sub, setSub] = useState<Sub>('menu');
   const [editing, setEditing] = useState<{ kind: 'category' | 'account'; draft: DefDraft; isNew: boolean; withKind?: boolean } | null>(null);
@@ -398,11 +396,9 @@ export function SettingsScreen({ user, transactions, uiV2 = false, onLogOut, onD
               <MenuSection title="Avanzate">
                 <Row icon="🔍" color="#8B8B8B" label="Analisi e AI" sub="Profondità insight, widget coach" onClick={() => enterSub('avanzate')} />
               </MenuSection>
-              {isAdmin && (
-                <MenuSection title="Admin">
-                  <Row icon="⚡" color="#E6B95C" label="Aggiungi shortcut spese" sub="Token per la Shortcut iOS" onClick={() => enterSub('shortcut')} />
-                </MenuSection>
-              )}
+              <MenuSection title="Scorciatoie">
+                <Row icon="⚡" color="#E6B95C" label="Aggiungi spese da iPhone" sub="Scorciatoia iOS per registrare spese" onClick={() => enterSub('shortcut')} />
+              </MenuSection>
             </div>
           ) : (
             <div className="bg-card rounded-2xl divide-y divide-divider md:bg-transparent md:divide-y-0 md:grid md:grid-cols-2 md:gap-3">
@@ -411,7 +407,7 @@ export function SettingsScreen({ user, transactions, uiV2 = false, onLogOut, onD
               <Row icon="💾" color="#8A9270" label="Dati" sub="Esporta, elimina" onClick={() => enterSub('dati')} />
               <Row icon="ℹ️" color="#88B0C0" label="Come funziona" sub="Calcoli e formule" onClick={() => enterSub('info')} />
               <Row icon="💬" color="#E6B95C" label="Lascia un feedback" sub="Problemi, idee, suggerimenti" onClick={() => setFeedbackOpen(true)} />
-              {isAdmin && <Row icon="⚡" color="#E6B95C" label="Shortcut spese" sub="Token Shortcut iOS" onClick={() => enterSub('shortcut')} />}
+              <Row icon="⚡" color="#E6B95C" label="Spese da iPhone" sub="Scorciatoia iOS" onClick={() => enterSub('shortcut')} />
             </div>
           )}
 
@@ -724,9 +720,9 @@ export function SettingsScreen({ user, transactions, uiV2 = false, onLogOut, onD
         </>
       )}
 
-      {sub === 'shortcut' && isAdmin && (
+      {sub === 'shortcut' && (
         <>
-          <ManageHeader title="Shortcut spese" editMode={false} onBack={exitToMenu} onToggleEdit={() => {}} hideEdit />
+          <ManageHeader title="Spese da iPhone" editMode={false} onBack={exitToMenu} onToggleEdit={() => {}} hideEdit />
           <ExpenseShortcutSection />
         </>
       )}
