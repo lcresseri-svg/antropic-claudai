@@ -11,7 +11,7 @@ const FN_BASE =
 // iCloud share link of the PUBLISHED Shortcut. Placeholder until published once —
 // replace with the real iCloud URL after publishing (see docs/shortcut-spese.md).
 export const SUNNY_EXPENSE_SHORTCUT_URL =
-  'https://www.icloud.com/shortcuts/REPLACE_WITH_PUBLISHED_SHORTCUT_ID';
+  'https://www.icloud.com/shortcuts/86d16fba92e34559ad5de93820426beb';
 
 export interface ExpenseTokenMeta {
   id: string;             // doc id = sha256(token); safe to expose (not the token)
