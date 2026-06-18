@@ -152,9 +152,25 @@ export function DashboardV2(p: Props) {
         <TrendChart data={p.trend} />
       </div>
 
-      {/* Analytical cards — 2-column grid on large screens to use the width */}
+      {/* Analytical cards — order: Spese → Saldo → Investimenti.
+          2-column grid on large screens to use the width. */}
       <div className="mt-4 grid grid-cols-1 lg:grid-cols-2 gap-4 lg:items-start">
-        {/* Investimenti per categoria */}
+        {/* 1. Spese per categoria (navigabile → /category-spending) */}
+        <CategoryCard
+          categoryTotals={currentMonthCategoryTotals}
+          onClick={p.onSeeCategories ?? (() => navigate('/category-spending'))}
+        />
+
+        {/* 2. Saldo per conto */}
+        <AccountsCard
+          accountBalances={p.accountBalances}
+          expenseByAccount={currentMonthExpenseByAccount}
+          mode={accMode}
+          onToggle={() => setAccMode(m => m === 'balance' ? 'spending' : 'balance')}
+          onOpenDetail={p.onSeeAccountBalance}
+        />
+
+        {/* 3. Investimenti per categoria */}
         {enableInvestments && (
           <InvestmentSummaryCard
             investmentByCategory={p.investmentByCategory}
@@ -162,23 +178,6 @@ export function DashboardV2(p: Props) {
             onClick={p.onSeeInvestments}
           />
         )}
-
-        {/* Spese per categoria (navigabile → /category-spending) */}
-        <CategoryCard
-          categoryTotals={currentMonthCategoryTotals}
-          onClick={p.onSeeCategories ?? (() => navigate('/category-spending'))}
-        />
-
-        {/* Saldo per conto — full-width row */}
-        <div className="lg:col-span-2">
-          <AccountsCard
-            accountBalances={p.accountBalances}
-            expenseByAccount={currentMonthExpenseByAccount}
-            mode={accMode}
-            onToggle={() => setAccMode(m => m === 'balance' ? 'spending' : 'balance')}
-            onOpenDetail={p.onSeeAccountBalance}
-          />
-        </div>
       </div>
 
     </div>
