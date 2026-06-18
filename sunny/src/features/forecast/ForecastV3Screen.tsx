@@ -16,6 +16,7 @@ import { CategoryBehavior } from './forecastTypesV3';
 import {
   buildForecastDiagnosticsExport, DiagnosticsPrivacyMode, ExportSettingsSnapshot,
 } from './forecastDiagnostics';
+import { ForecastV4Panel } from './v4/ForecastV4Panel';
 
 interface Props {
   transactions: Transaction[];
@@ -24,6 +25,8 @@ interface Props {
   monthlyInvestments: number;
   /** Admin-only diagnostics export needs the full dataset. */
   isAdmin?: boolean;
+  /** Admin-only: gate for the experimental Forecast V4 engine. */
+  forecastV4Enabled?: boolean;
   allCategories?: CategoryDef[];
   accounts?: AccountDef[];
   budget?: BudgetState;
@@ -54,7 +57,7 @@ function wapeGrade(wape: number): { label: string; color: string } {
 
 export function ForecastV3Screen({
   transactions, expenseCategories, monthlyIncome, monthlyInvestments,
-  isAdmin = false, allCategories, accounts, budget, settingsSnapshot, userId,
+  isAdmin = false, forecastV4Enabled = false, allCategories, accounts, budget, settingsSnapshot, userId,
 }: Props) {
   const [showBacktest, setShowBacktest] = useState(false);
   const [withBias, setWithBias] = useState(false);
@@ -212,6 +215,17 @@ export function ForecastV3Screen({
           </div>
         )}
       </div>
+
+      {/* Forecast V4 — admin only, behind the dedicated feature gate.
+          Normal users never reach this branch, so V4 never runs for them. */}
+      {forecastV4Enabled && (
+        <ForecastV4Panel
+          transactions={transactions}
+          expenseCategories={expenseCategories}
+          categoryBudgets={budget?.categoryBudgets ?? {}}
+          v3ProjectedExpenses={v3.projectedExpenses}
+        />
+      )}
 
       {/* Diagnostics export — admin only */}
       {isAdmin && allCategories && accounts && budget && settingsSnapshot && (

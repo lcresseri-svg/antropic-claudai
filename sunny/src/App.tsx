@@ -34,6 +34,7 @@ import { BottomNav } from './shared/components/BottomNav';
 import { SideNav } from './shared/components/SideNav';
 import { SplashScreen } from './shared/components/SplashScreen';
 import { canUseUiV2, canUseForecastV2 } from './shared/featureFlags';
+import { isForecastV4EnabledForUser } from './features/forecast/forecastFeatureGate';
 import { ForecastV2Screen } from './features/forecast/ForecastV2Screen';
 import { ForecastV3Screen } from './features/forecast/ForecastV3Screen';
 import { PushPromoSheet } from './shared/components/PushPromoSheet';
@@ -430,7 +431,7 @@ function Main({ user, onLogOut, onDeleteAccount }: {
             } />
             <Route path="/settings/*" element={
               <div className="pt-4 md:pt-6 md:max-w-3xl">
-                <SettingsScreen user={user} transactions={tx.transactions} uiV2={uiV2}
+                <SettingsScreen user={user} transactions={tx.transactions} budget={budget.budget} uiV2={uiV2}
                   onLogOut={onLogOut} onDeleteAll={tx.deleteAll} onDeleteAccount={onDeleteAccount} />
               </div>
             } />
@@ -473,6 +474,7 @@ function Main({ user, onLogOut, onDeleteAccount }: {
                     monthlyIncome={tx.monthlyIncome}
                     monthlyInvestments={tx.monthlyInvestments}
                     isAdmin={true}
+                    forecastV4Enabled={isForecastV4EnabledForUser(user)}
                     allCategories={visibleCategories}
                     accounts={visibleAccounts}
                     budget={budget.budget}

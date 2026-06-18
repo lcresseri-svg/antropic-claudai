@@ -1,0 +1,301 @@
+/**
+ * Forecast Engine V4 — planned-aware · seasonal-aware · budget-aware.
+ *
+ * Admin-only and fully isolated from V3 (no imports from forecastEngineV3 etc.).
+ * Per category:
+ *
+ *   forecastBeforeBudget =
+ *       spentToDate
+ *     + plannedManualRemaining
+ *     + recurringRemaining
+ *     + seasonalDetectedRemaining
+ *     + residualStatisticalRemaining
+ *
+ *   totalForecast = forecastBeforeBudget + budgetSignalAdjustment
+ *
+ * Only expense transactions are forecast; income/investment/transfer excluded.
+ */
+import { Transaction, CategoryDef, ownShare } from '../../../types';
+import { assertForecastV4Access } from '../forecastFeatureGate';
+import {
+  ForecastV4Input, ForecastV4Result, ForecastV4CategoryResult,
+  ForecastV4Diagnostics, SeasonalExpenseCandidateV4, PlannedExpenseV4,
+  BudgetHistoryEntryV4, ConfidenceV4,
+} from './forecastTypesV4';
+import {
+  computeSpentToDate, computePlannedManualRemaining, computeRecurringRemaining,
+  buildPlannedExpensesFromTransactions, isDeterministicLikeTransactionV4,
+} from './forecastPlannedV4';
+import { detectSeasonalExpensesV4 } from './forecastSeasonalityV4';
+import { computeResidualStatisticalRemainingV4 } from './forecastResidualV4';
+import {
+  computeBudgetReliabilityV4, computeBudgetSignalAdjustmentV4,
+  ReliabilitySampleV4,
+} from './forecastBudgetSignalV4';
+import {
+  monthKey as monthKeyOf, isoDate, LARGE_EXPENSE_THRESHOLD, median,
+} from './forecastV4Common';
+
+export const FORECAST_V4_WARNING =
+  'Per forecast entro ±5%, pianifica o conferma le spese rilevanti sopra 300 €. ' +
+  'Sunny userà budget e stagionalità per stimare le spese non ancora registrate.';
+
+/** Trailing-median statistical proxy used to build reliability samples. */
+function statisticalProxy(monthlyActual: Map<string, number>, beforeKey: string): number {
+  const priors = [...monthlyActual.entries()]
+    .filter(([k]) => k < beforeKey)
+    .sort(([a], [b]) => b.localeCompare(a))
+    .slice(0, 3)
+    .map(([, v]) => v);
+  return median(priors);
+}
+
+/**
+ * Build (budget, statisticalForecast, actual) reliability samples for a category
+ * from the provided budget history. Returns [] when no history is available, so
+ * the engine falls back to the per-category default reliability.
+ */
+function buildReliabilitySamples(
+  categoryId: string,
+  budgetHistory: BudgetHistoryEntryV4[] | undefined,
+  monthlyActual: Map<string, number>,
+): ReliabilitySampleV4[] {
+  if (!budgetHistory || budgetHistory.length === 0) return [];
+  const samples: ReliabilitySampleV4[] = [];
+  for (const entry of budgetHistory) {
+    const budget = entry.categoryBudgets[categoryId];
+    if (!budget || budget <= 0) continue;
+    const actual = monthlyActual.get(entry.month);
+    if (actual == null) continue;
+    samples.push({
+      budget,
+      statisticalForecast: statisticalProxy(monthlyActual, entry.month),
+      actual,
+    });
+  }
+  return samples;
+}
+
+export function computeForecastV4(input: ForecastV4Input): ForecastV4Result {
+  // ── 0. Admin gate (defence-in-depth; UI must also gate) ───────────────────
+  assertForecastV4Access(input.user);
+
+  const now = input.now ?? new Date();
+  const snapshotISO = isoDate(now);
+  const targetMonthKey = monthKeyOf(now);
+  const targetMonthIndex = now.getMonth();
+  const targetYear = now.getFullYear();
+  const snapshotDay = now.getDate();
+  const applyBudgetSignal = input.applyBudgetSignal ?? true;
+  const categoryBudgets = input.categoryBudgets ?? {};
+
+  // Only expenses are forecast.
+  const expenses = input.transactions.filter(t => t.type === 'expense');
+  const labelOf = (id: string) =>
+    input.expenseCategories.find(c => c.id === id)?.label ?? id;
+
+  // ── 1. Deterministic components ────────────────────────────────────────────
+  const spentToDate = computeSpentToDate(expenses, snapshotISO, targetMonthKey);
+
+  const plannedExpenses: PlannedExpenseV4[] = input.plannedExpenses
+    ?? buildPlannedExpensesFromTransactions(expenses, snapshotISO, targetMonthKey);
+  const plannedRemaining = computePlannedManualRemaining(plannedExpenses, snapshotISO, targetMonthKey);
+  const recurringRemaining = computeRecurringRemaining(expenses, snapshotISO, targetMonthKey);
+
+  // ── 2. Seasonal detection (after planned/recurring so it can avoid them) ───
+  const seasonalCandidates = detectSeasonalExpensesV4({
+    transactions: expenses,
+    targetMonthIndex,
+    targetYear,
+    targetMonthKey,
+    snapshotISO,
+    labelOf,
+    plannedRemaining,
+    recurringRemaining,
+    spentToDate,
+  });
+  const seasonalByCat = new Map<string, SeasonalExpenseCandidateV4>(
+    seasonalCandidates.map(c => [c.categoryId, c]),
+  );
+
+  // ── 3. Monthly actual totals per category (for reliability samples) ────────
+  const monthlyActualByCat = new Map<string, Map<string, number>>();
+  for (const t of expenses) {
+    const k = t.date.slice(0, 7);
+    if (k >= targetMonthKey) continue; // only completed months
+    const m = monthlyActualByCat.get(t.category) ?? new Map<string, number>();
+    m.set(k, (m.get(k) ?? 0) + ownShare(t));
+    monthlyActualByCat.set(t.category, m);
+  }
+
+  // ── 4. Per-category forecast ───────────────────────────────────────────────
+  const byCategory: Record<string, ForecastV4CategoryResult> = {};
+  const staleCategories: string[] = [];
+  const diagApplied: ForecastV4Diagnostics['budgetSignalApplied'] = [];
+  const diagIgnored: ForecastV4Diagnostics['budgetSignalIgnored'] = [];
+
+  let totalSpent = 0;
+  let totalPlanned = 0;
+  let totalRecurring = 0;
+  let totalSeasonal = 0;
+  let totalResidual = 0;
+  let totalBudgetAdj = 0;
+
+  for (const cat of input.expenseCategories) {
+    const categoryId = cat.id;
+    const categoryLabel = cat.label;
+    const spent = Math.round(spentToDate[categoryId] ?? 0);
+    const planned = Math.round(plannedRemaining[categoryId] ?? 0);
+    const recurring = Math.round(recurringRemaining[categoryId] ?? 0);
+    const seasonalCandidate = seasonalByCat.get(categoryId);
+    const seasonal = Math.round(seasonalCandidate?.expectedAmount ?? 0);
+
+    // Anti double-count: exclude deterministic-like txs from the residual tail.
+    const isDetLike = (tx: Transaction) =>
+      isDeterministicLikeTransactionV4(tx, { plannedExpenses, seasonalCandidate });
+
+    const budget = categoryBudgets[categoryId] ?? 0;
+    const residualRes = computeResidualStatisticalRemainingV4({
+      categoryId,
+      categoryLabel,
+      snapshotDay,
+      targetMonthIndex,
+      targetYear,
+      historicalTransactions: expenses,
+      isDeterministicLike: isDetLike,
+      hasBudget: budget > 0,
+      hasPlanned: planned > 0,
+      hasRecurring: recurring > 0,
+      hasSeasonalHighConfidence: seasonalCandidate?.confidence === 'high',
+    });
+    const residual = Math.round(residualRes.value);
+    if (residualRes.staleDecayApplied) staleCategories.push(categoryId);
+
+    const forecastBeforeBudget = spent + planned + recurring + seasonal + residual;
+
+    // ── Budget signal ─────────────────────────────────────────────────────
+    const relRes = computeBudgetReliabilityV4({
+      categoryId,
+      categoryLabel,
+      samples: buildReliabilitySamples(
+        categoryId, input.budgetHistory, monthlyActualByCat.get(categoryId) ?? new Map(),
+      ),
+    });
+    const explainedByDeterministic = planned + recurring + seasonal;
+    const signal = computeBudgetSignalAdjustmentV4({
+      budget,
+      forecastBeforeBudget,
+      spentToDate: spent,
+      reliability: relRes.reliability,
+      explainedByDeterministic,
+    });
+    const budgetSignalAdjustment = applyBudgetSignal ? signal.adjustment : 0;
+
+    if (budget > 0) {
+      if (applyBudgetSignal && signal.applied && budgetSignalAdjustment > 0) {
+        diagApplied.push({
+          categoryId, categoryLabel, budget,
+          forecastBeforeBudget, gap: signal.gap,
+          reliability: relRes.reliability, adjustment: budgetSignalAdjustment,
+        });
+      } else if (signal.gap > 0) {
+        diagIgnored.push({ categoryId, categoryLabel, reason: signal.reason });
+      }
+    }
+
+    const totalForecast = forecastBeforeBudget + budgetSignalAdjustment;
+
+    // ── Confidence + reasons ────────────────────────────────────────────────
+    const deterministic = spent + planned + recurring + seasonal;
+    const denom = totalForecast || 1;
+    const deterministicShare = deterministic / denom;
+    let confidence: ConfidenceV4;
+    if (deterministicShare >= 0.8) confidence = 'high';
+    else if (deterministicShare >= 0.5) confidence = 'medium';
+    else confidence = 'low';
+
+    const reasons: string[] = [];
+    if (planned > 0) reasons.push('Spesa pianificata manuale futura');
+    if (recurring > 0) reasons.push('Ricorrente futura già registrata');
+    if (seasonal > 0 && seasonalCandidate) reasons.push(seasonalCandidate.reason);
+    if (residual > 0) reasons.push('Residuo statistico P60');
+    if (residualRes.staleDecayApplied) reasons.push('Categoria stale: residuo ridotto');
+    if (budgetSignalAdjustment > 0) reasons.push('Budget superiore alla previsione statistica');
+    else if (budget > 0 && signal.gap > 0 && !signal.applied) reasons.push(signal.reason);
+
+    // Skip categories with no signal at all to keep the result compact.
+    if (totalForecast === 0 && spent === 0) continue;
+
+    byCategory[categoryId] = {
+      categoryId,
+      categoryLabel,
+      spentToDate: spent,
+      forecastBeforeBudget,
+      totalForecast,
+      plannedManualRemaining: planned,
+      recurringRemaining: recurring,
+      seasonalDetectedRemaining: seasonal,
+      residualStatisticalRemaining: residual,
+      budget: budget > 0 ? budget : undefined,
+      budgetGap: budget > 0 ? signal.gap : undefined,
+      budgetReliability: budget > 0 ? Math.round(relRes.reliability * 100) / 100 : undefined,
+      budgetSignalAdjustment: budget > 0 ? budgetSignalAdjustment : undefined,
+      confidence,
+      reasons,
+    };
+
+    totalSpent += spent;
+    totalPlanned += planned;
+    totalRecurring += recurring;
+    totalSeasonal += seasonal;
+    totalResidual += residual;
+    totalBudgetAdj += budgetSignalAdjustment;
+  }
+
+  // ── 5. Diagnostics ──────────────────────────────────────────────────────────
+  const largePlannedExpenses = plannedExpenses
+    .filter(p => p.amount >= LARGE_EXPENSE_THRESHOLD && p.expectedDate > snapshotISO && p.expectedDate.startsWith(targetMonthKey))
+    .map(p => ({
+      categoryId: p.categoryId,
+      categoryLabel: labelOf(p.categoryId),
+      amount: Math.round(p.amount),
+      expectedDate: p.expectedDate,
+      source: p.source,
+    }));
+
+  const deterministicRemaining = totalPlanned + totalRecurring + totalSeasonal;
+  const futureRemaining = deterministicRemaining + totalResidual + totalBudgetAdj;
+  const plannedCoverageRatio = futureRemaining > 0
+    ? Math.round((deterministicRemaining / futureRemaining) * 100) / 100
+    : 0;
+
+  const diagnostics: ForecastV4Diagnostics = {
+    largePlannedExpenses,
+    seasonalDetected: seasonalCandidates,
+    staleCategories,
+    budgetSignalApplied: diagApplied,
+    budgetSignalIgnored: diagIgnored,
+    plannedCoverageRatio,
+    warnings: [FORECAST_V4_WARNING],
+  };
+
+  const totalForecast =
+    totalSpent + totalPlanned + totalRecurring + totalSeasonal + totalResidual + totalBudgetAdj;
+
+  return {
+    month: targetMonthKey,
+    snapshotDate: snapshotISO,
+    totalForecast: Math.round(totalForecast),
+    spentToDate: Math.round(totalSpent),
+    components: {
+      spentToDate: Math.round(totalSpent),
+      plannedManualRemaining: Math.round(totalPlanned),
+      recurringRemaining: Math.round(totalRecurring),
+      seasonalDetectedRemaining: Math.round(totalSeasonal),
+      budgetSignalAdjustment: Math.round(totalBudgetAdj),
+      residualStatisticalRemaining: Math.round(totalResidual),
+    },
+    byCategory,
+    diagnostics,
+  };
+}

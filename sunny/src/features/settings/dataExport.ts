@@ -1,4 +1,21 @@
-import { Transaction, CategoryDef, AccountDef } from '../../types';
+import { Transaction, CategoryDef, AccountDef, BudgetState } from '../../types';
+
+/** Budget block in the export (matches BudgetState, all fields optional). */
+export interface ExportBudget {
+  savingsTarget?: number;
+  categoryBudgets: Record<string, number>;
+  incomeBudgets?: Record<string, number>;
+  investmentBudgets?: Record<string, number>;
+  suggestionAccepted?: boolean;
+}
+
+/** One historical month of budget configuration (enables forecast reliability). */
+export interface ExportBudgetHistoryEntry {
+  month: string;
+  categoryBudgets: Record<string, number>;
+  totalBudget?: number;
+  updatedAt?: string;
+}
 
 export interface ExportPayload {
   exportedAt: string;
@@ -8,6 +25,14 @@ export interface ExportPayload {
   categories: CategoryDef[];
   accounts: AccountDef[];
   transactions: Transaction[];
+  /** Current budget. Optional for backward compatibility with older exports. */
+  budget?: ExportBudget;
+  /**
+   * Historical budgets per month, when available. Sunny currently stores only
+   * the current budget, so this is usually omitted; the forecast reliability
+   * model falls back to per-category defaults when it's missing.
+   */
+  budgetHistory?: ExportBudgetHistoryEntry[];
 }
 
 /** Columns exported in the CSV, in order. */
@@ -30,12 +55,25 @@ export function transactionsToCsv(transactions: Transaction[]): string {
   return lines.join('\r\n');
 }
 
+/** Map the live BudgetState into the export budget block. */
+export function toExportBudget(budget: BudgetState): ExportBudget {
+  return {
+    savingsTarget: budget.savingsTarget,
+    categoryBudgets: budget.categoryBudgets ?? {},
+    incomeBudgets: budget.incomeBudgets ?? {},
+    investmentBudgets: budget.investmentBudgets ?? {},
+    suggestionAccepted: budget.suggestionAccepted,
+  };
+}
+
 /** Build the full GDPR export payload. Pure & testable. */
 export function buildExportPayload(
   user: { uid: string; email: string | null; displayName: string | null },
   categories: CategoryDef[],
   accounts: AccountDef[],
   transactions: Transaction[],
+  budget?: BudgetState,
+  budgetHistory?: ExportBudgetHistoryEntry[],
 ): ExportPayload {
   return {
     exportedAt: new Date().toISOString(),
@@ -45,6 +83,8 @@ export function buildExportPayload(
     categories,
     accounts,
     transactions,
+    ...(budget ? { budget: toExportBudget(budget) } : {}),
+    ...(budgetHistory && budgetHistory.length > 0 ? { budgetHistory } : {}),
   };
 }
 
