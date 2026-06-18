@@ -1,4 +1,4 @@
-import { createContext, useContext, useEffect, useState, useCallback, ReactNode } from 'react';
+import { createContext, useContext, useEffect, useState, useCallback, useMemo, ReactNode } from 'react';
 import { doc, onSnapshot, setDoc } from 'firebase/firestore';
 import { User } from 'firebase/auth';
 import { db } from '../../lib/firebase';
@@ -13,8 +13,10 @@ type Theme = 'dark' | 'light';
 export type InsightDepth = 'minimal' | 'medium' | 'advanced';
 
 interface SettingsValue {
-  categories: CategoryDef[];
-  accounts: AccountDef[];
+  categories: CategoryDef[];           // full source of truth (incl. archived) — editing + getCat
+  accounts: AccountDef[];              // full source of truth (incl. archived) — editing + getAcc
+  visibleCategories: CategoryDef[];    // non-archived — pickers / enumerations / planning
+  visibleAccounts: AccountDef[];       // non-archived — pickers / enumerations / planning
   theme: Theme;
   includeInvestments: boolean; // count invested capital in net worth
   enableInvestments: boolean;  // show/hide entire investments feature
@@ -177,6 +179,13 @@ export function SettingsProvider({ user, children }: { user: User | null; childr
     if (user) setDoc(settingsRef(), { aiCoachWidgetEnabled: v }, MERGE);
   }, [user, settingsRef]);
 
+  // Non-archived subsets — what pickers, management lists, budget rows, the
+  // investment allocation and the forecast/insight inputs should enumerate.
+  // The full `categories`/`accounts` arrays stay the source of truth (editing +
+  // getCat/getAcc, which must still resolve archived entries for history).
+  const visibleCategories = useMemo(() => categories.filter(c => !c.archived), [categories]);
+  const visibleAccounts = useMemo(() => accounts.filter(a => !a.archived), [accounts]);
+
   const detailedInvestments = canUseDetailedInvestments(user);
 
   const saveCurrentValue = useCallback((categoryId: string, value: number) => {
@@ -202,7 +211,7 @@ export function SettingsProvider({ user, children }: { user: User | null; childr
   );
 
   return (
-    <SettingsContext.Provider value={{ categories, accounts, theme, includeInvestments, enableInvestments, enableBudget, insightDepth, aiEnabled, aiCoachWidgetEnabled, detailedInvestments, settingsLoaded, getCat, getAcc, saveCategories, saveAccounts, saveTheme, saveIncludeInvestments, saveEnableInvestments, saveEnableBudget, saveInsightDepth, saveAiEnabled, saveAiCoachWidgetEnabled, saveCurrentValue }}>
+    <SettingsContext.Provider value={{ categories, accounts, visibleCategories, visibleAccounts, theme, includeInvestments, enableInvestments, enableBudget, insightDepth, aiEnabled, aiCoachWidgetEnabled, detailedInvestments, settingsLoaded, getCat, getAcc, saveCategories, saveAccounts, saveTheme, saveIncludeInvestments, saveEnableInvestments, saveEnableBudget, saveInsightDepth, saveAiEnabled, saveAiCoachWidgetEnabled, saveCurrentValue }}>
       {children}
     </SettingsContext.Provider>
   );

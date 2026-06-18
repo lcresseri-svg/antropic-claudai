@@ -53,6 +53,9 @@ export interface CategoryDef {
   tfrAmount?: number;      // pension funds only: portion of capital that is TFR
   currentValue?: number;   // investment categories only: market value, entered manually
   lastValueUpdate?: string; // ISO date of the last currentValue update
+  archived?: boolean;      // soft-deleted: removed by the user but still referenced in
+                           // the transaction history. Resolved by getCat for display,
+                           // hidden from every picker / management / planning list.
 }
 
 /** A currentValue older than this many days is considered stale. */
@@ -66,6 +69,9 @@ export interface AccountDef {
   color: string;
   initialBalance?: number;
   isInvestment?: boolean;
+  archived?: boolean;      // soft-deleted: removed by the user but still referenced in
+                           // the transaction history. Resolved by getAcc for display,
+                           // hidden from every picker / management / planning list.
 }
 
 export interface Transaction {

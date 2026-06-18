@@ -34,7 +34,7 @@ const currentMonth = new Date().toISOString().slice(0, 7);
 export function BudgetScreenV2({
   user, transactions, monthlyIncome, monthlyExpenses, monthlyInvestments, categoryTotals,
 }: Props) {
-  const { categories, enableInvestments } = useSettings();
+  const { categories, visibleCategories, enableInvestments } = useSettings();
   const {
     budget, setSavingsTarget, setCategoryBudget, setIncomeBudget, setInvestmentBudget,
     acceptSuggestion, resetAll, hasBudget,
@@ -44,9 +44,9 @@ export function BudgetScreenV2({
   const [editSection, setEditSection] = useState<EditSection>('expenses');
   const [focusCategory, setFocusCategory] = useState<string | null>(null);
 
-  const expenseCats    = useMemo(() => categories.filter(c => c.kind === 'expense'),    [categories]);
-  const incomeCats     = useMemo(() => categories.filter(c => c.kind === 'income'),     [categories]);
-  const investmentCats = useMemo(() => categories.filter(c => c.kind === 'investment'), [categories]);
+  const expenseCats    = useMemo(() => visibleCategories.filter(c => c.kind === 'expense'),    [visibleCategories]);
+  const incomeCats     = useMemo(() => visibleCategories.filter(c => c.kind === 'income'),     [visibleCategories]);
+  const investmentCats = useMemo(() => visibleCategories.filter(c => c.kind === 'investment'), [visibleCategories]);
 
   const todayISO = useMemo(() => new Date().toISOString().slice(0, 10), []);
 

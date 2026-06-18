@@ -18,9 +18,9 @@ const today = () => new Date().toISOString().slice(0, 10);
 
 /** "Disinvesti" — investment withdrawal form (§9: proportional to deposited capital). */
 export function InvestmentWithdrawSheet({ open, investmentByCategory, preselectCategory, onSave, onClose }: Props) {
-  const { categories, accounts } = useSettings();
-  // Only positions with deposited capital can be withdrawn from.
-  const investCats = categories.filter(c => c.kind === 'investment' && (investmentByCategory[c.id] ?? 0) > 0);
+  const { visibleCategories, visibleAccounts } = useSettings();
+  // Only (visible) positions with deposited capital can be withdrawn from.
+  const investCats = visibleCategories.filter(c => c.kind === 'investment' && (investmentByCategory[c.id] ?? 0) > 0);
 
   const [category, setCategory] = useState('');
   const [amount, setAmount] = useState('');
@@ -32,7 +32,7 @@ export function InvestmentWithdrawSheet({ open, investmentByCategory, preselectC
   const [notes, setNotes] = useState('');
   const [error, setError] = useState('');
 
-  const selCat = categories.find(c => c.id === category);
+  const selCat = visibleCategories.find(c => c.id === category);
   const deposited = investmentByCategory[category] ?? 0;
 
   useEffect(() => {
@@ -42,15 +42,15 @@ export function InvestmentWithdrawSheet({ open, investmentByCategory, preselectC
     setCategory(first);
     setAmount(''); setFee(''); setFeeAccount(''); setNotes(''); setError('');
     setDate(today());
-    setToAccount(accounts[0]?.id ?? '');
+    setToAccount(visibleAccounts[0]?.id ?? '');
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [open]);
 
   // Pre-fill the market value from the category whenever the selection changes.
   useEffect(() => {
-    const c = categories.find(x => x.id === category);
+    const c = visibleCategories.find(x => x.id === category);
     setCurrentValue(c?.currentValue != null ? String(c.currentValue) : '');
-  }, [category, categories]);
+  }, [category, visibleCategories]);
 
   const amountN = parseNum(amount);
   const cvN = parseNum(currentValue);
@@ -110,7 +110,7 @@ export function InvestmentWithdrawSheet({ open, investmentByCategory, preselectC
 
           <Field label="Conto di destinazione">
             <Select value={toAccount} onChange={setToAccount}
-              options={accounts.map(a => ({ value: a.id, label: `${a.icon} ${a.label}` }))} />
+              options={visibleAccounts.map(a => ({ value: a.id, label: `${a.icon} ${a.label}` }))} />
           </Field>
 
           <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
@@ -121,7 +121,7 @@ export function InvestmentWithdrawSheet({ open, investmentByCategory, preselectC
               <Select value={feeAccount} onChange={setFeeAccount}
                 options={[
                   { value: '', label: 'Stesso conto di destinazione' },
-                  ...accounts.map(a => ({ value: a.id, label: `${a.icon} ${a.label}` })),
+                  ...visibleAccounts.map(a => ({ value: a.id, label: `${a.icon} ${a.label}` })),
                 ]} />
             </Field>
           </div>
