@@ -9,6 +9,7 @@ import { FeedbackSheet } from '../feedback/FeedbackSheet';
 import { ExpenseShortcutSection } from './ExpenseShortcutSection';
 import { removeCategoryDef, removeAccountDef, visibleDefs } from './softDelete';
 import { buildExportPayload, downloadJson, downloadCsv } from './dataExport';
+import { isForecastV4EnabledForUser } from '../forecast/forecastFeatureGate';
 import { APP_VERSION, APP_CHANNEL, VERSIONS } from '../../appInfo';
 
 interface Props {
@@ -77,6 +78,11 @@ export function SettingsScreen({ user, transactions, budget, uiV2 = false, onLog
 
   const exportJson = () => downloadJson(buildExportPayload(user, categories, accounts, transactions, budget));
   const exportCsv = () => downloadCsv(transactions);
+
+  // Admin-only entry point to the Forecast screen (which hosts the V4 panel).
+  // The screen has no link in the main nav; this gives admins a way in without
+  // exposing anything to normal users.
+  const forecastV4Enabled = isForecastV4EnabledForUser(user);
 
   const handleDeleteAccount = async () => {
     setDeletingAccount(true);
@@ -408,6 +414,9 @@ export function SettingsScreen({ user, transactions, budget, uiV2 = false, onLog
               </MenuSection>
               <MenuSection title="Avanzate">
                 <Row icon="🔍" color="#8B8B8B" label="Analisi e AI" sub="Profondità insight, widget coach" onClick={() => enterSub('avanzate')} />
+                {forecastV4Enabled && (
+                  <Row icon="🔮" color="#E6B95C" label="Previsione V4 (admin)" sub="Motore forecast sperimentale" onClick={() => navigate('/forecast-v3')} />
+                )}
               </MenuSection>
               <MenuSection title="Scorciatoie">
                 <Row icon="⚡" color="#E6B95C" label="Aggiungi spese da iPhone" sub="Scorciatoia iOS per registrare spese" onClick={() => enterSub('shortcut')} />
@@ -421,6 +430,9 @@ export function SettingsScreen({ user, transactions, budget, uiV2 = false, onLog
               <Row icon="ℹ️" color="#88B0C0" label="Come funziona" sub="Calcoli e formule" onClick={() => enterSub('info')} />
               <Row icon="💬" color="#E6B95C" label="Lascia un feedback" sub="Problemi, idee, suggerimenti" onClick={() => setFeedbackOpen(true)} />
               <Row icon="⚡" color="#E6B95C" label="Spese da iPhone" sub="Scorciatoia iOS" onClick={() => enterSub('shortcut')} />
+              {forecastV4Enabled && (
+                <Row icon="🔮" color="#E6B95C" label="Previsione V4 (admin)" sub="Motore forecast sperimentale" onClick={() => navigate('/forecast-v3')} />
+              )}
             </div>
           )}
 
