@@ -138,7 +138,7 @@ function Main({ user, onLogOut, onDeleteAccount }: {
 }) {
   const navigate = useNavigate();
   const location = useLocation();
-  const { accounts, categories, includeInvestments, enableInvestments, enableBudget, aiCoachWidgetEnabled, settingsLoaded, insightDepth, aiEnabled } = useSettings();
+  const { accounts, categories, visibleCategories, visibleAccounts, includeInvestments, enableInvestments, enableBudget, aiCoachWidgetEnabled, settingsLoaded, insightDepth, aiEnabled } = useSettings();
   const tx = useTransactions(user, accounts, includeInvestments, categories, enableInvestments);
   const budget = useBudget(user);
 
@@ -456,7 +456,7 @@ function Main({ user, onLogOut, onDeleteAccount }: {
                 <div className="pt-4 md:pt-6">
                   <ForecastV2Screen
                     transactions={tx.transactions}
-                    expenseCategories={categories.filter(c => c.kind === 'expense')}
+                    expenseCategories={visibleCategories.filter(c => c.kind === 'expense')}
                     monthlyIncome={tx.monthlyIncome}
                     monthlyInvestments={tx.monthlyInvestments}
                     monthlyExpenses={tx.monthlyExpenses}
@@ -469,12 +469,12 @@ function Main({ user, onLogOut, onDeleteAccount }: {
                 <div className="pt-4 md:pt-6">
                   <ForecastV3Screen
                     transactions={tx.transactions}
-                    expenseCategories={categories.filter(c => c.kind === 'expense')}
+                    expenseCategories={visibleCategories.filter(c => c.kind === 'expense')}
                     monthlyIncome={tx.monthlyIncome}
                     monthlyInvestments={tx.monthlyInvestments}
                     isAdmin={true}
-                    allCategories={categories}
-                    accounts={accounts}
+                    allCategories={visibleCategories}
+                    accounts={visibleAccounts}
                     budget={budget.budget}
                     settingsSnapshot={{
                       includeInvestments,

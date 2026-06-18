@@ -1,6 +1,6 @@
 import { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { Transaction, TransactionType, TYPE_META, TYPE_ORDER, RecurrenceRule, typeColor, typeOnColor } from '../../types';
+import { Transaction, TransactionType, TYPE_META, TYPE_ORDER, RecurrenceRule, AccountDef, typeColor, typeOnColor } from '../../types';
 import { formatCurrency, formatDate, guessCategory } from '../../utils';
 import { useSettings } from '../../shared/providers/settings';
 import { expandRecurringOnCreate } from '../../shared/recurrence';
@@ -24,7 +24,7 @@ const yesterday = () => { const d = new Date(); d.setDate(d.getDate() - 1); retu
 
 export function TransactionModal({ open, editing, groupTransfers = [], seriesEdit = false, defaultType, onClose, onSave }: Props) {
   const navigate = useNavigate();
-  const { categories, accounts, enableInvestments, detailedInvestments, theme } = useSettings();
+  const { categories, accounts, visibleCategories, visibleAccounts, enableInvestments, detailedInvestments, theme } = useSettings();
   const [type, setType] = useState<TransactionType>('expense');
   // New investments are managed from /investments — the tab only shows a redirect.
   // Editing an existing investment still works normally.
@@ -65,7 +65,7 @@ export function TransactionModal({ open, editing, groupTransfers = [], seriesEdi
       setAmount(String(hasGroup ? editing.amount + transfersSum : editing.amount));
       setDate(editing.date);
       setCategory(editing.category); setAccount(editing.account);
-      setToAccount(editing.toAccount ?? accounts[1]?.id ?? '');
+      setToAccount(editing.toAccount ?? visibleAccounts[1]?.id ?? '');
       setNotes(editing.notes ?? '');
       setIsShared(hasGroup || !!editing.shared);
       setReimbursements(hasGroup
@@ -82,8 +82,8 @@ export function TransactionModal({ open, editing, groupTransfers = [], seriesEdi
       const lastAcc = localStorage.getItem('sunny:lastAccount');
       setType(defaultType ?? 'expense'); setDescription(''); setAmount(''); setDate(today());
       setCategory('');
-      setAccount((lastAcc && accounts.some(a => a.id === lastAcc)) ? lastAcc : (accounts[0]?.id ?? ''));
-      setToAccount(accounts[1]?.id ?? ''); setNotes('');
+      setAccount((lastAcc && visibleAccounts.some(a => a.id === lastAcc)) ? lastAcc : (visibleAccounts[0]?.id ?? ''));
+      setToAccount(visibleAccounts[1]?.id ?? ''); setNotes('');
       setIsShared(false); setReimbursements([]);
       setIsRecurring(false); setRecurringFreq('monthly'); setRecurringUntil('');
       setFee(''); setTfr('');
@@ -103,11 +103,30 @@ export function TransactionModal({ open, editing, groupTransfers = [], seriesEdi
   useEscapeKey(onClose, open);
 
   const availableTypes = TYPE_ORDER.filter(t => enableInvestments || t !== 'investment');
-  const typeCats = categories.filter(c => c.kind === type);
+  // Category chips: only VISIBLE categories of this type — plus, when editing a
+  // transaction whose category was archived, that one (so the edit doesn't
+  // silently reassign it). New picks never offer archived categories.
+  const visibleTypeCats = visibleCategories.filter(c => c.kind === type);
+  const editedArchivedCat = categories.find(c => c.id === category && c.archived && c.kind === type);
+  const typeCats = editedArchivedCat && !visibleTypeCats.some(c => c.id === editedArchivedCat.id)
+    ? [...visibleTypeCats, editedArchivedCat]
+    : visibleTypeCats;
   useEffect(() => {
     if (type === 'transfer') return;
     if (!typeCats.some(c => c.id === category)) setCategory(typeCats[0]?.id ?? '');
   }, [type, categories]);
+
+  // Account options for the pickers: visible accounts, plus the account(s) the
+  // edited transaction already references (so an archived account stays shown and
+  // isn't dropped on edit). New picks exclude archived.
+  const accountOptions = ((): AccountDef[] => {
+    const seen = new Set(visibleAccounts.map(a => a.id));
+    const extras = [account, toAccount]
+      .filter(id => id && !seen.has(id))
+      .map(id => accounts.find(a => a.id === id))
+      .filter((a): a is AccountDef => !!a);
+    return [...visibleAccounts, ...extras];
+  })();
 
   // Detailed-investments extras (gated per user): a source-less investment and,
   // for pension funds, the TFR portion of the contribution.
@@ -118,8 +137,8 @@ export function TransactionModal({ open, editing, groupTransfers = [], seriesEdi
   // An empty account is only valid for a source-less investment; otherwise snap
   // back to a real account (e.g. after switching type away from investment).
   useEffect(() => {
-    if (account === '' && !canNoAccount) setAccount(accounts[0]?.id ?? '');
-  }, [account, canNoAccount, accounts]);
+    if (account === '' && !canNoAccount) setAccount(visibleAccounts[0]?.id ?? '');
+  }, [account, canNoAccount, visibleAccounts]);
 
   // Fallback description used when the field is left empty: the selected
   // category label (or the destination account for transfers).
@@ -128,7 +147,7 @@ export function TransactionModal({ open, editing, groupTransfers = [], seriesEdi
     : (categories.find(c => c.id === category)?.label ?? '');
 
   const addReimb = () => {
-    const def = accounts.find(a => a.id !== account)?.id ?? accounts[0]?.id ?? '';
+    const def = visibleAccounts.find(a => a.id !== account)?.id ?? visibleAccounts[0]?.id ?? '';
     setReimbursements(rs => [...rs, { amount: '', account: def }]);
   };
   const updateReimb = (i: number, patch: Partial<Reimb>) =>
@@ -361,11 +380,11 @@ export function TransactionModal({ open, editing, groupTransfers = [], seriesEdi
             <>
               <div className="grid grid-cols-2 gap-3">
                 <Field label="Da conto">
-                  <Select value={account} onChange={setAccount} options={accounts.map(a => ({ value: a.id, label: `${a.icon} ${a.label}` }))} />
+                  <Select value={account} onChange={setAccount} options={accountOptions.map(a => ({ value: a.id, label: `${a.icon} ${a.label}` }))} />
                 </Field>
                 <Field label="A conto">
                   <Select value={toAccount} onChange={setToAccount}
-                    options={accounts.filter(a => a.id !== account).map(a => ({ value: a.id, label: `${a.icon} ${a.label}` }))} />
+                    options={accountOptions.filter(a => a.id !== account).map(a => ({ value: a.id, label: `${a.icon} ${a.label}` }))} />
                 </Field>
               </div>
               <DateField date={date} td={td} yd={yd} setDate={setDate} />
@@ -388,7 +407,7 @@ export function TransactionModal({ open, editing, groupTransfers = [], seriesEdi
                     <Select value={account} onChange={setAccount}
                       options={[
                         ...(canNoAccount ? [{ value: '', label: '🚫 Senza conto (TFR / datore)' }] : []),
-                        ...accounts.map(a => ({ value: a.id, label: `${a.icon} ${a.label}` })),
+                        ...accountOptions.map(a => ({ value: a.id, label: `${a.icon} ${a.label}` })),
                       ]} />
                   </Field>
                   <DateField date={date} td={td} yd={yd} setDate={setDate} />
@@ -401,7 +420,7 @@ export function TransactionModal({ open, editing, groupTransfers = [], seriesEdi
                 <Select value={account} onChange={setAccount}
                   options={[
                     ...(canNoAccount ? [{ value: '', label: '🚫 Senza conto (TFR / datore)' }] : []),
-                    ...accounts.map(a => ({ value: a.id, label: `${a.icon} ${a.label}` })),
+                    ...accountOptions.map(a => ({ value: a.id, label: `${a.icon} ${a.label}` })),
                   ]} />
               </Field>
               <DateField date={date} td={td} yd={yd} setDate={setDate} />
@@ -486,7 +505,7 @@ export function TransactionModal({ open, editing, groupTransfers = [], seriesEdi
                         </div>
                         <select value={r.account} onChange={e => updateReimb(i, { account: e.target.value })}
                           className="flex-1 min-w-0 bg-elevated rounded-xl px-3 py-2.5 text-primary text-sm outline-none focus:ring-1 focus:ring-gold/40 appearance-none">
-                          {accounts.map(a => <option key={a.id} value={a.id} className="bg-elevated">{a.icon} {a.label}</option>)}
+                          {visibleAccounts.map(a => <option key={a.id} value={a.id} className="bg-elevated">{a.icon} {a.label}</option>)}
                         </select>
                         <button type="button" onClick={() => removeReimb(i)}
                           className="w-8 h-8 rounded-full bg-elevated flex items-center justify-center text-secondary flex-shrink-0">✕</button>

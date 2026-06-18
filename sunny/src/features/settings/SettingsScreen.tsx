@@ -7,6 +7,7 @@ import { usePush } from '../../shared/hooks/usePush';
 import { EditDefSheet, DefDraft } from './EditDefSheet';
 import { FeedbackSheet } from '../feedback/FeedbackSheet';
 import { ExpenseShortcutSection } from './ExpenseShortcutSection';
+import { removeCategoryDef, removeAccountDef, visibleDefs } from './softDelete';
 import { buildExportPayload, downloadJson, downloadCsv } from './dataExport';
 import { APP_VERSION, APP_CHANNEL, VERSIONS } from '../../appInfo';
 
@@ -40,7 +41,7 @@ function reorder<T>(arr: T[], from: number, to: number): T[] {
 export function SettingsScreen({ user, transactions, uiV2 = false, onLogOut, onDeleteAll, onDeleteAccount }: Props) {
   const navigate = useNavigate();
   const location = useLocation();
-  const { categories, accounts, theme, includeInvestments, enableInvestments, enableBudget, insightDepth, aiEnabled, aiCoachWidgetEnabled, detailedInvestments, saveCategories, saveAccounts, saveTheme, saveIncludeInvestments, saveEnableInvestments, saveEnableBudget, saveInsightDepth, saveAiEnabled, saveAiCoachWidgetEnabled } = useSettings();
+  const { categories, accounts, visibleCategories, visibleAccounts, theme, includeInvestments, enableInvestments, enableBudget, insightDepth, aiEnabled, aiCoachWidgetEnabled, detailedInvestments, saveCategories, saveAccounts, saveTheme, saveIncludeInvestments, saveEnableInvestments, saveEnableBudget, saveInsightDepth, saveAiEnabled, saveAiCoachWidgetEnabled } = useSettings();
   const [sub, setSub] = useState<Sub>('menu');
   const [editing, setEditing] = useState<{ kind: 'category' | 'account'; draft: DefDraft; isNew: boolean; withKind?: boolean } | null>(null);
   const [confirmReset, setConfirmReset] = useState(false);
@@ -97,9 +98,10 @@ export function SettingsScreen({ user, transactions, uiV2 = false, onLogOut, onD
     const onMove = (e: PointerEvent) => {
       const { drag: d, accounts: accs, categories: cats } = ref.current;
       if (!d) return;
+      // Indices are computed against the VISIBLE (rendered) lists.
       const listLen = d.list === 'accounts'
-        ? accs.length
-        : cats.filter(c => c.kind === d.list).length;
+        ? visibleDefs(accs).length
+        : visibleDefs(cats).filter(c => c.kind === d.list).length;
       const delta = e.clientY - d.startY;
       const newOver = Math.max(0, Math.min(listLen - 1, d.fromIdx + Math.round(delta / 56)));
       setDrag(prev => prev && newOver !== prev.overIdx ? { ...prev, overIdx: newOver } : prev);
@@ -108,14 +110,18 @@ export function SettingsScreen({ user, transactions, uiV2 = false, onLogOut, onD
       const { drag: d, accounts: accs, categories: cats, saveAccounts: sA, saveCategories: sC } = ref.current;
       if (!d) { setDrag(null); return; }
       if (d.fromIdx !== d.overIdx) {
+        // Reorder only the VISIBLE items, then re-append the archived ones so they
+        // survive. saveAccounts/saveCategories always persist the FULL array.
         if (d.list === 'accounts') {
-          sA(reorder(accs, d.fromIdx, d.overIdx));
+          const visible = reorder(visibleDefs(accs), d.fromIdx, d.overIdx);
+          sA([...visible, ...accs.filter(a => a.archived)]);
         } else {
           const kind = d.list as TransactionType;
-          const kindItems = cats.filter(c => c.kind === kind);
-          const newKind = reorder(kindItems, d.fromIdx, d.overIdx);
+          const visible = visibleDefs(cats);
+          const newKind = reorder(visible.filter(c => c.kind === kind), d.fromIdx, d.overIdx);
           let ki = 0;
-          sC(cats.map(c => c.kind === kind ? newKind[ki++] : c));
+          const newVisible = visible.map(c => c.kind === kind ? newKind[ki++] : c);
+          sC([...newVisible, ...cats.filter(c => c.archived)]);
         }
       }
       setDrag(null);
@@ -158,10 +164,14 @@ export function SettingsScreen({ user, transactions, uiV2 = false, onLogOut, onD
     setEditing(null);
   };
 
+  // Soft-delete: a definition still referenced in the history is archived (kept
+  // in the full array so getCat/getAcc resolve it), otherwise hard-removed.
+  // Silent — no toast/banner. (removeCategoryDef/removeAccountDef return the full
+  // array; saveCategories/saveAccounts always persist the full array.)
   const remove = (id: string) => {
     if (!editing) return;
-    if (editing.kind === 'category') saveCategories(categories.filter(c => c.id !== id));
-    else saveAccounts(accounts.filter(a => a.id !== id));
+    if (editing.kind === 'category') saveCategories(removeCategoryDef(categories, id, transactions));
+    else saveAccounts(removeAccountDef(accounts, id, transactions));
     setEditing(null);
   };
 
@@ -169,19 +179,20 @@ export function SettingsScreen({ user, transactions, uiV2 = false, onLogOut, onD
   const exitToMenu = () => { setSub('menu'); setEditMode(false); };
   const exitToGestione = () => { setSub('gestione'); setEditMode(false); };
   const toggleEditMode = () => { setEditMode(m => !m); setDrag(null); };
-  const catsByKind = (k: TransactionType) => categories.filter(c => c.kind === k);
+  // Management lists show only VISIBLE (non-archived) definitions.
+  const catsByKind = (k: TransactionType) => visibleCategories.filter(c => c.kind === k);
 
-  // Live-preview helpers during drag
+  // Live-preview helpers during drag (all on the visible lists)
   const liveAccounts = drag?.list === 'accounts'
-    ? reorder(accounts, drag.fromIdx, drag.overIdx)
-    : accounts;
+    ? reorder(visibleAccounts, drag.fromIdx, drag.overIdx)
+    : visibleAccounts;
   const liveCats = (k: TransactionType) => {
     const base = catsByKind(k);
     return drag?.list === k ? reorder(base, drag.fromIdx, drag.overIdx) : base;
   };
   const draggingId = drag
     ? (drag.list === 'accounts'
-      ? accounts[drag.fromIdx]?.id
+      ? visibleAccounts[drag.fromIdx]?.id
       : catsByKind(drag.list as TransactionType)[drag.fromIdx]?.id)
     : null;
 
@@ -595,7 +606,7 @@ export function SettingsScreen({ user, transactions, uiV2 = false, onLogOut, onD
                   showHandle={editMode}
                   isDragging={a.id === draggingId}
                   onClick={editMode ? undefined : () => openAccount(a)}
-                  onHandlePointerDown={editMode ? (y) => startDrag('accounts', accounts.indexOf(a), y) : undefined}
+                  onHandlePointerDown={editMode ? (y) => startDrag('accounts', visibleAccounts.indexOf(a), y) : undefined}
                 />
               ))}
             </div>

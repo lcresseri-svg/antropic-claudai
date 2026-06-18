@@ -18,8 +18,8 @@ const today = () => new Date().toISOString().slice(0, 10);
 /** "Versa" — investment deposit form. Same logic as the historical
  *  TransactionModal investment path, via buildInvestmentDeposit. */
 export function InvestmentDepositSheet({ open, preselectCategory, onSave, onClose }: Props) {
-  const { categories, accounts, detailedInvestments } = useSettings();
-  const investCats = categories.filter(c => c.kind === 'investment');
+  const { visibleCategories, visibleAccounts, detailedInvestments } = useSettings();
+  const investCats = visibleCategories.filter(c => c.kind === 'investment');
 
   const [category, setCategory] = useState('');
   const [amount, setAmount] = useState('');
@@ -39,7 +39,7 @@ export function InvestmentDepositSheet({ open, preselectCategory, onSave, onClos
     setCategory(preselectCategory && investCats.some(c => c.id === preselectCategory)
       ? preselectCategory : (investCats[0]?.id ?? ''));
     setAmount(''); setDate(today());
-    setAccount((lastAcc && accounts.some(a => a.id === lastAcc)) ? lastAcc : (accounts[0]?.id ?? ''));
+    setAccount((lastAcc && visibleAccounts.some(a => a.id === lastAcc)) ? lastAcc : (visibleAccounts[0]?.id ?? ''));
     setFee(''); setTfr(''); setNotes('');
     setIsRecurring(false); setRecurringFreq('monthly'); setRecurringUntil('');
     setAmountError(false);
@@ -105,7 +105,7 @@ export function InvestmentDepositSheet({ open, preselectCategory, onSave, onClos
             <Select value={account} onChange={setAccount}
               options={[
                 ...(canNoAccount ? [{ value: '', label: '🚫 Senza conto (TFR / datore)' }] : []),
-                ...accounts.map(a => ({ value: a.id, label: `${a.icon} ${a.label}` })),
+                ...visibleAccounts.map(a => ({ value: a.id, label: `${a.icon} ${a.label}` })),
               ]} />
           </Field>
           <Field label="Data">

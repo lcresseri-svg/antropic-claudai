@@ -14,7 +14,8 @@ interface Props {
 type Step = 'upload' | 'preview' | 'importing' | 'done';
 
 export function ImportModal({ open, onClose, onImport }: Props) {
-  const { categories, accounts, theme } = useSettings();
+  // Imports must never resolve to an archived (soft-deleted) definition.
+  const { visibleCategories, visibleAccounts, theme } = useSettings();
   const [step, setStep] = useState<Step>('upload');
   const [parsed, setParsed] = useState<Omit<Transaction, 'id'>[]>([]);
   const [errors, setErrors] = useState<string[]>([]);
@@ -25,23 +26,23 @@ export function ImportModal({ open, onClose, onImport }: Props) {
 
   const matchCategory = (val: unknown, type: TransactionType): string => {
     const s = String(val ?? '').toLowerCase().trim();
-    const byId = categories.find(c => c.id === s);
+    const byId = visibleCategories.find(c => c.id === s);
     if (byId) return byId.id;
-    const byLabel = categories.find(c => c.label.toLowerCase() === s);
+    const byLabel = visibleCategories.find(c => c.label.toLowerCase() === s);
     if (byLabel) return byLabel.id;
-    const partial = categories.find(c => s && (c.label.toLowerCase().includes(s) || s.includes(c.id)));
+    const partial = visibleCategories.find(c => s && (c.label.toLowerCase().includes(s) || s.includes(c.id)));
     if (partial) return partial.id;
-    const fallback = categories.find(c => c.kind === type);
+    const fallback = visibleCategories.find(c => c.kind === type);
     return fallback?.id ?? 'altro';
   };
 
   const matchAccount = (val: unknown): string => {
     const s = String(val ?? '').toLowerCase().trim();
-    if (!s) return accounts[0]?.id ?? 'conto_corrente';
-    const byId = accounts.find(a => a.id === s);
+    if (!s) return visibleAccounts[0]?.id ?? 'conto_corrente';
+    const byId = visibleAccounts.find(a => a.id === s);
     if (byId) return byId.id;
-    const byLabel = accounts.find(a => a.label.toLowerCase() === s || a.label.toLowerCase().includes(s) || s.includes(a.id));
-    return byLabel?.id ?? accounts[0]?.id ?? 'conto_corrente';
+    const byLabel = visibleAccounts.find(a => a.label.toLowerCase() === s || a.label.toLowerCase().includes(s) || s.includes(a.id));
+    return byLabel?.id ?? visibleAccounts[0]?.id ?? 'conto_corrente';
   };
 
   const reset = () => { setStep('upload'); setParsed([]); setErrors([]); setWarnings([]); setImportError(null); };

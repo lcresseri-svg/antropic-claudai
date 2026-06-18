@@ -14,12 +14,12 @@ interface Props {
 }
 
 export function Insights({ transactions, monthlyIncome, monthlyExpenses, monthlyInvestments, limit = 5, onSeeAll }: Props) {
-  const { getCat, categories } = useSettings();
+  const { getCat, visibleCategories } = useSettings();
   const [detail, setDetail] = useState<Insight | null>(null);
 
   const insights = buildInsights({
     transactions, monthlyIncome, monthlyExpenses, monthlyInvestments, getCat,
-    forecastV3Categories: categories.filter(c => c.kind === 'expense'),
+    forecastV3Categories: visibleCategories.filter(c => c.kind === 'expense'),
   }).slice(0, limit);
 
   return (

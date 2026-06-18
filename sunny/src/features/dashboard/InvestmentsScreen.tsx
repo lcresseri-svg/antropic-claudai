@@ -24,7 +24,9 @@ const AMBER = 'var(--accent)';
 
 export function InvestmentsScreen({ investmentByCategory, investmentTotal, monthlyInvestments, trend, transactions, onAddTransactions }: Props) {
   const navigate = useNavigate();
-  const { getCat, getAcc, categories, detailedInvestments, saveCurrentValue } = useSettings();
+  // Allocation lists enumerate VISIBLE investment categories (archived ones are
+  // hidden); getCat still resolves archived categories on the operations rows.
+  const { getCat, getAcc, visibleCategories, detailedInvestments, saveCurrentValue } = useSettings();
 
   const [menuOpen, setMenuOpen] = useState(false);
   const [depositOpen, setDepositOpen] = useState(false);
@@ -48,18 +50,18 @@ export function InvestmentsScreen({ investmentByCategory, investmentTotal, month
   // TFR per pension category: pre-Sunny tfrAmount + per-contribution tfr.
   const tfrByCat = useMemo(() => {
     const r: Record<string, number> = {};
-    for (const c of categories) {
+    for (const c of visibleCategories) {
       if (c.kind === 'investment' && c.fundType === 'pension' && c.tfrAmount) r[c.id] = c.tfrAmount;
     }
     for (const t of investTx) {
       if (t.tfr) r[t.category] = (r[t.category] ?? 0) + t.tfr;
     }
     return r;
-  }, [categories, investTx]);
+  }, [visibleCategories, investTx]);
 
   // ── Positions: every investment category, with market value & latent P/L ────
   const positions = useMemo(() => {
-    const investCats = categories.filter(c => c.kind === 'investment');
+    const investCats = visibleCategories.filter(c => c.kind === 'investment');
     return investCats
       .map(c => {
         const versato = investmentByCategory[c.id] ?? 0;
@@ -77,10 +79,13 @@ export function InvestmentsScreen({ investmentByCategory, investmentTotal, month
         };
       })
       .sort((a, b) => b.weightValue - a.weightValue);
-  }, [categories, investmentByCategory, txCountByCat, tfrByCat]);
+  }, [visibleCategories, investmentByCategory, txCountByCat, tfrByCat]);
 
   // ── Portfolio totals (§3) ────────────────────────────────────────────────────
-  const versatoTotale = investmentTotal;
+  // Sum of the VISIBLE positions so the hero stays consistent with the list
+  // (an archived investment category is excluded here too). `investmentTotal`
+  // (full, incl. archived) still backs net worth elsewhere.
+  const versatoTotale = positions.reduce((s, p) => s + p.versato, 0);
   const controvaloreTotale = positions.reduce((s, p) => s + p.weightValue, 0);
   const plusMinusTotale = controvaloreTotale - versatoTotale;
   const pmPct = versatoTotale > 0 ? (plusMinusTotale / versatoTotale) * 100 : 0;
@@ -89,14 +94,14 @@ export function InvestmentsScreen({ investmentByCategory, investmentTotal, month
   const fundAlloc = useMemo(() => {
     const byType: Record<FundType, number> = { pension: 0, bond: 0, equity: 0 };
     let tfrTotal = 0;
-    for (const c of categories) {
+    for (const c of visibleCategories) {
       if (c.kind !== 'investment' || !c.fundType) continue;
       byType[c.fundType] += investmentByCategory[c.id] ?? 0;
     }
     for (const v of Object.values(tfrByCat)) tfrTotal += v;
     const classifiedTotal = byType.pension + byType.bond + byType.equity;
     return { byType, tfrTotal, classifiedTotal };
-  }, [categories, investmentByCategory, tfrByCat]);
+  }, [visibleCategories, investmentByCategory, tfrByCat]);
 
   const fundSegments = FUND_TYPE_ORDER
     .filter(ft => fundAlloc.byType[ft] > 0)
