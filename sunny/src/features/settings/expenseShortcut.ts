@@ -11,7 +11,7 @@ const FN_BASE =
 // iCloud share link of the PUBLISHED "Aggiungi spesa" Shortcut, opened by the
 // in-app button after a token is generated (see docs/shortcut-spese.md).
 export const SUNNY_EXPENSE_SHORTCUT_URL =
-  'https://www.icloud.com/shortcuts/86d16fba92e34559ad5de93820426beb';
+  'https://www.icloud.com/shortcuts/051cebb0814e4bffb9121e9b38b10bac';
 
 export interface ExpenseTokenMeta {
   id: string;             // doc id = sha256(token); safe to expose (not the token)
