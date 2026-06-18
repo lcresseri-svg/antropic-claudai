@@ -212,23 +212,26 @@ export function Dashboard(p: Props) {
         <AIDigestCard input={digestInput} />
       </div>
 
-      {/* Cards grid — 1 col mobile, 2 col desktop */}
-      <div className="mt-5 md:grid md:grid-cols-2 md:gap-5 md:items-start space-y-3 md:space-y-0">
-        <div className="space-y-3">
-          <FlowBar income={periodIncome} expense={periodExpenses} invest={periodInvestments} showInvest={enableInvestments} />
-          <TrendChart data={p.trend} />
-          {enableInvestments && <InvestmentSummaryCard investmentByCategory={p.investmentByCategory} total={p.investmentTotal} onClick={p.onSeeInvestments} />}
-        </div>
-        <div className="space-y-3">
-          <CategoryCard categoryTotals={periodCategoryTotals} onClick={p.onSeeCategories} />
-          <AccountsCard
-            accountBalances={p.accountBalances}
-            expenseByAccount={periodExpenseByAccount}
-            mode={accMode}
-            onToggle={() => setAccMode(m => m === 'balance' ? 'spending' : 'balance')}
-            onOpenDetail={p.onSeeAccountBalance}
-          />
-        </div>
+      {/* Flusso del periodo + andamento 12 mesi (a tutta larghezza) */}
+      <div className="mt-5 space-y-3">
+        <FlowBar income={periodIncome} expense={periodExpenses} invest={periodInvestments} showInvest={enableInvestments} />
+        <TrendChart data={p.trend} />
+      </div>
+
+      {/* Card analitiche — ordine: Spese → Saldo → Investimenti */}
+      <div className="mt-3 md:grid md:grid-cols-2 md:gap-5 md:items-start space-y-3 md:space-y-0">
+        {/* 1. Spese per categoria */}
+        <CategoryCard categoryTotals={periodCategoryTotals} onClick={p.onSeeCategories} />
+        {/* 2. Saldo per conto */}
+        <AccountsCard
+          accountBalances={p.accountBalances}
+          expenseByAccount={periodExpenseByAccount}
+          mode={accMode}
+          onToggle={() => setAccMode(m => m === 'balance' ? 'spending' : 'balance')}
+          onOpenDetail={p.onSeeAccountBalance}
+        />
+        {/* 3. Investimenti per categoria */}
+        {enableInvestments && <InvestmentSummaryCard investmentByCategory={p.investmentByCategory} total={p.investmentTotal} onClick={p.onSeeInvestments} />}
       </div>
     </div>
   );
