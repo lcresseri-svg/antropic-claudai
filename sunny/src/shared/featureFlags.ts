@@ -44,17 +44,10 @@ export function canUseForecastV2(_user: User | null): boolean {
   return true;
 }
 
-// UI v2.0.0 ("financial copilot" redesign): still rolled out to the allow-list
-// only. This is a separate UI rollout, intentionally NOT part of the admin
-// feature ungate — widen this list to release the new UI more broadly.
-const UI_V2_UIDS: string[] = [
-  'qPtCOJGRrwOZ2EfjxMHwW6ZISXX2',
-];
-const UI_V2_EMAILS: string[] = [];
-
+// UI v2.0.0 ("financial copilot" redesign).
+// ROLLOUT: available to every logged-in user.
+// To re-gate in future: restore a UID/email allow-list, e.g.
+//   return !!user && ['<uid>'].includes(user.uid);
 export function canUseUiV2(user: User | null): boolean {
-  if (!user) return false;
-  if (user.uid && UI_V2_UIDS.includes(user.uid)) return true;
-  if (user.email && UI_V2_EMAILS.includes(user.email.toLowerCase())) return true;
-  return false;
+  return !!user;
 }
