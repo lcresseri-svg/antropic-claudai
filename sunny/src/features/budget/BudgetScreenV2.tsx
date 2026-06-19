@@ -38,6 +38,7 @@ export function BudgetScreenV2({
   const {
     budget, setSavingsTarget, setCategoryBudget, setIncomeBudget, setInvestmentBudget,
     acceptSuggestion, resetAll, hasBudget,
+    monthlyStatus, monthlySource, confirmCurrentMonth, copyFromPreviousMonth,
   } = useBudget(user);
 
   const [editOpen, setEditOpen] = useState(false);
@@ -197,9 +198,43 @@ export function BudgetScreenV2({
     setEditOpen(true);
   };
 
+  const monthLabel = `${capitalize(currentMonthLabel())} ${new Date().getFullYear()}`;
+  const statusMeta: Record<string, { label: string; cls: string }> = {
+    confirmed:        { label: 'Confermato',                  cls: 'text-[#8A9270] bg-[#8A9270]/15' },
+    draft:            { label: 'Da confermare',               cls: 'text-gold bg-gold/10' },
+    auto_initialized: { label: 'Copiato dal mese precedente', cls: 'text-gold bg-gold/10' },
+    missing:          { label: 'Non impostato',               cls: 'text-tertiary bg-elevated' },
+  };
+  const sm = statusMeta[monthlyStatus] ?? statusMeta.missing;
+
   return (
     <div className="pb-32 space-y-5">
-      <h1 className="text-2xl font-bold text-primary tracking-[-0.03em]">Piano</h1>
+      <div className="flex items-center justify-between gap-2 flex-wrap">
+        <h1 className="text-2xl font-bold text-primary tracking-[-0.03em]">Piano</h1>
+        <span className={`text-[11px] px-2 py-0.5 rounded-full font-medium ${sm.cls}`}>{sm.label}</span>
+      </div>
+
+      {/* Month + confirm/copy controls */}
+      <div className="glass-card rounded-2xl px-4 py-3 flex items-center justify-between gap-3 flex-wrap">
+        <div className="min-w-0">
+          <p className="text-[11px] text-tertiary uppercase tracking-wide">Budget di</p>
+          <p className="text-sm font-semibold text-primary">{monthLabel}</p>
+        </div>
+        <div className="flex items-center gap-2">
+          {monthlySource === 'copied_from_previous_month' && monthlyStatus !== 'confirmed' && (
+            <button onClick={copyFromPreviousMonth}
+              className="text-[12px] px-3 py-1.5 rounded-xl bg-elevated text-secondary font-medium hover:bg-card-hover transition-colors">
+              Ricopia mese prec.
+            </button>
+          )}
+          {monthlyStatus !== 'confirmed' && (
+            <button onClick={confirmCurrentMonth}
+              className="text-[12px] px-3 py-1.5 rounded-xl bg-gold/15 text-gold font-medium hover:bg-gold/25 transition-colors">
+              Conferma budget
+            </button>
+          )}
+        </div>
+      </div>
 
       {isLearning && (
         <div className="glass-card rounded-2xl px-4 py-3 flex items-center gap-2.5">

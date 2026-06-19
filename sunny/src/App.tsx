@@ -23,6 +23,7 @@ import { InsightsScreenV2 } from './features/insights/InsightsScreenV2';
 import { BudgetScreen } from './features/budget/BudgetScreen';
 import { BudgetScreenV2 } from './features/budget/BudgetScreenV2';
 import { BudgetDisabled } from './features/budget/BudgetDisabled';
+import { BudgetSetupBanner } from './features/budget/BudgetSetupBanner';
 import { TransactionList } from './features/transactions/TransactionList';
 import { SettingsScreen } from './features/settings/SettingsScreen';
 import { AICoachScreen } from './features/aiCoach/AICoachScreen';
@@ -328,6 +329,18 @@ function Main({ user, onLogOut, onDeleteAccount }: {
           </div>
         )}
 
+        {/* Budget month-setup prompt — shown until the current month is confirmed */}
+        {enableBudget && budget.showBudgetPrompt && !isSettings && (
+          <div className="max-w-2xl mx-auto md:max-w-none px-5 md:px-8 pt-3">
+            <BudgetSetupBanner
+              month={budget.currentMonth}
+              copiedFromPrevious={budget.monthlySource === 'copied_from_previous_month'}
+              onConfirm={budget.confirmCurrentMonth}
+              onEdit={() => navigate('/budget')}
+            />
+          </div>
+        )}
+
         <main className="max-w-2xl mx-auto md:max-w-none px-5 md:px-8 pt-4 md:pt-2 pb-24 md:pb-2">
           <Routes>
             <Route path="/" element={
@@ -431,7 +444,9 @@ function Main({ user, onLogOut, onDeleteAccount }: {
             } />
             <Route path="/settings/*" element={
               <div className="pt-4 md:pt-6 md:max-w-3xl">
-                <SettingsScreen user={user} transactions={tx.transactions} budget={budget.budget} uiV2={uiV2}
+                <SettingsScreen user={user} transactions={tx.transactions}
+                  budgetExport={{ currentMonth: budget.currentMonth, current: budget.monthly, history: budget.budgetHistory, legacy: budget.budget }}
+                  uiV2={uiV2}
                   onLogOut={onLogOut} onDeleteAll={tx.deleteAll} onDeleteAccount={onDeleteAccount} />
               </div>
             } />
@@ -478,6 +493,8 @@ function Main({ user, onLogOut, onDeleteAccount }: {
                     allCategories={visibleCategories}
                     accounts={visibleAccounts}
                     budget={budget.budget}
+                    budgetHistoryV4={budget.budgetHistory}
+                    currentMonthBudgetStatus={budget.monthlyStatus}
                     settingsSnapshot={{
                       includeInvestments,
                       enableBudget,

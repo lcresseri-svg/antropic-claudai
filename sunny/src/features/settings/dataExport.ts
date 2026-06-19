@@ -1,20 +1,25 @@
 import { Transaction, CategoryDef, AccountDef, BudgetState } from '../../types';
+import { MonthlyBudget, monthlyToBudgetState } from '../budget/monthlyBudget';
 
-/** Budget block in the export (matches BudgetState, all fields optional). */
-export interface ExportBudget {
+/** One month of budget configuration in the export (section 17.9). */
+export interface ExportMonthlyBudget {
+  month: string;
   savingsTarget?: number;
   categoryBudgets: Record<string, number>;
   incomeBudgets?: Record<string, number>;
   investmentBudgets?: Record<string, number>;
   suggestionAccepted?: boolean;
+  status?: MonthlyBudget['status'];
+  source?: MonthlyBudget['source'];
+  copiedFromMonth?: string;
+  confirmedAt?: number;
+  createdAt?: number;
+  updatedAt?: number;
 }
 
-/** One historical month of budget configuration (enables forecast reliability). */
-export interface ExportBudgetHistoryEntry {
-  month: string;
-  categoryBudgets: Record<string, number>;
-  totalBudget?: number;
-  updatedAt?: string;
+export interface ExportBudgetBlock {
+  currentMonth: string;
+  currentBudget: ExportMonthlyBudget;
 }
 
 export interface ExportPayload {
@@ -25,14 +30,23 @@ export interface ExportPayload {
   categories: CategoryDef[];
   accounts: AccountDef[];
   transactions: Transaction[];
-  /** Current budget. Optional for backward compatibility with older exports. */
-  budget?: ExportBudget;
+  /** Current month's budget (with status/source). Optional for old exports. */
+  budget?: ExportBudgetBlock;
   /**
-   * Historical budgets per month, when available. Sunny currently stores only
-   * the current budget, so this is usually omitted; the forecast reliability
-   * model falls back to per-category defaults when it's missing.
+   * Per-month budget snapshots, when available. Required to compute the V4
+   * budget-signal reliability empirically; the model falls back to per-category
+   * defaults when it's missing.
    */
-  budgetHistory?: ExportBudgetHistoryEntry[];
+  budgetHistory?: ExportMonthlyBudget[];
+}
+
+/** Input describing the user's monthly budget state for the export. */
+export interface BudgetExportInput {
+  currentMonth: string;
+  current?: MonthlyBudget | null;
+  history?: MonthlyBudget[];
+  /** Legacy meta/budget, used when there's no per-month snapshot yet. */
+  legacy?: BudgetState | null;
 }
 
 /** Columns exported in the CSV, in order. */
@@ -55,14 +69,53 @@ export function transactionsToCsv(transactions: Transaction[]): string {
   return lines.join('\r\n');
 }
 
-/** Map the live BudgetState into the export budget block. */
-export function toExportBudget(budget: BudgetState): ExportBudget {
+/** Map a monthly budget snapshot into its export shape. */
+export function toExportMonthlyBudget(m: MonthlyBudget): ExportMonthlyBudget {
   return {
-    savingsTarget: budget.savingsTarget,
-    categoryBudgets: budget.categoryBudgets ?? {},
-    incomeBudgets: budget.incomeBudgets ?? {},
-    investmentBudgets: budget.investmentBudgets ?? {},
-    suggestionAccepted: budget.suggestionAccepted,
+    month: m.month,
+    savingsTarget: m.savingsTarget,
+    categoryBudgets: m.categoryBudgets ?? {},
+    incomeBudgets: m.incomeBudgets ?? {},
+    investmentBudgets: m.investmentBudgets ?? {},
+    suggestionAccepted: m.suggestionAccepted,
+    status: m.status,
+    source: m.source,
+    copiedFromMonth: m.copiedFromMonth,
+    confirmedAt: m.confirmedAt,
+    createdAt: m.createdAt,
+    updatedAt: m.updatedAt,
+  };
+}
+
+/** Build the export budget block + history from the monthly budget state. */
+export function buildBudgetExport(input: BudgetExportInput): {
+  budget?: ExportBudgetBlock;
+  budgetHistory?: ExportMonthlyBudget[];
+} {
+  // Prefer the per-month snapshot; fall back to the legacy budget as a synthetic
+  // 'missing'-status current month so older accounts still export their budget.
+  let currentBudget: ExportMonthlyBudget | undefined;
+  if (input.current) {
+    currentBudget = toExportMonthlyBudget(input.current);
+  } else if (input.legacy) {
+    const bs = monthlyToBudgetState({
+      month: input.currentMonth, status: 'missing', source: 'auto_initialized',
+      ...input.legacy,
+    } as MonthlyBudget);
+    currentBudget = {
+      month: input.currentMonth,
+      savingsTarget: bs.savingsTarget,
+      categoryBudgets: bs.categoryBudgets,
+      incomeBudgets: bs.incomeBudgets,
+      investmentBudgets: bs.investmentBudgets,
+      suggestionAccepted: bs.suggestionAccepted,
+      status: 'missing',
+    };
+  }
+  const history = (input.history ?? []).map(toExportMonthlyBudget);
+  return {
+    ...(currentBudget ? { budget: { currentMonth: input.currentMonth, currentBudget } } : {}),
+    ...(history.length > 0 ? { budgetHistory: history } : {}),
   };
 }
 
@@ -72,9 +125,9 @@ export function buildExportPayload(
   categories: CategoryDef[],
   accounts: AccountDef[],
   transactions: Transaction[],
-  budget?: BudgetState,
-  budgetHistory?: ExportBudgetHistoryEntry[],
+  budgetExport?: BudgetExportInput,
 ): ExportPayload {
+  const { budget, budgetHistory } = budgetExport ? buildBudgetExport(budgetExport) : {};
   return {
     exportedAt: new Date().toISOString(),
     app: 'Sunny',
@@ -83,8 +136,8 @@ export function buildExportPayload(
     categories,
     accounts,
     transactions,
-    ...(budget ? { budget: toExportBudget(budget) } : {}),
-    ...(budgetHistory && budgetHistory.length > 0 ? { budgetHistory } : {}),
+    ...(budget ? { budget } : {}),
+    ...(budgetHistory ? { budgetHistory } : {}),
   };
 }
 

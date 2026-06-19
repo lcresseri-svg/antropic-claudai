@@ -17,6 +17,7 @@ import {
 } from './forecastDiagnosticsV4';
 import {
   ForecastV4CategoryResult, ForecastBacktestV4Result, BudgetHistoryEntryV4, ConfidenceV4,
+  BudgetMonthStatusV4,
 } from './forecastTypesV4';
 import { FORECAST_V4_WARNING } from './forecastEngineV4';
 
@@ -25,6 +26,7 @@ interface Props {
   expenseCategories: CategoryDef[];
   categoryBudgets: Record<string, number>;
   budgetHistory?: BudgetHistoryEntryV4[];
+  currentMonthBudgetStatus?: BudgetMonthStatusV4;
   /** V3 projected expenses for the comparison row. */
   v3ProjectedExpenses: number;
 }
@@ -39,21 +41,37 @@ const CONF_META: Record<ConfidenceV4, { label: string; cls: string }> = {
   low:    { label: 'Bassa', cls: 'text-[#C0706A] bg-[#C0706A]/10' },
 };
 
+const BUDGET_STATUS_META: Record<BudgetMonthStatusV4, { label: string; cls: string }> = {
+  confirmed:        { label: 'Confermato',                  cls: 'text-[#8A9270] bg-[#8A9270]/15' },
+  draft:            { label: 'Da confermare',               cls: 'text-gold bg-gold/10' },
+  auto_initialized: { label: 'Copiato dal mese precedente', cls: 'text-gold bg-gold/10' },
+  missing:          { label: 'Non impostato',               cls: 'text-tertiary bg-elevated' },
+};
+
+const BUDGET_SOURCE_LABEL: Record<string, string> = {
+  historical_reliability: 'reliability storica',
+  current_month_intent: 'intento mese corrente',
+  unconfirmed_current_budget: 'budget non confermato',
+  fallback: 'fallback',
+};
+
 export function ForecastV4Panel({
-  transactions, expenseCategories, categoryBudgets, budgetHistory, v3ProjectedExpenses,
+  transactions, expenseCategories, categoryBudgets, budgetHistory, currentMonthBudgetStatus, v3ProjectedExpenses,
 }: Props) {
   const [applyBudget, setApplyBudget] = useState(true);
   const [showBacktest, setShowBacktest] = useState(false);
 
   const v4 = useMemo(() => computeForecastV4({
-    transactions, expenseCategories, categoryBudgets, budgetHistory,
+    transactions, expenseCategories, categoryBudgets, budgetHistory, currentMonthBudgetStatus,
     applyBudgetSignal: applyBudget,
-  }), [transactions, expenseCategories, categoryBudgets, budgetHistory, applyBudget]);
+  }), [transactions, expenseCategories, categoryBudgets, budgetHistory, currentMonthBudgetStatus, applyBudget]);
 
   const backtest = useMemo<ForecastBacktestV4Result[] | null>(() => {
     if (!showBacktest) return null;
-    return runBacktestV4(transactions, expenseCategories, { categoryBudgets, budgetHistory });
-  }, [showBacktest, transactions, expenseCategories, categoryBudgets, budgetHistory]);
+    // Backtest is budgetHistory-driven only — current budget is never used for
+    // historical months.
+    return runBacktestV4(transactions, expenseCategories, { budgetHistory });
+  }, [showBacktest, transactions, expenseCategories, budgetHistory]);
 
   const comparison = compareV4toV3(v4.totalForecast, v3ProjectedExpenses);
   const weights = componentWeightsV4(v4);
@@ -131,6 +149,24 @@ export function ForecastV4Panel({
           Segnale budget {applyBudget ? 'ON' : 'OFF'}
         </button>
       </div>
+
+      {/* Budget month status + reliability provenance */}
+      <div className="flex flex-wrap items-center gap-2 text-[11px]">
+        <span className="text-tertiary">Budget mese:</span>
+        <span className={`px-2 py-0.5 rounded-full font-medium ${BUDGET_STATUS_META[v4.diagnostics.budgetMonthStatus].cls}`}>
+          {BUDGET_STATUS_META[v4.diagnostics.budgetMonthStatus].label}
+        </span>
+        <span className="text-tertiary">· fonte {BUDGET_SOURCE_LABEL[v4.diagnostics.budgetSource]}</span>
+        <span className="text-tertiary">· copertura storico {pct(v4.diagnostics.budgetHistoryCoverageRatio)}</span>
+        {!v4.diagnostics.budgetSignalValidatable && (
+          <span className="text-[#C0706A]">· non ancora validabile</span>
+        )}
+      </div>
+      {applyBudget && !v4.diagnostics.budgetSignalValidatable && v4.components.budgetSignalAdjustment > 0 && (
+        <p className="text-[11px] text-[#C0706A] bg-[#C0706A]/10 rounded-lg p-2">
+          Budget signal non ancora validabile: storico budget insufficiente (servono ≥3 mesi confermati).
+        </p>
+      )}
 
       {/* Warning */}
       <p className="text-[11px] text-tertiary bg-elevated/50 rounded-lg p-2.5 leading-relaxed">
@@ -215,7 +251,13 @@ function CategoryRowV4({ cat }: { cat: ForecastV4CategoryResult }) {
             <>
               <DetailRow label="Budget inserito" value={fmt(cat.budget)} />
               <DetailRow label="Gap" value={fmtSigned(cat.budgetGap ?? 0)} />
-              <DetailRow label="Reliability" value={pct(cat.budgetReliability ?? 0)} />
+              <DetailRow
+                label="Reliability"
+                value={`${pct(cat.budgetReliability ?? 0)} · ${cat.budgetReliabilitySource === 'empirical' ? `empirica (${cat.budgetReliabilitySampleCount ?? 0} mesi)` : 'fallback'}`}
+              />
+              {cat.budgetStatus && (
+                <DetailRow label="Stato budget" value={BUDGET_STATUS_META[cat.budgetStatus].label} />
+              )}
               <DetailRow label="Aggiustamento applicato" value={fmtSigned(cat.budgetSignalAdjustment ?? 0)} highlight />
             </>
           )}

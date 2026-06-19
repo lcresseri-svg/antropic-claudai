@@ -1,8 +1,15 @@
-import { useState, useCallback, useEffect } from 'react';
-import { doc, onSnapshot, setDoc } from 'firebase/firestore';
+import { useState, useCallback, useEffect, useRef } from 'react';
+import {
+  doc, collection, onSnapshot, setDoc, getDoc,
+} from 'firebase/firestore';
 import { User } from 'firebase/auth';
 import { db } from '../../lib/firebase';
 import { BudgetState } from '../../types';
+import {
+  MonthlyBudget, monthKeyOf, prevMonthKey, initMonthlyBudget,
+  applyMonthlyBudgetEdit, confirmMonthlyBudget, monthlyToBudgetState,
+  shouldShowBudgetSetupPrompt,
+} from '../../features/budget/monthlyBudget';
 
 const DEFAULT_BUDGET: BudgetState = {
   savingsTarget: 500,
@@ -36,49 +43,101 @@ function loadLocal(user: User | null): BudgetState | null {
 }
 
 const budgetDoc = (user: User) => doc(db, 'users', user.uid, 'meta', 'budget');
+const monthlyCol = (user: User) => collection(db, 'users', user.uid, 'budgetHistory');
+const monthlyDoc = (user: User, month: string) => doc(db, 'users', user.uid, 'budgetHistory', month);
+
+/** Values portion shared between BudgetState and MonthlyBudget. */
+function valuesOf(b: BudgetState) {
+  return {
+    savingsTarget: b.savingsTarget,
+    categoryBudgets: b.categoryBudgets,
+    incomeBudgets: b.incomeBudgets,
+    investmentBudgets: b.investmentBudgets,
+    suggestionAccepted: b.suggestionAccepted,
+  };
+}
 
 /**
- * Budget configuration synced to Firestore (users/{uid}/meta/budget) so it
- * follows the user across devices. localStorage is kept as a fast-start cache
- * and offline fallback; the budget document is wholly owned by this hook, so we
- * write it in full (no merge) — that keeps deletions/resets working.
+ * Budget configuration with MONTHLY snapshots (section 17).
+ *
+ * - `users/{uid}/meta/budget` is kept as the backward-compatible mirror of the
+ *   CURRENT month's values, so the existing screens keep working unchanged.
+ * - `users/{uid}/budgetHistory/{YYYY-MM}` holds one snapshot per month with a
+ *   status (missing/auto_initialized/draft/confirmed). At month rollover the
+ *   previous month stays in history and a new month is auto-initialized
+ *   (copying the previous values) but left UNCONFIRMED until the user confirms.
  */
 export function useBudget(user: User | null) {
   const [budget, setBudget] = useState<BudgetState>(() => loadLocal(user) ?? DEFAULT_BUDGET);
+  const [monthly, setMonthly] = useState<MonthlyBudget | null>(null);
+  const [history, setHistory] = useState<MonthlyBudget[]>([]);
+  // Latest monthly snapshot, used by writers without re-subscribing.
+  const monthlyRef = useRef<MonthlyBudget | null>(null);
+  monthlyRef.current = monthly;
 
+  // Current month key — stable for the session (recomputed on remount).
+  const currentMonth = monthKeyOf(new Date());
+
+  // ── meta/budget mirror (legacy, current-month values) ──────────────────────
   useEffect(() => {
     if (!user) { setBudget(DEFAULT_BUDGET); return; }
-
-    // Seed immediately from the local cache for a snappy first paint.
     const cached = loadLocal(user);
     if (cached) setBudget(cached);
 
     const ref = budgetDoc(user);
     return onSnapshot(ref, snap => {
       if (!snap.exists()) {
-        // Only seed when the SERVER confirms the doc is missing (a cold cache
-        // also reports !exists()). Migrate any pre-existing local budget so
-        // nothing is lost when moving from localStorage-only to Firestore.
-        if (!snap.metadata.fromCache) {
-          setDoc(ref, cached ?? DEFAULT_BUDGET);
-        }
+        if (!snap.metadata.fromCache) setDoc(ref, cached ?? DEFAULT_BUDGET);
         return;
       }
       const next = normalize(snap.data() as Partial<BudgetState>);
       setBudget(next);
       try { localStorage.setItem(keyFor(user), JSON.stringify(next)); } catch { /* ignore */ }
     });
-  // uid, not user object — avoids listener recreation on every token refresh.
   }, [user?.uid]);
 
+  // ── budgetHistory collection + ensure current month exists ─────────────────
+  const ensuredRef = useRef(false);
+  useEffect(() => {
+    if (!user) { setMonthly(null); setHistory([]); return; }
+    ensuredRef.current = false;
+
+    return onSnapshot(monthlyCol(user), snap => {
+      const list: MonthlyBudget[] = snap.docs.map(d => d.data() as MonthlyBudget);
+      list.sort((a, b) => b.month.localeCompare(a.month));
+      setHistory(list);
+      const cur = list.find(m => m.month === currentMonth) ?? null;
+      setMonthly(cur);
+
+      // Server-confirmed missing current month → auto-initialize (once).
+      if (!cur && !snap.metadata.fromCache && !ensuredRef.current) {
+        ensuredRef.current = true;
+        const previous = list.find(m => m.month === prevMonthKey(currentMonth)) ?? null;
+        const legacy = loadLocal(user) ?? budget;
+        const created = initMonthlyBudget({ month: currentMonth, previous, legacy });
+        setDoc(monthlyDoc(user, currentMonth), created).catch(() => { /* non-fatal */ });
+        // Mirror the (copied) values into meta/budget so the screens reflect them.
+        setDoc(budgetDoc(user), monthlyToBudgetState(created)).catch(() => {});
+      }
+    });
+  }, [user?.uid, currentMonth]);
+
+  // ── Writers ────────────────────────────────────────────────────────────────
+
+  /** Apply a values change to BOTH the legacy mirror and the monthly snapshot. */
   const update = useCallback((patch: (prev: BudgetState) => BudgetState) => {
     setBudget(prev => {
       const next = patch(prev);
       try { localStorage.setItem(keyFor(user), JSON.stringify(next)); } catch { /* ignore */ }
-      if (user) setDoc(budgetDoc(user), next);
+      if (user) {
+        setDoc(budgetDoc(user), next);
+        const base = monthlyRef.current ?? initMonthlyBudget({ month: currentMonth, legacy: next });
+        const updated = applyMonthlyBudgetEdit(base, valuesOf(next));
+        setDoc(monthlyDoc(user, currentMonth), updated).catch(() => {});
+      }
       return next;
     });
-  }, [user]);
+  }, [user, currentMonth]);
 
   const setSavingsTarget = useCallback((n: number) => {
     update(prev => ({ ...prev, savingsTarget: Math.max(0, Math.round(n)) }));
@@ -120,8 +179,6 @@ export function useBudget(user: User | null) {
     }));
   }, [update]);
 
-  // Clear every budget (categories, income, investments) and forget any
-  // accepted suggestion, so "planned" truly returns to nothing.
   const resetAll = useCallback(() => {
     update(prev => ({
       ...prev,
@@ -132,11 +189,46 @@ export function useBudget(user: User | null) {
     }));
   }, [update]);
 
+  /** Confirm the current month's budget (used by the setup prompt + budget UI). */
+  const confirmCurrentMonth = useCallback(() => {
+    if (!user) return;
+    const base = monthlyRef.current ?? initMonthlyBudget({ month: currentMonth, legacy: budget });
+    const confirmed = confirmMonthlyBudget(applyMonthlyBudgetEdit(base, valuesOf(budget)));
+    setMonthly(confirmed);
+    setDoc(monthlyDoc(user, currentMonth), confirmed).catch(() => {});
+    setDoc(budgetDoc(user), monthlyToBudgetState(confirmed)).catch(() => {});
+  }, [user, currentMonth, budget]);
+
+  /** Re-copy the previous month's values into the current (unconfirmed) month. */
+  const copyFromPreviousMonth = useCallback(() => {
+    if (!user) return;
+    const previous = history.find(m => m.month === prevMonthKey(currentMonth)) ?? null;
+    if (!previous) return;
+    const created = initMonthlyBudget({ month: currentMonth, previous });
+    setMonthly(created);
+    setDoc(monthlyDoc(user, currentMonth), created).catch(() => {});
+    setDoc(budgetDoc(user), monthlyToBudgetState(created)).catch(() => {});
+  }, [user, currentMonth, history]);
+
   const hasBudget =
     budget.suggestionAccepted ||
     Object.keys(budget.categoryBudgets).length > 0 ||
     Object.keys(budget.incomeBudgets).length > 0 ||
     Object.keys(budget.investmentBudgets).length > 0;
 
-  return { budget, setSavingsTarget, setCategoryBudget, setIncomeBudget, setInvestmentBudget, acceptSuggestion, resetAll, hasBudget };
+  return {
+    budget,
+    setSavingsTarget, setCategoryBudget, setIncomeBudget, setInvestmentBudget,
+    acceptSuggestion, resetAll, hasBudget,
+    // Monthly extensions
+    currentMonth,
+    monthly,
+    monthlyStatus: monthly?.status ?? 'missing',
+    monthlySource: monthly?.source,
+    copiedFromMonth: monthly?.copiedFromMonth,
+    budgetHistory: history,
+    confirmCurrentMonth,
+    copyFromPreviousMonth,
+    showBudgetPrompt: shouldShowBudgetSetupPrompt(monthly),
+  };
 }

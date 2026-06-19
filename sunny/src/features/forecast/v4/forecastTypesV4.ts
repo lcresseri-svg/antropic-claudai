@@ -54,13 +54,39 @@ export interface SeasonalExpenseCandidateV4 {
   reason: string;
 }
 
-/** One historical month of budget configuration (needed for reliability calc). */
+/** Status of a per-month budget snapshot (mirrors budget/monthlyBudget.ts). */
+export type BudgetMonthStatusV4 = 'missing' | 'auto_initialized' | 'draft' | 'confirmed';
+
+/**
+ * How the budget signal for the TARGET month is being treated:
+ *  - historical_reliability   : confirmed budget + empirical reliability (≥3 samples)
+ *  - current_month_intent      : confirmed current budget, reliability from fallback
+ *  - unconfirmed_current_budget: budget exists but not confirmed → weak signal
+ *  - fallback                  : no per-month budget; reliability from fallback map
+ */
+export type BudgetSourceV4 =
+  | 'historical_reliability'
+  | 'current_month_intent'
+  | 'unconfirmed_current_budget'
+  | 'fallback';
+
+export type BudgetReliabilitySourceV4 = 'empirical' | 'fallback';
+
+/**
+ * One historical month of budget configuration (needed for reliability calc).
+ * Only `confirmed` months feed empirical reliability; the current month may be
+ * present but unconfirmed.
+ */
 export interface BudgetHistoryEntryV4 {
   /** YYYY-MM */
   month: string;
   categoryBudgets: Record<string, number>;
   totalBudget?: number;
-  updatedAt?: string;
+  status?: BudgetMonthStatusV4;
+  source?: string;
+  savingsTarget?: number;
+  confirmedAt?: number | string;
+  updatedAt?: number | string;
 }
 
 // ── Per-category result ───────────────────────────────────────────────────────
@@ -82,6 +108,15 @@ export interface ForecastV4CategoryResult {
   budgetGap?: number;
   budgetReliability?: number;
   budgetSignalAdjustment?: number;
+
+  /** Status of the target-month budget snapshot for this category's month. */
+  budgetStatus?: BudgetMonthStatusV4;
+  /** How the budget signal was treated. */
+  budgetSource?: BudgetSourceV4;
+  /** Whether reliability was empirical or from the fallback map. */
+  budgetReliabilitySource?: BudgetReliabilitySourceV4;
+  /** Number of confirmed historical budget months used for reliability. */
+  budgetReliabilitySampleCount?: number;
 
   confidence: ConfidenceV4;
   reasons: string[];
@@ -129,6 +164,14 @@ export interface ForecastV4Diagnostics {
    * relative to the full remaining forecast. High = well-planned month.
    */
   plannedCoverageRatio: number;
+  /** Status of the target-month budget snapshot. */
+  budgetMonthStatus: BudgetMonthStatusV4;
+  /** Overall budget signal treatment for the target month. */
+  budgetSource: BudgetSourceV4;
+  /** Fraction of recent months that have a budget snapshot (for reliability). */
+  budgetHistoryCoverageRatio: number;
+  /** True when the budget signal can't yet be validated (<3 confirmed months). */
+  budgetSignalValidatable: boolean;
   warnings: string[];
 }
 
@@ -176,6 +219,12 @@ export interface ForecastV4Input {
    * future-dated, non-recurring expense transactions in the target month.
    */
   plannedExpenses?: PlannedExpenseV4[];
+  /**
+   * Status of the current/target-month budget when supplied via `categoryBudgets`
+   * rather than a budgetHistory entry. Defaults to 'auto_initialized' (treated as
+   * unconfirmed → weak signal).
+   */
+  currentMonthBudgetStatus?: BudgetMonthStatusV4;
   /** When false, the budget signal is computed for diagnostics but not applied. */
   applyBudgetSignal?: boolean;
   /** Reference "now". Defaults to new Date(). Target month = month of `now`. */
@@ -224,5 +273,13 @@ export interface ForecastBacktestV4Result {
     budgetSignalHurt: CategoryImpactV4[];
     seasonalDetected: SeasonalExpenseCandidateV4[];
     plannedCoverageRatio: number;
+    /** Target months that had a budget snapshot and so used the budget signal. */
+    sampleCountBudgetMonths: number;
+    /** Target months with no budget snapshot (budget signal disabled). */
+    sampleCountWithoutBudget: number;
+    /** sampleCountBudgetMonths / total target months. */
+    budgetHistoryCoverageRatio: number;
+    /** Set when the budget signal can't yet be validated (<3 budget months). */
+    warning?: string;
   };
 }

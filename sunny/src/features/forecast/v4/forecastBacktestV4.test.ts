@@ -82,4 +82,36 @@ describe('runBacktestV4', () => {
     const v4 = results.find(r => r.modelName === 'V4 planned-aware')!;
     expect(Object.keys(v4.bySnapshotDay).map(Number).sort((a, b) => a - b)).toEqual([10, 20]);
   });
+
+  it('only applies the budget signal to months present in budgetHistory', () => {
+    const budgetHistory = [
+      { month: '2025-03', categoryBudgets: { spesa: 400 }, status: 'confirmed' as const },
+      { month: '2025-04', categoryBudgets: { spesa: 400 }, status: 'confirmed' as const },
+    ];
+    const results = runBacktestV4(history(), CATS, { now: NOW, budgetHistory });
+    const v4b = results.find(r => r.modelName === 'V4 + budget')!;
+    expect(v4b.diagnostics.sampleCountBudgetMonths).toBe(2);
+    expect(v4b.diagnostics.sampleCountWithoutBudget).toBeGreaterThan(0);
+    expect(v4b.diagnostics.budgetHistoryCoverageRatio).toBeGreaterThan(0);
+    expect(v4b.diagnostics.budgetHistoryCoverageRatio).toBeLessThan(1);
+  });
+
+  it('warns when fewer than 3 confirmed budget months are available', () => {
+    const budgetHistory = [
+      { month: '2025-03', categoryBudgets: { spesa: 400 }, status: 'confirmed' as const },
+    ];
+    const results = runBacktestV4(history(), CATS, { now: NOW, budgetHistory });
+    const v4b = results.find(r => r.modelName === 'V4 + budget')!;
+    expect(v4b.diagnostics.warning).toMatch(/non ancora validabile/i);
+  });
+
+  it('never borrows the current budget for historical months (no budgetHistory → budget signal off)', () => {
+    // With no budgetHistory, V4 and V4+budget must be identical (no signal applied).
+    const results = runBacktestV4(history(), CATS, { now: NOW });
+    const v4 = results.find(r => r.modelName === 'V4 planned-aware')!;
+    const v4b = results.find(r => r.modelName === 'V4 + budget')!;
+    expect(v4b.mae).toBe(v4.mae);
+    expect(v4b.wape).toBe(v4.wape);
+    expect(v4b.diagnostics.sampleCountBudgetMonths).toBe(0);
+  });
 });
