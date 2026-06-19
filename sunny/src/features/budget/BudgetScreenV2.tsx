@@ -4,7 +4,7 @@ import { Transaction, ownShare } from '../../types';
 import { useSettings } from '../../shared/providers/settings';
 import { useBudget } from '../../shared/hooks/useBudget';
 import {
-  suggestBudgets, generateBudgetInsights, seasonalHint,
+  suggestBudgets, seasonalHint,
   DEMO_CATEGORY_SPEND, DEMO_CATEGORY_BUDGETS,
 } from './budgetUtils';
 import { forecastSavingsV3, forecastByCategoryV3 } from '../forecast/forecastEngineV3';
@@ -13,7 +13,6 @@ import { history } from '../insights/insightsEngine';
 import { SavingsGoalCard } from './SavingsGoalCard';
 import { SuggestedBudgetCard } from './SuggestedBudgetCard';
 import { CategoryBudgetList } from './CategoryBudgetList';
-import { BudgetInsights } from './BudgetInsights';
 import { BudgetOverview } from './BudgetOverview';
 import { BudgetEditSheet } from './BudgetEditSheet';
 import { formatCurrency, currentMonthLabel, capitalize } from '../../utils';
@@ -168,17 +167,6 @@ export function BudgetScreenV2({
   const season = useMemo(() => (isLearning ? null : seasonalHint(transactions)), [isLearning, transactions]);
   const seasonCat = season ? categories.find(c => c.id === season.categoryId) : null;
 
-  const insights = useMemo(
-    () => generateBudgetInsights({
-      expenseCategories: expenseCats,
-      categorySpend: expenseSpend,
-      categoryBudgets: activeExpBudgets,
-      predicted,
-      savingsTarget: budget.savingsTarget,
-    }),
-    [expenseCats, expenseSpend, activeExpBudgets, predicted, budget.savingsTarget],
-  );
-
   // Complete (past) months with at least one expense — V3 needs ~3 of them
   // before its statistical signals (tail, pace, counts) become reliable.
   const completedExpenseMonths = useMemo(() => {
@@ -256,9 +244,6 @@ export function BudgetScreenV2({
           </p>
         </div>
       )}
-
-      {/* Sunny consiglia */}
-      <BudgetInsights insights={insights} />
 
       {/* 3 — Suggerimento se non ha ancora budget */}
       {!hasBudget && (
