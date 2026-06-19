@@ -1,6 +1,7 @@
 import { describe, it, expect } from 'vitest';
 import { transactionsToCsv, buildExportPayload, CSV_COLUMNS } from './dataExport';
-import { Transaction, BudgetState } from '../../types';
+import { Transaction } from '../../types';
+import { MonthlyBudget } from '../budget/monthlyBudget';
 
 const tx = (over: Partial<Transaction>): Transaction => ({
   id: 'x', date: '2026-01-01', description: 'Test', amount: 10,
@@ -62,32 +63,34 @@ describe('buildExportPayload', () => {
     expect(payload.budgetHistory).toBeUndefined();
   });
 
-  it('includes the budget block when a budget is provided', () => {
-    const budget: BudgetState = {
-      savingsTarget: 500,
-      categoryBudgets: { spesa: 400, acquisti: 200 },
-      incomeBudgets: { stipendio: 2000 },
-      investmentBudgets: {},
-      suggestionAccepted: true,
+  it('includes the current month budget block when a monthly budget is provided', () => {
+    const current: MonthlyBudget = {
+      month: '2026-06', savingsTarget: 500,
+      categoryBudgets: { spesa: 400, acquisti: 200 }, incomeBudgets: {}, investmentBudgets: {},
+      suggestionAccepted: true, status: 'confirmed', source: 'manual', confirmedAt: 123,
     };
     const payload = buildExportPayload(
-      { uid: 'u1', email: null, displayName: null }, [], [], [tx({})], budget,
+      { uid: 'u1', email: null, displayName: null }, [], [], [tx({})],
+      { currentMonth: '2026-06', current, history: [current] },
     );
     expect(payload.budget).toBeDefined();
-    expect(payload.budget!.categoryBudgets).toEqual({ spesa: 400, acquisti: 200 });
-    expect(payload.budget!.savingsTarget).toBe(500);
-    expect(payload.budget!.suggestionAccepted).toBe(true);
+    expect(payload.budget!.currentMonth).toBe('2026-06');
+    expect(payload.budget!.currentBudget.categoryBudgets).toEqual({ spesa: 400, acquisti: 200 });
+    expect(payload.budget!.currentBudget.status).toBe('confirmed');
+    expect(payload.budgetHistory).toHaveLength(1);
+    expect(payload.budgetHistory![0].month).toBe('2026-06');
   });
 
-  it('includes budgetHistory only when non-empty', () => {
-    const budget: BudgetState = {
-      savingsTarget: 0, categoryBudgets: {}, incomeBudgets: {}, investmentBudgets: {}, suggestionAccepted: false,
-    };
-    const history = [{ month: '2026-02', categoryBudgets: { spesa: 350 }, totalBudget: 350 }];
+  it('falls back to the legacy budget as a synthetic current month when no snapshot exists', () => {
     const payload = buildExportPayload(
-      { uid: 'u1', email: null, displayName: null }, [], [], [], budget, history,
+      { uid: 'u1', email: null, displayName: null }, [], [], [],
+      {
+        currentMonth: '2026-06',
+        legacy: { savingsTarget: 300, categoryBudgets: { x: 50 }, incomeBudgets: {}, investmentBudgets: {}, suggestionAccepted: false },
+      },
     );
-    expect(payload.budgetHistory).toHaveLength(1);
-    expect(payload.budgetHistory![0].month).toBe('2026-02');
+    expect(payload.budget!.currentBudget.status).toBe('missing');
+    expect(payload.budget!.currentBudget.categoryBudgets).toEqual({ x: 50 });
+    expect(payload.budgetHistory).toBeUndefined();
   });
 });

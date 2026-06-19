@@ -115,24 +115,57 @@ describe('computeForecastV4 — seasonal/planned anti double-count', () => {
 });
 
 describe('computeForecastV4 — budget signal', () => {
-  it('applies a positive budget adjustment for Acquisti when enabled', () => {
+  const confirmedJune = [{
+    month: '2026-06', categoryBudgets: { acquisti: 600 },
+    status: 'confirmed' as const, source: 'manual',
+  }];
+
+  it('applies a positive budget adjustment for Acquisti when the budget is confirmed', () => {
     const r = computeForecastV4({
       transactions: baseTransactions(), expenseCategories: CATS, now: NOW,
-      categoryBudgets: { acquisti: 600 }, applyBudgetSignal: true,
+      budgetHistory: confirmedJune, applyBudgetSignal: true,
     });
     const acq = r.byCategory['acquisti'];
     expect(acq.residualStatisticalRemaining).toBeGreaterThan(0);
+    expect(acq.budgetStatus).toBe('confirmed');
     expect(acq.budgetSignalAdjustment!).toBeGreaterThan(0);
     expect(acq.totalForecast).toBe(acq.forecastBeforeBudget + acq.budgetSignalAdjustment!);
+  });
+
+  it('zeroes the signal for a discretionary category when the budget is NOT confirmed', () => {
+    const r = computeForecastV4({
+      transactions: baseTransactions(), expenseCategories: CATS, now: NOW,
+      // legacy categoryBudgets with no history → treated as unconfirmed current intent
+      categoryBudgets: { acquisti: 600 },
+      currentMonthBudgetStatus: 'auto_initialized', applyBudgetSignal: true,
+    });
+    const acq = r.byCategory['acquisti'];
+    expect(acq.budgetStatus).toBe('auto_initialized');
+    expect(acq.budgetSignalAdjustment).toBe(0);
+    expect(acq.totalForecast).toBe(acq.forecastBeforeBudget);
   });
 
   it('does not change the forecast when the budget signal is disabled', () => {
     const r = computeForecastV4({
       transactions: baseTransactions(), expenseCategories: CATS, now: NOW,
-      categoryBudgets: { acquisti: 600 }, applyBudgetSignal: false,
+      budgetHistory: confirmedJune, applyBudgetSignal: false,
     });
     const acq = r.byCategory['acquisti'];
     expect(acq.budgetSignalAdjustment).toBe(0);
     expect(acq.totalForecast).toBe(acq.forecastBeforeBudget);
+  });
+
+  it('never uses the current budget for a historical target month (backtest safety)', () => {
+    // Simulate forecasting March 2026 with only a June 2026 budget present.
+    const r = computeForecastV4({
+      transactions: baseTransactions(), expenseCategories: CATS,
+      now: new Date(2026, 2, 15), // March
+      budgetHistory: confirmedJune, applyBudgetSignal: true,
+    });
+    // No budget snapshot for March → no budget signal anywhere.
+    for (const c of Object.values(r.byCategory)) {
+      expect(c.budgetSignalAdjustment ?? 0).toBe(0);
+    }
+    expect(r.diagnostics.budgetMonthStatus).toBe('missing');
   });
 });

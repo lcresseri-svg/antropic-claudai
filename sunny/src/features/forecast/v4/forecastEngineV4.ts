@@ -52,17 +52,21 @@ function statisticalProxy(monthlyActual: Map<string, number>, beforeKey: string)
 
 /**
  * Build (budget, statisticalForecast, actual) reliability samples for a category
- * from the provided budget history. Returns [] when no history is available, so
- * the engine falls back to the per-category default reliability.
+ * from CONFIRMED historical budget months only (never the target month, never
+ * unconfirmed snapshots). Returns [] when there's no usable history, so the
+ * engine falls back to the per-category default reliability.
  */
 function buildReliabilitySamples(
   categoryId: string,
   budgetHistory: BudgetHistoryEntryV4[] | undefined,
   monthlyActual: Map<string, number>,
+  targetMonthKey: string,
 ): ReliabilitySampleV4[] {
   if (!budgetHistory || budgetHistory.length === 0) return [];
   const samples: ReliabilitySampleV4[] = [];
   for (const entry of budgetHistory) {
+    if (entry.month >= targetMonthKey) continue;        // never the target/future months
+    if (entry.status !== 'confirmed') continue;         // only confirmed history counts
     const budget = entry.categoryBudgets[categoryId];
     if (!budget || budget <= 0) continue;
     const actual = monthlyActual.get(entry.month);
@@ -87,7 +91,34 @@ export function computeForecastV4(input: ForecastV4Input): ForecastV4Result {
   const targetYear = now.getFullYear();
   const snapshotDay = now.getDate();
   const applyBudgetSignal = input.applyBudgetSignal ?? true;
-  const categoryBudgets = input.categoryBudgets ?? {};
+
+  // ── Budget for the TARGET month ─────────────────────────────────────────────
+  // Prefer the per-month snapshot from budgetHistory; only fall back to the
+  // legacy `categoryBudgets` for the current month (treated as an unconfirmed
+  // intent). Historical/other months never borrow the current budget.
+  const budgetHistory = input.budgetHistory ?? [];
+  const targetEntry = budgetHistory.find(b => b.month === targetMonthKey);
+  const targetCategoryBudgets: Record<string, number> =
+    targetEntry?.categoryBudgets ?? input.categoryBudgets ?? {};
+  const hasLegacyBudget = Object.keys(input.categoryBudgets ?? {}).length > 0;
+  const budgetMonthStatus: ForecastV4Result['diagnostics']['budgetMonthStatus'] =
+    targetEntry?.status
+    ?? (hasLegacyBudget ? (input.currentMonthBudgetStatus ?? 'auto_initialized') : 'missing');
+  const budgetConfirmed = budgetMonthStatus === 'confirmed';
+
+  // Confirmed historical budget months (for empirical-reliability availability).
+  const confirmedBudgetMonths = new Set(
+    budgetHistory.filter(b => b.month < targetMonthKey && b.status === 'confirmed').map(b => b.month),
+  ).size;
+  const budgetSignalValidatable = confirmedBudgetMonths >= 3;
+  // Coverage over the 12 complete months before the target.
+  const coverageWindow: string[] = [];
+  for (let i = 1; i <= 12; i++) {
+    const d = new Date(targetYear, targetMonthIndex - i, 1);
+    coverageWindow.push(`${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}`);
+  }
+  const coveredMonths = coverageWindow.filter(k => budgetHistory.some(b => b.month === k)).length;
+  const budgetHistoryCoverageRatio = Math.round((coveredMonths / coverageWindow.length) * 100) / 100;
 
   // Only expenses are forecast.
   const expenses = input.transactions.filter(t => t.type === 'expense');
@@ -140,6 +171,7 @@ export function computeForecastV4(input: ForecastV4Input): ForecastV4Result {
   let totalSeasonal = 0;
   let totalResidual = 0;
   let totalBudgetAdj = 0;
+  let anyEmpiricalReliability = false;
 
   for (const cat of input.expenseCategories) {
     const categoryId = cat.id;
@@ -154,7 +186,7 @@ export function computeForecastV4(input: ForecastV4Input): ForecastV4Result {
     const isDetLike = (tx: Transaction) =>
       isDeterministicLikeTransactionV4(tx, { plannedExpenses, seasonalCandidate });
 
-    const budget = categoryBudgets[categoryId] ?? 0;
+    const budget = targetCategoryBudgets[categoryId] ?? 0;
     const residualRes = computeResidualStatisticalRemainingV4({
       categoryId,
       categoryLabel,
@@ -178,7 +210,7 @@ export function computeForecastV4(input: ForecastV4Input): ForecastV4Result {
       categoryId,
       categoryLabel,
       samples: buildReliabilitySamples(
-        categoryId, input.budgetHistory, monthlyActualByCat.get(categoryId) ?? new Map(),
+        categoryId, budgetHistory, monthlyActualByCat.get(categoryId) ?? new Map(), targetMonthKey,
       ),
     });
     const explainedByDeterministic = planned + recurring + seasonal;
@@ -189,17 +221,39 @@ export function computeForecastV4(input: ForecastV4Input): ForecastV4Result {
       reliability: relRes.reliability,
       explainedByDeterministic,
     });
-    const budgetSignalAdjustment = applyBudgetSignal ? signal.adjustment : 0;
+
+    // Apply the signal, then damp it when the target budget isn't confirmed:
+    // halve for planned-like categories, zero for purely-discretionary ones.
+    let budgetSignalAdjustment = applyBudgetSignal ? signal.adjustment : 0;
+    let dampedUnconfirmed = false;
+    if (budgetSignalAdjustment > 0 && !budgetConfirmed) {
+      const plannedLike = (planned + recurring + seasonal) > 0;
+      budgetSignalAdjustment = plannedLike ? Math.round(budgetSignalAdjustment * 0.5) : 0;
+      dampedUnconfirmed = true;
+    }
+
+    // Per-category budget provenance.
+    const budgetReliabilitySource: 'empirical' | 'fallback' = relRes.empirical ? 'empirical' : 'fallback';
+    if (budget > 0 && relRes.empirical) anyEmpiricalReliability = true;
+    const budgetSourceCat: ForecastV4CategoryResult['budgetSource'] =
+      budget <= 0 ? undefined
+      : relRes.empirical ? 'historical_reliability'
+      : budgetConfirmed ? 'current_month_intent'
+      : (targetEntry || hasLegacyBudget) ? 'unconfirmed_current_budget'
+      : 'fallback';
 
     if (budget > 0) {
-      if (applyBudgetSignal && signal.applied && budgetSignalAdjustment > 0) {
+      if (applyBudgetSignal && budgetSignalAdjustment > 0) {
         diagApplied.push({
           categoryId, categoryLabel, budget,
           forecastBeforeBudget, gap: signal.gap,
           reliability: relRes.reliability, adjustment: budgetSignalAdjustment,
         });
       } else if (signal.gap > 0) {
-        diagIgnored.push({ categoryId, categoryLabel, reason: signal.reason });
+        const reason = dampedUnconfirmed
+          ? 'Budget non confermato: segnale azzerato'
+          : signal.reason;
+        diagIgnored.push({ categoryId, categoryLabel, reason });
       }
     }
 
@@ -220,8 +274,13 @@ export function computeForecastV4(input: ForecastV4Input): ForecastV4Result {
     if (seasonal > 0 && seasonalCandidate) reasons.push(seasonalCandidate.reason);
     if (residual > 0) reasons.push('Residuo statistico P60');
     if (residualRes.staleDecayApplied) reasons.push('Categoria stale: residuo ridotto');
-    if (budgetSignalAdjustment > 0) reasons.push('Budget superiore alla previsione statistica');
-    else if (budget > 0 && signal.gap > 0 && !signal.applied) reasons.push(signal.reason);
+    if (budgetSignalAdjustment > 0) {
+      reasons.push(budgetConfirmed
+        ? 'Budget superiore alla previsione statistica'
+        : 'Budget (non confermato) superiore alla previsione — segnale ridotto');
+    } else if (budget > 0 && signal.gap > 0) {
+      reasons.push(dampedUnconfirmed ? 'Budget non confermato: segnale azzerato' : signal.reason);
+    }
 
     // Skip categories with no signal at all to keep the result compact.
     if (totalForecast === 0 && spent === 0) continue;
@@ -240,6 +299,10 @@ export function computeForecastV4(input: ForecastV4Input): ForecastV4Result {
       budgetGap: budget > 0 ? signal.gap : undefined,
       budgetReliability: budget > 0 ? Math.round(relRes.reliability * 100) / 100 : undefined,
       budgetSignalAdjustment: budget > 0 ? budgetSignalAdjustment : undefined,
+      budgetStatus: budget > 0 ? budgetMonthStatus : undefined,
+      budgetSource: budgetSourceCat,
+      budgetReliabilitySource: budget > 0 ? budgetReliabilitySource : undefined,
+      budgetReliabilitySampleCount: budget > 0 ? relRes.usedSamples : undefined,
       confidence,
       reasons,
     };
@@ -269,6 +332,20 @@ export function computeForecastV4(input: ForecastV4Input): ForecastV4Result {
     ? Math.round((deterministicRemaining / futureRemaining) * 100) / 100
     : 0;
 
+  const overallBudgetSource: ForecastV4Result['diagnostics']['budgetSource'] =
+    anyEmpiricalReliability ? 'historical_reliability'
+    : budgetConfirmed ? 'current_month_intent'
+    : (targetEntry || hasLegacyBudget) ? 'unconfirmed_current_budget'
+    : 'fallback';
+
+  const warnings = [FORECAST_V4_WARNING];
+  if (totalBudgetAdj > 0 && !budgetSignalValidatable) {
+    warnings.push('Budget signal non ancora validabile: storico budget insufficiente.');
+  }
+  if (budgetMonthStatus !== 'confirmed' && (targetEntry || hasLegacyBudget)) {
+    warnings.push('Budget del mese corrente non confermato: il segnale budget è ridotto.');
+  }
+
   const diagnostics: ForecastV4Diagnostics = {
     largePlannedExpenses,
     seasonalDetected: seasonalCandidates,
@@ -276,7 +353,11 @@ export function computeForecastV4(input: ForecastV4Input): ForecastV4Result {
     budgetSignalApplied: diagApplied,
     budgetSignalIgnored: diagIgnored,
     plannedCoverageRatio,
-    warnings: [FORECAST_V4_WARNING],
+    budgetMonthStatus,
+    budgetSource: overallBudgetSource,
+    budgetHistoryCoverageRatio,
+    budgetSignalValidatable,
+    warnings,
   };
 
   const totalForecast =

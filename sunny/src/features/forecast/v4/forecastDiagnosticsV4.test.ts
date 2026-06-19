@@ -35,7 +35,9 @@ function mkResult(over: Partial<ForecastV4Result> = {}): ForecastV4Result {
     },
     diagnostics: {
       largePlannedExpenses: [], seasonalDetected: [], staleCategories: [],
-      budgetSignalApplied: [], budgetSignalIgnored: [], plannedCoverageRatio: 0.7, warnings: [],
+      budgetSignalApplied: [], budgetSignalIgnored: [], plannedCoverageRatio: 0.7,
+      budgetMonthStatus: 'confirmed', budgetSource: 'current_month_intent',
+      budgetHistoryCoverageRatio: 0, budgetSignalValidatable: false, warnings: [],
     },
     ...over,
   };

@@ -17,6 +17,7 @@ import {
   buildForecastDiagnosticsExport, DiagnosticsPrivacyMode, ExportSettingsSnapshot,
 } from './forecastDiagnostics';
 import { ForecastV4Panel } from './v4/ForecastV4Panel';
+import { BudgetHistoryEntryV4, BudgetMonthStatusV4 } from './v4/forecastTypesV4';
 
 interface Props {
   transactions: Transaction[];
@@ -30,6 +31,10 @@ interface Props {
   allCategories?: CategoryDef[];
   accounts?: AccountDef[];
   budget?: BudgetState;
+  /** Per-month budget snapshots feeding the V4 engine. */
+  budgetHistoryV4?: BudgetHistoryEntryV4[];
+  /** Status of the current month's budget snapshot. */
+  currentMonthBudgetStatus?: BudgetMonthStatusV4;
   settingsSnapshot?: ExportSettingsSnapshot;
   userId?: string;
 }
@@ -57,7 +62,8 @@ function wapeGrade(wape: number): { label: string; color: string } {
 
 export function ForecastV3Screen({
   transactions, expenseCategories, monthlyIncome, monthlyInvestments,
-  isAdmin = false, forecastV4Enabled = false, allCategories, accounts, budget, settingsSnapshot, userId,
+  isAdmin = false, forecastV4Enabled = false, allCategories, accounts, budget,
+  budgetHistoryV4, currentMonthBudgetStatus, settingsSnapshot, userId,
 }: Props) {
   const [showBacktest, setShowBacktest] = useState(false);
   const [withBias, setWithBias] = useState(false);
@@ -223,6 +229,8 @@ export function ForecastV3Screen({
           transactions={transactions}
           expenseCategories={expenseCategories}
           categoryBudgets={budget?.categoryBudgets ?? {}}
+          budgetHistory={budgetHistoryV4}
+          currentMonthBudgetStatus={currentMonthBudgetStatus}
           v3ProjectedExpenses={v3.projectedExpenses}
         />
       )}

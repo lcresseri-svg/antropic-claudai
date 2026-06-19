@@ -134,8 +134,14 @@ export function runBacktestV4(
   const now = options.now ?? new Date();
   const snapshotDays = options.snapshotDays ?? DEFAULT_SNAPSHOT_DAYS;
   const fromMonth = options.fromMonth ?? DEFAULT_FROM_MONTH;
-  const categoryBudgets = options.categoryBudgets ?? {};
+  const budgetHistory = options.budgetHistory ?? [];
   const labelOf = (id: string) => expenseCategories.find(c => c.id === id)?.label ?? id;
+  // CRITICAL: historical months must NEVER borrow the current month's budget.
+  // The budget signal is driven solely by budgetHistory[targetMonth].
+  const budgetMonthKeys = new Set(budgetHistory.map(b => b.month));
+  const confirmedBudgetMonthKeys = new Set(
+    budgetHistory.filter(b => b.status === 'confirmed').map(b => b.month),
+  );
 
   // V3.5 bias factor (variable-only) from the existing V3 backtest machinery.
   const v3Backtest = runBacktestV3(transactions, expenseCategories, now, 18);
@@ -149,6 +155,8 @@ export function runBacktestV4(
   // Diagnostics aggregation (V4-side).
   const seasonalSeen = new Map<string, SeasonalExpenseCandidateV4>();
   const coverageRatios: number[] = [];
+  const targetMonthsWithBudget = new Set<string>();
+  const targetMonthsWithoutBudget = new Set<string>();
   // Per-category abs error to measure budget signal impact.
   const v4AbsErr = new Map<string, number>();
   const v4bAbsErr = new Map<string, number>();
@@ -166,6 +174,10 @@ export function runBacktestV4(
     for (const t of monthTx) {
       catActual.set(t.category, (catActual.get(t.category) ?? 0) + ownShare(t));
     }
+
+    // Did this historical target month have its own budget snapshot?
+    if (budgetMonthKeys.has(m.key)) targetMonthsWithBudget.add(m.key);
+    else targetMonthsWithoutBudget.add(m.key);
 
     for (const day of snapshotDays) {
       const snapshotISO = `${m.key}-${String(day).padStart(2, '0')}`;
@@ -197,15 +209,17 @@ export function runBacktestV4(
       }
 
       // ── V4 (no budget) / V4 + budget ──────────────────────────────────────
+      // No `categoryBudgets`: the engine's budget signal is driven only by
+      // budgetHistory[targetMonth], so historical months never see the current
+      // budget. Months absent from budgetHistory → budgetMonthStatus 'missing'
+      // → no budget signal.
       const v4 = computeForecastV4({
         transactions: snapshotTx, expenseCategories,
-        categoryBudgets, budgetHistory: options.budgetHistory,
-        applyBudgetSignal: false, now: snapshotDate,
+        budgetHistory, applyBudgetSignal: false, now: snapshotDate,
       });
       const v4b = computeForecastV4({
         transactions: snapshotTx, expenseCategories,
-        categoryBudgets, budgetHistory: options.budgetHistory,
-        applyBudgetSignal: true, now: snapshotDate,
+        budgetHistory, applyBudgetSignal: true, now: snapshotDate,
       });
       pushSample(accV4, { month: m.key, day, actual: actualFull, predicted: v4.totalForecast });
       pushSample(accV4b, { month: m.key, day, actual: actualFull, predicted: v4b.totalForecast });
@@ -249,17 +263,33 @@ export function runBacktestV4(
     : 0;
   const seasonalDetected = [...seasonalSeen.values()];
 
+  const sampleCountBudgetMonths = targetMonthsWithBudget.size;
+  const sampleCountWithoutBudget = targetMonthsWithoutBudget.size;
+  const totalTargetMonths = sampleCountBudgetMonths + sampleCountWithoutBudget;
+  const budgetHistoryCoverageRatio = totalTargetMonths > 0
+    ? Math.round((sampleCountBudgetMonths / totalTargetMonths) * 100) / 100
+    : 0;
+  // Validatable only with ≥3 CONFIRMED historical budget months among the targets.
+  const confirmedTargets = [...targetMonthsWithBudget].filter(k => confirmedBudgetMonthKeys.has(k)).length;
+  const budgetWarning = confirmedTargets < 3
+    ? 'Budget signal non ancora validabile: storico budget insufficiente.'
+    : undefined;
+
   const v4Diagnostics: ForecastBacktestV4Result['diagnostics'] = {
     budgetSignalHelped: [], budgetSignalHurt: [],
     seasonalDetected, plannedCoverageRatio: avgCoverage,
+    sampleCountBudgetMonths, sampleCountWithoutBudget, budgetHistoryCoverageRatio,
   };
   const v4bDiagnostics: ForecastBacktestV4Result['diagnostics'] = {
     budgetSignalHelped: helped, budgetSignalHurt: hurt,
     seasonalDetected, plannedCoverageRatio: avgCoverage,
+    sampleCountBudgetMonths, sampleCountWithoutBudget, budgetHistoryCoverageRatio,
+    warning: budgetWarning,
   };
   const emptyDiagnostics: ForecastBacktestV4Result['diagnostics'] = {
     budgetSignalHelped: [], budgetSignalHurt: [],
     seasonalDetected: [], plannedCoverageRatio: 0,
+    sampleCountBudgetMonths: 0, sampleCountWithoutBudget: 0, budgetHistoryCoverageRatio: 0,
   };
 
   return [

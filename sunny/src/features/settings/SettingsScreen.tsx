@@ -1,22 +1,22 @@
 import { useState, useEffect, useRef } from 'react';
 import { useNavigate, useLocation } from 'react-router-dom';
 import { User } from 'firebase/auth';
-import { CategoryDef, AccountDef, Transaction, TransactionType, BudgetState, TYPE_META, TYPE_ORDER, typeColor } from '../../types';
+import { CategoryDef, AccountDef, Transaction, TransactionType, TYPE_META, TYPE_ORDER, typeColor } from '../../types';
 import { useSettings } from '../../shared/providers/settings';
 import { usePush } from '../../shared/hooks/usePush';
 import { EditDefSheet, DefDraft } from './EditDefSheet';
 import { FeedbackSheet } from '../feedback/FeedbackSheet';
 import { ExpenseShortcutSection } from './ExpenseShortcutSection';
 import { removeCategoryDef, removeAccountDef, visibleDefs } from './softDelete';
-import { buildExportPayload, downloadJson, downloadCsv } from './dataExport';
+import { buildExportPayload, downloadJson, downloadCsv, BudgetExportInput } from './dataExport';
 import { isForecastV4EnabledForUser } from '../forecast/forecastFeatureGate';
 import { APP_VERSION, APP_CHANNEL, VERSIONS } from '../../appInfo';
 
 interface Props {
   user: User;
   transactions: Transaction[];
-  /** Current budget — included in the GDPR data export when present. */
-  budget?: BudgetState;
+  /** Monthly budget state — included in the GDPR data export when present. */
+  budgetExport?: BudgetExportInput;
   uiV2?: boolean;
   onLogOut: () => void;
   onDeleteAll: () => Promise<void>;
@@ -41,7 +41,7 @@ function reorder<T>(arr: T[], from: number, to: number): T[] {
   return next;
 }
 
-export function SettingsScreen({ user, transactions, budget, uiV2 = false, onLogOut, onDeleteAll, onDeleteAccount }: Props) {
+export function SettingsScreen({ user, transactions, budgetExport, uiV2 = false, onLogOut, onDeleteAll, onDeleteAccount }: Props) {
   const navigate = useNavigate();
   const location = useLocation();
   const { categories, accounts, visibleCategories, visibleAccounts, theme, includeInvestments, enableInvestments, enableBudget, insightDepth, aiEnabled, aiCoachWidgetEnabled, detailedInvestments, saveCategories, saveAccounts, saveTheme, saveIncludeInvestments, saveEnableInvestments, saveEnableBudget, saveInsightDepth, saveAiEnabled, saveAiCoachWidgetEnabled } = useSettings();
@@ -76,7 +76,7 @@ export function SettingsScreen({ user, transactions, budget, uiV2 = false, onLog
     if (s && (valid as string[]).includes(s)) setSub(s as Sub);
   }, [location.search]);
 
-  const exportJson = () => downloadJson(buildExportPayload(user, categories, accounts, transactions, budget));
+  const exportJson = () => downloadJson(buildExportPayload(user, categories, accounts, transactions, budgetExport));
   const exportCsv = () => downloadCsv(transactions);
 
   // Admin-only entry point to the Forecast screen (which hosts the V4 panel).
