@@ -20,19 +20,31 @@ on:
 jobs:
   deploy_functions:
     runs-on: ubuntu-latest
+    env:
+      # Pin the Firebase CLI major (no surprise cross-major changes from @latest).
+      # A full X.Y.Z pin can be set here once a known-good is chosen.
+      FIREBASE_TOOLS_VERSION: "13"
     steps:
       - uses: actions/checkout@v6
 
       - uses: actions/setup-node@v6
         with:
           node-version: 20
+          cache: npm
+          cache-dependency-path: functions/package-lock.json
 
+      # Reproducible install from the committed lockfile.
       - name: Install
-        run: npm install
+        run: npm ci
         working-directory: functions
 
       - name: Build
         run: npm run build
+        working-directory: functions
+
+      # Fail only on HIGH/CRITICAL advisories; moderate/low never block a deploy.
+      - name: Security audit (high/critical)
+        run: npm audit --audit-level=high
         working-directory: functions
 
       # Authenticates the Firebase CLI: writes the service-account key and sets
@@ -45,14 +57,10 @@ jobs:
         with:
           credentials_json: ${{ secrets.FIREBASE_SERVICE_ACCOUNT }}
 
-      # Writes the Gemini key from GitHub Secrets into functions/.env so the
-      # deploy bakes it as a runtime environment variable. The file is created
-      # fresh in CI, is gitignored, and never committed.
-      - name: Write Gemini API key to .env
-        if: github.event_name == 'push'
-        run: printf 'GEMINI_API_KEY=%s\n' "$GEMINI_API_KEY" > functions/.env
-        env:
-          GEMINI_API_KEY: ${{ secrets.GEMINI_API_KEY }}
+      # GEMINI_API_KEY is now sourced from Google Secret Manager (defineSecret in
+      # functions/src/index.ts, bound via each AI function's `secrets` option).
+      # Set it once with: firebase functions:secrets:set GEMINI_API_KEY
+      # No .env file is written at deploy time anymore.
 
       # 0) Firestore indexes — required by processRecurringTransactions
       #    (collectionGroup query on `recurring` field needs the composite index).
@@ -62,7 +70,7 @@ jobs:
         if: github.event_name == 'push'
         run: |
           for i in 1 2 3; do
-            npx -y firebase-tools@latest deploy --only firestore:indexes --project sunny-a2a98 --non-interactive --force && exit 0
+            npx -y firebase-tools@${FIREBASE_TOOLS_VERSION} deploy --only firestore:indexes --project sunny-a2a98 --non-interactive --force && exit 0
             echo "::warning::firestore:indexes deploy attempt $i failed; retrying in 15s"
             sleep 15
           done
@@ -76,7 +84,7 @@ jobs:
         if: github.event_name == 'push'
         run: |
           for i in 1 2 3; do
-            npx -y firebase-tools@latest deploy --only firestore:rules --project sunny-a2a98 --non-interactive --force && exit 0
+            npx -y firebase-tools@${FIREBASE_TOOLS_VERSION} deploy --only firestore:rules --project sunny-a2a98 --non-interactive --force && exit 0
             echo "::warning::firestore:rules deploy attempt $i failed; retrying in 15s"
             sleep 15
           done
@@ -88,7 +96,7 @@ jobs:
       # `functions:delete` is idempotent here via `|| true` (no-op once gone).
       - name: Delete obsolete functions
         if: github.event_name == 'push'
-        run: npx -y firebase-tools@latest functions:delete testPush14 --project sunny-a2a98 --region europe-west1 --force || true
+        run: npx -y firebase-tools@${FIREBASE_TOOLS_VERSION} functions:delete testPush14 --project sunny-a2a98 --region europe-west1 --force || true
 
       # Deploy in two steps so the simple HTTP functions go live even if the
       # scheduled/trigger functions need a one-time project-IAM grant by an
@@ -100,11 +108,11 @@ jobs:
       #    must be added here or it will never be deployed.
       - name: Deploy HTTP functions
         if: github.event_name == 'push'
-        run: npx -y firebase-tools@latest deploy --only functions:generateDigest,functions:sendTestPush,functions:generateAffordabilityAdvice,functions:issueExpenseToken,functions:listExpenseTokens,functions:revokeExpenseToken,functions:getExpenseOptions,functions:addExpense --project sunny-a2a98 --non-interactive --force
+        run: npx -y firebase-tools@${FIREBASE_TOOLS_VERSION} deploy --only functions:generateDigest,functions:sendTestPush,functions:generateAffordabilityAdvice,functions:issueExpenseToken,functions:listExpenseTokens,functions:revokeExpenseToken,functions:getExpenseOptions,functions:addExpense --project sunny-a2a98 --non-interactive --force
 
       # 2) Scheduled + trigger functions — require the service-agent IAM
       #    bindings. If this step fails with an IAM error, an owner must grant
       #    the roles once (see repo notes), then re-run this workflow.
       - name: Deploy scheduled & trigger functions
         if: github.event_name == 'push'
-        run: npx -y firebase-tools@latest deploy --only functions:processRecurringTransactions,functions:remindLogExpenses,functions:sendMonthlySummary,functions:remindUpcomingPayments,functions:remindInactivity,functions:remindMonthEnd,functions:sendEncouragingInsight,functions:onUserDeleted,functions:onFeedbackCreated --project sunny-a2a98 --non-interactive --force
+        run: npx -y firebase-tools@${FIREBASE_TOOLS_VERSION} deploy --only functions:processRecurringTransactions,functions:remindLogExpenses,functions:sendMonthlySummary,functions:remindUpcomingPayments,functions:remindInactivity,functions:remindMonthEnd,functions:sendEncouragingInsight,functions:onUserDeleted,functions:onFeedbackCreated --project sunny-a2a98 --non-interactive --force

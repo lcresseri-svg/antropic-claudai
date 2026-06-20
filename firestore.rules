@@ -2,55 +2,109 @@ rules_version = '2';
 service cloud.firestore {
   match /databases/{database}/documents {
 
+    // ── Helpers ────────────────────────────────────────────────────────────────
+    function signedIn() { return request.auth != null; }
+    function owner(userId) { return signedIn() && request.auth.uid == userId; }
+    // Admin identity for privileged reads (feedback). Mirrors the app's admin UID.
+    function isAdmin() { return signedIn() && request.auth.uid == 'qPtCOJGRrwOZ2EfjxMHwW6ZISXX2'; }
+
+    function vStr(v, maxLen) { return v is string && v.size() <= maxLen; }
+    // Positive amount with a generous TECHNICAL cap (anti-DoS only, not a product limit).
+    function vAmount(v) { return v is number && v > 0 && v <= 1000000000; }
+    function vDate(v) { return v is string && v.matches('^[0-9]{4}-[0-9]{2}-[0-9]{2}$'); }
+
+    // Non-breaking transaction validation. Validates only fields known to be
+    // written by the client/import; intentionally does NOT use hasOnly() in this
+    // phase, and does NOT constrain createdAt/updatedAt/projected so existing and
+    // future client writes keep working.
+    function validTxn(d) {
+      return d.keys().hasAll(['date', 'description', 'amount', 'type', 'category', 'account'])
+        && vDate(d.date)
+        && vAmount(d.amount)
+        && d.type in ['expense', 'income', 'investment', 'transfer']
+        && vStr(d.description, 500)
+        && vStr(d.category, 200)
+        && d.account is string && d.account.size() <= 200          // '' valid for source-less investments
+        && (!('notes' in d) || vStr(d.notes, 2000))
+        && (!('shared' in d) || (d.shared is number && d.shared >= 0 && d.shared <= d.amount))
+        && (!('direction' in d) || d.direction in ['in', 'out'])
+        && (!('toAccount' in d) || vStr(d.toAccount, 200))
+        && (!('tfr' in d) || (d.tfr is number && d.tfr >= 0 && d.tfr <= d.amount))
+        && (!('seriesId' in d) || vStr(d.seriesId, 128))
+        && (!('groupId' in d) || vStr(d.groupId, 128))
+        && (!('demo' in d) || d.demo is bool)
+        && (!('recurring' in d) || (
+              d.recurring is map
+              && d.recurring.freq in ['daily', 'weekly', 'monthly', 'yearly']
+              && (!('until' in d.recurring) || vDate(d.recurring.until))
+           ));
+    }
+
     // Each user can only read and write their own data.
     // The Admin SDK (Cloud Functions) bypasses these rules entirely.
     match /users/{userId} {
-      allow read, write: if request.auth != null && request.auth.uid == userId;
+      allow read, write: if owner(userId);
 
       match /transactions/{txId} {
-        allow read, delete: if request.auth != null && request.auth.uid == userId;
-
-        // Create & update must keep the document well-formed: required fields
-        // present and a positive numeric amount. Prevents writing malformed or
-        // negative-amount records even with a valid session.
-        allow create, update: if request.auth != null
-          && request.auth.uid == userId
-          && request.resource.data.keys().hasAll(['date', 'description', 'amount', 'type', 'category', 'account'])
-          && request.resource.data.amount is number
-          && request.resource.data.amount > 0;
+        allow read, delete: if owner(userId);
+        // Create & update must keep the document well-formed (types, enums,
+        // ranges, lengths). amount > 0 is preserved from the previous ruleset.
+        allow create, update: if owner(userId) && validTxn(request.resource.data);
       }
 
       match /meta/{doc} {
-        allow read, write: if request.auth != null && request.auth.uid == userId;
+        allow read, write: if owner(userId);
       }
 
-      // Monthly budget snapshots (doc id = YYYY-MM). Owned by the user; full
-      // read/write so the client can create, edit, confirm and read history.
+      // Monthly budget snapshots (doc id = YYYY-MM). Owner-only; light non-breaking
+      // validation (numbers >= 0, known enums). The client always writes the full
+      // MonthlyBudget object, so these fields are always present.
       match /budgetHistory/{month} {
-        allow read, write: if request.auth != null && request.auth.uid == userId;
+        allow read: if owner(userId);
+        allow write: if owner(userId)
+          && request.resource.data.savingsTarget is number
+          && request.resource.data.savingsTarget >= 0
+          && request.resource.data.categoryBudgets is map
+          && request.resource.data.status in ['draft', 'confirmed', 'missing', 'auto_initialized']
+          && request.resource.data.source in ['manual', 'copied_from_previous_month', 'copied_from_legacy_budget', 'auto_initialized'];
       }
 
       // Forecast backtest snapshots: immutable audit trail written by the V3 engine.
-      // Write-once: only create is allowed — update and delete are intentionally denied.
+      // Write-once: only create is allowed — update and delete are intentionally
+      // denied. (Verified: the client only ever creates non-existent snapshots.)
       match /forecastSnapshots/{snapshotId} {
-        allow read: if request.auth != null && request.auth.uid == userId;
-        allow create: if request.auth != null && request.auth.uid == userId;
+        allow read: if owner(userId);
+        allow create: if owner(userId);
+      }
+
+      // Encouraging-insights pool consumed by the sendEncouragingInsight function.
+      // Narrowly scoped to the single `encouraging` doc (no generic /derived/{doc}),
+      // owner-only, with payload validation. NB: no hasOnly() — the function adds
+      // lastSentTitle/lastSentAt to the same doc (Admin SDK), and a later client
+      // merge would otherwise see those extra keys and be rejected.
+      match /derived/encouraging {
+        allow read: if owner(userId);
+        allow write: if owner(userId)
+          && request.resource.data.items is list
+          && request.resource.data.items.size() <= 50;
       }
     }
 
-    // User feedback: any signed-in user can submit a feedback document stamped
-    // with their own uid; only the admin may read them back. No updates/deletes.
+    // User feedback: any signed-in user submits a document stamped with their own
+    // uid; only the admin may read them back. Create-only (no updates/deletes).
     match /feedback/{fid} {
-      allow create: if request.auth != null
-        && request.resource.data.userId == request.auth.uid;
-      allow read: if request.auth != null
-        && request.auth.uid == 'qPtCOJGRrwOZ2EfjxMHwW6ZISXX2';
+      allow create: if signedIn()
+        && request.resource.data.userId == request.auth.uid
+        && request.resource.data.keys().hasOnly(['userId', 'userEmail', 'type', 'text', 'appVersion', 'createdAt', 'createdAtServer'])
+        && request.resource.data.type in ['bug', 'idea', 'confusion', 'other']
+        && (!('userEmail' in request.resource.data) || request.resource.data.userEmail == null || vStr(request.resource.data.userEmail, 320))
+        && (!('text' in request.resource.data) || request.resource.data.text == null || vStr(request.resource.data.text, 5000))
+        && vStr(request.resource.data.appVersion, 50);
+      allow read: if isAdmin();
     }
 
-    // Expense-shortcut tokens (doc id = sha256 of the token). These are managed
-    // exclusively by Cloud Functions via the Admin SDK (which bypasses rules):
-    // NO client may ever read or write them. Explicit deny on top of the
-    // default-deny below, to document the intent.
+    // Expense-shortcut tokens (doc id = sha256 of the token). Managed exclusively
+    // by Cloud Functions via the Admin SDK: NO client may ever read or write them.
     match /expenseTokens/{id} {
       allow read, write: if false;
     }
