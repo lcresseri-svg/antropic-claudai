@@ -2,17 +2,10 @@ import * as admin from 'firebase-admin';
 import { onSchedule } from 'firebase-functions/v2/scheduler';
 import { onDocumentDeleted, onDocumentCreated } from 'firebase-functions/v2/firestore';
 import { onRequest } from 'firebase-functions/v2/https';
-import { defineSecret } from 'firebase-functions/params';
 import { createHash, randomBytes } from 'crypto';
 
 admin.initializeApp();
 const db = admin.firestore();
-
-// Gemini API key sourced from Google Secret Manager (set once with
-// `firebase functions:secrets:set GEMINI_API_KEY`). Bound to the AI functions
-// via their `secrets: [GEMINI_API_KEY]` option, which injects the value into
-// process.env.GEMINI_API_KEY at runtime. No more deploy-time .env file.
-const GEMINI_API_KEY = defineSecret('GEMINI_API_KEY');
 
 const APP_LINK = 'https://sunny-a2a98.web.app/';
 
@@ -666,7 +659,7 @@ const MAX_AI_CALLS_PER_DAY = 20;
 const MAX_DIGEST_CALLS_PER_DAY = 30;
 
 export const generateAffordabilityAdvice = onRequest(
-  { region: 'europe-west1', cors: ALLOWED_ORIGINS, secrets: [GEMINI_API_KEY] },
+  { region: 'europe-west1', cors: ALLOWED_ORIGINS },
   async (req, res) => {
     const apiKey = process.env.GEMINI_API_KEY;
     try {
@@ -1005,7 +998,7 @@ export const generateDigest = onRequest(
   // onRequest (plain HTTP) instead of onCall: the callable protocol was
   // returning "internal" before our handler ran (project-level IAM/App Check
   // issue). A plain HTTP endpoint avoids that layer entirely.
-  { region: 'europe-west1', cors: ALLOWED_ORIGINS, secrets: [GEMINI_API_KEY] },
+  { region: 'europe-west1', cors: ALLOWED_ORIGINS },
   async (req, res) => {
     const apiKey = process.env.GEMINI_API_KEY;
     try {

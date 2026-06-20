@@ -57,10 +57,14 @@ jobs:
         with:
           credentials_json: ${{ secrets.FIREBASE_SERVICE_ACCOUNT }}
 
-      # GEMINI_API_KEY is now sourced from Google Secret Manager (defineSecret in
-      # functions/src/index.ts, bound via each AI function's `secrets` option).
-      # Set it once with: firebase functions:secrets:set GEMINI_API_KEY
-      # No .env file is written at deploy time anymore.
+      # Writes the Gemini key from GitHub Secrets into functions/.env so the
+      # deploy bakes it as a runtime environment variable. The file is created
+      # fresh in CI, is gitignored, and never committed.
+      - name: Write Gemini API key to .env
+        if: github.event_name == 'push'
+        run: printf 'GEMINI_API_KEY=%s\n' "$GEMINI_API_KEY" > functions/.env
+        env:
+          GEMINI_API_KEY: ${{ secrets.GEMINI_API_KEY }}
 
       # 0) Firestore indexes — required by processRecurringTransactions
       #    (collectionGroup query on `recurring` field needs the composite index).
