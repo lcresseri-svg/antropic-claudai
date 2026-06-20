@@ -1,5 +1,5 @@
 import { describe, it, expect } from 'vitest';
-import { expandRecurringOnCreate, catchUpRecurring, isPending, isExpiredTemplate } from './recurrence';
+import { expandRecurringOnCreate, catchUpRecurring, isPending, isExpiredTemplate, shouldExpandOnSave } from './recurrence';
 import { Transaction } from '../types';
 
 const TODAY = '2026-06-04';
@@ -109,6 +109,52 @@ describe('catchUpRecurring', () => {
     expect(creates.map(c => c.date)).toEqual(['2026-04-04', '2026-05-04']);
     expect(advance).toHaveLength(0);
     expect(remove).toEqual(['tpl']);
+  });
+});
+
+describe('shouldExpandOnSave', () => {
+  it('expands a brand-new transaction (null editing)', () => {
+    expect(shouldExpandOnSave(null, true)).toBe(true);
+    expect(shouldExpandOnSave(undefined, false)).toBe(true);
+  });
+
+  it('expands when converting a plain one-off into a recurring series', () => {
+    // old expense already inserted: no recurrence, no series link
+    expect(shouldExpandOnSave({ }, true)).toBe(true);
+    expect(shouldExpandOnSave({ recurring: undefined, seriesId: undefined }, true)).toBe(true);
+  });
+
+  it('does NOT expand when the edit is not (becoming) recurring', () => {
+    expect(shouldExpandOnSave({ }, false)).toBe(false);
+  });
+
+  it('does NOT expand when editing an existing series template', () => {
+    expect(shouldExpandOnSave({ recurring: { freq: 'monthly' } }, true)).toBe(false);
+  });
+
+  it('does NOT expand when editing an instance already linked to a series', () => {
+    expect(shouldExpandOnSave({ seriesId: 's1' }, true)).toBe(false);
+  });
+});
+
+describe('one-off → recurring conversion materializes past months', () => {
+  it('expandRecurringOnCreate fills every month from the original date to today', () => {
+    // User converts a Jan 15 one-off (id "A") into a monthly series on Jun 4.
+    const converted: Omit<Transaction, 'id'> = {
+      date: '2026-01-15', description: 'Netflix', amount: 15,
+      type: 'expense', category: 'svago', account: 'conto',
+      recurring: { freq: 'monthly' }, seriesId: 'A',
+    };
+    // TODAY = 2026-06-04, so the 15th of June is still in the future: only
+    // Jan–May fall on/before today; the template lands on the next one (Jun 15).
+    const out = expandRecurringOnCreate(converted, TODAY);
+    const instances = out.filter(d => !d.recurring);
+    const template = out.find(d => d.recurring);
+    expect(instances.map(d => d.date)).toEqual([
+      '2026-01-15', '2026-02-15', '2026-03-15', '2026-04-15', '2026-05-15',
+    ]);
+    instances.forEach(d => expect(d.seriesId).toBe('A'));
+    expect(template?.date).toBe('2026-06-15'); // next future occurrence
   });
 });
 

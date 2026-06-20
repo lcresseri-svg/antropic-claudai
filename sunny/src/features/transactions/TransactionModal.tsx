@@ -3,7 +3,7 @@ import { useNavigate } from 'react-router-dom';
 import { Transaction, TransactionType, TYPE_META, TYPE_ORDER, RecurrenceRule, AccountDef, typeColor, typeOnColor } from '../../types';
 import { formatCurrency, formatDate, guessCategory } from '../../utils';
 import { useSettings } from '../../shared/providers/settings';
-import { expandRecurringOnCreate } from '../../shared/recurrence';
+import { expandRecurringOnCreate, shouldExpandOnSave } from '../../shared/recurrence';
 import { useEscapeKey } from '../../shared/hooks/useEscapeKey';
 import { useScrollLock } from '../../shared/useScrollLock';
 
@@ -186,13 +186,17 @@ export function TransactionModal({ open, editing, groupTransfers = [], seriesEdi
       : [];
     const deleteIds = editing ? [editing.id, ...reconstructed.map(t => t.id)] : [];
 
-    // A brand-new recurring series whose start date is in the past gets its
-    // overdue occurrences materialized right away (as realized instances), so it
-    // counts as "done" immediately instead of waiting for the nightly Cloud
-    // Function. Skip on edits — those occurrences are already stored.
+    // A recurring series whose start date is in the past gets its overdue
+    // occurrences materialized right away (as realized instances), so it counts
+    // as "done" immediately instead of waiting for the nightly Cloud Function.
+    // This applies to brand-new series AND to converting a plain one-off
+    // (no recurrence, no series link) into a recurring series — otherwise the
+    // back-dated months would never be created at save time. Editing an existing
+    // series/instance is left untouched (those occurrences already exist).
     const todayISO = new Date().toISOString().slice(0, 10);
+    const expandNow = shouldExpandOnSave(editing, isRecurring);
     const finalize = (docs: Omit<Transaction, 'id'>[]) =>
-      editing ? docs : docs.flatMap(d => expandRecurringOnCreate(d, todayISO));
+      expandNow ? docs.flatMap(d => expandRecurringOnCreate(d, todayISO)) : docs;
 
     const storni = (type === 'expense' && isShared)
       ? reimbursements
