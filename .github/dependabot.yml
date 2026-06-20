@@ -1,0 +1,24 @@
+version: 2
+updates:
+  # Cloud Functions backend
+  - package-ecosystem: "npm"
+    directory: "/functions"
+    schedule:
+      interval: "weekly"
+    open-pull-requests-limit: 5
+    labels: ["dependencies", "functions"]
+
+  # Web client
+  - package-ecosystem: "npm"
+    directory: "/sunny"
+    schedule:
+      interval: "weekly"
+    open-pull-requests-limit: 5
+    labels: ["dependencies", "client"]
+
+  # GitHub Actions used by the deploy workflows
+  - package-ecosystem: "github-actions"
+    directory: "/"
+    schedule:
+      interval: "weekly"
+    labels: ["dependencies", "ci"]

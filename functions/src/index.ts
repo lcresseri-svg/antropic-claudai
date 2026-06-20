@@ -9,6 +9,34 @@ const db = admin.firestore();
 
 const APP_LINK = 'https://sunny-a2a98.web.app/';
 
+/** Max accepted HTTP request body size (bytes). Guards against oversized payloads. */
+const MAX_BODY_BYTES = 100_000;
+
+/** True when the request body exceeds the size guard. */
+function bodyTooLarge(req: { rawBody?: Buffer }): boolean {
+  return !!req.rawBody && req.rawBody.length > MAX_BODY_BYTES;
+}
+
+/** Log an error WITHOUT leaking financial/personal data: code + message only. */
+function logError(tag: string, err: unknown): void {
+  const e = err as { code?: unknown; message?: unknown };
+  console.error(`${tag}:`, (e && (e.code ?? e.message)) ?? 'unknown-error');
+}
+
+/** fetch() with an abort timeout. Throws on timeout so callers return 503/504. */
+async function fetchWithTimeout(url: string, init: RequestInit, timeoutMs: number): Promise<Response> {
+  const ctrl = new AbortController();
+  const t = setTimeout(() => ctrl.abort(), timeoutMs);
+  try {
+    return await fetch(url, { ...init, signal: ctrl.signal });
+  } finally {
+    clearTimeout(t);
+  }
+}
+
+/** Gemini external-call timeout. */
+const GEMINI_TIMEOUT_MS = 12_000;
+
 // Origins allowed to call the HTTP endpoints. Replaces the previous `cors: true`
 // (which let any site invoke the functions). localhost is kept for local dev.
 const ALLOWED_ORIGINS: (string | RegExp)[] = [
@@ -572,21 +600,47 @@ export const sendEncouragingInsight = onSchedule(
 // ─────────────────────────────────────────────────────────────────────────────
 
 export const onUserDeleted = onDocumentDeleted(
-  { document: 'users/{userId}', region: 'europe-west1' },
+  // Recursive delete of large datasets can take a while: give it room.
+  { document: 'users/{userId}', region: 'europe-west1', timeoutSeconds: 540, memory: '512MiB' },
   async (event) => {
     const userId = event.params.userId;
-    const txsRef = db.collection(`users/${userId}/transactions`);
 
-    // Delete in batches of 400
-    let snapshot = await txsRef.limit(400).get();
-    while (!snapshot.empty) {
-      const batch = db.batch();
-      snapshot.docs.forEach(doc => batch.delete(doc.ref));
-      await batch.commit();
-      snapshot = await txsRef.limit(400).get();
+    // 1) Wipe the user document and EVERY subcollection under it in one call:
+    //    transactions, meta/*, budgetHistory/*, forecastSnapshots/*, derived/*, …
+    //    recursiveDelete paginates internally and is safe on large datasets.
+    try {
+      await db.recursiveDelete(db.doc(`users/${userId}`));
+    } catch (err) {
+      logError(`onUserDeleted: recursiveDelete failed for ${userId}`, err);
     }
 
-    console.log(`onUserDeleted: cleaned up data for user ${userId}`);
+    // 2) Expense-shortcut tokens are top-level (not under the user) — delete the
+    //    ones owned by this user so no orphaned credentials remain.
+    try {
+      const toks = await db.collection('expenseTokens').where('uid', '==', userId).get();
+      for (let i = 0; i < toks.docs.length; i += 400) {
+        const batch = db.batch();
+        toks.docs.slice(i, i + 400).forEach(d => batch.delete(d.ref));
+        await batch.commit();
+      }
+    } catch (err) {
+      logError(`onUserDeleted: expenseTokens cleanup failed for ${userId}`, err);
+    }
+
+    // 3) Feedback is a top-level collection carrying the user's uid/email —
+    //    purge it for full account deletion (privacy).
+    try {
+      const fb = await db.collection('feedback').where('userId', '==', userId).get();
+      for (let i = 0; i < fb.docs.length; i += 400) {
+        const batch = db.batch();
+        fb.docs.slice(i, i + 400).forEach(d => batch.delete(d.ref));
+        await batch.commit();
+      }
+    } catch (err) {
+      logError(`onUserDeleted: feedback cleanup failed for ${userId}`, err);
+    }
+
+    console.log(`onUserDeleted: purged all data for user ${userId}`);
   }
 );
 
@@ -601,6 +655,8 @@ export const onUserDeleted = onDocumentDeleted(
 
 const ADMIN_UID = 'qPtCOJGRrwOZ2EfjxMHwW6ZISXX2';
 const MAX_AI_CALLS_PER_DAY = 20;
+// Per-user daily cap for the AI digest (protects the paid Gemini quota).
+const MAX_DIGEST_CALLS_PER_DAY = 30;
 
 export const generateAffordabilityAdvice = onRequest(
   { region: 'europe-west1', cors: ALLOWED_ORIGINS },
@@ -608,18 +664,25 @@ export const generateAffordabilityAdvice = onRequest(
     const apiKey = process.env.GEMINI_API_KEY;
     try {
       if (req.method !== 'POST') { res.status(405).json({ ok: false, error: 'method-not-allowed' }); return; }
+      if (bodyTooLarge(req)) { res.status(413).json({ ok: false, error: 'payload-too-large' }); return; }
 
       const uid = await verifyBearer(req.headers.authorization);
       if (!uid) { res.status(401).json({ ok: false, error: 'unauthorized' }); return; }
       if (uid !== ADMIN_UID) { res.status(403).json({ ok: false, error: 'forbidden' }); return; }
 
-      // ── Rate limit check (before any Firestore or Gemini reads) ──────────
+      // ── Atomic rate limit: reserve a daily slot in a single transaction so
+      //    concurrent calls cannot exceed MAX_AI_CALLS_PER_DAY. ──────────────
       const today = new Date().toISOString().slice(0, 10); // YYYY-MM-DD UTC
       const rateLimitRef = db.doc(`users/${uid}/meta/aiCoach`);
-      const rateLimitSnap = await rateLimitRef.get();
-      const rl = (rateLimitSnap.data() ?? {}) as { dailyCount?: number; lastResetDay?: string };
-      const currentCount = (rl.lastResetDay === today) ? (rl.dailyCount ?? 0) : 0;
-      if (currentCount >= MAX_AI_CALLS_PER_DAY) {
+      const remaining = await db.runTransaction(async (tx) => {
+        const snap = await tx.get(rateLimitRef);
+        const rl = (snap.data() ?? {}) as { dailyCount?: number; lastResetDay?: string };
+        const count = (rl.lastResetDay === today) ? (rl.dailyCount ?? 0) : 0;
+        if (count >= MAX_AI_CALLS_PER_DAY) return -1;
+        tx.set(rateLimitRef, { dailyCount: count + 1, lastResetDay: today }, { merge: true });
+        return MAX_AI_CALLS_PER_DAY - (count + 1);
+      });
+      if (remaining < 0) {
         res.status(429).json({ ok: false, error: 'rate-limit', remaining: 0 });
         return;
       }
@@ -638,7 +701,8 @@ export const generateAffordabilityAdvice = onRequest(
         targetDate?: string;
         priority?: 'low' | 'medium' | 'high';
       };
-      if (!itemName || !cost || cost <= 0) {
+      if (!itemName || typeof itemName !== 'string' || itemName.length > 200 ||
+          typeof cost !== 'number' || !(cost > 0) || cost > 1000000000) {
         res.status(400).json({ ok: false, error: 'invalid-request' });
         return;
       }
@@ -871,7 +935,7 @@ export const generateAffordabilityAdvice = onRequest(
         `struttura). Cita per nome 1-2 categorie o leve concrete. Niente markdown, niente elenchi puntati, ` +
         `niente formule fisse. Dai una risposta che suoni umana e su misura.`;
 
-      const gemResp = await fetch(
+      const gemResp = await fetchWithTimeout(
         'https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash:generateContent',
         {
           method: 'POST',
@@ -882,21 +946,18 @@ export const generateAffordabilityAdvice = onRequest(
             generationConfig: { temperature: 1.15, topP: 0.95, maxOutputTokens: 400 },
           }),
         },
+        GEMINI_TIMEOUT_MS,
       );
       if (!gemResp.ok) {
-        const body = await gemResp.text();
-        console.error('Gemini REST non-2xx:', gemResp.status, body.slice(0, 300));
+        console.error('Gemini REST non-2xx (affordability):', gemResp.status);
         res.status(502).json({ ok: false, error: 'unavailable' });
         return;
       }
       const gemData = (await gemResp.json()) as {
         candidates?: { content?: { parts?: { text?: string }[] } }[];
       };
-      const advice = (gemData?.candidates?.[0]?.content?.parts?.[0]?.text ?? '').trim();
-
-      // ── Update rate limit counter ─────────────────────────────────────────
-      const newCount = currentCount + 1;
-      await rateLimitRef.set({ dailyCount: newCount, lastResetDay: today }, { merge: true });
+      // Validate + cap the model output before returning it.
+      const advice = (gemData?.candidates?.[0]?.content?.parts?.[0]?.text ?? '').trim().slice(0, 4000);
 
       res.json({
         ok: true,
@@ -917,10 +978,10 @@ export const generateAffordabilityAdvice = onRequest(
         daysLeft,
         topCuts,
         advice,
-        remaining: MAX_AI_CALLS_PER_DAY - newCount,
+        remaining,
       });
     } catch (err) {
-      console.error('generateAffordabilityAdvice failed:', err);
+      logError('generateAffordabilityAdvice failed', err);
       res.status(500).json({ ok: false, error: 'internal' });
     }
   }
@@ -942,11 +1003,26 @@ export const generateDigest = onRequest(
     const apiKey = process.env.GEMINI_API_KEY;
     try {
       if (req.method !== 'POST') { res.status(405).json({ error: 'method not allowed' }); return; }
+      if (bodyTooLarge(req)) { res.status(413).json({ error: 'payload-too-large' }); return; }
 
       // Require a valid signed-in user: prevents anonymous abuse of the endpoint
       // (and of the paid Gemini quota).
       const uid = await verifyBearer(req.headers.authorization);
       if (!uid) { res.status(401).json({ error: 'unauthorized' }); return; }
+
+      // Atomic per-user daily cap. Reuses meta/aiCoach with dedicated fields so
+      // it doesn't collide with the affordability limiter (dailyCount/lastResetDay).
+      const digestDay = new Date().toISOString().slice(0, 10);
+      const digestRef = db.doc(`users/${uid}/meta/aiCoach`);
+      const digestAllowed = await db.runTransaction(async (tx) => {
+        const snap = await tx.get(digestRef);
+        const rl = (snap.data() ?? {}) as { digestCount?: number; digestResetDay?: string };
+        const count = (rl.digestResetDay === digestDay) ? (rl.digestCount ?? 0) : 0;
+        if (count >= MAX_DIGEST_CALLS_PER_DAY) return false;
+        tx.set(digestRef, { digestCount: count + 1, digestResetDay: digestDay }, { merge: true });
+        return true;
+      });
+      if (!digestAllowed) { res.status(429).json({ error: 'rate-limit' }); return; }
 
       const { income, expenses, investments, saved, topInsights } = (req.body ?? {}) as {
         income: number; expenses: number; investments: number; saved: number; topInsights: string[];
@@ -964,18 +1040,18 @@ export const generateDigest = onRequest(
       `Insight principali: ${(topInsights ?? []).slice(0, 5).join('; ')}. ` +
       `Non usare markdown. Solo testo piano, frasi brevi, tono positivo e concreto.`;
 
-      const gemResp = await fetch(
+      const gemResp = await fetchWithTimeout(
         'https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash:generateContent',
         {
           method: 'POST',
           headers: { 'Content-Type': 'application/json', 'x-goog-api-key': apiKey },
           body: JSON.stringify({ contents: [{ parts: [{ text: prompt }] }] }),
         },
+        GEMINI_TIMEOUT_MS,
       );
 
       if (!gemResp.ok) {
-        const body = await gemResp.text();
-        console.error('Gemini REST non-2xx:', gemResp.status, body.slice(0, 300));
+        console.error('Gemini REST non-2xx (digest):', gemResp.status);
         res.status(502).json({ error: 'unavailable' });
         return;
       }
@@ -989,7 +1065,7 @@ export const generateDigest = onRequest(
       const sentences = text.split(/(?<=[.!?])\s+/).filter(Boolean).slice(0, 3);
       res.json({ sentences });
     } catch (err) {
-      console.error('generateDigest failed:', err);
+      logError('generateDigest failed', err);
       res.status(500).json({ error: 'unavailable' });
     }
   }
@@ -1088,27 +1164,30 @@ async function authExpenseToken(authHeader?: string): Promise<ExpenseAuth> {
 
   const hash = sha256(token);
   const ref = db.doc(`expenseTokens/${hash}`);
-  const snap = await ref.get();
-  if (!snap.exists) return { ok: false, status: 401, error: 'unauthorized' };
 
-  const data = snap.data() as ExpenseTokenDoc;
-  if (data.revoked) return { ok: false, status: 401, error: 'revoked' };
-  if (data.scope !== EXPENSE_SCOPE) return { ok: false, status: 403, error: 'forbidden-scope' };
+  // Verify the token AND advance the rolling-hour rate-limit window inside a
+  // single transaction, so concurrent requests can never exceed the cap.
+  return db.runTransaction(async (tx): Promise<ExpenseAuth> => {
+    const snap = await tx.get(ref);
+    if (!snap.exists) return { ok: false, status: 401, error: 'unauthorized' };
 
-  // Rolling 1h rate-limit window kept on the token doc itself.
-  const now = Date.now();
-  const inWindow = data.rateWindowStart != null && (now - data.rateWindowStart) < 3_600_000;
-  const windowStart = inWindow ? (data.rateWindowStart as number) : now;
-  const count = inWindow ? (data.rateCount ?? 0) : 0;
-  if (count >= MAX_EXPENSE_REQS_PER_HOUR) return { ok: false, status: 429, error: 'rate-limit' };
+    const data = snap.data() as ExpenseTokenDoc;
+    if (data.revoked) return { ok: false, status: 401, error: 'revoked' };
+    if (data.scope !== EXPENSE_SCOPE) return { ok: false, status: 403, error: 'forbidden-scope' };
 
-  await ref.update({
-    lastUsedAt: admin.firestore.FieldValue.serverTimestamp(),
-    rateWindowStart: windowStart,
-    rateCount: count + 1,
+    const now = Date.now();
+    const inWindow = data.rateWindowStart != null && (now - data.rateWindowStart) < 3_600_000;
+    const windowStart = inWindow ? (data.rateWindowStart as number) : now;
+    const count = inWindow ? (data.rateCount ?? 0) : 0;
+    if (count >= MAX_EXPENSE_REQS_PER_HOUR) return { ok: false, status: 429, error: 'rate-limit' };
+
+    tx.update(ref, {
+      lastUsedAt: admin.firestore.FieldValue.serverTimestamp(),
+      rateWindowStart: windowStart,
+      rateCount: count + 1,
+    });
+    return { ok: true, uid: data.uid, tokenHash: hash };
   });
-
-  return { ok: true, uid: data.uid, tokenHash: hash };
 }
 
 type UserAuth = { ok: true; uid: string } | { ok: false; status: number; error: string };
@@ -1243,7 +1322,7 @@ export const getExpenseOptions = onRequest(
 
       res.json({ ok: true, categories, accounts });
     } catch (err) {
-      console.error('getExpenseOptions failed:', err);
+      logError('getExpenseOptions failed', err);
       res.status(500).json({ ok: false, error: 'internal' });
     }
   },
@@ -1255,14 +1334,16 @@ export const addExpense = onRequest(
   async (req, res) => {
     try {
       if (req.method !== 'POST') { res.status(405).json({ ok: false, error: 'method-not-allowed' }); return; }
+      if (bodyTooLarge(req)) { res.status(413).json({ ok: false, error: 'payload-too-large' }); return; }
       const auth = await authExpenseToken(req.headers.authorization);
       if (!auth.ok) { res.status(auth.status).json({ ok: false, error: auth.error }); return; }
 
       const body = (req.body ?? {}) as { amount?: unknown; category?: unknown; account?: unknown; description?: unknown };
 
-      // amount: accept "12,50" or "12.50"; must be finite and > 0; stored positive.
+      // amount: accept "12,50" or "12.50"; must be finite, > 0, with a generous
+      // technical cap (anti-DoS); stored positive.
       const amount = Number(String(body.amount ?? '').replace(',', '.'));
-      if (!Number.isFinite(amount) || amount <= 0) {
+      if (!Number.isFinite(amount) || amount <= 0 || amount > 1000000000) {
         res.status(400).json({ ok: false, error: 'Importo non valido: inserisci un numero maggiore di zero.' });
         return;
       }
@@ -1298,7 +1379,7 @@ export const addExpense = onRequest(
         return;
       }
 
-      const description = String(body.description ?? '').trim() || (cat.label as string);
+      const description = (String(body.description ?? '').trim().slice(0, 500)) || (cat.label as string);
       const date = todayRomeISO();
 
       // EXACTLY the existing Transaction write shape (cf. useTransactions
@@ -1332,12 +1413,12 @@ export const addExpense = onRequest(
         const pushBody = `${icon ? `${icon} ` : ''}${amountPlain} € in ${cat.label} da ${acc.label}`;
         await sendToUser(auth.uid, 'Spesa aggiunta', pushBody, undefined, 'expense-added');
       } catch (err) {
-        console.error('addExpense: push notification failed (ignored):', err);
+        logError('addExpense: push failed (ignored)', err);
       }
 
       res.json({ ok: true, id: ref.id, summary });
     } catch (err) {
-      console.error('addExpense failed:', err);
+      logError('addExpense failed', err);
       res.status(500).json({ ok: false, error: 'internal' });
     }
   },
