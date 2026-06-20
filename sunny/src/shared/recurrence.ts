@@ -159,6 +159,28 @@ export function expandRecurringOnCreate<T extends Omit<Transaction, 'id'>>(
 }
 
 /**
+ * Whether saving a transaction should IMMEDIATELY materialize a back-dated
+ * series' past occurrences (via expandRecurringOnCreate).
+ *
+ * - Brand-new transaction            → true (no-op for non-recurring inputs).
+ * - Converting a plain one-off        → true: a transaction with NO recurrence
+ *   into a recurring series             rule and NO series link becomes a series;
+ *                                       its missing months must be created right
+ *                                       away, not left to the nightly catch-up.
+ * - Editing an existing series/instance → false: those occurrences already exist,
+ *   (template edit, or an instance        re-expanding here would duplicate them
+ *    that's already part of a series)      (the catch-up handles real series).
+ */
+export function shouldExpandOnSave(
+  editing: { recurring?: unknown; seriesId?: string } | null | undefined,
+  isRecurring: boolean,
+): boolean {
+  if (!editing) return true;                          // brand-new
+  if (!isRecurring) return false;                     // not (becoming) a series
+  return !editing.recurring && !editing.seriesId;     // one-off → series conversion
+}
+
+/**
  * On-load catch-up: for every recurring template whose next occurrence date is
  * already due (<= today), produce the realized instances to create and the new
  * date to advance the template to (its first future occurrence). Mirrors the
