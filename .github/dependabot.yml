@@ -4,21 +4,40 @@ updates:
   - package-ecosystem: "npm"
     directory: "/functions"
     schedule:
-      interval: "weekly"
-    open-pull-requests-limit: 5
+      interval: "monthly"
+    open-pull-requests-limit: 2
     labels: ["dependencies", "functions"]
+    # Skip major bumps in the scheduled run (they can break build/runtime and
+    # need manual testing). Security fixes still open a PR even on a major.
+    ignore:
+      - dependency-name: "*"
+        update-types: ["version-update:semver-major"]
+    # Roll all the safe minor/patch bumps into ONE PR instead of one each.
+    groups:
+      functions-minor-patch:
+        update-types: ["minor", "patch"]
 
   # Web client
   - package-ecosystem: "npm"
     directory: "/sunny"
     schedule:
-      interval: "weekly"
-    open-pull-requests-limit: 5
+      interval: "monthly"
+    open-pull-requests-limit: 2
     labels: ["dependencies", "client"]
+    ignore:
+      - dependency-name: "*"
+        update-types: ["version-update:semver-major"]
+    groups:
+      sunny-minor-patch:
+        update-types: ["minor", "patch"]
 
   # GitHub Actions used by the deploy workflows
   - package-ecosystem: "github-actions"
     directory: "/"
     schedule:
-      interval: "weekly"
+      interval: "monthly"
+    open-pull-requests-limit: 2
     labels: ["dependencies", "ci"]
+    groups:
+      ci-actions:
+        patterns: ["*"]
