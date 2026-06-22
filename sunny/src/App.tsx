@@ -34,7 +34,8 @@ import { ImportModal } from './features/transactions/ImportModal';
 import { BottomNav } from './shared/components/BottomNav';
 import { SideNav } from './shared/components/SideNav';
 import { SplashScreen } from './shared/components/SplashScreen';
-import { canUseUiV2, canUseForecastV2 } from './shared/featureFlags';
+import { canUseUiV2, canUseForecastV2, isAdminUser } from './shared/featureFlags';
+import { buildMerchantIndex, recognizeCategory, Candidate, Recognition } from './features/transactions/categoryRecognition';
 import { isForecastV4EnabledForUser } from './features/forecast/forecastFeatureGate';
 import { ForecastV2Screen } from './features/forecast/ForecastV2Screen';
 import { ForecastV3Screen } from './features/forecast/ForecastV3Screen';
@@ -133,6 +134,26 @@ function OnboardingGate({ user, onLogOut, onDeleteAccount }: {
   return <Main user={user} onLogOut={onLogOut} onDeleteAccount={onDeleteAccount} />;
 }
 
+/** Admin-only category recognizer for the transaction form. Builds the merchant
+ *  index (memoized on the transaction list) and returns a (description,
+ *  candidates) => Recognition|null function — or null for non-admin users, so the
+ *  form falls back to the unchanged `guessCategory` path. */
+function useCategoryRecognizer(
+  user: import('firebase/auth').User,
+  transactions: Transaction[],
+): ((description: string, candidates: Candidate[]) => Recognition | null) | null {
+  const isAdmin = isAdminUser(user);
+  const index = useMemo(
+    () => (isAdmin ? buildMerchantIndex(transactions) : null),
+    [isAdmin, transactions],
+  );
+  return useMemo(() => {
+    if (!isAdmin || !index) return null;
+    return (description: string, candidates: Candidate[]) =>
+      recognizeCategory({ description, candidates, index });
+  }, [isAdmin, index]);
+}
+
 function Main({ user, onLogOut, onDeleteAccount }: {
   user: import('firebase/auth').User;
   onLogOut: () => void;
@@ -212,6 +233,24 @@ function Main({ user, onLogOut, onDeleteAccount }: {
     const horizon = new Date(); horizon.setFullYear(horizon.getFullYear() + 1);
     return buildProjectedOccurrences(tx.transactions, todayISO, horizon.toISOString().slice(0, 10));
   }, [tx.transactions]);
+
+  // ── Derivations for the /transactions ("Movimenti") route ──────────────────
+  // Movimenti hides investments for EVERY user: they live on /investments only.
+  // Pure display-side filter — no writes, no data-model change. The "Investimento"
+  // type pill disappears on its own (TransactionList derives the pills from the
+  // types actually present), and search can't surface investments either.
+  const movimentiTransactions = useMemo(
+    () => tx.transactions.filter(t => t.type !== 'investment'),
+    [tx.transactions],
+  );
+  const movimentiProjected = useMemo(
+    () => projected.filter(t => t.type !== 'investment'),
+    [projected],
+  );
+
+  // Admin-only category recognizer injected into the transaction form (null for
+  // everyone else → the form keeps the unchanged guessCategory behaviour).
+  const recognize = useCategoryRecognizer(user, tx.transactions);
 
   // On login (first server-confirmed snapshot): move anything "Programmato" whose
   // date is already due (<= today) into "Fatto" by materializing overdue recurring
@@ -435,7 +474,7 @@ function Main({ user, onLogOut, onDeleteAccount }: {
               <div className="pt-4 md:pt-6">
                 <h1 className="text-2xl font-bold text-primary tracking-[-0.03em] mb-6">Movimenti</h1>
                 <TransactionList
-                  transactions={tx.transactions} projected={projected}
+                  transactions={movimentiTransactions} projected={movimentiProjected}
                   onEdit={openEdit} onDelete={tx.deleteTransaction}
                   onBulkUpdate={tx.updateTransactions} onBulkDelete={tx.deleteTransactions}
                   onAdd={openAdd} uiV2={uiV2}
@@ -521,7 +560,7 @@ function Main({ user, onLogOut, onDeleteAccount }: {
 
       <TransactionModal
         open={modalOpen} editing={editing} groupTransfers={groupTransfers} seriesEdit={seriesEdit}
-        defaultType={defaultType}
+        defaultType={defaultType} recognize={recognize ?? undefined}
         onClose={() => setModalOpen(false)}
         onSave={handleSave}
       />

@@ -2,6 +2,7 @@ import { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { Transaction, TransactionType, TYPE_META, TYPE_ORDER, RecurrenceRule, AccountDef, typeColor, typeOnColor } from '../../types';
 import { formatCurrency, formatDate, guessCategory } from '../../utils';
+import { Candidate, Recognition, RECOGNITION_THRESHOLD } from './categoryRecognition';
 import { useSettings } from '../../shared/providers/settings';
 import { expandRecurringOnCreate, shouldExpandOnSave } from '../../shared/recurrence';
 import { useEscapeKey } from '../../shared/hooks/useEscapeKey';
@@ -13,6 +14,9 @@ interface Props {
   groupTransfers?: Transaction[];
   seriesEdit?: boolean;
   defaultType?: TransactionType;
+  /** Admin-only category recognizer (L1 history + L2 keywords). Absent → the
+   *  non-admin path: plain `guessCategory`, behaviour unchanged. */
+  recognize?: (description: string, candidates: Candidate[]) => Recognition | null;
   onClose: () => void;
   onSave: (deleteIds: string[], create: Omit<Transaction, 'id'>[]) => void;
 }
@@ -22,7 +26,7 @@ interface Reimb { amount: string; account: string }
 const today = () => new Date().toISOString().slice(0, 10);
 const yesterday = () => { const d = new Date(); d.setDate(d.getDate() - 1); return d.toISOString().slice(0, 10); };
 
-export function TransactionModal({ open, editing, groupTransfers = [], seriesEdit = false, defaultType, onClose, onSave }: Props) {
+export function TransactionModal({ open, editing, groupTransfers = [], seriesEdit = false, defaultType, recognize, onClose, onSave }: Props) {
   const navigate = useNavigate();
   const { categories, accounts, visibleCategories, visibleAccounts, enableInvestments, detailedInvestments, theme } = useSettings();
   const [type, setType] = useState<TransactionType>('expense');
@@ -353,8 +357,18 @@ export function TransactionModal({ open, editing, groupTransfers = [], seriesEdi
                 const v = e.target.value;
                 setDescription(v);
                 if (!categoryTouched && type !== 'transfer') {
-                  const g = guessCategory(v, typeCats);
-                  if (g) setCategory(g);
+                  // Admin: try the L1+L2 recognizer first, auto-apply only above
+                  // the confidence threshold. Non-admin (recognize absent) and any
+                  // low-confidence admin result fall back to plain guessCategory.
+                  let applied = false;
+                  if (recognize) {
+                    const r = recognize(v, typeCats);
+                    if (r && r.confidence >= RECOGNITION_THRESHOLD) { setCategory(r.categoryId); applied = true; }
+                  }
+                  if (!applied) {
+                    const g = guessCategory(v, typeCats);
+                    if (g) setCategory(g);
+                  }
                 }
               }}
               className="w-full bg-elevated rounded-2xl px-4 py-3 text-primary placeholder:text-secondary/50 outline-none focus:ring-1 focus:ring-gold/40" />
