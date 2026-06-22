@@ -12,6 +12,7 @@ import { AIDigestCard } from './AIDigestCard';
 import { InsightTicker } from '../insights/InsightTicker';
 import { useSettings } from '../../shared/providers/settings';
 import { buildInsights } from '../insights/insightsEngine';
+import { isPending } from '../../shared/recurrence';
 
 interface Props {
   greeting?: string;
@@ -47,10 +48,14 @@ export function DashboardV2(p: Props) {
   const { currentMonthCategoryTotals, currentMonthExpenseByAccount } = useMemo(() => {
     const now = new Date();
     const cm = now.getMonth(), cy = now.getFullYear();
+    const todayISO = now.toISOString().slice(0, 10);
     const categoryTotals: Record<string, number> = {};
     const expenseByAccount: Record<string, number> = {};
     for (const t of p.transactions) {
       if (t.type !== 'expense') continue;
+      // Exclude planned/future expenses so the per-category breakdown matches the
+      // realized "Uscite" month total (same !isPending filter as useTransactions).
+      if (isPending(t, todayISO)) continue;
       const d = new Date(t.date);
       if (d.getMonth() !== cm || d.getFullYear() !== cy) continue;
       categoryTotals[t.category] = (categoryTotals[t.category] ?? 0) + ownShare(t);
