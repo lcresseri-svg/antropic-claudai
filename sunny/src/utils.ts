@@ -45,7 +45,10 @@ export function greeting(): string {
 }
 
 // Keyword → default category id. Used to guess a category from a description.
-const CATEGORY_KEYWORDS: Record<string, string[]> = {
+// Exported so the admin-only recognizer (features/transactions/categoryRecognition)
+// can reuse the very same keyword sets without duplicating them. `guessCategory`
+// below (the non-admin path) stays unchanged.
+export const CATEGORY_KEYWORDS: Record<string, string[]> = {
   spesa: ['supermercat', 'esselunga', 'coop', 'conad', 'lidl', 'carrefour', 'aldi', 'pam', 'despar', 'eurospin', 'penny', 'market', 'alimentari', 'panetteria', 'macelleria', 'fruttivendolo', 'spesa'],
   casa: ['affitto', 'mutuo', 'bolletta', 'luce', 'gas', 'enel', 'acqua', 'condominio', 'ikea', 'mobili', 'elettricità', 'riscaldamento', 'tari', 'rifiuti', 'internet', 'wifi', 'casa'],
   ristoranti: ['ristorante', 'pizzeria', 'pizza', 'bar', 'caffè', 'caffe', 'colazione', 'pranzo', 'cena', 'sushi', 'mcdonald', 'burger', 'kebab', 'trattoria', 'osteria', 'aperitivo', 'gelateria', 'gelato', 'pub'],
