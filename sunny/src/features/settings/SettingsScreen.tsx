@@ -10,6 +10,7 @@ import { ExpenseShortcutSection } from './ExpenseShortcutSection';
 import { removeCategoryDef, removeAccountDef, visibleDefs } from './softDelete';
 import { buildExportPayload, downloadJson, downloadCsv, BudgetExportInput } from './dataExport';
 import { isForecastV4EnabledForUser } from '../forecast/forecastFeatureGate';
+import { isAdminUser } from '../../shared/featureFlags';
 import { APP_VERSION, APP_CHANNEL, VERSIONS } from '../../appInfo';
 
 interface Props {
@@ -83,6 +84,10 @@ export function SettingsScreen({ user, transactions, budgetExport, uiV2 = false,
   // The screen has no link in the main nav; this gives admins a way in without
   // exposing anything to normal users.
   const forecastV4Enabled = isForecastV4EnabledForUser(user);
+  // Admin-only entry to the metrics dashboard. This is admin DATA access (the
+  // metrics/* collection is admin-readable in firestore.rules), the one
+  // legitimate use of the admin identity for UI — not feature-hiding.
+  const isAdmin = isAdminUser(user);
 
   const handleDeleteAccount = async () => {
     setDeletingAccount(true);
@@ -417,6 +422,9 @@ export function SettingsScreen({ user, transactions, budgetExport, uiV2 = false,
                 {forecastV4Enabled && (
                   <Row icon="🔮" color="#E6B95C" label="Previsione V4 (admin)" sub="Motore forecast sperimentale" onClick={() => navigate('/forecast-v3')} />
                 )}
+                {isAdmin && (
+                  <Row icon="📈" color="#6FA8DC" label="Metriche (admin)" sub="DAU/WAU/MAU e engagement" onClick={() => navigate('/metrics')} />
+                )}
               </MenuSection>
               <MenuSection title="Scorciatoie">
                 <Row icon="⚡" color="#E6B95C" label="Aggiungi spese da iPhone" sub="Scorciatoia iOS per registrare spese" onClick={() => enterSub('shortcut')} />
@@ -432,6 +440,9 @@ export function SettingsScreen({ user, transactions, budgetExport, uiV2 = false,
               <Row icon="⚡" color="#E6B95C" label="Spese da iPhone" sub="Scorciatoia iOS" onClick={() => enterSub('shortcut')} />
               {forecastV4Enabled && (
                 <Row icon="🔮" color="#E6B95C" label="Previsione V4 (admin)" sub="Motore forecast sperimentale" onClick={() => navigate('/forecast-v3')} />
+              )}
+              {isAdmin && (
+                <Row icon="📈" color="#6FA8DC" label="Metriche (admin)" sub="DAU/WAU/MAU e engagement" onClick={() => navigate('/metrics')} />
               )}
             </div>
           )}
