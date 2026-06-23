@@ -87,9 +87,19 @@ users/{uid}/
   meta/aiCoach           ← dailyCount, lastResetDay (rate limit AI Coach)
   derived/encouraging    ← pool di insight positivi per la push notifica incoraggiamento
   goals/{goalId}         ← obiettivi di risparmio (admin-only)
+  meta/activity          ← metriche presenza { lastActiveAt, activeDays[] } (DAU/WAU/MAU)
+  events/{autoId}        ← metriche comportamento { name, ts } SOLO — mai dati finanziari
 
 feedback/{fid}           ← top-level (non per-user): tutti i feedback utente
+metrics/{YYYY-MM-DD}     ← top-level: aggregato giornaliero metriche (Admin SDK scrive, admin legge)
 ```
+
+**Metriche self-hosted (no GA4):** layer proprietario in `sunny/src/shared/analytics/metrics.ts`,
+fire-and-forget. `recordActivity(uid)` aggiorna `meta/activity` (debounced 1×/sessione via
+sessionStorage `sunny_activity_done`). `logEvent(uid, name)` scrive `events/{autoId}` con **solo**
+`{name, ts}`; allowlist `name`: `app_open`/`insights_view`/`insight_open`/`notif_open`/`tx_add`/
+`forecast_view`/`aicoach_open` (duplicata in `metrics.ts`, `firestore.rules` e funzione rollup —
+tenere in sync). Aggregato giornaliero in `metrics/{day}` via Cloud Function `rollupMetrics`, letto solo admin.
 
 ---
 

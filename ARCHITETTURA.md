@@ -66,7 +66,23 @@ users/{uid}/
   meta/settings            ← un unico documento con categorie, conti, toggles
   meta/budget              ← obiettivi, budget per categoria, entrate/investimenti pianificati
   meta/push                ← token FCM per le notifiche push
+  meta/activity            ← metriche presenza: { lastActiveAt, activeDays[] } (DAU/WAU/MAU)
+  events/{autoId}          ← metriche comportamento: { name, ts } SOLO — mai dati finanziari
+
+metrics/{YYYY-MM-DD}       ← top-level: aggregato giornaliero, scritto da Cloud Function, letto solo admin
 ```
+
+### Metriche self-hosted (DAU/WAU/MAU + engagement)
+
+Sunny **non usa GA4** (`@firebase/analytics` non viene inizializzato). Layer
+metriche proprietario, pseudonimo per UID, separato dai dati operativi
+(`sunny/src/shared/analytics/metrics.ts`, fire-and-forget):
+
+- `meta/activity` — presenza: `lastActiveAt` (ms) + `activeDays` (≤35 `YYYY-MM-DD`, dedup/sorted/trim). Scritta `recordActivity(uid)`, **debounced una volta per sessione** (sessionStorage `sunny_activity_done`).
+- `events/{autoId}` — eventi comportamentali: **solo** `{ name, ts }`. Allowlist `name`: `app_open`, `insights_view`, `insight_open`, `notif_open`, `tx_add`, `forecast_view`, `aicoach_open`. **MAI** importi/descrizioni/categorie/merchant.
+- `metrics/{YYYY-MM-DD}` — aggregato giornaliero (DAU/WAU/MAU/stickiness, readers, adoption, newUsers/totalUsers) scritto dall'Admin SDK (Cloud Function `rollupMetrics`), leggibile **solo dall'admin**.
+
+L'allowlist degli eventi è duplicata in 3 punti che vanno tenuti in sync: `metrics.ts`, `firestore.rules` (`validEvent`), e la funzione di rollup.
 
 ### Transaction (campi principali)
 

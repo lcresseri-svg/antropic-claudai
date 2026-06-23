@@ -134,3 +134,46 @@ describe('expenseTokens', () => {
     await assertFails(setDoc(doc(db, 'expenseTokens/abc'), { uid: A }));
   });
 });
+
+describe('metric events', () => {
+  const ev = (over: Record<string, unknown> = {}) => ({ name: 'app_open', ts: Date.now(), ...over });
+
+  it('owner can create an allow-listed event and read own events', async () => {
+    const db = dbOf(A);
+    await assertSucceeds(setDoc(doc(db, `users/${A}/events/e1`), ev()));
+    await assertSucceeds(getDoc(doc(db, `users/${A}/events/e1`)));
+  });
+  it('rejects a name outside the allowlist', async () => {
+    await assertFails(setDoc(doc(dbOf(A), `users/${A}/events/e2`), ev({ name: 'evil' })));
+  });
+  it('rejects an extra field (only name+ts allowed)', async () => {
+    await assertFails(setDoc(doc(dbOf(A), `users/${A}/events/e3`), ev({ amount: 100 })));
+  });
+  it('rejects a non-number ts', async () => {
+    await assertFails(setDoc(doc(dbOf(A), `users/${A}/events/e4`), ev({ ts: 'now' })));
+  });
+  it('another user cannot create or read', async () => {
+    const db = dbOf(B);
+    await assertFails(setDoc(doc(db, `users/${A}/events/e5`), ev()));
+    await assertFails(getDoc(doc(db, `users/${A}/events/e5`)));
+  });
+  it('update and delete are denied to the owner (purge is Admin SDK)', async () => {
+    await env.withSecurityRulesDisabled(async (ctx) => {
+      await setDoc(doc(ctx.firestore(), `users/${A}/events/e6`), ev());
+    });
+    const db = dbOf(A);
+    await assertFails(setDoc(doc(db, `users/${A}/events/e6`), ev({ ts: Date.now() + 1 }))); // update
+    await assertFails(deleteDoc(doc(db, `users/${A}/events/e6`)));
+  });
+});
+
+describe('metrics (daily aggregate)', () => {
+  it('client write denied; admin read ok; non-admin read denied', async () => {
+    await assertFails(setDoc(doc(dbOf(A), 'metrics/2026-06-23'), { dau: 1 }));
+    await env.withSecurityRulesDisabled(async (ctx) => {
+      await setDoc(doc(ctx.firestore(), 'metrics/2026-06-23'), { date: '2026-06-23', dau: 5 });
+    });
+    await assertFails(getDoc(doc(dbOf(A), 'metrics/2026-06-23')));
+    await assertSucceeds(getDoc(doc(dbOf(ADMIN), 'metrics/2026-06-23')));
+  });
+});

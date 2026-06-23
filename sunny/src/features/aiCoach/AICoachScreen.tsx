@@ -1,11 +1,17 @@
+import { useEffect } from 'react';
+import { User } from 'firebase/auth';
 import { useSettings } from '../../shared/providers/settings';
 import { useAICoach } from './useAICoach';
 import { AffordabilityForm } from './AffordabilityForm';
 import { AffordabilityResultCard } from './AffordabilityResultCard';
+import { logEvent } from '../../shared/analytics/metrics';
 
-export function AICoachScreen() {
+export function AICoachScreen({ user }: { user?: User | null }) {
   const { categories } = useSettings();
   const { status, result, errorMsg, remaining, analyze, reset } = useAICoach();
+
+  // metrics: aicoach_open on mount (fire-and-forget).
+  useEffect(() => { if (user) logEvent(user.uid, 'aicoach_open'); }, [user]);
 
   return (
     <div className="pt-4 md:pt-6 max-w-lg">

@@ -1,12 +1,15 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
+import { User } from 'firebase/auth';
 import { Transaction } from '../../types';
 import { useSettings } from '../../shared/providers/settings';
 import { buildInsights, Insight, InsightCategory } from './insightsEngine';
 import { InsightCard } from './Insights';
 import { InsightDetailSheet } from './InsightDetailSheet';
+import { logEvent } from '../../shared/analytics/metrics';
 import { formatCurrency } from '../../utils';
 
 interface Props {
+  user?: User | null;
   transactions: Transaction[];
   monthlyIncome: number;
   monthlyExpenses: number;
@@ -28,6 +31,15 @@ const CAT_ORDER: InsightCategory[] = ['alert', 'forecast', 'seasonal', 'trend', 
 export function InsightsScreen(p: Props) {
   const { getCat, insightDepth, visibleCategories } = useSettings();
   const [detail, setDetail] = useState<Insight | null>(null);
+  const uid = p.user?.uid;
+
+  // metrics: insights_view on mount (fire-and-forget).
+  useEffect(() => { if (uid) logEvent(uid, 'insights_view'); }, [uid]);
+
+  const openDetail = (ins: Insight) => {
+    setDetail(ins);
+    if (uid) logEvent(uid, 'insight_open');
+  };
 
   const insights = buildInsights({
     transactions: p.transactions,
@@ -73,7 +85,7 @@ export function InsightsScreen(p: Props) {
                 <span className="text-[11px] text-secondary/50">· {items.length}</span>
               </div>
               <div className="space-y-2.5">
-                {items.map((ins, i) => <InsightCard key={i} ins={ins} onInfo={setDetail} />)}
+                {items.map((ins, i) => <InsightCard key={i} ins={ins} onInfo={openDetail} />)}
               </div>
             </section>
           );
