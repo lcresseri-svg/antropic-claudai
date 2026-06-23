@@ -37,6 +37,7 @@ import { SplashScreen } from './shared/components/SplashScreen';
 import { canUseUiV2, canUseForecastV2, isAdminUser } from './shared/featureFlags';
 import { buildMerchantIndex, recognizeCategory, Candidate, Recognition } from './features/transactions/categoryRecognition';
 import { recordActivity, logEvent } from './shared/analytics/metrics';
+import { MetricsScreen } from './features/metrics/MetricsScreen';
 import { isForecastV4EnabledForUser } from './features/forecast/forecastFeatureGate';
 import { ForecastV2Screen } from './features/forecast/ForecastV2Screen';
 import { ForecastV3Screen } from './features/forecast/ForecastV3Screen';
@@ -259,6 +260,17 @@ function Main({ user, onLogOut, onDeleteAccount }: {
   useEffect(() => {
     recordActivity(user.uid);
     logEvent(user.uid, 'app_open');
+  }, [user.uid]);
+
+  // metrics: if the app was opened from a notification (push link carries
+  // ?notif=1), log notif_open once and strip the param from the URL.
+  useEffect(() => {
+    const params = new URLSearchParams(window.location.search);
+    if (params.get('notif') !== '1') return;
+    logEvent(user.uid, 'notif_open');
+    params.delete('notif');
+    const qs = params.toString();
+    window.history.replaceState({}, '', window.location.pathname + (qs ? `?${qs}` : '') + window.location.hash);
   }, [user.uid]);
 
   // On login (first server-confirmed snapshot): move anything "Programmato" whose
@@ -557,6 +569,13 @@ function Main({ user, onLogOut, onDeleteAccount }: {
                   />
                 </div>
               ) : <Navigate to="/" replace />
+            } />
+            {/* Admin-only metrics dashboard — gated on the admin identity because
+                it reads admin-only DATA (metrics/*), not to hide a feature. */}
+            <Route path="/metrics" element={
+              isAdminUser(user)
+                ? <div className="pt-4 md:pt-6"><MetricsScreen /></div>
+                : <Navigate to="/" replace />
             } />
             <Route path="*" element={<Navigate to="/" replace />} />
           </Routes>

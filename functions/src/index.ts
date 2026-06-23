@@ -101,9 +101,12 @@ async function sendToUser(
     tokens,
     webpush: {
       notification: { title, body, tag: tag ?? 'sunny' },
-      fcmOptions: { link: APP_LINK },
+      // `?notif=1` lets the client log a `notif_open` metric on load (then strips
+      // the param). FCM's own click handler opens this link — no custom
+      // notificationclick handler in the SW (which would conflict with FCM's).
+      fcmOptions: { link: `${APP_LINK}?notif=1` },
     },
-    data: { link: APP_LINK },
+    data: { link: `${APP_LINK}?notif=1` },
   });
 
   const updates: Record<string, unknown> = {};
