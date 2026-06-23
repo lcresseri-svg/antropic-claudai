@@ -17,6 +17,10 @@ git.
 
 ---
 
+## 2026-06-23
+
+- **[Claude]** **Dashboard: i due grafici a ciambella ("Spese per categoria" e "Investimenti per categoria") ora hanno la stessa dimensione.** La ciambella di `CategoryCard` passa da `size={96}` a `size={132}`, allineandosi a quella di `InvestmentSummaryCard` (entrambe le card stanno nella stessa griglia a 2 colonne, quindi stessa larghezza). Scelto il valore più grande perché il totale al centro della card spese ci sta comodamente, mentre rimpicciolire quella investimenti avrebbe stretto il suo totale (numero più lungo). Modifica condivisa tra dashboard V2 e legacy (stesso componente). `tsc` pulito, build OK, **281 test verdi**. `(pending)`
+
 ## 2026-06-22
 
 - **[Claude]** **Rimosso il tipo "Investimento" dal form "Nuova transazione" (per tutti).** Il selettore di tipo della `TransactionModal` non offre più la tab **"Investimento ↗"** per le nuove transazioni: gli investimenti si creano e gestiscono **esclusivamente** dalla schermata `/investments` (sheet deposito/disinvestimento/valore). `availableTypes` ora esclude `'investment'`, **tranne** quando si **modifica** un investimento esistente (così il tipo si visualizza correttamente e l'edit non viene ritipizzato). Rimossa la macchina del "redirect" ormai morta (stato `investRedirect`, blocco messaggio "Gli investimenti si gestiscono dalla schermata Investimenti →", e l'import `useNavigate`/`navigate` non più usato). Nessun impatto sui flussi di `/investments` (usano i loro sheet dedicati, non la modale) né sull'import CSV (scrive le transazioni direttamente). Coerente con la rimozione degli investimenti dal tab Movimenti: ora il tipo `investment` non è creabile da nessuna modale generica. `tsc` pulito, build OK, **281 test verdi**. `(pending)`
