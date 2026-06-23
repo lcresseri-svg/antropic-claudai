@@ -112,11 +112,11 @@ jobs:
       #    must be added here or it will never be deployed.
       - name: Deploy HTTP functions
         if: github.event_name == 'push'
-        run: npx -y firebase-tools@${FIREBASE_TOOLS_VERSION} deploy --only functions:generateDigest,functions:sendTestPush,functions:generateAffordabilityAdvice,functions:issueExpenseToken,functions:listExpenseTokens,functions:revokeExpenseToken,functions:getExpenseOptions,functions:addExpense --project sunny-a2a98 --non-interactive --force
+        run: npx -y firebase-tools@${FIREBASE_TOOLS_VERSION} deploy --only functions:generateDigest,functions:sendTestPush,functions:generateAffordabilityAdvice,functions:issueExpenseToken,functions:listExpenseTokens,functions:revokeExpenseToken,functions:getExpenseOptions,functions:addExpense,functions:testMetricsRollup --project sunny-a2a98 --non-interactive --force
 
       # 2) Scheduled + trigger functions — require the service-agent IAM
       #    bindings. If this step fails with an IAM error, an owner must grant
       #    the roles once (see repo notes), then re-run this workflow.
       - name: Deploy scheduled & trigger functions
         if: github.event_name == 'push'
-        run: npx -y firebase-tools@${FIREBASE_TOOLS_VERSION} deploy --only functions:processRecurringTransactions,functions:remindLogExpenses,functions:sendMonthlySummary,functions:remindUpcomingPayments,functions:remindInactivity,functions:remindMonthEnd,functions:sendEncouragingInsight,functions:onUserDeleted,functions:onFeedbackCreated --project sunny-a2a98 --non-interactive --force
+        run: npx -y firebase-tools@${FIREBASE_TOOLS_VERSION} deploy --only functions:processRecurringTransactions,functions:remindLogExpenses,functions:sendMonthlySummary,functions:remindUpcomingPayments,functions:remindInactivity,functions:remindMonthEnd,functions:sendEncouragingInsight,functions:onUserDeleted,functions:onFeedbackCreated,functions:rollupMetrics --project sunny-a2a98 --non-interactive --force
