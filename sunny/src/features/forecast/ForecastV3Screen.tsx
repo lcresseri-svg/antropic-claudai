@@ -3,8 +3,9 @@
  * Shows V3 forecast with per-category behavior badges, confidence intervals,
  * and a side-by-side comparison with V2.
  */
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { Transaction, CategoryDef, AccountDef, BudgetState } from '../../types';
+import { logEvent } from '../../shared/analytics/metrics';
 import { useForecastV2 } from './useForecastV2';
 import { useForecastV3 } from './useForecastV3';
 import {
@@ -66,6 +67,9 @@ export function ForecastV3Screen({
   budgetHistoryV4, currentMonthBudgetStatus, settingsSnapshot, userId,
 }: Props) {
   const [showBacktest, setShowBacktest] = useState(false);
+
+  // metrics: forecast_view on mount (fire-and-forget).
+  useEffect(() => { if (userId) logEvent(userId, 'forecast_view'); }, [userId]);
   const [withBias, setWithBias] = useState(false);
   const [compareV2, setCompareV2] = useState(true);
 

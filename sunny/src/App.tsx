@@ -36,6 +36,7 @@ import { SideNav } from './shared/components/SideNav';
 import { SplashScreen } from './shared/components/SplashScreen';
 import { canUseUiV2, canUseForecastV2, isAdminUser } from './shared/featureFlags';
 import { buildMerchantIndex, recognizeCategory, Candidate, Recognition } from './features/transactions/categoryRecognition';
+import { recordActivity, logEvent } from './shared/analytics/metrics';
 import { isForecastV4EnabledForUser } from './features/forecast/forecastFeatureGate';
 import { ForecastV2Screen } from './features/forecast/ForecastV2Screen';
 import { ForecastV3Screen } from './features/forecast/ForecastV3Screen';
@@ -252,6 +253,14 @@ function Main({ user, onLogOut, onDeleteAccount }: {
   // everyone else → the form keeps the unchanged guessCategory behaviour).
   const recognize = useCategoryRecognizer(user, tx.transactions);
 
+  // Self-hosted metrics: record presence + app_open once per browser session.
+  // Fire-and-forget (recordActivity is debounced via sessionStorage); never
+  // blocks render and never surfaces an error to the UI.
+  useEffect(() => {
+    recordActivity(user.uid);
+    logEvent(user.uid, 'app_open');
+  }, [user.uid]);
+
   // On login (first server-confirmed snapshot): move anything "Programmato" whose
   // date is already due (<= today) into "Fatto" by materializing overdue recurring
   // occurrences right away, instead of waiting for the nightly Cloud Function.
@@ -304,8 +313,11 @@ function Main({ user, onLogOut, onDeleteAccount }: {
     ? tx.transactions.filter(t => t.groupId === editing.groupId && t.id !== editing.id)
     : [];
 
-  const handleSave = (deleteIds: string[], create: Omit<Transaction, 'id'>[]) =>
+  const handleSave = (deleteIds: string[], create: Omit<Transaction, 'id'>[]) => {
     tx.replaceGroup(deleteIds, create);
+    // metrics: count brand-new adds only — edits delete+recreate (editing set).
+    if (!editing) logEvent(user.uid, 'tx_add');
+  };
 
   return (
     <div className={`h-full md:flex${uiV2 ? ' ui-v2' : ''}`}>
@@ -441,7 +453,7 @@ function Main({ user, onLogOut, onDeleteAccount }: {
                     monthlyInvestments={tx.monthlyInvestments} portfolio={portfolio}
                     isAdmin={true} budgets={budget.budget.categoryBudgets} />
                 ) : (
-                  <InsightsScreen transactions={tx.transactions}
+                  <InsightsScreen user={user} transactions={tx.transactions}
                     monthlyIncome={tx.monthlyIncome} monthlyExpenses={tx.monthlyExpenses}
                     monthlyInvestments={tx.monthlyInvestments} portfolio={portfolio} />
                 )}
@@ -492,7 +504,7 @@ function Main({ user, onLogOut, onDeleteAccount }: {
             {aiEnabled && (
               <Route path="/ai-coach" element={
                 <div className="pt-4 md:pt-6">
-                  <AICoachScreen />
+                  <AICoachScreen user={user} />
                 </div>
               } />
             )}

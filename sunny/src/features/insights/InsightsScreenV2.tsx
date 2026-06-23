@@ -7,6 +7,7 @@ import { useSettings } from '../../shared/providers/settings';
 import { buildInsights, Insight, InsightCategory } from './insightsEngine';
 import { InsightDetailSheet } from './InsightDetailSheet';
 import { InsightFeedback } from '../feedback/InsightFeedback';
+import { logEvent } from '../../shared/analytics/metrics';
 import { formatCurrency } from '../../utils';
 
 // Once-per-app-session guard: we persist the positive-insight pool at most once
@@ -58,6 +59,9 @@ export function InsightsScreenV2(p: Props) {
   const user = p.user ?? null;
   const [detail, setDetail] = useState<Insight | null>(null);
   const [advancedOpen, setAdvancedOpen] = useState(false);
+
+  // metrics: insights_view on mount (fire-and-forget).
+  useEffect(() => { if (user) logEvent(user.uid, 'insights_view'); }, [user]);
 
   const insights = buildInsights({
     transactions: p.transactions,
@@ -150,7 +154,7 @@ export function InsightsScreenV2(p: Props) {
                           <p className="text-xs mt-0.5 leading-snug" style={{ color: ins.accent + 'cc' }}>{ins.detail}</p>
                         </div>
                         {ins.explain && (
-                          <button onClick={() => setDetail(ins)} aria-label="Spiegazione"
+                          <button onClick={() => { setDetail(ins); if (user) logEvent(user.uid, 'insight_open'); }} aria-label="Spiegazione"
                             className="w-6 h-6 rounded-full flex items-center justify-center text-secondary hover:text-primary hover:bg-card-hover transition-colors flex-shrink-0 mt-0.5">
                             <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.75">
                               <circle cx="12" cy="12" r="9" /><path d="M12 11v5" strokeLinecap="round" /><circle cx="12" cy="7.6" r="0.6" fill="currentColor" stroke="none" />
