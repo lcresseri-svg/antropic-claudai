@@ -93,20 +93,38 @@ export function useTransactions(user: User | null, accounts: AccountDef[] = [], 
     batch.commit();
   }, [user, colRef]);
 
-  // Materialize overdue recurring occurrences in one atomic batch: create the
-  // realized instances, advance their templates to the next future date, and
-  // delete templates that have run past their `until` (ended series).
-  const materializeRecurring = useCallback((
+  // Materialize overdue recurring occurrences: create the realized instances,
+  // advance their templates to the next future date, and delete templates that
+  // ran past their `until`.
+  //
+  // INDEPENDENT writes (not one atomic batch): a single un-chunked batch is
+  // all-or-nothing AND silently swallows errors, so ONE malformed template
+  // (e.g. a legacy doc the hardened rules reject) or a >500-write backlog would
+  // block materialization for EVERY series — leaving all recurring stuck as
+  // "previsto" with no "fatto". Here each occurrence is written on its own, so a
+  // bad row only loses itself. Creates run (and settle) FIRST: templates are only
+  // advanced afterwards, so if a create fails the next catch-up retries it
+  // (catchUpRecurring dedups already-materialized occurrences → no duplicates).
+  const materializeRecurring = useCallback(async (
     creates: Omit<Transaction, 'id'>[],
     advance: { id: string; date: string; seriesId: string }[],
     remove: string[] = [],
   ) => {
     if (!user || (creates.length === 0 && advance.length === 0 && remove.length === 0)) return;
-    const batch = writeBatch(db);
-    creates.forEach(tx => batch.set(doc(colRef()), stripUndefined(withCreatedAt(tx))));
-    advance.forEach(a => batch.update(doc(db, 'users', user.uid, 'transactions', a.id), { date: a.date, seriesId: a.seriesId }));
-    remove.forEach(id => batch.delete(doc(db, 'users', user.uid, 'transactions', id)));
-    batch.commit();
+    const log = (tag: string) => (e: unknown) =>
+      console.error(`materializeRecurring: ${tag} failed`, (e as { code?: string })?.code ?? e);
+
+    // 1) Realized instances — each independent so one bad row can't block others.
+    await Promise.allSettled(
+      creates.map(tx => addDoc(colRef(), stripUndefined(withCreatedAt(tx))).catch(log('create'))),
+    );
+    // 2) Advance live templates + delete ended ones (after the instances exist).
+    await Promise.allSettled([
+      ...advance.map(a =>
+        updateDoc(doc(db, 'users', user.uid, 'transactions', a.id), { date: a.date, seriesId: a.seriesId }).catch(log('advance'))),
+      ...remove.map(id =>
+        deleteDoc(doc(db, 'users', user.uid, 'transactions', id)).catch(log('remove'))),
+    ]);
   }, [user, colRef]);
 
   const updateTransaction = useCallback((id: string, patch: Partial<Omit<Transaction, 'id'>>) => {
