@@ -21,6 +21,9 @@ export function TransactionRow({ tx, selectable, selected, upcoming, onToggle, o
   const isTransfer = tx.type === 'transfer';
   const isInvestment = tx.type === 'investment';
   const isProjected = !!upcoming || !!tx.projected;
+  // A RECORDED occurrence of a series (incl. old ones — they carry seriesId even
+  // though the recurring rule lives on the template). Projected rows keep 🗓️.
+  const isSeries = !isProjected && (!!tx.recurring || !!tx.seriesId);
 
   const prefix = isIncome ? '+' : isTransfer ? '' : '−';
   const amountClass = isIncome ? 'text-green' : isInvestment ? 'text-gold' : isTransfer ? 'text-[#88B0C0]' : 'text-primary';
@@ -49,13 +52,20 @@ export function TransactionRow({ tx, selectable, selected, upcoming, onToggle, o
       </div>
 
       <div className="flex-1 min-w-0">
-        <p className="text-[15px] font-medium text-primary truncate">{tx.description}</p>
+        <div className="flex items-center gap-1.5 min-w-0">
+          <p className="text-[15px] font-medium text-primary truncate">{tx.description}</p>
+          {/* Visible chip on every recorded occurrence of a series (incl. old ones —
+              they carry seriesId even though the recurring rule lives on the template). */}
+          {isSeries && (
+            <span className="flex-shrink-0 inline-flex items-center gap-0.5 rounded-full bg-gold/15 text-gold text-[10px] font-semibold px-1.5 py-0.5 leading-none">
+              🔁 Ricorrente
+            </span>
+          )}
+        </div>
         <p className="text-xs text-secondary mt-0.5 truncate">
           {formatDateFull(tx.date)} · {acc.label}
           {isTransfer && tx.toAccount && ` → ${getAcc(tx.toAccount).label}`}
-          {/* 🔁 on every recorded occurrence of a series (incl. old ones — they
-              carry seriesId even though the recurring rule lives on the template). */}
-          {isProjected ? ' · 🗓️' : (tx.recurring || tx.seriesId) ? ' · 🔁' : ''}
+          {isProjected ? ' · 🗓️' : ''}
         </p>
       </div>
 
