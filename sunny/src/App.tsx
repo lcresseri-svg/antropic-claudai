@@ -236,20 +236,6 @@ function Main({ user, onLogOut, onDeleteAccount }: {
     return buildProjectedOccurrences(tx.transactions, todayISO, horizon.toISOString().slice(0, 10));
   }, [tx.transactions]);
 
-  // ── Derivations for the /transactions ("Movimenti") route ──────────────────
-  // Movimenti hides investments for EVERY user: they live on /investments only.
-  // Pure display-side filter — no writes, no data-model change. The "Investimento"
-  // type pill disappears on its own (TransactionList derives the pills from the
-  // types actually present), and search can't surface investments either.
-  const movimentiTransactions = useMemo(
-    () => tx.transactions.filter(t => t.type !== 'investment'),
-    [tx.transactions],
-  );
-  const movimentiProjected = useMemo(
-    () => projected.filter(t => t.type !== 'investment'),
-    [projected],
-  );
-
   // Admin-only category recognizer injected into the transaction form (null for
   // everyone else → the form keeps the unchanged guessCategory behaviour).
   const recognize = useCategoryRecognizer(user, tx.transactions);
@@ -498,7 +484,7 @@ function Main({ user, onLogOut, onDeleteAccount }: {
               <div className="pt-4 md:pt-6">
                 <h1 className="text-2xl font-bold text-primary tracking-[-0.03em] mb-6">Movimenti</h1>
                 <TransactionList
-                  transactions={movimentiTransactions} projected={movimentiProjected}
+                  transactions={tx.transactions} projected={projected}
                   onEdit={openEdit} onDelete={tx.deleteTransaction}
                   onBulkUpdate={tx.updateTransactions} onBulkDelete={tx.deleteTransactions}
                   onAdd={openAdd} uiV2={uiV2}
