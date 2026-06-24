@@ -1,7 +1,7 @@
 import { useState, useEffect, useCallback, useMemo } from 'react';
 import {
   collection, query, orderBy, onSnapshot,
-  addDoc, deleteDoc, doc, updateDoc, writeBatch,
+  addDoc, deleteDoc, doc, setDoc, updateDoc, writeBatch,
 } from 'firebase/firestore';
 import { User } from 'firebase/auth';
 import { AccountDef, CategoryDef, Transaction, TransactionPatch, ownShare, investSign } from '../../types';
@@ -102,6 +102,16 @@ export function useTransactions(user: User | null, accounts: AccountDef[] = [], 
     create.forEach(tx => batch.set(doc(colRef()), stripUndefined(withCreatedAt(tx))));
     batch.commit();
   }, [user, colRef]);
+
+  // Edit a SINGLE document in place: overwrite the SAME doc id (setDoc, no merge)
+  // instead of delete+recreate, so an already-inserted transaction is never
+  // removed by an edit — only its contents change (and its id/createdAt survive).
+  // Used for plain edits and series-template edits; group restructures (split /
+  // commission) still go through replaceGroup.
+  const replaceInPlace = useCallback((id: string, data: Omit<Transaction, 'id'>) => {
+    if (!user) return;
+    setDoc(doc(db, 'users', user.uid, 'transactions', id), stripUndefined(data));
+  }, [user]);
 
   // Materialize overdue recurring occurrences: create the realized instances and
   // advance their templates to the next date. NON-DESTRUCTIVE — never deletes
@@ -274,7 +284,7 @@ export function useTransactions(user: User | null, accounts: AccountDef[] = [], 
 
   return {
     transactions, allTransactions: rawTransactions, loading, synced, error,
-    addTransaction, addTransactions, replaceGroup, materializeRecurring,
+    addTransaction, addTransactions, replaceGroup, replaceInPlace, materializeRecurring,
     updateTransaction, updateTransactions,
     deleteTransaction, deleteTransactions, deleteAll,
     ...derived,

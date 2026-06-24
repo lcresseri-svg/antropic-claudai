@@ -313,9 +313,24 @@ function Main({ user, onLogOut, onDeleteAccount }: {
     ? tx.transactions.filter(t => t.groupId === editing.groupId && t.id !== editing.id)
     : [];
 
+  // Series start (earliest occurrence) shown read-only when editing the whole
+  // series — resolved from the FULL set so an ended series still finds its start.
+  const seriesStartDate = (seriesEdit && editing)
+    ? tx.allTransactions
+        .filter(t => (t.seriesId ?? t.id) === (editing.seriesId ?? editing.id))
+        .reduce<string>((min, t) => (t.date < min ? t.date : min), editing.date)
+    : undefined;
+
   const handleSave = (deleteIds: string[], create: Omit<Transaction, 'id'>[]) => {
-    tx.replaceGroup(deleteIds, create);
-    // metrics: count brand-new adds only — edits delete+recreate (editing set).
+    // Simple single-document edit → update IN PLACE (same id, no delete), so an
+    // already-inserted transaction is never removed by the code. Group restructures
+    // (split expense / commission → multiple docs) still go through replaceGroup.
+    if (editing && deleteIds.length === 1 && deleteIds[0] === editing.id && create.length === 1) {
+      tx.replaceInPlace(editing.id, { ...create[0], createdAt: editing.createdAt ?? Date.now() });
+    } else {
+      tx.replaceGroup(deleteIds, create);
+    }
+    // metrics: count brand-new adds only.
     if (!editing) logEvent(user.uid, 'tx_add');
   };
 
@@ -579,7 +594,7 @@ function Main({ user, onLogOut, onDeleteAccount }: {
 
       <TransactionModal
         open={modalOpen} editing={editing} groupTransfers={groupTransfers} seriesEdit={seriesEdit}
-        defaultType={defaultType} recognize={recognize ?? undefined}
+        defaultType={defaultType} recognize={recognize ?? undefined} seriesStartDate={seriesStartDate}
         onClose={() => setModalOpen(false)}
         onSave={handleSave}
       />
