@@ -7,7 +7,7 @@ import { SettingsProvider, useSettings } from './shared/providers/settings';
 import { useBudget } from './shared/hooks/useBudget';
 import { Transaction, TransactionType } from './types';
 import { greeting } from './utils';
-import { buildProjectedOccurrences, catchUpRecurring } from './shared/recurrence';
+import { buildProjectedOccurrences, catchUpRecurring, seriesInstanceUpdates } from './shared/recurrence';
 import { db } from './lib/firebase';
 import { useOnboarding } from './features/onboarding/useOnboarding';
 import { OnboardingScreen } from './features/onboarding/OnboardingScreen';
@@ -326,7 +326,17 @@ function Main({ user, onLogOut, onDeleteAccount }: {
     // already-inserted transaction is never removed by the code. Group restructures
     // (split expense / commission → multiple docs) still go through replaceGroup.
     if (editing && deleteIds.length === 1 && deleteIds[0] === editing.id && create.length === 1) {
-      tx.replaceInPlace(editing.id, { ...create[0], createdAt: editing.createdAt ?? Date.now() });
+      const payload = { ...create[0], createdAt: editing.createdAt ?? Date.now() };
+      tx.replaceInPlace(editing.id, payload);
+      // Editing the whole SERIES propagates the change to every already-recorded
+      // ("contabilizzata") occurrence too — not just the template + future
+      // projections. Each occurrence keeps its OWN date/id/link; only the content
+      // changes. In place (setDoc, same id), so nothing is ever deleted.
+      if (seriesEdit) {
+        for (const u of seriesInstanceUpdates(tx.allTransactions, editing, payload)) {
+          tx.replaceInPlace(u.id, u.data);
+        }
+      }
     } else {
       tx.replaceGroup(deleteIds, create);
     }
