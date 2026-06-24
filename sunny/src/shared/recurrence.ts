@@ -190,6 +190,11 @@ export function shouldExpandOnSave(
  * Idempotent & race-safe: occurrences already materialized (an instance with the
  * same seriesId + date exists) are skipped, so it never duplicates what the
  * Cloud Function — or another device — already wrote.
+ *
+ * NON-DESTRUCTIVE: never deletes anything. A series that reaches its end is
+ * advanced one step past `until`, turning its template into an *expired* doc
+ * (kept in Firestore, hidden from lists/totals via isExpiredTemplate, still
+ * resolvable for "edit the whole series"). Nothing is ever removed.
  */
 export function catchUpRecurring(
   transactions: Transaction[],
@@ -197,8 +202,6 @@ export function catchUpRecurring(
 ): {
   creates: Omit<Transaction, 'id'>[];
   advance: { id: string; date: string; seriesId: string }[];
-  /** Template doc ids to DELETE: orphaned templates that ran past their `until`. */
-  remove: string[];
 } {
   // Occurrences already stored as realized instances (seriesId + date).
   const have = new Set<string>();
@@ -207,14 +210,13 @@ export function catchUpRecurring(
   }
   const creates: Omit<Transaction, 'id'>[] = [];
   const advance: { id: string; date: string; seriesId: string }[] = [];
-  const remove: string[] = [];
   for (const t of transactions) {
     const rule = t.recurring;
     if (!rule) continue;
     const seriesId = t.seriesId ?? t.id;
-    // Orphaned template: already advanced past its own end bound (e.g. the user
-    // set `until` below the next occurrence) → delete it, no occurrence remains.
-    if (rule.until && t.date > rule.until) { remove.push(t.id); continue; }
+    // Already past its end: nothing left to materialize. Leave the (expired)
+    // template untouched — never delete it.
+    if (rule.until && t.date > rule.until) continue;
     if (t.date > todayISO) continue; // next occurrence still in the future → nothing due
     let date = t.date;
     let guard = 400;
@@ -228,12 +230,11 @@ export function catchUpRecurring(
       }
       date = addPeriod(date, rule.freq);
     }
-    // If the series has run out (next occurrence past `until`), drop the template
-    // instead of advancing it past the end date; otherwise advance as usual.
-    if (rule.until && date > rule.until) remove.push(t.id);
-    else advance.push({ id: t.id, date, seriesId });
+    // Always advance the template to its next date — even if that is past `until`
+    // (it then becomes an expired, hidden template). We never delete it.
+    advance.push({ id: t.id, date, seriesId });
   }
-  return { creates, advance, remove };
+  return { creates, advance };
 }
 
 /**

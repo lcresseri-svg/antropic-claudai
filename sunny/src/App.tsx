@@ -268,14 +268,16 @@ function Main({ user, onLogOut, onDeleteAccount }: {
     if (!tx.synced || caughtUp.current) return;
     caughtUp.current = true;
     const todayISO = new Date().toISOString().slice(0, 10);
-    const { creates, advance, remove } = catchUpRecurring(tx.transactions, todayISO);
-    if (creates.length || advance.length || remove.length) tx.materializeRecurring(creates, advance, remove);
+    const { creates, advance } = catchUpRecurring(tx.transactions, todayISO);
+    if (creates.length || advance.length) tx.materializeRecurring(creates, advance);
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [tx.synced]);
 
   // Resolve the template (series anchor) for any occurrence carrying a seriesId.
+  // Searches the FULL set (allTransactions) so an ENDED series — whose template
+  // is an expired, hidden doc — is still found and stays editable as a series.
   const findTemplate = (t: Transaction): Transaction | undefined =>
-    tx.transactions.find(x => x.recurring && (x.seriesId ?? x.id) === (t.seriesId ?? t.id));
+    tx.allTransactions.find(x => x.recurring && (x.seriesId ?? x.id) === (t.seriesId ?? t.id));
 
   const startEdit = (t: Transaction, asSeries: boolean) => {
     setEditing(t); setSeriesEdit(asSeries); setModalOpen(true);
@@ -311,9 +313,24 @@ function Main({ user, onLogOut, onDeleteAccount }: {
     ? tx.transactions.filter(t => t.groupId === editing.groupId && t.id !== editing.id)
     : [];
 
+  // Series start (earliest occurrence) shown read-only when editing the whole
+  // series — resolved from the FULL set so an ended series still finds its start.
+  const seriesStartDate = (seriesEdit && editing)
+    ? tx.allTransactions
+        .filter(t => (t.seriesId ?? t.id) === (editing.seriesId ?? editing.id))
+        .reduce<string>((min, t) => (t.date < min ? t.date : min), editing.date)
+    : undefined;
+
   const handleSave = (deleteIds: string[], create: Omit<Transaction, 'id'>[]) => {
-    tx.replaceGroup(deleteIds, create);
-    // metrics: count brand-new adds only — edits delete+recreate (editing set).
+    // Simple single-document edit → update IN PLACE (same id, no delete), so an
+    // already-inserted transaction is never removed by the code. Group restructures
+    // (split expense / commission → multiple docs) still go through replaceGroup.
+    if (editing && deleteIds.length === 1 && deleteIds[0] === editing.id && create.length === 1) {
+      tx.replaceInPlace(editing.id, { ...create[0], createdAt: editing.createdAt ?? Date.now() });
+    } else {
+      tx.replaceGroup(deleteIds, create);
+    }
+    // metrics: count brand-new adds only.
     if (!editing) logEvent(user.uid, 'tx_add');
   };
 
@@ -577,7 +594,7 @@ function Main({ user, onLogOut, onDeleteAccount }: {
 
       <TransactionModal
         open={modalOpen} editing={editing} groupTransfers={groupTransfers} seriesEdit={seriesEdit}
-        defaultType={defaultType} recognize={recognize ?? undefined}
+        defaultType={defaultType} recognize={recognize ?? undefined} seriesStartDate={seriesStartDate}
         onClose={() => setModalOpen(false)}
         onSave={handleSave}
       />

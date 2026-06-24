@@ -1,11 +1,11 @@
 import { useState, useEffect, useCallback, useMemo } from 'react';
 import {
   collection, query, orderBy, onSnapshot,
-  addDoc, deleteDoc, doc, updateDoc, writeBatch,
+  addDoc, deleteDoc, doc, setDoc, updateDoc, writeBatch,
 } from 'firebase/firestore';
 import { User } from 'firebase/auth';
 import { AccountDef, CategoryDef, Transaction, TransactionPatch, ownShare, investSign } from '../../types';
-import { isPending } from '../recurrence';
+import { isPending, isExpiredTemplate } from '../recurrence';
 import { db } from '../../lib/firebase';
 
 // Recursively drop `undefined` values — Firestore rejects writes that contain
@@ -23,14 +23,24 @@ function stripUndefined<T>(obj: T): T {
 }
 
 export function useTransactions(user: User | null, accounts: AccountDef[] = [], includeInvestments = true, categories: CategoryDef[] = [], enableInvestments = true) {
-  const [transactions, setTransactions] = useState<Transaction[]>([]);
+  const [rawTransactions, setRawTransactions] = useState<Transaction[]>([]);
   const [loading, setLoading] = useState(true);
   const [synced, setSynced] = useState(false); // true once a SERVER snapshot (not cache) lands
   const [error, setError] = useState<string | null>(null);
 
+  // Expired recurring templates (a series advanced past its `until`) are KEPT in
+  // Firestore — never deleted — so an ended series stays resolvable/editable as a
+  // series. But they must never appear as a row or feed totals/balances, so the
+  // array the whole app consumes hides them. `allTransactions` keeps the full set
+  // for series resolution (findTemplate).
+  const transactions = useMemo(
+    () => rawTransactions.filter(t => !isExpiredTemplate(t)),
+    [rawTransactions],
+  );
+
   useEffect(() => {
     if (!user) {
-      setTransactions([]);
+      setRawTransactions([]);
       setLoading(false);
       setSynced(false);
       return;
@@ -41,7 +51,7 @@ export function useTransactions(user: User | null, accounts: AccountDef[] = [], 
     const q = query(col, orderBy('date', 'desc'));
     return onSnapshot(q, { includeMetadataChanges: true },
       snap => {
-        setTransactions(snap.docs.map(d => ({ id: d.id, ...(d.data() as Omit<Transaction, 'id'>) })));
+        setRawTransactions(snap.docs.map(d => ({ id: d.id, ...(d.data() as Omit<Transaction, 'id'>) })));
         setError(null);
         setLoading(false);
         // Only mark "synced" on server-confirmed data — running the recurring
@@ -93,9 +103,19 @@ export function useTransactions(user: User | null, accounts: AccountDef[] = [], 
     batch.commit();
   }, [user, colRef]);
 
-  // Materialize overdue recurring occurrences: create the realized instances,
-  // advance their templates to the next future date, and delete templates that
-  // ran past their `until`.
+  // Edit a SINGLE document in place: overwrite the SAME doc id (setDoc, no merge)
+  // instead of delete+recreate, so an already-inserted transaction is never
+  // removed by an edit — only its contents change (and its id/createdAt survive).
+  // Used for plain edits and series-template edits; group restructures (split /
+  // commission) still go through replaceGroup.
+  const replaceInPlace = useCallback((id: string, data: Omit<Transaction, 'id'>) => {
+    if (!user) return;
+    setDoc(doc(db, 'users', user.uid, 'transactions', id), stripUndefined(data));
+  }, [user]);
+
+  // Materialize overdue recurring occurrences: create the realized instances and
+  // advance their templates to the next date. NON-DESTRUCTIVE — never deletes
+  // (an ended series' template is just advanced past `until` → expired/hidden).
   //
   // INDEPENDENT writes (not one atomic batch): a single un-chunked batch is
   // all-or-nothing AND silently swallows errors, so ONE malformed template
@@ -108,9 +128,8 @@ export function useTransactions(user: User | null, accounts: AccountDef[] = [], 
   const materializeRecurring = useCallback(async (
     creates: Omit<Transaction, 'id'>[],
     advance: { id: string; date: string; seriesId: string }[],
-    remove: string[] = [],
   ) => {
-    if (!user || (creates.length === 0 && advance.length === 0 && remove.length === 0)) return;
+    if (!user || (creates.length === 0 && advance.length === 0)) return;
     const log = (tag: string) => (e: unknown) =>
       console.error(`materializeRecurring: ${tag} failed`, (e as { code?: string })?.code ?? e);
 
@@ -118,13 +137,11 @@ export function useTransactions(user: User | null, accounts: AccountDef[] = [], 
     await Promise.allSettled(
       creates.map(tx => addDoc(colRef(), stripUndefined(withCreatedAt(tx))).catch(log('create'))),
     );
-    // 2) Advance live templates + delete ended ones (after the instances exist).
-    await Promise.allSettled([
-      ...advance.map(a =>
+    // 2) Advance the templates (after the instances exist). No deletions.
+    await Promise.allSettled(
+      advance.map(a =>
         updateDoc(doc(db, 'users', user.uid, 'transactions', a.id), { date: a.date, seriesId: a.seriesId }).catch(log('advance'))),
-      ...remove.map(id =>
-        deleteDoc(doc(db, 'users', user.uid, 'transactions', id)).catch(log('remove'))),
-    ]);
+    );
   }, [user, colRef]);
 
   const updateTransaction = useCallback((id: string, patch: Partial<Omit<Transaction, 'id'>>) => {
@@ -154,13 +171,15 @@ export function useTransactions(user: User | null, accounts: AccountDef[] = [], 
 
   const deleteAll = useCallback(async () => {
     if (!user) return;
-    const ids = transactions.map(t => t.id);
+    // Use the RAW set so a manual "delete everything" also clears expired
+    // templates (which are hidden from `transactions`).
+    const ids = rawTransactions.map(t => t.id);
     for (let i = 0; i < ids.length; i += 450) {
       const batch = writeBatch(db);
       ids.slice(i, i + 450).forEach(id => batch.delete(doc(db, 'users', user.uid, 'transactions', id)));
       await batch.commit();
     }
-  }, [user, transactions]);
+  }, [user, rawTransactions]);
 
   // ── Derived ────────────────────────────────────────────────────────────────
   const derived = useMemo(() => {
@@ -264,8 +283,8 @@ export function useTransactions(user: User | null, accounts: AccountDef[] = [], 
   }, [transactions, accounts, includeInvestments, categories, enableInvestments]);
 
   return {
-    transactions, loading, synced, error,
-    addTransaction, addTransactions, replaceGroup, materializeRecurring,
+    transactions, allTransactions: rawTransactions, loading, synced, error,
+    addTransaction, addTransactions, replaceGroup, replaceInPlace, materializeRecurring,
     updateTransaction, updateTransactions,
     deleteTransaction, deleteTransactions, deleteAll,
     ...derived,

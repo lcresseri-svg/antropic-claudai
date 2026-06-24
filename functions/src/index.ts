@@ -219,22 +219,15 @@ export const processRecurringTransactions = onSchedule(
         }
 
         if (advanced) {
-          if (recurring.until && date > recurring.until) {
-            // The series reached its end this run: delete the template instead of
-            // advancing it past `until` (which would leave an orphan "Programmato").
-            batch.delete(doc.ref);
-            console.log(`processRecurringTransactions: series ${doc.id} (user ${userId}) ended (until=${recurring.until}); template deleted`);
-          } else {
-            // Advance the template to its next future occurrence; backfill seriesId.
-            batch.update(doc.ref, { date, seriesId });
-          }
+          // Always advance the template to its next date — even past `until`, in
+          // which case it becomes an EXPIRED template (kept in Firestore, hidden
+          // from the client's lists/totals, still resolvable as a series).
+          // NON-DESTRUCTIVE: we never delete templates here.
+          batch.update(doc.ref, { date, seriesId });
           await batch.commit();
-        } else if (recurring.until && date > recurring.until) {
-          // Orphan template already sitting past its end bound (e.g. the user lowered
-          // `until` below the next occurrence on a series edit) → clean it up.
-          await doc.ref.delete();
-          console.log(`processRecurringTransactions: deleted expired orphan template ${doc.id} (user ${userId}, until=${recurring.until})`);
         }
+        // An orphan template already past `until` is left in place (expired/hidden);
+        // it is intentionally NOT deleted.
       } catch (err) {
         console.error(`processRecurringTransactions: failed for template ${doc.id} (user ${userId}):`, err);
       }

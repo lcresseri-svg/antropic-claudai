@@ -91,24 +91,22 @@ describe('catchUpRecurring', () => {
     expect(creates.map(c => c.date)).toEqual(['2026-06-04']); // only the missing one
   });
 
-  it('deletes an orphan template advanced past its until (e.g. until lowered on edit)', () => {
-    // User set until=2026-05-31 but the template still sits at its next occurrence
-    // 2026-07-04 (future, past until) → no occurrence remains: delete it.
+  it('leaves an orphan template past its until untouched (non-destructive, no delete)', () => {
+    // until=2026-05-31 but the template still sits at 2026-07-04 (past until) →
+    // nothing to materialize; the expired template is left as-is, never removed.
     const txs = [t({ id: 'orph', date: '2026-07-04', recurring: { freq: 'monthly', until: '2026-05-31' }, seriesId: 's' })];
-    const { creates, advance, remove } = catchUpRecurring(txs, TODAY);
+    const { creates, advance } = catchUpRecurring(txs, TODAY);
     expect(creates).toHaveLength(0);
     expect(advance).toHaveLength(0);
-    expect(remove).toEqual(['orph']);
   });
 
-  it('drops the template (no advance past until) when a series reaches its end', () => {
-    // Due Apr 4, until May 31: materialize Apr & May, then the next step (Jun 4)
-    // is still <= today but > until → series done, delete template, do not advance.
+  it('advances the template past until (expired, hidden) when a series ends — never deletes', () => {
+    // Due Apr 4, until May 31: materialize Apr & May, then advance the template to
+    // Jun 4 (> until). It becomes an expired (hidden) template, but is NOT deleted.
     const txs = [t({ id: 'tpl', date: '2026-04-04', recurring: { freq: 'monthly', until: '2026-05-31' }, seriesId: 's' })];
-    const { creates, advance, remove } = catchUpRecurring(txs, TODAY);
+    const { creates, advance } = catchUpRecurring(txs, TODAY);
     expect(creates.map(c => c.date)).toEqual(['2026-04-04', '2026-05-04']);
-    expect(advance).toHaveLength(0);
-    expect(remove).toEqual(['tpl']);
+    expect(advance).toEqual([{ id: 'tpl', date: '2026-06-04', seriesId: 's' }]);
   });
 });
 
