@@ -268,14 +268,16 @@ function Main({ user, onLogOut, onDeleteAccount }: {
     if (!tx.synced || caughtUp.current) return;
     caughtUp.current = true;
     const todayISO = new Date().toISOString().slice(0, 10);
-    const { creates, advance, remove } = catchUpRecurring(tx.transactions, todayISO);
-    if (creates.length || advance.length || remove.length) tx.materializeRecurring(creates, advance, remove);
+    const { creates, advance } = catchUpRecurring(tx.transactions, todayISO);
+    if (creates.length || advance.length) tx.materializeRecurring(creates, advance);
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [tx.synced]);
 
   // Resolve the template (series anchor) for any occurrence carrying a seriesId.
+  // Searches the FULL set (allTransactions) so an ENDED series — whose template
+  // is an expired, hidden doc — is still found and stays editable as a series.
   const findTemplate = (t: Transaction): Transaction | undefined =>
-    tx.transactions.find(x => x.recurring && (x.seriesId ?? x.id) === (t.seriesId ?? t.id));
+    tx.allTransactions.find(x => x.recurring && (x.seriesId ?? x.id) === (t.seriesId ?? t.id));
 
   const startEdit = (t: Transaction, asSeries: boolean) => {
     setEditing(t); setSeriesEdit(asSeries); setModalOpen(true);

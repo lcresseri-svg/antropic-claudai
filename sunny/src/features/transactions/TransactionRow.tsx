@@ -53,7 +53,9 @@ export function TransactionRow({ tx, selectable, selected, upcoming, onToggle, o
         <p className="text-xs text-secondary mt-0.5 truncate">
           {formatDateFull(tx.date)} · {acc.label}
           {isTransfer && tx.toAccount && ` → ${getAcc(tx.toAccount).label}`}
-          {isProjected ? ' · 🗓️' : tx.recurring && ' · 🔁'}
+          {/* 🔁 on every recorded occurrence of a series (incl. old ones — they
+              carry seriesId even though the recurring rule lives on the template). */}
+          {isProjected ? ' · 🗓️' : (tx.recurring || tx.seriesId) ? ' · 🔁' : ''}
         </p>
       </div>
 
