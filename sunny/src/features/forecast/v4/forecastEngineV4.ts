@@ -33,7 +33,7 @@ import {
   ReliabilitySampleV4,
 } from './forecastBudgetSignalV4';
 import {
-  monthKey as monthKeyOf, isoDate, LARGE_EXPENSE_THRESHOLD, median,
+  monthKey as monthKeyOf, isoDate, LARGE_EXPENSE_THRESHOLD, median, isFixedCategory,
 } from './forecastV4Common';
 
 export const FORECAST_V4_WARNING =
@@ -222,14 +222,27 @@ export function computeForecastV4(input: ForecastV4Input): ForecastV4Result {
       explainedByDeterministic,
     });
 
-    // Apply the signal, then damp it when the target budget isn't confirmed:
-    // halve for planned-like categories, zero for purely-discretionary ones.
-    let budgetSignalAdjustment = applyBudgetSignal ? signal.adjustment : 0;
+    // FIXED / committed categories (loan instalment, subscription, insurance,
+    // rent…): the spend is deterministic, so the budget is a FLOOR the forecast
+    // should COINCIDE with — never an additive signal summed on top of the
+    // already-planned amount (that double-counts: planned 300 + budget 300 = 600).
+    // VARIABLE categories keep the reliability-weighted budget-as-signal "top-up".
+    const fixedCategory = isFixedCategory(categoryLabel);
+    let budgetSignalAdjustment: number;
     let dampedUnconfirmed = false;
-    if (budgetSignalAdjustment > 0 && !budgetConfirmed) {
-      const plannedLike = (planned + recurring + seasonal) > 0;
-      budgetSignalAdjustment = plannedLike ? Math.round(budgetSignalAdjustment * 0.5) : 0;
-      dampedUnconfirmed = true;
+    if (fixedCategory) {
+      budgetSignalAdjustment = (applyBudgetSignal && budget > 0)
+        ? Math.max(0, budget - forecastBeforeBudget) // floor to budget, no top-up
+        : 0;
+    } else {
+      // Apply the signal, then damp it when the target budget isn't confirmed:
+      // halve for planned-like categories, zero for purely-discretionary ones.
+      budgetSignalAdjustment = applyBudgetSignal ? signal.adjustment : 0;
+      if (budgetSignalAdjustment > 0 && !budgetConfirmed) {
+        const plannedLike = (planned + recurring + seasonal) > 0;
+        budgetSignalAdjustment = plannedLike ? Math.round(budgetSignalAdjustment * 0.5) : 0;
+        dampedUnconfirmed = true;
+      }
     }
 
     // Per-category budget provenance.
@@ -275,10 +288,12 @@ export function computeForecastV4(input: ForecastV4Input): ForecastV4Result {
     if (residual > 0) reasons.push('Residuo statistico P60');
     if (residualRes.staleDecayApplied) reasons.push('Categoria stale: residuo ridotto');
     if (budgetSignalAdjustment > 0) {
-      reasons.push(budgetConfirmed
-        ? 'Budget superiore alla previsione statistica'
-        : 'Budget (non confermato) superiore alla previsione — segnale ridotto');
-    } else if (budget > 0 && signal.gap > 0) {
+      reasons.push(fixedCategory
+        ? 'Categoria fissa: previsto allineato al budget (programmato)'
+        : budgetConfirmed
+          ? 'Budget superiore alla previsione statistica'
+          : 'Budget (non confermato) superiore alla previsione — segnale ridotto');
+    } else if (!fixedCategory && budget > 0 && signal.gap > 0) {
       reasons.push(dampedUnconfirmed ? 'Budget non confermato: segnale azzerato' : signal.reason);
     }
 
