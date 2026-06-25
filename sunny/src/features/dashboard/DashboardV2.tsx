@@ -13,6 +13,7 @@ import { InsightTicker } from '../insights/InsightTicker';
 import { useSettings } from '../../shared/providers/settings';
 import { buildInsights } from '../insights/insightsEngine';
 import { isPending } from '../../shared/recurrence';
+import { OutflowInfo } from '../../shared/components/OutflowInfo';
 
 interface Props {
   greeting?: string;
@@ -41,7 +42,7 @@ interface Props {
 
 export function DashboardV2(p: Props) {
   const navigate = useNavigate();
-  const { enableInvestments, getCat, insightDepth, visibleCategories } = useSettings();
+  const { enableInvestments, countInvestmentsInExpenses, getCat, insightDepth, visibleCategories } = useSettings();
   const [accMode, setAccMode] = useState<'balance' | 'spending'>('balance');
 
   // Current-month derived values (period selector moved to CategorySpendingScreen)
@@ -64,7 +65,12 @@ export function DashboardV2(p: Props) {
     return { currentMonthCategoryTotals: categoryTotals, currentMonthExpenseByAccount: expenseByAccount };
   }, [p.transactions]);
 
-  const savings = p.monthlyIncome - p.monthlyExpenses;
+  // When the user opts to count investments inside the "Uscite" total, the monthly
+  // outflow becomes expenses + net invested; "Risparmio" stays Entrate − Uscite so
+  // the three cards reconcile. Off (default) keeps the previous behaviour.
+  const countInvest = enableInvestments && countInvestmentsInExpenses;
+  const monthlyOutflow = countInvest ? p.monthlyExpenses + p.monthlyInvestments : p.monthlyExpenses;
+  const savings = p.monthlyIncome - monthlyOutflow;
 
   const insights = useMemo(() =>
     buildInsights({
@@ -125,7 +131,8 @@ export function DashboardV2(p: Props) {
         <p className="label-caps text-secondary mb-3 px-0.5">Questo mese</p>
         <div className="grid grid-cols-3 gap-2">
           <MonthStatCard label="Entrate"  value={p.monthlyIncome}    colorClass="text-green" />
-          <MonthStatCard label="Uscite"   value={p.monthlyExpenses}  colorClass="text-secondary" />
+          <MonthStatCard label="Uscite"   value={monthlyOutflow}     colorClass="text-secondary"
+            info={countInvest ? <OutflowInfo expenses={p.monthlyExpenses} investments={p.monthlyInvestments} /> : undefined} />
           <MonthStatCard
             label="Risparmio"
             value={savings}
@@ -189,14 +196,17 @@ export function DashboardV2(p: Props) {
   );
 }
 
-function MonthStatCard({ label, value, colorClass }: {
+function MonthStatCard({ label, value, colorClass, info }: {
   label: string;
   value: number;
   colorClass: string;
+  info?: React.ReactNode;
 }) {
   return (
     <div className="glass-card rounded-2xl px-3.5 py-4">
-      <p className="label-caps text-secondary mb-2.5">{label}</p>
+      <p className="label-caps text-secondary mb-2.5 flex items-center gap-1">
+        {label}{info}
+      </p>
       <p className={`text-[15px] font-semibold balance-num truncate ${colorClass}`}>
         {formatCurrency(value)}
       </p>
