@@ -1,7 +1,7 @@
 import { Transaction, CategoryDef, ownShare, investSign } from '../../types';
 import { formatCurrency, capitalize } from '../../utils';
 import { monthProgress, forecastSavings, seasonalMonthlyAverage, seasonalVariableMonthly, robustAvg } from '../budget/budgetUtils';
-import { forecastSavingsV3, computeForecastV3 } from '../forecast/forecastEngineV3';
+import { forecastSavingsV4 } from '../forecast/v4/forecastCompatV4';
 import { mad } from '../forecast/forecastStats';
 import { addPeriod, recurringMonthlyEquivalent, upcomingPlannedThisMonth, upcomingRecurringThisMonth, isPending } from '../../shared/recurrence';
 
@@ -305,12 +305,12 @@ export interface InsightInput {
   depth?: InsightDepth;
   now?: Date;
   /**
-   * When provided, the end-of-month forecast uses Forecast Engine V3 (the same
+   * When provided, the end-of-month forecast uses Forecast Engine V4 (the same
    * engine the Budget screen uses). When omitted, the engine falls back to the
    * lightweight forecastSavings() heuristic in budgetUtils. Every in-app caller
-   * passes this, so V3 is the live path for all cards.
+   * passes this, so V4 is the live path for all cards.
    */
-  forecastV3Categories?: CategoryDef[];
+  forecastExpenseCategories?: CategoryDef[];
   /**
    * Current investment portfolio snapshot, used by the portfolio-performance and
    * net-worth insights. `controvalore` = current market value, `versato` = net
@@ -557,10 +557,10 @@ export function buildInsights(input: InsightInput): Insight[] {
       variableSpent += ownShare(t);
     }
 
-    const f = input.forecastV3Categories
-      ? forecastSavingsV3({
+    const f = input.forecastExpenseCategories
+      ? forecastSavingsV4({
           transactions: allTx,
-          expenseCategories: input.forecastV3Categories,
+          expenseCategories: input.forecastExpenseCategories,
           monthlyIncome, monthlyInvestments,
           avgIncome: h.avgIncome, avgInvest: h.avgInvest,
           upcomingIncome, upcomingInvest, now,
@@ -1611,22 +1611,29 @@ export function buildInsights(input: InsightInput): Insight[] {
   // ══ FASE 4 — admin-only advanced insights ═════════════════════════════════
   // All gated behind input.isAdmin (the same allowlist as Forecast V3).
 
-  // ── 45. TREND — Unpredictable categories (V3 confidence) ─────────────────
-  if (input.isAdmin && input.forecastV3Categories && input.forecastV3Categories.length > 0) {
-    const r = computeForecastV3({
-      transactions: allTx,
-      expenseCategories: input.forecastV3Categories,
-      monthlyIncome: 0, monthlyInvestments: 0, now,
-    });
-    const unpredictable = r.categories.filter(c =>
-      c.projected > 0 && (
-        c.behavior === 'rare_variable' ||
-        ((c.behavior === 'variable_frequent' || c.behavior === 'variable_sparse' || c.behavior === 'volatile_mixed')
-          && c.behaviorResult.confidence === 'low')
-      ),
-    );
+  // ── 45. TREND — Unpredictable categories (sparse / irregular) ─────────────
+  // Engine-independent: flags expense categories that show up in only a few of
+  // the last 12 months (rare, irregular spend), so their end-of-month estimate is
+  // inherently soft. Replaces the old V3 behavioural classification.
+  if (input.isAdmin && input.forecastExpenseCategories && input.forecastExpenseCategories.length > 0) {
+    const catIds = new Set(input.forecastExpenseCategories.map(c => c.id));
+    const windowKeys = new Set<string>();
+    for (let i = 0; i < 12; i++) windowKeys.add(monthKey(i, now));
+    const stat = new Map<string, { months: Set<string>; count: number; total: number }>();
+    for (const t of transactions) {
+      if (t.type !== 'expense' || !catIds.has(t.category)) continue;
+      const k = t.date.slice(0, 7);
+      if (!windowKeys.has(k)) continue;
+      const e = stat.get(t.category) ?? { months: new Set<string>(), count: 0, total: 0 };
+      e.months.add(k); e.count += 1; e.total += ownShare(t);
+      stat.set(t.category, e);
+    }
+    // Rare/irregular = present in ≤ 40% of the window's months, with ≥ 2 occurrences.
+    const unpredictable = [...stat.entries()]
+      .filter(([, e]) => e.total > 0 && e.count >= 2 && e.months.size / windowKeys.size <= 0.4)
+      .map(([categoryId, e]) => ({ categoryId, total: e.total }));
     if (unpredictable.length > 0) {
-      const top = [...unpredictable].sort((a, b) => b.projected - a.projected).slice(0, 3);
+      const top = [...unpredictable].sort((a, b) => b.total - a.total).slice(0, 3);
       const names = top.map(c => getCat(c.categoryId).label).join(', ');
       push({
         icon: '🎲', category: 'trend',
@@ -1636,8 +1643,8 @@ export function buildInsights(input: InsightInput): Insight[] {
         tone: 'neutral',
         explain: {
           what: 'Categorie in cui la spesa è difficile da prevedere: poche occorrenze o forte variabilità, quindi le stime sono meno affidabili.',
-          how: 'Uso la classificazione del motore di previsione V3: categorie "rare" oppure variabili con bassa confidenza nel comportamento.',
-          basis: 'Classificazione comportamentale V3 sulle categorie di spesa.',
+          how: 'Uso la confidenza del motore di previsione V4: categorie la cui stima è classificata a bassa confidenza.',
+          basis: 'Confidenza per categoria del motore V4 sulle categorie di spesa.',
         },
       }, 'advanced');
     }

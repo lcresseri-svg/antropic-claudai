@@ -19,7 +19,7 @@ export function Insights({ transactions, monthlyIncome, monthlyExpenses, monthly
 
   const insights = buildInsights({
     transactions, monthlyIncome, monthlyExpenses, monthlyInvestments, getCat,
-    forecastV3Categories: visibleCategories.filter(c => c.kind === 'expense'),
+    forecastExpenseCategories: visibleCategories.filter(c => c.kind === 'expense'),
   }).slice(0, limit);
 
   return (

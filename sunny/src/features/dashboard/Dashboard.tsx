@@ -106,7 +106,7 @@ export function Dashboard(p: Props) {
       monthlyInvestments: p.monthlyInvestments,
       getCat,
       depth: insightDepth,
-      forecastV3Categories: visibleCategories.filter(c => c.kind === 'expense'),
+      forecastExpenseCategories: visibleCategories.filter(c => c.kind === 'expense'),
       portfolio: p.portfolio,
     }),
   [p.transactions, p.monthlyIncome, p.monthlyExpenses, p.monthlyInvestments, getCat, insightDepth, visibleCategories, p.portfolio]);

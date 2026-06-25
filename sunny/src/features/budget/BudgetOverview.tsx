@@ -13,6 +13,11 @@ interface Props {
   forecastExpenses?: number;
   forecastInvestments?: number;
   forecastSavings?: number;
+  /** Header label, e.g. "Giugno 2026". Defaults to the current month. */
+  monthLabel?: string;
+  /** Caption for the forecast column. Defaults to "Previsto" (use "Consuntivo"
+   *  for a completed past month, whose figures are actuals, not a forecast). */
+  forecastColLabel?: string;
 }
 
 /** Top-of-page snapshot of the month's plan. Each metric is shown twice:
@@ -22,6 +27,7 @@ interface Props {
 export function BudgetOverview({
   plannedIncome, plannedExpenses, plannedInvestments, showInvest = true,
   forecastIncome, forecastExpenses, forecastInvestments, forecastSavings,
+  monthLabel, forecastColLabel,
 }: Props) {
   const effectiveInvest = showInvest ? plannedInvestments : 0;
   const leftover = plannedIncome - plannedExpenses - effectiveInvest;
@@ -33,7 +39,7 @@ export function BudgetOverview({
 
   return (
     <div className="glass-card rounded-2xl p-5">
-      <p className="label-caps text-secondary mb-4">Piano di {capitalize(currentMonthLabel())}</p>
+      <p className="label-caps text-secondary mb-4">Piano di {monthLabel ?? capitalize(currentMonthLabel())}</p>
 
       {/* Stacked plan bar — based on the planned ("Programmato") figures */}
       <div className="h-2.5 rounded-full overflow-hidden flex" style={{ backgroundColor: 'var(--progress-track)' }}>
@@ -48,7 +54,7 @@ export function BudgetOverview({
           <>
             <span />
             <Caption>Programmato</Caption>
-            <Caption>Previsto</Caption>
+            <Caption>{forecastColLabel ?? 'Previsto'}</Caption>
           </>
         )}
 
