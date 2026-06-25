@@ -2,10 +2,13 @@ import { useState } from 'react';
 import { formatCurrency } from '../../utils';
 import { useSettings } from '../../shared/providers/settings';
 import { ProgressBar } from '../../shared/components';
+import { OutflowInfo } from '../../shared/components/OutflowInfo';
 
 interface Props {
   accountBalances: Record<string, number>;
   expenseByAccount: Record<string, number>;
+  /** Net invested out of each account this month (deposit +, withdrawal −). */
+  investByAccount?: Record<string, number>;
   mode: 'balance' | 'spending';
   onToggle: () => void;
   /** When set (balance mode), the header becomes an entry point to the "Saldo per conto" screen. */
@@ -14,10 +17,22 @@ interface Props {
 
 const COLLAPSED_COUNT = 3;
 
-export function AccountsCard({ accountBalances, expenseByAccount, mode, onToggle, onOpenDetail }: Props) {
-  const { accounts, getAcc } = useSettings();
+export function AccountsCard({ accountBalances, expenseByAccount, investByAccount = {}, mode, onToggle, onOpenDetail }: Props) {
+  const { accounts, getAcc, enableInvestments, countInvestmentsInExpenses } = useSettings();
   const [showAll, setShowAll] = useState(false);
-  const source = mode === 'balance' ? accountBalances : expenseByAccount;
+
+  // Same visibility logic as the "Uscite" totals: when the user opts to count
+  // investments inside the spese, fold each account's net invested into its
+  // spending total (with an ⓘ breakdown). Off → expenses only, as before.
+  const countInvest = enableInvestments && countInvestmentsInExpenses;
+  const spendingByAccount: Record<string, number> = countInvest
+    ? (() => {
+        const out: Record<string, number> = { ...expenseByAccount };
+        for (const id of Object.keys(investByAccount)) out[id] = (out[id] ?? 0) + investByAccount[id];
+        return out;
+      })()
+    : expenseByAccount;
+  const source = mode === 'balance' ? accountBalances : spendingByAccount;
 
   const entries = accounts
     .map(a => ({ acc: a, value: source[a.id] ?? 0 }))
@@ -34,7 +49,7 @@ export function AccountsCard({ accountBalances, expenseByAccount, mode, onToggle
   // keep the header + toggle visible so the user can switch back.
   const hasAnyData =
     Object.values(accountBalances).some(v => Math.abs(v) > 0.005) ||
-    Object.values(expenseByAccount).some(v => Math.abs(v) > 0.005);
+    Object.values(spendingByAccount).some(v => Math.abs(v) > 0.005);
   if (!hasAnyData) return null;
 
   const max = entries.length ? Math.max(...entries.map(e => Math.abs(e.value))) : 0;
@@ -69,6 +84,9 @@ export function AccountsCard({ accountBalances, expenseByAccount, mode, onToggle
             <div className="flex items-center gap-2.5 mb-1.5">
               <span className="w-7 h-7 rounded-xl flex items-center justify-center text-sm flex-shrink-0" style={{ backgroundColor: acc.color + '18' }}>{acc.icon}</span>
               <span className="text-[13px] text-primary flex-1 truncate">{acc.label}</span>
+              {mode === 'spending' && countInvest && (investByAccount[acc.id] ?? 0) !== 0 && (
+                <OutflowInfo expenses={expenseByAccount[acc.id] ?? 0} investments={investByAccount[acc.id] ?? 0} />
+              )}
               <span className={`text-[13px] font-semibold balance-num ${value < 0 && mode === 'balance' ? 'text-[#E08B8B]' : 'text-primary'}`}>
                 {formatCurrency(value)}
               </span>

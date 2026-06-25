@@ -2,7 +2,7 @@
 // once the admin beta is validated.
 import { useState, useMemo } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { Transaction, ownShare } from '../../types';
+import { Transaction, ownShare, investSign } from '../../types';
 import { formatCurrency } from '../../utils';
 import { CategoryCard } from './CategoryCard';
 import { AccountsCard } from './AccountsCard';
@@ -46,23 +46,28 @@ export function DashboardV2(p: Props) {
   const [accMode, setAccMode] = useState<'balance' | 'spending'>('balance');
 
   // Current-month derived values (period selector moved to CategorySpendingScreen)
-  const { currentMonthCategoryTotals, currentMonthExpenseByAccount } = useMemo(() => {
+  const { currentMonthCategoryTotals, currentMonthExpenseByAccount, currentMonthInvestByAccount } = useMemo(() => {
     const now = new Date();
     const cm = now.getMonth(), cy = now.getFullYear();
     const todayISO = now.toISOString().slice(0, 10);
     const categoryTotals: Record<string, number> = {};
     const expenseByAccount: Record<string, number> = {};
+    const investByAccount: Record<string, number> = {};
     for (const t of p.transactions) {
-      if (t.type !== 'expense') continue;
-      // Exclude planned/future expenses so the per-category breakdown matches the
-      // realized "Uscite" month total (same !isPending filter as useTransactions).
+      // Exclude planned/future movements so the breakdowns match the realized
+      // month totals (same !isPending filter as useTransactions).
       if (isPending(t, todayISO)) continue;
       const d = new Date(t.date);
       if (d.getMonth() !== cm || d.getFullYear() !== cy) continue;
-      categoryTotals[t.category] = (categoryTotals[t.category] ?? 0) + ownShare(t);
-      expenseByAccount[t.account] = (expenseByAccount[t.account] ?? 0) + ownShare(t);
+      if (t.type === 'expense') {
+        categoryTotals[t.category] = (categoryTotals[t.category] ?? 0) + ownShare(t);
+        expenseByAccount[t.account] = (expenseByAccount[t.account] ?? 0) + ownShare(t);
+      } else if (t.type === 'investment' && t.account) {
+        // Net invested out of the source account (deposit debits, withdrawal credits).
+        investByAccount[t.account] = (investByAccount[t.account] ?? 0) + investSign(t) * t.amount;
+      }
     }
-    return { currentMonthCategoryTotals: categoryTotals, currentMonthExpenseByAccount: expenseByAccount };
+    return { currentMonthCategoryTotals: categoryTotals, currentMonthExpenseByAccount: expenseByAccount, currentMonthInvestByAccount: investByAccount };
   }, [p.transactions]);
 
   // When the user opts to count investments inside the "Uscite" total, the monthly
@@ -177,6 +182,7 @@ export function DashboardV2(p: Props) {
         <AccountsCard
           accountBalances={p.accountBalances}
           expenseByAccount={currentMonthExpenseByAccount}
+          investByAccount={currentMonthInvestByAccount}
           mode={accMode}
           onToggle={() => setAccMode(m => m === 'balance' ? 'spending' : 'balance')}
           onOpenDetail={p.onSeeAccountBalance}
