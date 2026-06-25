@@ -1,5 +1,5 @@
 import { describe, it, expect } from 'vitest';
-import { expandRecurringOnCreate, catchUpRecurring, isPending, isExpiredTemplate, shouldExpandOnSave } from './recurrence';
+import { expandRecurringOnCreate, catchUpRecurring, isPending, isExpiredTemplate, shouldExpandOnSave, seriesInstanceUpdates } from './recurrence';
 import { Transaction } from '../types';
 
 const TODAY = '2026-06-04';
@@ -107,6 +107,63 @@ describe('catchUpRecurring', () => {
     const { creates, advance } = catchUpRecurring(txs, TODAY);
     expect(creates.map(c => c.date)).toEqual(['2026-04-04', '2026-05-04']);
     expect(advance).toEqual([{ id: 'tpl', date: '2026-06-04', seriesId: 's' }]);
+  });
+});
+
+describe('seriesInstanceUpdates', () => {
+  const t = (over: Partial<Transaction>): Transaction => ({
+    id: Math.random().toString(36).slice(2), date: '2026-06-04', description: 'X', amount: 10,
+    type: 'expense', category: 'casa', account: 'conto', ...over,
+  });
+
+  it('propagates edited fields to every recorded occurrence, keeping each own date/id/createdAt', () => {
+    const all = [
+      t({ id: 'tpl', date: '2026-07-04', recurring: { freq: 'monthly' }, seriesId: 's', description: 'Affitto', amount: 800 }),
+      t({ id: 'i1', date: '2026-04-04', seriesId: 's', description: 'Affitto', amount: 800, createdAt: 111 }),
+      t({ id: 'i2', date: '2026-05-04', seriesId: 's', description: 'Affitto', amount: 800, createdAt: 222 }),
+    ];
+    // Edited template payload: rename + bump the amount + new category.
+    const payload: Omit<Transaction, 'id'> = {
+      date: '2026-07-04', description: 'Affitto casa', amount: 850, type: 'expense',
+      category: 'affitto', account: 'conto', recurring: { freq: 'monthly' }, seriesId: 's', createdAt: 999,
+    };
+    const updates = seriesInstanceUpdates(all, { id: 'tpl', seriesId: 's' }, payload);
+
+    expect(updates.map(u => u.id).sort()).toEqual(['i1', 'i2']);
+    const u1 = updates.find(u => u.id === 'i1')!;
+    expect(u1.data.description).toBe('Affitto casa');   // content propagated
+    expect(u1.data.amount).toBe(850);
+    expect(u1.data.category).toBe('affitto');
+    expect(u1.data.date).toBe('2026-04-04');            // occurrence keeps its own date
+    expect(u1.data.createdAt).toBe(111);                // and its own createdAt
+    expect(u1.data.seriesId).toBe('s');                 // series link preserved
+    expect(u1.data.recurring).toBeUndefined();          // rule stripped (instances aren't templates)
+    expect(updates.find(u => u.id === 'i2')!.data.date).toBe('2026-05-04');
+  });
+
+  it('skips the template, projected rows, and other series', () => {
+    const all = [
+      t({ id: 'tpl', date: '2026-07-04', recurring: { freq: 'monthly' }, seriesId: 's' }),
+      t({ id: 'i1', date: '2026-05-04', seriesId: 's' }),
+      t({ id: 'proj', date: '2026-08-04', seriesId: 's', projected: true }),   // virtual row
+      t({ id: 'other', date: '2026-05-04', seriesId: 'other' }),               // different series
+      t({ id: 'oneoff', date: '2026-05-04' }),                                 // unrelated one-off
+    ];
+    const payload: Omit<Transaction, 'id'> = {
+      date: '2026-07-04', description: 'X', amount: 10, type: 'expense',
+      category: 'casa', account: 'conto', recurring: { freq: 'monthly' }, seriesId: 's',
+    };
+    const updates = seriesInstanceUpdates(all, { id: 'tpl', seriesId: 's' }, payload);
+    expect(updates.map(u => u.id)).toEqual(['i1']);
+  });
+
+  it('returns nothing when the series has no recorded occurrences yet', () => {
+    const all = [t({ id: 'tpl', date: '2026-07-04', recurring: { freq: 'monthly' }, seriesId: 's' })];
+    const payload: Omit<Transaction, 'id'> = {
+      date: '2026-07-04', description: 'X', amount: 10, type: 'expense',
+      category: 'casa', account: 'conto', recurring: { freq: 'monthly' }, seriesId: 's',
+    };
+    expect(seriesInstanceUpdates(all, { id: 'tpl', seriesId: 's' }, payload)).toHaveLength(0);
   });
 });
 

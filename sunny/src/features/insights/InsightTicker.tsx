@@ -20,7 +20,7 @@ export function InsightTicker({ transactions, monthlyIncome, monthlyExpenses, mo
 
   const insights = (prebuilt ?? buildInsights({
     transactions, monthlyIncome, monthlyExpenses, monthlyInvestments, getCat, depth: insightDepth,
-    forecastV3Categories: visibleCategories.filter(c => c.kind === 'expense'),
+    forecastExpenseCategories: visibleCategories.filter(c => c.kind === 'expense'),
   })).slice(0, limit);
 
   if (insights.length === 0) return null;

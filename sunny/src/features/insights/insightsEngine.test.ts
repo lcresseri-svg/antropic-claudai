@@ -361,20 +361,20 @@ describe('buildInsights — FASE 4 admin insights', () => {
       getCat: cat, now: NOW, ...over,
     });
 
-  // #45 — Unpredictable categories (V3 confidence)
+  // #45 — Unpredictable categories (sparse / irregular)
   describe('unpredictable categories', () => {
-    // 'regali' appears rarely and irregularly → V3 classifies it as rare_variable.
+    // 'regali' appears in only 3 of the last 12 months → flagged as irregular.
     const rare: Transaction[] = [
       tx({ amount: 40, date: '2025-08-12', category: 'regali' }),
       tx({ amount: 200, date: '2026-02-09', category: 'regali' }),
       tx({ amount: 30, date: '2026-06-05', category: 'regali' }),
     ];
     it('flags rare/low-confidence categories for admins', () => {
-      const res = build(rare, { isAdmin: true, forecastV3Categories: [expCat('regali')] });
+      const res = build(rare, { isAdmin: true, forecastExpenseCategories: [expCat('regali')] });
       expect(res.some(x => /spesa imprevedibile/.test(x.title))).toBe(true);
     });
     it('stays hidden for non-admins', () => {
-      const res = build(rare, { forecastV3Categories: [expCat('regali')] });
+      const res = build(rare, { forecastExpenseCategories: [expCat('regali')] });
       expect(res.some(x => /spesa imprevedibile/.test(x.title))).toBe(false);
     });
   });

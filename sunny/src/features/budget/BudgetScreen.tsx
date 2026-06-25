@@ -7,7 +7,7 @@ import {
   suggestBudgets, seasonalHint,
   DEMO_CATEGORY_SPEND, DEMO_CATEGORY_BUDGETS,
 } from './budgetUtils';
-import { forecastSavingsV3, forecastByCategoryV3 } from '../forecast/forecastEngineV3';
+import { forecastSavingsV4, forecastByCategoryV4 } from '../forecast/v4/forecastCompatV4';
 import { upcomingRecurringThisMonth, upcomingPlannedThisMonth, buildProjectedOccurrences, isPending } from '../../shared/recurrence';
 import { history } from '../insights/insightsEngine';
 import { SavingsGoalCard } from './SavingsGoalCard';
@@ -81,10 +81,10 @@ export function BudgetScreen({
     return suggestBudgets(transactions, expenseCats);
   }, [isLearning, transactions, expenseCats]);
 
-  // End-of-month projection per expense category — V3 engine. Empty in demo mode.
+  // End-of-month projection per expense category — V4 engine. Empty in demo mode.
   const projectedSpend = useMemo(() => {
     if (isLearning) return {};
-    return forecastByCategoryV3(transactions, expenseCats);
+    return forecastByCategoryV4(transactions, expenseCats);
   }, [isLearning, transactions, expenseCats]);
 
   // "Programmato" per category: committed this month but not yet spent —
@@ -116,7 +116,7 @@ export function BudgetScreen({
     return sum > 0 ? sum : monthlyIncome;
   }, [budget.incomeBudgets, monthlyIncome]);
 
-  // End-of-month forecast — V3 engine (same as BudgetScreenV2 and insights V3 path).
+  // End-of-month forecast — V4 engine (same as BudgetScreenV2 and insights V4 path).
   // Full object reused for both the savings figure and the "Previsto" totals.
   const forecastObj = useMemo(() => {
     if (isLearning) {
@@ -132,7 +132,7 @@ export function BudgetScreen({
       + upcomingPlannedThisMonth(transactions, today, monthEnd, 'income');
     const upcomingInvest = upcomingRecurringThisMonth(transactions, today, monthEnd, 'investment')
       + upcomingPlannedThisMonth(transactions, today, monthEnd, 'investment');
-    return forecastSavingsV3({
+    return forecastSavingsV4({
       transactions, expenseCategories: expenseCats,
       monthlyIncome, monthlyInvestments,
       avgIncome: h.avgIncome, avgInvest: h.avgInvest,

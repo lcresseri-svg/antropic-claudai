@@ -238,6 +238,46 @@ export function catchUpRecurring(
 }
 
 /**
+ * Editing a whole SERIES must apply to every already-recorded ("contabilizzata")
+ * occurrence too — not only the template and its future projections. Given the
+ * full transaction set, the template being edited, and the new template payload,
+ * this returns the in-place updates for each recorded instance of the series.
+ *
+ * Each occurrence keeps its OWN identity and position in time — id, createdAt,
+ * date and group link are preserved; only the content fields (type, description,
+ * amount, category, account, …) are overwritten from the payload. The `recurring`
+ * rule lives on the template only, so it is stripped from instances.
+ *
+ * NON-DESTRUCTIVE: every update is a content overwrite of the same doc id
+ * (setDoc, same id), never a delete.
+ */
+export function seriesInstanceUpdates(
+  all: Transaction[],
+  template: Pick<Transaction, 'id' | 'seriesId'>,
+  payload: Omit<Transaction, 'id'>,
+): { id: string; data: Omit<Transaction, 'id'> }[] {
+  const sid = template.seriesId ?? template.id;
+  const updates: { id: string; data: Omit<Transaction, 'id'> }[] = [];
+  for (const inst of all) {
+    if (inst.recurring || inst.projected) continue;    // skip templates & virtual rows
+    if (inst.id === template.id) continue;             // template written separately
+    if ((inst.seriesId ?? inst.id) !== sid) continue;  // a different series
+    updates.push({
+      id: inst.id,
+      data: {
+        ...payload,
+        date: inst.date,                 // keep the occurrence's own date
+        seriesId: sid,                   // keep the series link
+        recurring: undefined,            // instances are not templates
+        groupId: inst.groupId,           // keep the occurrence's own group link
+        createdAt: inst.createdAt ?? payload.createdAt,
+      },
+    });
+  }
+  return updates;
+}
+
+/**
  * Sum of PLANNED (future, non-recurring) own-shares of a given type, dated
  * strictly after `todayISO` and up to `monthEndISO`. Recurring templates are
  * excluded — their upcoming occurrences are counted by upcomingRecurringThisMonth.
