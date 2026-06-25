@@ -1,9 +1,10 @@
 import { useState, useMemo, useEffect } from 'react';
 import { useSearchParams } from 'react-router-dom';
-import { Transaction, TransactionType, TYPE_META, TYPE_ORDER, TransactionPatch, typeColor } from '../../types';
+import { Transaction, TransactionType, TYPE_META, TYPE_ORDER, TransactionPatch, typeColor, investSign } from '../../types';
 import { formatCurrency, formatDate, formatMonthLong, capitalize } from '../../utils';
 import { useSettings } from '../../shared/providers/settings';
 import { isPending } from '../../shared/recurrence';
+import { OutflowInfo } from '../../shared/components/OutflowInfo';
 import { TransactionRow } from './TransactionRow';
 import { OptionSheet } from '../../shared/components/OptionSheet';
 
@@ -69,7 +70,10 @@ function projectedCutoffISO(v: ProjView, now: Date): string | null {
 }
 
 export function TransactionList({ transactions, projected = [], onEdit, onDelete, onBulkUpdate, onBulkDelete, onAdd, uiV2 = false }: Props) {
-  const { categories, accounts, getAcc, getCat, theme } = useSettings();
+  const { categories, accounts, getAcc, getCat, theme, enableInvestments, countInvestmentsInExpenses } = useSettings();
+  // When enabled, investments count as an outflow inside the group subtotals
+  // (deposits subtract, withdrawals add — direction-aware), with an ⓘ breakdown.
+  const countInvestOut = enableInvestments && countInvestmentsInExpenses;
   // Optional category filter driven by the URL (?cat=<id>) — set when arriving
   // from the "Vedi tutti i movimenti" CTA of the Categorie analytics screen.
   // TODO: also honour a ?period= param to scope the list to a specific window.
@@ -187,12 +191,21 @@ export function TransactionList({ transactions, projected = [], onEdit, onDelete
 
   // Subtotals reflect only realized (actual) transactions — projected occurrences
   // and planned future-dated one-offs are forecasts and must not inflate the total.
-  const signed = (t: Transaction) => t.type === 'income' ? t.amount : t.type === 'expense' ? -t.amount : 0;
+  const signed = (t: Transaction) =>
+    t.type === 'income' ? t.amount
+    : t.type === 'expense' ? -t.amount
+    : (t.type === 'investment' && countInvestOut) ? -investSign(t) * t.amount
+    : 0;
   const groupSum = (txs: Transaction[]) =>
     txs.filter(t => !isUpcoming(t)).reduce((s, t) => s + signed(t), 0);
   const groupHasReal = (txs: Transaction[]) => txs.some(t => !isUpcoming(t));
   const groupProjectedSum = (txs: Transaction[]) =>
     txs.filter(isUpcoming).reduce((s, t) => s + signed(t), 0);
+  // Outflow split for the ⓘ breakdown on a group subtotal (realized rows only).
+  const groupExpenseOut = (txs: Transaction[]) =>
+    txs.filter(t => !isUpcoming(t) && t.type === 'expense').reduce((s, t) => s + t.amount, 0);
+  const groupInvestOut = (txs: Transaction[]) =>
+    txs.filter(t => !isUpcoming(t) && t.type === 'investment').reduce((s, t) => s + investSign(t) * t.amount, 0);
 
   const toggleCollapse = (key: string) => {
     setCollapsed(prev => {
@@ -488,8 +501,13 @@ export function TransactionList({ transactions, projected = [], onEdit, onDelete
                   </button>
                 </div>
                 {groupHasReal(txs) ? (
-                  <span className={`text-xs font-medium balance-num flex-shrink-0 ${groupSum(txs) >= 0 ? 'text-green' : 'text-secondary'}`}>
-                    {formatCurrency(groupSum(txs), { sign: true })}
+                  <span className="flex items-center gap-1 flex-shrink-0">
+                    {countInvestOut && groupInvestOut(txs) !== 0 && (
+                      <OutflowInfo expenses={groupExpenseOut(txs)} investments={groupInvestOut(txs)} />
+                    )}
+                    <span className={`text-xs font-medium balance-num ${groupSum(txs) >= 0 ? 'text-green' : 'text-secondary'}`}>
+                      {formatCurrency(groupSum(txs), { sign: true })}
+                    </span>
                   </span>
                 ) : (
                   <span className="text-xs font-medium balance-num flex-shrink-0 text-secondary/70">

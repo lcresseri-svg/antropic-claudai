@@ -45,7 +45,7 @@ function reorder<T>(arr: T[], from: number, to: number): T[] {
 export function SettingsScreen({ user, transactions, budgetExport, uiV2 = false, onLogOut, onDeleteAll, onDeleteAccount }: Props) {
   const navigate = useNavigate();
   const location = useLocation();
-  const { categories, accounts, visibleCategories, visibleAccounts, theme, includeInvestments, enableInvestments, enableBudget, insightDepth, aiEnabled, aiCoachWidgetEnabled, detailedInvestments, saveCategories, saveAccounts, saveTheme, saveIncludeInvestments, saveEnableInvestments, saveEnableBudget, saveInsightDepth, saveAiEnabled, saveAiCoachWidgetEnabled } = useSettings();
+  const { categories, accounts, visibleCategories, visibleAccounts, theme, includeInvestments, enableInvestments, countInvestmentsInExpenses, enableBudget, insightDepth, aiEnabled, aiCoachWidgetEnabled, detailedInvestments, saveCategories, saveAccounts, saveTheme, saveIncludeInvestments, saveEnableInvestments, saveCountInvestmentsInExpenses, saveEnableBudget, saveInsightDepth, saveAiEnabled, saveAiCoachWidgetEnabled } = useSettings();
   const [sub, setSub] = useState<Sub>('menu');
   const [editing, setEditing] = useState<{ kind: 'category' | 'account'; draft: DefDraft; isNew: boolean; withKind?: boolean } | null>(null);
   const [confirmReset, setConfirmReset] = useState(false);
@@ -236,6 +236,16 @@ export function SettingsScreen({ user, transactions, budgetExport, uiV2 = false,
       sub={includeInvestments ? 'Il patrimonio comprende il capitale investito' : 'Il patrimonio mostra solo la liquidità'}
       on={includeInvestments}
       onToggle={() => saveIncludeInvestments(!includeInvestments)}
+    />
+  ) : null;
+  const rowCountInvestExpense = enableInvestments ? (
+    <ToggleRow
+      icon="➖" label="Conta gli investimenti nelle uscite"
+      sub={countInvestmentsInExpenses
+        ? 'Il totale delle uscite include gli investimenti (con dettaglio ⓘ)'
+        : 'Gli investimenti restano fuori dal totale delle uscite'}
+      on={countInvestmentsInExpenses}
+      onToggle={() => saveCountInvestmentsInExpenses(!countInvestmentsInExpenses)}
     />
   ) : null;
   const rowBudget = (
@@ -465,7 +475,7 @@ export function SettingsScreen({ user, transactions, budgetExport, uiV2 = false,
           <ManageHeader title="Generali" editMode={false} onBack={exitToMenu} onToggleEdit={() => {}} hideEdit />
           <div className="space-y-5 md:max-w-xl">
             <SettingsGroup title="Aspetto">{rowTheme}</SettingsGroup>
-            <SettingsGroup title="Funzionalità">{rowInvest}{rowIncludeInvest}{rowBudget}</SettingsGroup>
+            <SettingsGroup title="Funzionalità">{rowInvest}{rowIncludeInvest}{rowCountInvestExpense}{rowBudget}</SettingsGroup>
             <SettingsGroup title="Analisi e AI">{rowAiEnabled}{rowAiCoach}{blockDepth}</SettingsGroup>
             {notificationsGroup}
           </div>
@@ -495,7 +505,7 @@ export function SettingsScreen({ user, transactions, budgetExport, uiV2 = false,
         <>
           <ManageHeader title="Investimenti" editMode={false} onBack={exitToMenu} onToggleEdit={() => {}} hideEdit />
           <div className="space-y-5 md:max-w-xl">
-            <SettingsGroup title="Portafoglio">{rowInvest}{rowIncludeInvest}</SettingsGroup>
+            <SettingsGroup title="Portafoglio">{rowInvest}{rowIncludeInvest}{rowCountInvestExpense}</SettingsGroup>
           </div>
         </>
       )}
