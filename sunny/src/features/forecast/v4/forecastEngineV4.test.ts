@@ -169,3 +169,36 @@ describe('computeForecastV4 — budget signal', () => {
     expect(r.diagnostics.budgetMonthStatus).toBe('missing');
   });
 });
+
+describe('computeForecastV4 — fixed categories never sum the budget on top', () => {
+  const FIXED_CATS: CategoryDef[] = [
+    { id: 'finanziamento', label: 'Finanziamento auto', icon: '🚗', color: '#000', kind: 'expense' },
+  ];
+  const budgetJune = [{
+    month: '2026-06', categoryBudgets: { finanziamento: 300 },
+    status: 'confirmed' as const, source: 'manual',
+  }];
+
+  it('a one-off planned instalment + equal budget gives previsto == programmato (not their sum)', () => {
+    const txs = [tx('2026-06-28', 300, { category: 'finanziamento', description: 'Rata' })];
+    const r = computeForecastV4({
+      transactions: txs, expenseCategories: FIXED_CATS, now: NOW,
+      budgetHistory: budgetJune, applyBudgetSignal: true,
+    });
+    const fin = r.byCategory['finanziamento'];
+    expect(fin.plannedManualRemaining).toBe(300);
+    expect(fin.forecastBeforeBudget).toBe(300);
+    expect(fin.budgetSignalAdjustment ?? 0).toBe(0); // no top-up on a fixed category
+    expect(fin.totalForecast).toBe(300);             // not 600
+  });
+
+  it('floors a fixed category with a budget but no planned movement up to the budget', () => {
+    const r = computeForecastV4({
+      transactions: [], expenseCategories: FIXED_CATS, now: NOW,
+      budgetHistory: budgetJune, applyBudgetSignal: true,
+    });
+    const fin = r.byCategory['finanziamento'];
+    expect(fin.forecastBeforeBudget).toBe(0);
+    expect(fin.totalForecast).toBe(300); // coincides with the programmato
+  });
+});

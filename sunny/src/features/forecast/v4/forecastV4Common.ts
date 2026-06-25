@@ -87,6 +87,23 @@ export function looksSeasonalByLabel(label: string): boolean {
 }
 
 /**
+ * A FIXED / committed category: the monthly spend is deterministic (a loan
+ * instalment, a subscription, insurance, rent/financing…), so its budget must be
+ * treated as a FLOOR the forecast should COINCIDE with — never as an additive
+ * predictive signal summed on top of the already-planned amount. The
+ * budget-as-signal "top-up" (gap × reliability) is reserved for VARIABLE
+ * categories, where the budget genuinely predicts discretionary spend not yet
+ * captured statistically.
+ */
+export function isFixedCategory(label: string): boolean {
+  return labelHas(
+    label,
+    'finanziamento', 'abbonament', 'assicuraz', 'rata', 'mutuo', 'leasing',
+    'canone', 'universit', 'affitto', 'bollo',
+  );
+}
+
+/**
  * Fallback budget-reliability by category label, used when there isn't enough
  * historical budget data to compute reliability empirically.
  * Higher = the budget is a reliable predictor of real spend (fixed/committed);
