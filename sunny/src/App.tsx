@@ -7,7 +7,7 @@ import { SettingsProvider, useSettings } from './shared/providers/settings';
 import { useBudget } from './shared/hooks/useBudget';
 import { Transaction, TransactionType } from './types';
 import { greeting } from './utils';
-import { buildProjectedOccurrences, catchUpRecurring, seriesInstanceUpdates } from './shared/recurrence';
+import { buildProjectedOccurrences, catchUpRecurring, seriesInstanceUpdates, dissolveSeries } from './shared/recurrence';
 import { db } from './lib/firebase';
 import { useOnboarding } from './features/onboarding/useOnboarding';
 import { OnboardingScreen } from './features/onboarding/OnboardingScreen';
@@ -313,19 +313,27 @@ function Main({ user, onLogOut, onDeleteAccount }: {
     ? tx.transactions.filter(t => t.groupId === editing.groupId && t.id !== editing.id)
     : [];
 
-  // Series start (earliest occurrence) shown read-only when editing the whole
-  // series — resolved from the FULL set so an ended series still finds its start.
-  const seriesStartDate = (seriesEdit && editing)
-    ? tx.allTransactions
-        .filter(t => (t.seriesId ?? t.id) === (editing.seriesId ?? editing.id))
-        .reduce<string>((min, t) => (t.date < min ? t.date : min), editing.date)
-    : undefined;
-
   const handleSave = (deleteIds: string[], create: Omit<Transaction, 'id'>[]) => {
+    const todayISO = new Date().toISOString().slice(0, 10);
     // Simple single-document edit → update IN PLACE (same id, no delete), so an
     // already-inserted transaction is never removed by the code. Group restructures
     // (split expense / commission → multiple docs) still go through replaceGroup.
     if (editing && deleteIds.length === 1 && deleteIds[0] === editing.id && create.length === 1) {
+      // DISSOLVE: editing the whole series and turning OFF "ricorrente". The edited
+      // template becomes a normal one-off (no rule, no series link); future
+      // occurrences are deleted and past recorded ones are unlinked (→ normal, no
+      // recurring badge). User-initiated, so the future-delete is intended here.
+      if (seriesEdit && editing.recurring && !create[0].recurring) {
+        const sid = editing.seriesId ?? editing.id;
+        tx.replaceInPlace(editing.id, {
+          ...create[0], recurring: undefined, seriesId: undefined,
+          createdAt: editing.createdAt ?? Date.now(),
+        });
+        const { unlink, remove } = dissolveSeries(tx.allTransactions, { id: editing.id, seriesId: sid }, todayISO);
+        for (const u of unlink) tx.replaceInPlace(u.id, u.data);
+        if (remove.length) tx.deleteTransactions(remove);
+        return;
+      }
       const payload = { ...create[0], createdAt: editing.createdAt ?? Date.now() };
       tx.replaceInPlace(editing.id, payload);
       // Editing the whole SERIES propagates the change to every already-recorded
@@ -604,7 +612,7 @@ function Main({ user, onLogOut, onDeleteAccount }: {
 
       <TransactionModal
         open={modalOpen} editing={editing} groupTransfers={groupTransfers} seriesEdit={seriesEdit}
-        defaultType={defaultType} recognize={recognize ?? undefined} seriesStartDate={seriesStartDate}
+        defaultType={defaultType} recognize={recognize ?? undefined}
         onClose={() => setModalOpen(false)}
         onSave={handleSave}
       />

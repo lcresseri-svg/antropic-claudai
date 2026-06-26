@@ -11,16 +11,21 @@ const MONTHLY_EQUIV: Record<Freq, number> = {
 
 /**
  * Next occurrence date (YYYY-MM-DD) after advancing one period.
- * Mirrors the original client-side logic that used to live in insightsEngine
- * so projected dates and insight output stay byte-for-byte the same.
+ *
+ * All arithmetic is done in UTC (parse the y-m-d explicitly, use the setUTC*
+ * mutators). The previous version parsed the string as UTC midnight but mutated
+ * with the LOCAL setters and read back via toISOString(): crossing a DST
+ * boundary shifted the wall-clock vs UTC by an hour and rolled long-range dates
+ * back by a day (e.g. a series on the 10th showed the 9th from 2027 onward).
  */
 export function addPeriod(dateStr: string, freq: Freq): string {
-  const d = new Date(dateStr);
-  if      (freq === 'daily')   d.setDate(d.getDate() + 1);
-  else if (freq === 'weekly')  d.setDate(d.getDate() + 7);
-  else if (freq === 'monthly') d.setMonth(d.getMonth() + 1);
-  else                          d.setFullYear(d.getFullYear() + 1);
-  return d.toISOString().slice(0, 10);
+  const [y, m, d] = dateStr.split('-').map(Number);
+  const dt = new Date(Date.UTC(y, m - 1, d));
+  if      (freq === 'daily')   dt.setUTCDate(dt.getUTCDate() + 1);
+  else if (freq === 'weekly')  dt.setUTCDate(dt.getUTCDate() + 7);
+  else if (freq === 'monthly') dt.setUTCMonth(dt.getUTCMonth() + 1);
+  else                          dt.setUTCFullYear(dt.getUTCFullYear() + 1);
+  return dt.toISOString().slice(0, 10);
 }
 
 export interface ProjectOpts {
@@ -275,6 +280,39 @@ export function seriesInstanceUpdates(
     });
   }
   return updates;
+}
+
+/**
+ * DISSOLVE a series: the user turned OFF "ricorrente" while editing the whole
+ * series. The series must stop and everything become plain, unlinked movements:
+ *   - FUTURE occurrences (date > today) are DELETED ("le cose dopo");
+ *   - PAST recorded occurrences (date ≤ today) are UNLINKED — they keep their own
+ *     content/date but lose `seriesId` (and `recurring`), so they're normal
+ *     movements with NO recurring badge and edit as single movements.
+ * The edited template itself is written separately by the caller (as a normal
+ * one-off). Virtual `projected` rows vanish on their own once the rule is gone.
+ */
+export function dissolveSeries(
+  all: Transaction[],
+  template: { id: string; seriesId: string },
+  todayISO: string,
+): { unlink: { id: string; data: Omit<Transaction, 'id'> }[]; remove: string[] } {
+  const sid = template.seriesId;
+  const unlink: { id: string; data: Omit<Transaction, 'id'> }[] = [];
+  const remove: string[] = [];
+  for (const t of all) {
+    if (t.id === template.id) continue;          // template handled by the caller
+    if (t.projected) continue;                   // virtual rows vanish on their own
+    if ((t.seriesId ?? t.id) !== sid) continue;  // a different series
+    if (t.date > todayISO) {
+      remove.push(t.id);                         // future occurrence → delete
+    } else {
+      const { id: _id, recurring: _r, seriesId: _s, ...rest } = t;
+      void _id; void _r; void _s;
+      unlink.push({ id: t.id, data: { ...rest } }); // past → normal, unlinked
+    }
+  }
+  return { unlink, remove };
 }
 
 /**

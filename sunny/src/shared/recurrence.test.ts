@@ -1,5 +1,5 @@
 import { describe, it, expect } from 'vitest';
-import { expandRecurringOnCreate, catchUpRecurring, isPending, isExpiredTemplate, shouldExpandOnSave, seriesInstanceUpdates } from './recurrence';
+import { expandRecurringOnCreate, catchUpRecurring, isPending, isExpiredTemplate, shouldExpandOnSave, seriesInstanceUpdates, dissolveSeries, addPeriod } from './recurrence';
 import { Transaction } from '../types';
 
 const TODAY = '2026-06-04';
@@ -234,5 +234,54 @@ describe('isExpiredTemplate / isPending', () => {
   it('ignores projected rows (display-only, never expired-template)', () => {
     const proj = mk({ projected: true, recurring: undefined });
     expect(isExpiredTemplate(proj)).toBe(false);
+  });
+});
+
+describe('addPeriod (timezone-safe, no DST drift)', () => {
+  it('keeps the day-of-month across 24 monthly steps', () => {
+    let d = '2026-04-10';
+    for (let i = 0; i < 24; i++) d = addPeriod(d, 'monthly');
+    expect(d).toBe('2028-04-10'); // still the 10th, no roll-back to the 9th
+  });
+  it('yearly keeps month/day', () => {
+    expect(addPeriod('2026-04-10', 'yearly')).toBe('2027-04-10');
+    expect(addPeriod('2027-10-30', 'yearly')).toBe('2028-10-30');
+  });
+  it('daily/weekly advance correctly across a month boundary', () => {
+    expect(addPeriod('2026-03-28', 'daily')).toBe('2026-03-29');
+    expect(addPeriod('2026-03-28', 'weekly')).toBe('2026-04-04');
+  });
+});
+
+describe('dissolveSeries', () => {
+  const t = (over: Partial<Transaction>): Transaction => ({
+    id: Math.random().toString(36).slice(2), date: '2026-06-04', description: 'X', amount: 10,
+    type: 'expense', category: 'casa', account: 'conto', ...over,
+  });
+  const TODAY = '2026-06-04';
+
+  it('deletes future occurrences and unlinks past recorded ones (template skipped)', () => {
+    const all = [
+      t({ id: 'tpl', date: '2026-07-04', recurring: { freq: 'monthly' }, seriesId: 's' }), // caller handles
+      t({ id: 'i1', date: '2026-04-04', seriesId: 's' }),                                   // past → unlink
+      t({ id: 'i2', date: '2026-05-04', seriesId: 's' }),                                   // past → unlink
+      t({ id: 'f1', date: '2026-08-04', seriesId: 's' }),                                   // future → delete
+      t({ id: 'proj', date: '2026-09-04', seriesId: 's', projected: true }),                // virtual → ignore
+      t({ id: 'other', date: '2026-05-04', seriesId: 'x' }),                                // other series → ignore
+    ];
+    const { unlink, remove } = dissolveSeries(all, { id: 'tpl', seriesId: 's' }, TODAY);
+    expect(remove).toEqual(['f1']);
+    expect(unlink.map(u => u.id).sort()).toEqual(['i1', 'i2']);
+    const u1 = unlink.find(u => u.id === 'i1')!;
+    expect(u1.data.seriesId).toBeUndefined();   // unlinked → no series link → no badge
+    expect(u1.data.recurring).toBeUndefined();
+    expect(u1.data.date).toBe('2026-04-04');    // keeps its own date/content
+  });
+
+  it('returns empty when the series has only the template', () => {
+    const all = [t({ id: 'tpl', date: '2026-07-04', recurring: { freq: 'monthly' }, seriesId: 's' })];
+    const { unlink, remove } = dissolveSeries(all, { id: 'tpl', seriesId: 's' }, TODAY);
+    expect(unlink).toHaveLength(0);
+    expect(remove).toHaveLength(0);
   });
 });
