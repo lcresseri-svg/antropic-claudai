@@ -1,6 +1,6 @@
 import { useState, useEffect } from 'react';
 import { Transaction, TransactionType, TYPE_META, TYPE_ORDER, RecurrenceRule, AccountDef, typeColor, typeOnColor } from '../../types';
-import { formatCurrency, formatDate, formatDateFull, guessCategory } from '../../utils';
+import { formatCurrency, formatDate, guessCategory } from '../../utils';
 import { Candidate, Recognition, RECOGNITION_THRESHOLD } from './categoryRecognition';
 import { useSettings } from '../../shared/providers/settings';
 import { expandRecurringOnCreate, shouldExpandOnSave } from '../../shared/recurrence';
@@ -16,9 +16,6 @@ interface Props {
   /** Admin-only category recognizer (L1 history + L2 keywords). Absent → the
    *  non-admin path: plain `guessCategory`, behaviour unchanged. */
   recognize?: (description: string, candidates: Candidate[]) => Recognition | null;
-  /** When editing the whole series: the series' first occurrence date, shown
-   *  read-only (the editable date field is hidden — a series has no single date). */
-  seriesStartDate?: string;
   onClose: () => void;
   onSave: (deleteIds: string[], create: Omit<Transaction, 'id'>[]) => void;
 }
@@ -28,7 +25,7 @@ interface Reimb { amount: string; account: string }
 const today = () => new Date().toISOString().slice(0, 10);
 const yesterday = () => { const d = new Date(); d.setDate(d.getDate() - 1); return d.toISOString().slice(0, 10); };
 
-export function TransactionModal({ open, editing, groupTransfers = [], seriesEdit = false, defaultType, recognize, seriesStartDate, onClose, onSave }: Props) {
+export function TransactionModal({ open, editing, groupTransfers = [], seriesEdit = false, defaultType, recognize, onClose, onSave }: Props) {
   const { categories, accounts, visibleCategories, visibleAccounts, enableInvestments, detailedInvestments, theme } = useSettings();
   const [type, setType] = useState<TransactionType>('expense');
   const [description, setDescription] = useState('');
@@ -387,9 +384,7 @@ export function TransactionModal({ open, editing, groupTransfers = [], seriesEdi
                     options={accountOptions.filter(a => a.id !== account).map(a => ({ value: a.id, label: `${a.icon} ${a.label}` }))} />
                 </Field>
               </div>
-              {seriesEdit
-                ? <SeriesStartField date={seriesStartDate} />
-                : <DateField date={date} td={td} yd={yd} setDate={setDate} />}
+              <DateField date={date} td={td} yd={yd} setDate={setDate} seriesEdit={seriesEdit} />
             </>
           ) : quickMode ? (
             /* Quick mode: conto + data collapsed under "Dettagli avanzati" */
@@ -412,9 +407,7 @@ export function TransactionModal({ open, editing, groupTransfers = [], seriesEdi
                         ...accountOptions.map(a => ({ value: a.id, label: `${a.icon} ${a.label}` })),
                       ]} />
                   </Field>
-                  {seriesEdit
-                ? <SeriesStartField date={seriesStartDate} />
-                : <DateField date={date} td={td} yd={yd} setDate={setDate} />}
+                  <DateField date={date} td={td} yd={yd} setDate={setDate} seriesEdit={seriesEdit} />
                 </div>
               )}
             </>
@@ -427,9 +420,7 @@ export function TransactionModal({ open, editing, groupTransfers = [], seriesEdi
                     ...accountOptions.map(a => ({ value: a.id, label: `${a.icon} ${a.label}` })),
                   ]} />
               </Field>
-              {seriesEdit
-                ? <SeriesStartField date={seriesStartDate} />
-                : <DateField date={date} td={td} yd={yd} setDate={setDate} />}
+              <DateField date={date} td={td} yd={yd} setDate={setDate} seriesEdit={seriesEdit} />
             </div>
           )}
 
@@ -644,9 +635,9 @@ function Field({ label, children }: { label: string; children: React.ReactNode }
   );
 }
 
-function DateField({ date, td, yd, setDate }: { date: string; td: string; yd: string; setDate: (d: string) => void }) {
+function DateField({ date, td, yd, setDate, seriesEdit = false }: { date: string; td: string; yd: string; setDate: (d: string) => void; seriesEdit?: boolean }) {
   return (
-    <Field label="Data">
+    <Field label={seriesEdit ? 'Data serie' : 'Data'}>
       <div className="flex gap-2">
         <button type="button" onClick={() => setDate(td)}
           className={`px-3.5 py-2 rounded-xl text-xs font-semibold transition-colors flex-shrink-0 ${date === td ? 'bg-gold text-bg' : 'bg-elevated text-secondary'}`}>
@@ -659,23 +650,15 @@ function DateField({ date, td, yd, setDate }: { date: string; td: string; yd: st
         <input type="date" value={date} onChange={e => setDate(e.target.value)}
           className="flex-1 min-w-0 bg-elevated rounded-xl px-3 py-2 text-primary text-xs outline-none focus:ring-1 focus:ring-gold/40" />
       </div>
-      {date > td && (
+      {seriesEdit ? (
+        <p className="text-[11px] text-secondary mt-2 flex items-center gap-1">
+          🔁 Le occorrenze future della serie partono da questa data.
+        </p>
+      ) : date > td && (
         <p className="text-[11px] text-secondary mt-2 flex items-center gap-1">
           🗓️ Data futura: sarà un movimento previsto e verrà conteggiato automaticamente alla data scelta.
         </p>
       )}
-    </Field>
-  );
-}
-
-// Read-only series start, shown in place of the date picker when editing a whole
-// series (a series has no single date — its occurrences span from here onward).
-function SeriesStartField({ date }: { date?: string }) {
-  return (
-    <Field label="Inizio serie">
-      <div className="bg-elevated rounded-2xl px-4 py-3 text-secondary text-sm">
-        🔁 {date ? formatDateFull(date) : '—'}
-      </div>
     </Field>
   );
 }
