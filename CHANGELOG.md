@@ -17,6 +17,10 @@ git.
 
 ---
 
+## 2026-06-27
+
+- **[Claude]** **"Andamento 12 mesi": ripristinato lo stacking uscite + investimenti quando entrambe le serie sono visibili.** I toggle restano indipendenti, ma quando **Uscite e Investimenti** sono entrambe attive, gli **investimenti tornano impilati sopra le spese** (linea oro = uscite + investito = totale uscente); se ne è visibile una sola, viene disegnata dalla baseline. Le Entrate restano sempre una linea propria. `tsc` pulito, build OK, **306 test verdi**. `(pending)`
+
 ## 2026-06-25
 
 - **[Claude]** **Dashboard desktop: espandere "Saldo per conto" non sposta più "Investimenti per categoria".** Le card analitiche passano da una griglia 2 colonne (che accoppiava le altezze di riga) a **due colonne indipendenti** su desktop — sinistra: Spese + Investimenti, destra: Saldo — così espandere i conti allunga solo la colonna destra. Su mobile l'ordine resta invariato (Spese → Saldo → Investimenti) tramite `display:contents` + `order-*`. Solo layout, nessuna logica toccata. `tsc` pulito, build OK, **306 test verdi**. `(pending)`
