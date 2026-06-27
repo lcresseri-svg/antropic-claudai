@@ -44,23 +44,54 @@ function areaToBase(pts: { x: number; y: number }[]): string {
   return `${line} L ${last.x} ${H} L ${first.x} ${H} Z`;
 }
 
+/** Filled band between a top curve and a bottom curve (both smoothed). */
+function areaBetween(top: { x: number; y: number }[], bottom: { x: number; y: number }[]): string {
+  if (top.length < 2) return '';
+  const topLine = smoothPath(top);
+  const botReversed = smoothPath([...bottom].reverse()).replace(/^M/, 'L');
+  return `${topLine} ${botReversed} Z`;
+}
+
 type SeriesKey = 'income' | 'expense' | 'invest';
 
-const SERIES: { key: SeriesKey; label: string; color: string; fill: string; dash?: string }[] = [
-  { key: 'income',  label: 'Entrate',      color: 'var(--accent-green)', fill: 'rgba(122,158,110,0.05)' },
-  { key: 'expense', label: 'Uscite',       color: '#E08B8B',             fill: 'rgba(224,139,139,0.07)' },
-  { key: 'invest',  label: 'Investimenti', color: 'var(--accent-gold)',  fill: 'rgba(230,185,92,0.10)', dash: '3 2.5' },
+const COLORS: Record<SeriesKey, string> = {
+  income:  'var(--accent-green)',
+  expense: '#E08B8B',
+  invest:  'var(--accent-gold)',
+};
+const FILLS: Record<SeriesKey, string> = {
+  income:  'rgba(122,158,110,0.05)',
+  expense: 'rgba(224,139,139,0.07)',
+  invest:  'rgba(230,185,92,0.10)',
+};
+const LEGEND: { key: SeriesKey; label: string }[] = [
+  { key: 'income',  label: 'Entrate' },
+  { key: 'expense', label: 'Uscite' },
+  { key: 'invest',  label: 'Investimenti' },
 ];
 
 export function TrendChart({ data }: Props) {
-  // Each series can be toggled independently (entrate / uscite / investimenti),
-  // drawn from the baseline — no stacking — so hiding one doesn't shift the others.
+  // Each series toggles independently. When BOTH uscite and investimenti are
+  // shown, investimenti is STACKED on top of uscite (gold line = uscite +
+  // investito = total money going out); when only one of the two is shown it's
+  // drawn from the baseline. Entrate is always its own line from the baseline.
   const [show, setShow] = useState<Record<SeriesKey, boolean>>({ income: true, expense: true, invest: true });
   const toggle = (k: SeriesKey) => setShow(s => ({ ...s, [k]: !s[k] }));
 
-  const valuesOf = (k: SeriesKey) => data.map(d => d[k]);
-  const enabled = SERIES.filter(s => show[s.key]);
-  const max = Math.max(1, ...enabled.flatMap(s => valuesOf(s.key)));
+  const stackInvest = show.expense && show.invest;
+  const incVals = data.map(d => d.income);
+  const expVals = data.map(d => d.expense);
+  const invTopVals = data.map(d => (stackInvest ? d.expense + d.invest : d.invest));
+
+  const candidates: number[] = [];
+  if (show.income)  candidates.push(...incVals);
+  if (show.expense) candidates.push(...expVals);
+  if (show.invest)  candidates.push(...invTopVals);
+  const max = Math.max(1, ...candidates);
+
+  const incPts = toPoints(incVals, max);
+  const expPts = toPoints(expVals, max);
+  const invTopPts = toPoints(invTopVals, max);
   const hasData = data.some(d => d.income > 0 || d.expense > 0 || d.invest > 0);
 
   return (
@@ -68,10 +99,10 @@ export function TrendChart({ data }: Props) {
       <div className="flex items-center justify-between mb-5 flex-wrap gap-y-2">
         <p className="label-caps text-secondary">Andamento 12 mesi</p>
         <div className="flex items-center gap-3 text-[11px]">
-          {SERIES.map(s => (
+          {LEGEND.map(s => (
             <button key={s.key} type="button" onClick={() => toggle(s.key)} aria-pressed={show[s.key]}
               className={`flex items-center gap-1.5 transition-opacity ${show[s.key] ? 'text-secondary' : 'text-secondary/40 line-through'}`}>
-              <span className="w-5 h-px inline-block" style={{ backgroundColor: show[s.key] ? s.color : 'currentColor' }} />
+              <span className="w-5 h-px inline-block" style={{ backgroundColor: show[s.key] ? COLORS[s.key] : 'currentColor' }} />
               {s.label}
             </button>
           ))}
@@ -95,17 +126,24 @@ export function TrendChart({ data }: Props) {
                 vectorEffect="non-scaling-stroke" style={{ stroke: 'var(--progress-track)' }} strokeWidth="1" />
             ))}
 
-            {/* Light area under each enabled series */}
-            {enabled.map(s => (
-              <path key={`a-${s.key}`} d={areaToBase(toPoints(valuesOf(s.key), max))} fill={s.fill} />
-            ))}
+            {/* Areas — uscite from base, investimenti either as a band on top of
+                uscite (stacked) or from base (standalone), entrate from base. */}
+            {show.expense && <path d={areaToBase(expPts)} fill={FILLS.expense} />}
+            {show.invest && (stackInvest
+              ? <path d={areaBetween(invTopPts, expPts)} fill={FILLS.invest} />
+              : <path d={areaToBase(invTopPts)} fill={FILLS.invest} />)}
+            {show.income && <path d={areaToBase(incPts)} fill={FILLS.income} />}
 
             {/* Lines */}
-            {enabled.map(s => (
-              <path key={`l-${s.key}`} d={smoothPath(toPoints(valuesOf(s.key), max))} fill="none"
-                vectorEffect="non-scaling-stroke" style={{ stroke: s.color }} strokeWidth="1.5"
-                strokeLinecap="round" strokeLinejoin="round" strokeDasharray={s.dash} />
-            ))}
+            {show.income && (
+              <path d={smoothPath(incPts)} fill="none" vectorEffect="non-scaling-stroke" style={{ stroke: COLORS.income }} strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" />
+            )}
+            {show.expense && (
+              <path d={smoothPath(expPts)} fill="none" vectorEffect="non-scaling-stroke" style={{ stroke: COLORS.expense }} strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" />
+            )}
+            {show.invest && (
+              <path d={smoothPath(invTopPts)} fill="none" vectorEffect="non-scaling-stroke" style={{ stroke: COLORS.invest }} strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" strokeDasharray="3 2.5" />
+            )}
           </svg>
 
           <div className="flex justify-between mt-2" style={{ paddingLeft: PAD_X, paddingRight: PAD_X }}>
