@@ -169,33 +169,48 @@ export function DashboardV2(p: Props) {
         <TrendChart data={p.trend} />
       </div>
 
-      {/* Analytical cards — order: Spese → Saldo → Investimenti.
-          2-column grid on large screens to use the width. */}
-      <div className="mt-4 grid grid-cols-1 lg:grid-cols-2 gap-4 lg:items-start">
-        {/* 1. Spese per categoria (navigabile → /category-spending) */}
-        <CategoryCard
-          categoryTotals={currentMonthCategoryTotals}
-          onClick={p.onSeeCategories ?? (() => navigate('/category-spending'))}
-        />
+      {/* Analytical cards. On desktop: two INDEPENDENT columns — left = Spese +
+          Investimenti, right = Saldo — so expanding the accounts card never pushes
+          the investments card down. On mobile the inner wrappers are `contents`,
+          so the cards flow as a single column in the original order
+          (Spese → Saldo → Investimenti) via the `order-*` classes. */}
+      <div className="mt-4 flex flex-col lg:flex-row gap-4 lg:items-start">
+        {/* Left column */}
+        <div className="contents lg:flex lg:flex-col lg:gap-4 lg:flex-1 lg:min-w-0">
+          {/* 1. Spese per categoria (navigabile → /category-spending) */}
+          <div className="order-1 lg:order-none">
+            <CategoryCard
+              categoryTotals={currentMonthCategoryTotals}
+              onClick={p.onSeeCategories ?? (() => navigate('/category-spending'))}
+            />
+          </div>
 
-        {/* 2. Saldo per conto */}
-        <AccountsCard
-          accountBalances={p.accountBalances}
-          expenseByAccount={currentMonthExpenseByAccount}
-          investByAccount={currentMonthInvestByAccount}
-          mode={accMode}
-          onToggle={() => setAccMode(m => m === 'balance' ? 'spending' : 'balance')}
-          onOpenDetail={p.onSeeAccountBalance}
-        />
+          {/* 3. Investimenti per categoria */}
+          {enableInvestments && (
+            <div className="order-3 lg:order-none">
+              <InvestmentSummaryCard
+                investmentByCategory={p.investmentByCategory}
+                total={p.investmentTotal}
+                onClick={p.onSeeInvestments}
+              />
+            </div>
+          )}
+        </div>
 
-        {/* 3. Investimenti per categoria */}
-        {enableInvestments && (
-          <InvestmentSummaryCard
-            investmentByCategory={p.investmentByCategory}
-            total={p.investmentTotal}
-            onClick={p.onSeeInvestments}
-          />
-        )}
+        {/* Right column */}
+        <div className="contents lg:block lg:flex-1 lg:min-w-0">
+          {/* 2. Saldo per conto */}
+          <div className="order-2 lg:order-none">
+            <AccountsCard
+              accountBalances={p.accountBalances}
+              expenseByAccount={currentMonthExpenseByAccount}
+              investByAccount={currentMonthInvestByAccount}
+              mode={accMode}
+              onToggle={() => setAccMode(m => m === 'balance' ? 'spending' : 'balance')}
+              onOpenDetail={p.onSeeAccountBalance}
+            />
+          </div>
+        </div>
       </div>
 
     </div>
