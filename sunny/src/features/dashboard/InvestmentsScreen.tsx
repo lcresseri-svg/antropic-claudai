@@ -4,7 +4,7 @@ import { Transaction, CategoryDef, FundType, FUND_TYPE_META, FUND_TYPE_ORDER, in
 import { useSettings } from '../../shared/providers/settings';
 import { formatCurrency, formatDate, formatMonthShort, capitalize } from '../../utils';
 import { Donut } from './Donut';
-import { plusMinusLatente, isStaleValue } from '../investments/investmentTransactionBuilder';
+import { plusMinusLatente, isStaleValue, investmentValueDeltas, r2 } from '../investments/investmentTransactionBuilder';
 import { InvestmentDepositSheet } from '../investments/InvestmentDepositSheet';
 import { InvestmentWithdrawSheet } from '../investments/InvestmentWithdrawSheet';
 import { SetCurrentValueSheet } from '../investments/SetCurrentValueSheet';
@@ -384,7 +384,16 @@ export function InvestmentsScreen({ investmentByCategory, investmentTotal, month
       <InvestmentDepositSheet
         open={depositOpen}
         onClose={() => setDepositOpen(false)}
-        onSave={onAddTransactions}
+        onSave={txs => {
+          onAddTransactions(txs);
+          // Bump the manually-entered market value (controvalore) by the freshly
+          // invested capital, but only where a value was already set — otherwise
+          // the display already falls back to the (now larger) versato.
+          for (const [catId, delta] of Object.entries(investmentValueDeltas(txs))) {
+            const cv = getCat(catId).currentValue;
+            if (cv != null && delta !== 0) saveCurrentValue(catId, r2(cv + delta));
+          }
+        }}
       />
       <InvestmentWithdrawSheet
         open={withdrawOpen}
