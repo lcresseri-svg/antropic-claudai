@@ -77,6 +77,8 @@ async function sendToUser(
   body: string,
   requireReminder?: 'logExpenses' | 'recurring' | 'monthly' | 'upcomingPayments' | 'inactivityReminder',
   tag?: string,
+  /** Optional in-app path to deep-link to (e.g. "recap/2026-05"). Defaults to the home. */
+  path?: string,
 ): Promise<void> {
   const ref = db.doc(`users/${userId}/meta/push`);
   const snap = await ref.get();
@@ -97,16 +99,18 @@ async function sendToUser(
   // foreground handler / click target.
   // NB: no `icon` — iOS cannot render SVG notification icons (our only icon is
   // an SVG) and silently drops it; without one, iOS falls back to the app icon.
+  // `?notif=1` lets the client log a `notif_open` metric on load (then strips the
+  // param). An optional `path` deep-links into the SPA (hosting rewrites **→index).
+  const link = path ? `${APP_LINK}${path}?notif=1` : `${APP_LINK}?notif=1`;
   const resp = await admin.messaging().sendEachForMulticast({
     tokens,
     webpush: {
       notification: { title, body, tag: tag ?? 'sunny' },
-      // `?notif=1` lets the client log a `notif_open` metric on load (then strips
-      // the param). FCM's own click handler opens this link — no custom
-      // notificationclick handler in the SW (which would conflict with FCM's).
-      fcmOptions: { link: `${APP_LINK}?notif=1` },
+      // FCM's own click handler opens this link — no custom notificationclick
+      // handler in the SW (which would conflict with FCM's).
+      fcmOptions: { link },
     },
-    data: { link: `${APP_LINK}?notif=1` },
+    data: { link },
   });
 
   const updates: Record<string, unknown> = {};
@@ -307,13 +311,17 @@ export const remindLogExpenses = onSchedule(
   }
 );
 
-// Start-of-month summary of the previous month — 09:00 on the 1st.
+// Start-of-month nudge: the previous month's reflective recap is ready — 10:00
+// on the 1st. Deep-links to the in-app /recap/{prevYM} screen (computed client
+// side: this function only sends the push, no recap snapshot is persisted).
 export const sendMonthlySummary = onSchedule(
-  { schedule: '0 9 1 * *', timeZone: 'Europe/Rome', region: 'europe-west1' },
+  { schedule: '0 10 1 * *', timeZone: 'Europe/Rome', region: 'europe-west1' },
   async () => {
     const now = new Date();
     const lastMonth = new Date(Date.UTC(now.getUTCFullYear(), now.getUTCMonth() - 1, 1));
     const ym = lastMonth.toISOString().slice(0, 7); // YYYY-MM
+    const mese = new Intl.DateTimeFormat('it-IT', { month: 'long', timeZone: 'Europe/Rome' }).format(lastMonth);
+    const meseCap = mese.charAt(0).toUpperCase() + mese.slice(1);
 
     const users = await usersWithReminder('monthly');
     for (const userId of users) {
@@ -322,38 +330,26 @@ export const sendMonthlySummary = onSchedule(
         .where('date', '<=', `${ym}-31`)
         .get();
 
-      let income = 0, expenses = 0, investments = 0, txCount = 0;
+      let income = 0, expenses = 0, investments = 0;
       snap.forEach(d => {
         const t = d.data() as { type?: string; amount?: number; shared?: number };
         const amount = Number(t.amount) || 0;
         if (t.type === 'income') income += amount;
-        else if (t.type === 'expense') { expenses += amount - (Number(t.shared) || 0); txCount++; }
-        else if (t.type === 'investment') { investments += amount; txCount++; }
-        else txCount++;
+        else if (t.type === 'expense') expenses += amount - (Number(t.shared) || 0);
+        else if (t.type === 'investment') investments += amount;
       });
       if (income === 0 && expenses === 0 && investments === 0) continue;
 
       const saved = income - expenses - investments;
-      // Percentages teased relative to income (the natural "how much did I keep?").
-      const pct = (n: number) => (income > 0 ? Math.round((n / income) * 100) : 0);
-      const savedPct = pct(saved);
-      const invPct = pct(investments);
-      const expPct = pct(expenses);
-
-      // Lead with the most motivating number: the savings rate.
-      const verdict =
-        savedPct >= 30 ? 'Mese da fuoriclasse 🔥'
-        : savedPct >= 15 ? 'Bel risparmio 💪'
-        : savedPct > 0 ? 'In positivo 🙂'
-        : 'Mese in rosso 👀';
+      const savedPct = income > 0 ? Math.round((saved / income) * 100) : 0;
 
       await sendToUser(
         userId,
-        `Riepilogo del mese 📊 — ${verdict}`,
-        `Hai messo da parte ${euro(saved)}, il ${savedPct}% delle entrate.\n` +
-        `Entrate ${euro(income)} · Uscite ${euro(expenses)} (${expPct}%) · Investito ${euro(investments)} (${invPct}%) · ${txCount} movimenti.`,
+        `📊 Il tuo riepilogo di ${meseCap} è pronto`,
+        `Apri Sunny per vedere com'è andata — ${euro(saved)} messi da parte (${savedPct}%).`,
         'monthly',
         'monthly',
+        `recap/${ym}`,
       );
     }
   }

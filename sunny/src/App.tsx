@@ -18,6 +18,8 @@ import { DashboardV2 } from './features/dashboard/DashboardV2';
 import { InvestmentsScreen } from './features/dashboard/InvestmentsScreen';
 import { CategorySpendingScreen } from './features/dashboard/CategorySpendingScreen';
 import { AccountBalanceScreen } from './features/dashboard/AccountBalanceScreen';
+import { MonthlyRecapScreen } from './features/recap/MonthlyRecapScreen';
+import { RecapPrompt } from './features/recap/RecapPrompt';
 import { InsightsScreen } from './features/insights/InsightsScreen';
 import { InsightsScreenV2 } from './features/insights/InsightsScreenV2';
 import { BudgetScreen } from './features/budget/BudgetScreen';
@@ -413,6 +415,9 @@ function Main({ user, onLogOut, onDeleteAccount }: {
           </div>
         )}
 
+        {/* New-month recap nudge — once per month per device (localStorage) */}
+        <RecapPrompt transactions={tx.transactions} />
+
         {/* Budget month-setup prompt — shown until the current month is confirmed */}
         {enableBudget && budget.showBudgetPrompt && !isSettings && (
           <div className="max-w-2xl mx-auto md:max-w-none px-5 md:px-8 pt-3">
@@ -549,6 +554,11 @@ function Main({ user, onLogOut, onDeleteAccount }: {
             <Route path="/account-balance" element={
               <div className="pt-4 md:pt-6">
                 <AccountBalanceScreen transactions={tx.transactions} />
+              </div>
+            } />
+            <Route path="/recap/:ym" element={
+              <div className="pt-4 md:pt-6">
+                <MonthlyRecapScreen transactions={tx.transactions} />
               </div>
             } />
             <Route path="/forecast-v2" element={

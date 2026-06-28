@@ -209,3 +209,48 @@ html.light .text-\[\#6FCF97\]     { color: rgb(var(--c-green)); }
 html.light .text-\[\#88B0C0\]     { color: #2F6F8F; }
 html.light .text-\[\#E6B95C\]     { color: rgb(var(--c-gold)); }
 html.light .text-\[\#E6B95C\]\/80 { color: rgb(var(--c-gold) / 0.9); }
+
+/* ─── Print: the Monthly Recap export, forced LIGHT on white ────────────────────
+   Reuses the app's own components but overrides every token to the light theme
+   (regardless of the on-screen theme), hides the app chrome, and lets the recap
+   flow across A4 pages. Gold is kept as the accent. Known limitation:
+   window.print() is unreliable on iOS standalone PWAs (Safari); desktop/Android ok. */
+@media print {
+  @page { size: A4; margin: 14mm; }
+
+  /* Force the LIGHT palette (values mirror html.light) so the export prints on
+     white whatever the current theme is — Tailwind reads rgb(var(--c-*)). */
+  :root {
+    --bg: #FCFAF5; --surface-1: #F5F1EA; --surface-2: #FAF7F1;
+    --border: rgba(26,23,20,0.12); --border-strong: rgba(26,23,20,0.18);
+    --text-1: #17140F; --text-2: #645F54; --text-3: #A8A296;
+    --accent: #C4972C; --accent-hi: #EEBF4A; --accent-on: #17140F;
+    --c-bg: 252 250 245; --c-surface: 252 250 245; --c-card: 255 255 255;
+    --c-card-hover: 248 245 238; --c-elevated: 250 247 241;
+    --c-primary: 23 20 15; --c-secondary: 100 95 84; --c-tertiary: 168 162 150;
+    --c-gold: 196 151 44; --c-green: 44 133 38; --c-red: 197 57 47;
+    --c-divider: 225 223 218; --c-divider-strong: 211 209 205;
+    --accent-green: #2C8526; --accent-gold: #C4972C; --accent-red: #C5392F; --accent-blue: #2F7396;
+    --progress-track: rgba(26,23,20,0.10); --modal-hdr-bg: #fff;
+  }
+
+  html, body { height: auto !important; overflow: visible !important; background: #fff !important; }
+
+  /* Hide the app chrome and any explicitly print-excluded controls. */
+  .glass-nav, .glass-header, .no-print { display: none !important; }
+  /* Drop the desktop sidebar offset once the sidebar is hidden. */
+  [class*="ml-[220px]"] { margin-left: 0 !important; }
+
+  /* Free the recap from the app's fixed-height / scroll containers so it paginates. */
+  body :where(.h-full, [class*="overflow-"], main) {
+    height: auto !important; max-height: none !important; overflow: visible !important;
+  }
+
+  /* Cards print as flat bordered blocks and never split across a page break. */
+  .recap-card { break-inside: avoid; page-break-inside: avoid; box-shadow: none !important; }
+
+  /* Movements table: always expanded, header repeated on every page. */
+  .recap-movements .overflow-x-auto { overflow: visible !important; }
+  .recap-movements thead { display: table-header-group; }
+  .recap-movements tr { page-break-inside: avoid; }
+}
