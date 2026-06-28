@@ -19,6 +19,7 @@ import { InvestmentsScreen } from './features/dashboard/InvestmentsScreen';
 import { CategorySpendingScreen } from './features/dashboard/CategorySpendingScreen';
 import { AccountBalanceScreen } from './features/dashboard/AccountBalanceScreen';
 import { MonthlyRecapScreen } from './features/recap/MonthlyRecapScreen';
+import { RecapPrompt } from './features/recap/RecapPrompt';
 import { InsightsScreen } from './features/insights/InsightsScreen';
 import { InsightsScreenV2 } from './features/insights/InsightsScreenV2';
 import { BudgetScreen } from './features/budget/BudgetScreen';
@@ -413,6 +414,9 @@ function Main({ user, onLogOut, onDeleteAccount }: {
             </div>
           </div>
         )}
+
+        {/* New-month recap nudge — once per month per device (localStorage) */}
+        <RecapPrompt transactions={tx.transactions} />
 
         {/* Budget month-setup prompt — shown until the current month is confirmed */}
         {enableBudget && budget.showBudgetPrompt && !isSettings && (
