@@ -1,4 +1,5 @@
 import { useState, useMemo } from 'react';
+import { useNavigate } from 'react-router-dom';
 import { User } from 'firebase/auth';
 import { Transaction, BudgetState, ownShare, investSign } from '../../types';
 import { useSettings } from '../../shared/providers/settings';
@@ -17,6 +18,7 @@ import { CategoryBudgetList } from './CategoryBudgetList';
 import { BudgetOverview } from './BudgetOverview';
 import { BudgetEditSheet } from './BudgetEditSheet';
 import { formatCurrency, capitalize } from '../../utils';
+import { listRecapMonths } from '../recap/monthlyRecap';
 
 type EditSection = 'savings' | 'income' | 'expenses' | 'investments';
 
@@ -43,12 +45,16 @@ function monthKeyLabel(key: string): string {
 export function BudgetScreenV2({
   user, transactions, monthlyInvestments,
 }: Props) {
+  const navigate = useNavigate();
   const { categories, visibleCategories, enableInvestments } = useSettings();
   const {
     budget, acceptSuggestion, currentMonth, monthlyStatus, budgetHistory,
     setSavingsTargetFor, setCategoryBudgetFor, setIncomeBudgetFor, setInvestmentBudgetFor,
     resetAllFor, confirmMonth, copyPrevInto,
   } = useBudget(user);
+
+  // Monthly recaps archive (newest first) — computed from in-memory transactions.
+  const recapMonths = useMemo(() => listRecapMonths(transactions), [transactions]);
 
   // Month navigated to (defaults to the current month). Drives every slice below.
   const [selectedMonth, setSelectedMonth] = useState(currentMonth);
@@ -424,6 +430,28 @@ export function BudgetScreenV2({
               <p className="text-[13px] text-secondary">Aggiungi obiettivi di investimento mensili</p>
             </button>
           )}
+        </div>
+      )}
+
+      {/* Riepiloghi mensili — archivio riflessivo (apre /recap/:ym) */}
+      {recapMonths.length > 0 && (
+        <div className="glass-card rounded-2xl p-4 space-y-1">
+          <p className="label-caps text-secondary mb-1.5 px-1">Riepiloghi mensili</p>
+          {recapMonths.slice(0, 12).map(r => (
+            <button key={r.ym} onClick={() => navigate(`/recap/${r.ym}`)}
+              className="w-full flex items-center justify-between gap-3 px-1 py-2.5 rounded-xl hover:bg-card-hover transition-colors text-left">
+              <span className="flex items-center gap-2 min-w-0">
+                <span className="text-base">📄</span>
+                <span className="text-[14px] text-primary truncate">{r.label}</span>
+              </span>
+              <span className="flex items-center gap-2 flex-shrink-0">
+                <span className={`text-[13px] font-semibold balance-num ${r.saved >= 0 ? 'text-green' : 'text-red'}`}>
+                  {r.saved >= 0 ? '+' : '−'}{formatCurrency(Math.abs(r.saved))}
+                </span>
+                <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.4" strokeLinecap="round" strokeLinejoin="round" className="text-tertiary"><path d="m9 18 6-6-6-6" /></svg>
+              </span>
+            </button>
+          ))}
         </div>
       )}
 

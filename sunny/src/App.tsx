@@ -18,6 +18,7 @@ import { DashboardV2 } from './features/dashboard/DashboardV2';
 import { InvestmentsScreen } from './features/dashboard/InvestmentsScreen';
 import { CategorySpendingScreen } from './features/dashboard/CategorySpendingScreen';
 import { AccountBalanceScreen } from './features/dashboard/AccountBalanceScreen';
+import { MonthlyRecapScreen } from './features/recap/MonthlyRecapScreen';
 import { InsightsScreen } from './features/insights/InsightsScreen';
 import { InsightsScreenV2 } from './features/insights/InsightsScreenV2';
 import { BudgetScreen } from './features/budget/BudgetScreen';
@@ -549,6 +550,11 @@ function Main({ user, onLogOut, onDeleteAccount }: {
             <Route path="/account-balance" element={
               <div className="pt-4 md:pt-6">
                 <AccountBalanceScreen transactions={tx.transactions} />
+              </div>
+            } />
+            <Route path="/recap/:ym" element={
+              <div className="pt-4 md:pt-6">
+                <MonthlyRecapScreen transactions={tx.transactions} />
               </div>
             } />
             <Route path="/forecast-v2" element={
