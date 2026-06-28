@@ -158,7 +158,7 @@ function median(arr: number[]): number {
 
 // ── Monthly stat helpers ──────────────────────────────────────────────────────
 
-interface MonthStats {
+export interface MonthStats {
   key: string;
   income: number;
   expense: number;
@@ -168,7 +168,7 @@ interface MonthStats {
   txCount: number;
 }
 
-function monthStats(txs: Transaction[], key: string): MonthStats {
+export function monthStats(txs: Transaction[], key: string): MonthStats {
   let income = 0, expense = 0, invest = 0, txCount = 0;
   for (const t of txs) {
     if (!t.date.startsWith(key)) continue;
@@ -182,7 +182,7 @@ function monthStats(txs: Transaction[], key: string): MonthStats {
 }
 
 /** Stats for the last `n` completed months (offset 1..n), oldest→newest. */
-function recentMonths(txs: Transaction[], n: number, now: Date): MonthStats[] {
+export function recentMonths(txs: Transaction[], n: number, now: Date): MonthStats[] {
   return Array.from({ length: n }, (_, i) => monthStats(txs, monthKey(n - i, now)));
 }
 
