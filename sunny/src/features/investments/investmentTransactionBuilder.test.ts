@@ -1,7 +1,7 @@
 import { describe, it, expect } from 'vitest';
 import {
   buildInvestmentDeposit, buildInvestmentWithdrawal,
-  plusMinusLatente, isStaleValue,
+  plusMinusLatente, isStaleValue, investmentValueDeltas,
 } from './investmentTransactionBuilder';
 import { Transaction, ownShare, investSign } from '../../types';
 
@@ -135,4 +135,30 @@ describe('isStaleValue', () => {
   it('mai aggiornato → stale', () => expect(isStaleValue(undefined, now)).toBe(true));
   it('29 giorni → fresco', () => expect(isStaleValue('2026-05-15', now)).toBe(false));
   it('31 giorni → stale', () => expect(isStaleValue('2026-05-11', now)).toBe(true));
+});
+
+describe('investmentValueDeltas', () => {
+  it('un versamento → delta = importo (la commissione/expense è ignorata)', () => {
+    const txs = buildInvestmentDeposit({ category: 'etf', amount: 200, date: '2026-06-10', account: 'cc', fee: 5 });
+    expect(investmentValueDeltas(txs)).toEqual({ etf: 200 });
+  });
+  it('più occorrenze (PAC) sulla stessa categoria → somma', () => {
+    const txs = [
+      buildInvestmentDeposit({ category: 'etf', amount: 100, date: '2026-04-10', account: 'cc' })[0],
+      buildInvestmentDeposit({ category: 'etf', amount: 100, date: '2026-05-10', account: 'cc' })[0],
+      buildInvestmentDeposit({ category: 'etf', amount: 100, date: '2026-06-10', account: 'cc' })[0],
+    ];
+    expect(investmentValueDeltas(txs)).toEqual({ etf: 300 });
+  });
+  it('categorie distinte restano separate; un prelievo sottrae', () => {
+    const txs = [
+      buildInvestmentDeposit({ category: 'etf', amount: 200, date: '2026-06-10', account: 'cc' })[0],
+      buildInvestmentDeposit({ category: 'fondo', amount: 50, date: '2026-06-10', account: 'cc' })[0],
+      { type: 'investment' as const, direction: 'out' as const, description: 'x', amount: 80, date: '2026-06-11', category: 'etf', account: 'cc' },
+    ];
+    expect(investmentValueDeltas(txs)).toEqual({ etf: 120, fondo: 50 });
+  });
+  it('nessun investimento → {}', () => {
+    expect(investmentValueDeltas([{ type: 'expense', description: 'x', amount: 10, date: '2026-06-10', category: 'altro', account: 'cc' }])).toEqual({});
+  });
 });

@@ -1,7 +1,7 @@
 import { Transaction, RecurrenceRule, STALE_DAYS } from '../../types';
 
 /** Round to cents — all generated amounts are money. */
-const r2 = (n: number) => Math.round(n * 100) / 100;
+export const r2 = (n: number) => Math.round(n * 100) / 100;
 
 // ── Latent P/L ─────────────────────────────────────────────────────────────────
 
@@ -64,6 +64,23 @@ export function buildInvestmentDeposit(input: DepositInput): Omit<Transaction, '
     });
   }
   return txs;
+}
+
+/**
+ * Net invested VALUE per category for a set of (already expanded) transactions:
+ * +amount for a deposit (direction !== 'out'), −amount for a withdrawal. Only
+ * `type === 'investment'` rows count — a linked commission is an expense and must
+ * not change the position's value. Used to bump the manually entered market value
+ * (controvalore) when the user adds to a position, so it tracks the fresh capital.
+ */
+export function investmentValueDeltas(txs: Omit<Transaction, 'id'>[]): Record<string, number> {
+  const out: Record<string, number> = {};
+  for (const t of txs) {
+    if (t.type !== 'investment') continue;
+    const sign = t.direction === 'out' ? -1 : 1;
+    out[t.category] = r2((out[t.category] ?? 0) + sign * t.amount);
+  }
+  return out;
 }
 
 // ── Withdrawal (Disinvesti) ────────────────────────────────────────────────────
