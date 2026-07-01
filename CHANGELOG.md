@@ -17,6 +17,10 @@ git.
 
 ---
 
+## 2026-06-29
+
+- **[Claude]** **Forecast V4: eliminata la seconda fonte di "doppio" sulle spese fisse (residuo statistico non più sommato).** Il fix precedente (PR #79) impediva al **budget** di sommarsi sopra una spesa fissa pianificata, ma restava un secondo doppio: se lo storico di una categoria **fissa** (es. "Finanziamento auto") è inserito come **spese singole non ricorrenti** (senza `seriesId`), l'estimatore del **residuo statistico** lo leggeva come spesa "variabile" e prevedeva ~€300 **in più** sopra i €300 già pianificati → €600. Ora, per le categorie fisse (`isFixedCategory`), quando esiste già un importo **impegnato nel mese** (speso/pianificato/ricorrente/stagionale > 0) il **residuo è azzerato** (la spesa è deterministica: una singola occorrenza). Senza nulla di impegnato il residuo resta (una spesa fissa non ancora pagata continua a essere prevista dallo storico), e il budget resta un **pavimento**. Le categorie **variabili** sono invariate. Test di regressione con controllo su categoria variabile. `tsc` pulito, build OK, **319 test verdi**. `(pending)`
+
 ## 2026-06-28
 
 - **[Claude]** **Investimenti: versando si aggiorna il controvalore (somma il capitale versato).** In `/investments`, quando si **Versa** in una categoria che ha già un **controvalore** impostato (valore di mercato manuale, `CategoryDef.currentValue`), questo viene ora **sommato al netto investito** del versamento (`nuovo = controvalore + importo`), così riflette subito il capitale fresco e non resta "da aggiornare" — simmetrico al disinvestimento, che già aggiornava `currentValue`. Se la categoria NON ha un controvalore impostato resta invariato (il display usa già il versato come fallback). Nuovo helper puro `investmentValueDeltas()` (netto per categoria dai soli `type==='investment'`, gestisce i ricorrenti espansi, ignora la commissione) + 4 test; wiring nell'`onSave` del deposit sheet in `InvestmentsScreen` (riusa `getCat`/`saveCurrentValue`). Nessuna nuova lettura/collection Firestore. `tsc` pulito, build OK, **318 test verdi**. `(pending)`

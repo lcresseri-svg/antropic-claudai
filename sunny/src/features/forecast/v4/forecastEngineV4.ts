@@ -200,10 +200,20 @@ export function computeForecastV4(input: ForecastV4Input): ForecastV4Result {
       hasRecurring: recurring > 0,
       hasSeasonalHighConfidence: seasonalCandidate?.confidence === 'high',
     });
-    const residual = Math.round(residualRes.value);
     if (residualRes.staleDecayApplied) staleCategories.push(categoryId);
 
-    const forecastBeforeBudget = spent + planned + recurring + seasonal + residual;
+    // FIXED / committed categories (loan instalment, subscription, insurance, rent…)
+    // have DETERMINISTIC spend — a single committed occurrence per month. When that
+    // occurrence is already known this month (spent/planned/recurring/seasonal > 0)
+    // the statistical residual must NOT be added on top, otherwise a category whose
+    // history looks "variable" (e.g. entered as plain one-off expenses, no series)
+    // gets double-counted: planned 300 + residual 300 = 600. With nothing committed
+    // yet the residual stays, so a not-yet-paid fixed expense still forecasts from history.
+    const fixedCategory = isFixedCategory(categoryLabel);
+    const deterministicCommitted = spent + planned + recurring + seasonal;
+    const residual = (fixedCategory && deterministicCommitted > 0) ? 0 : Math.round(residualRes.value);
+
+    const forecastBeforeBudget = deterministicCommitted + residual;
 
     // ── Budget signal ─────────────────────────────────────────────────────
     const relRes = computeBudgetReliabilityV4({
@@ -222,12 +232,8 @@ export function computeForecastV4(input: ForecastV4Input): ForecastV4Result {
       explainedByDeterministic,
     });
 
-    // FIXED / committed categories (loan instalment, subscription, insurance,
-    // rent…): the spend is deterministic, so the budget is a FLOOR the forecast
-    // should COINCIDE with — never an additive signal summed on top of the
-    // already-planned amount (that double-counts: planned 300 + budget 300 = 600).
-    // VARIABLE categories keep the reliability-weighted budget-as-signal "top-up".
-    const fixedCategory = isFixedCategory(categoryLabel);
+    // Budget as a FLOOR for fixed categories (never a top-up summed on the already-
+    // planned amount); VARIABLE categories keep the reliability-weighted signal.
     let budgetSignalAdjustment: number;
     let dampedUnconfirmed = false;
     if (fixedCategory) {
