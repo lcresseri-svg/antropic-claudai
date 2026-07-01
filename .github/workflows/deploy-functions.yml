@@ -25,7 +25,7 @@ jobs:
       # A full X.Y.Z pin can be set here once a known-good is chosen.
       FIREBASE_TOOLS_VERSION: "13"
     steps:
-      - uses: actions/checkout@v6
+      - uses: actions/checkout@v7
 
       - uses: actions/setup-node@v6
         with:
