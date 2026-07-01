@@ -201,4 +201,27 @@ describe('computeForecastV4 — fixed categories never sum the budget on top', (
     expect(fin.forecastBeforeBudget).toBe(0);
     expect(fin.totalForecast).toBe(300); // coincides with the programmato
   });
+
+  it('does NOT add a statistical residual on top of a committed fixed expense (history entered as one-offs)', () => {
+    const cats: CategoryDef[] = [
+      { id: 'finanziamento', label: 'Finanziamento auto', icon: '🚗', color: '#000', kind: 'expense' },
+      { id: 'spesa', label: 'Spesa', icon: '🛒', color: '#000', kind: 'expense' },
+    ];
+    const NOW1 = new Date(2026, 5, 1); // 1 June → the whole month is still "remaining"
+    // Non-recurring €300 monthly history + a €300 payment this month (planned vs 1 Jun).
+    const mk = (cat: string) => [
+      tx('2026-03-10', 300, { category: cat }), tx('2026-04-10', 300, { category: cat }),
+      tx('2026-05-10', 300, { category: cat }), tx('2026-06-10', 300, { category: cat, description: 'Rata' }),
+    ];
+    const r = computeForecastV4({
+      transactions: [...mk('finanziamento'), ...mk('spesa')], expenseCategories: cats, now: NOW1,
+    });
+    const fin = r.byCategory['finanziamento'];
+    expect(fin.plannedManualRemaining).toBe(300);
+    expect(fin.residualStatisticalRemaining).toBe(0); // suppressed for the fixed category
+    expect(fin.totalForecast).toBe(300);              // not 600
+    // Control: an identical VARIABLE category keeps its residual (the estimator fires),
+    // proving the fixed-category suppression is what removes the double.
+    expect(r.byCategory['spesa'].residualStatisticalRemaining).toBeGreaterThan(0);
+  });
 });
