@@ -480,7 +480,7 @@ export function TransactionList({ transactions, projected = [], onEdit, onDelete
         groups.map(([key, txs]) => {
           const isCollapsed = collapsed.has(key);
           return (
-            <div key={key} className="bg-card rounded-2xl p-4">
+            <div key={key} className="bg-card rounded-2xl p-4 animate-list-in">
               <div className="w-full flex items-center justify-between mb-1 px-1">
                 <div className="flex items-center gap-1.5 min-w-0">
                   {selectMode && groupHasReal(txs) && (

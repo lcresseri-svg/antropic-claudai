@@ -1,5 +1,7 @@
 import { useState, useRef } from 'react';
 import { useEscapeKey } from '../../shared/hooks/useEscapeKey';
+import { useDelayedUnmount } from '../../shared/hooks/useDelayedUnmount';
+import { SHEET_EXIT_MS } from '../../shared/motion';
 import { Transaction, TransactionType, TYPE_META, typeColor } from '../../types';
 import { formatCurrency, formatDate } from '../../utils';
 import { useSettings } from '../../shared/providers/settings';
@@ -120,14 +122,15 @@ export function ImportModal({ open, onClose, onImport }: Props) {
   };
 
   useEscapeKey(close, open);
+  const mounted = useDelayedUnmount(open, SHEET_EXIT_MS);
 
-  if (!open) return null;
+  if (!mounted) return null;
 
   return (
     <div className="fixed inset-0 z-50 flex items-end sm:items-center justify-center p-3"
       onClick={e => { if (e.target === e.currentTarget) close(); }}>
-      <div className="absolute inset-0 bg-black/60 backdrop-blur-sm animate-fade-in-fast" />
-      <div className="relative w-full max-w-xl glass-elevated rounded-3xl shadow-float max-h-[90vh] flex flex-col animate-sheet-up">
+      <div className={`absolute inset-0 bg-black/60 backdrop-blur-sm ${open ? 'animate-fade-in-fast' : 'animate-fade-out-fast'}`} />
+      <div className={`relative w-full max-w-xl glass-elevated rounded-3xl shadow-float max-h-[90vh] flex flex-col ${open ? 'animate-sheet-up' : 'animate-sheet-down'}`}>
         <div className="flex items-center justify-between p-6 pb-4">
           <div>
             <h2 className="text-lg font-semibold text-primary">Importa</h2>
