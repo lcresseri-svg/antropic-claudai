@@ -15,6 +15,7 @@
  */
 import { Transaction, ownShare } from '../../../types';
 import { percentile, isStaleDecayExempt, STALE_MONTHS } from './forecastV4Common';
+import type { DeterministicLikeKindV4 } from './forecastPlannedV4';
 
 export interface ResidualInputV4 {
   categoryId: string;
@@ -29,6 +30,19 @@ export interface ResidualInputV4 {
   historicalTransactions: Transaction[];
   /** Predicate: should this historical tx be excluded as deterministic-like? */
   isDeterministicLike: (tx: Transaction) => boolean;
+  /**
+   * Optional classifier telling WHY a tx is deterministic-like. When provided
+   * it takes precedence over `isDeterministicLike`, and 'planned' exclusions
+   * are capped per historical month (see maxPlannedLikeExclusionsPerMonth).
+   */
+  classifyDeterministicLike?: (tx: Transaction) => DeterministicLikeKindV4 | null;
+  /**
+   * Cap on 'planned'-kind exclusions per historical month: each planned
+   * expense should replace AT MOST ONE similar historical tx per month — a
+   * month that genuinely contained two similar large spends keeps the second
+   * one in the tail. Defaults to unlimited.
+   */
+  maxPlannedLikeExclusionsPerMonth?: number;
   /** How many complete months back to sample. Default 12. */
   lookbackMonths?: number;
   /** Signals that exempt the category from stale decay. */
@@ -78,16 +92,26 @@ export function computeResidualStatisticalRemainingV4(
   }
 
   // Build the tail distribution over complete historical months.
+  const classify = input.classifyDeterministicLike;
+  const maxPlannedPerMonth = input.maxPlannedLikeExclusionsPerMonth ?? Infinity;
   const tailValues: number[] = [];
   for (let i = 1; i <= lookbackMonths; i++) {
     const key = offsetMonthKey(targetYear, targetMonthIndex, i);
     if (key < firstMonth) continue; // category didn't exist yet — not a genuine zero
     let tail = 0;
+    let plannedExcluded = 0;
     for (const t of catTx) {
       if (t.date.slice(0, 7) !== key) continue;
       const day = parseInt(t.date.slice(8, 10), 10);
       if (day <= snapshotDay) continue;        // already "spent to date" in that month
-      if (isDeterministicLike(t)) continue;    // captured by a deterministic component
+      // Captured by a deterministic component → excluded from the tail
+      // ('planned' exclusions are capped per month).
+      if (classify) {
+        const kind = classify(t);
+        if (kind === 'planned') {
+          if (plannedExcluded < maxPlannedPerMonth) { plannedExcluded++; continue; }
+        } else if (kind) continue;
+      } else if (isDeterministicLike(t)) continue;
       tail += ownShare(t);
     }
     tailValues.push(tail);

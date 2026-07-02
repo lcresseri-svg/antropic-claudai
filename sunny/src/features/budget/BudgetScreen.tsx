@@ -36,7 +36,7 @@ export function BudgetScreen({
   const { categories, visibleCategories, enableInvestments } = useSettings();
   const {
     budget, setSavingsTarget, setCategoryBudget, setIncomeBudget, setInvestmentBudget,
-    acceptSuggestion, resetAll, hasBudget,
+    acceptSuggestion, resetAll, hasBudget, monthlyStatus, budgetHistory,
   } = useBudget(user);
 
   const [editOpen, setEditOpen] = useState(false);
@@ -81,11 +81,16 @@ export function BudgetScreen({
     return suggestBudgets(transactions, expenseCats);
   }, [isLearning, transactions, expenseCats]);
 
-  // End-of-month projection per expense category — V4 engine. Empty in demo mode.
+  // End-of-month projection per expense category — V4 engine (budget-aware,
+  // same context as BudgetScreenV2). Empty in demo mode.
   const projectedSpend = useMemo(() => {
     if (isLearning) return {};
-    return forecastByCategoryV4(transactions, expenseCats);
-  }, [isLearning, transactions, expenseCats]);
+    return forecastByCategoryV4(transactions, expenseCats, new Date(), {
+      categoryBudgets: budget.categoryBudgets,
+      budgetHistory,
+      currentMonthBudgetStatus: monthlyStatus,
+    });
+  }, [isLearning, transactions, expenseCats, budget.categoryBudgets, budgetHistory, monthlyStatus]);
 
   // "Programmato" per category: committed this month but not yet spent —
   // future-dated movements + upcoming recurring occurrences. Shown in the budget
@@ -137,8 +142,11 @@ export function BudgetScreen({
       monthlyIncome, monthlyInvestments,
       avgIncome: h.avgIncome, avgInvest: h.avgInvest,
       upcomingIncome, upcomingInvest, now,
+      categoryBudgets: budget.categoryBudgets,
+      budgetHistory,
+      currentMonthBudgetStatus: monthlyStatus,
     });
-  }, [isLearning, transactions, expenseCats, monthlyIncome, monthlyInvestments, monthlyExpenses]);
+  }, [isLearning, transactions, expenseCats, monthlyIncome, monthlyInvestments, monthlyExpenses, budget.categoryBudgets, budgetHistory, monthlyStatus]);
 
   const predicted = forecastObj.savings;
 

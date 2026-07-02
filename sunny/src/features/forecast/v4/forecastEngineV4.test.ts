@@ -99,6 +99,103 @@ describe('computeForecastV4 — components', () => {
   });
 });
 
+describe('computeForecastV4 — recurring virtual occurrences', () => {
+  const GYM_CATS: CategoryDef[] = [
+    { id: 'palestra', label: 'Palestra', icon: '🏋️', color: '#000', kind: 'expense' },
+  ];
+
+  it('forecasts ALL remaining weekly occurrences, not just the template row', () => {
+    // In Sunny only the series' NEXT occurrence exists as a document; the 24th
+    // is implied by the rule. History instances are excluded from the residual
+    // tail, so without expansion the 24th would be counted nowhere.
+    const txs = [
+      tx('2026-05-06', 25, { category: 'palestra', seriesId: 's1' }),
+      tx('2026-05-13', 25, { category: 'palestra', seriesId: 's1' }),
+      tx('2026-05-20', 25, { category: 'palestra', seriesId: 's1' }),
+      tx('2026-05-27', 25, { category: 'palestra', seriesId: 's1' }),
+      tx('2026-06-17', 25, { category: 'palestra', seriesId: 's1', recurring: { freq: 'weekly' } }),
+    ];
+    const r = computeForecastV4({ transactions: txs, expenseCategories: GYM_CATS, now: NOW });
+    const gym = r.byCategory['palestra'];
+    expect(gym.recurringRemaining).toBe(50); // 17 + 24 June
+    expect(gym.residualStatisticalRemaining).toBe(0); // history is recurring → not in the tail
+    expect(gym.totalForecast).toBe(50);
+  });
+
+  it('ignores an expired template entirely (dead series ≠ future spend)', () => {
+    const txs = [
+      tx('2026-06-20', 500, {
+        category: 'palestra', seriesId: 's1',
+        recurring: { freq: 'monthly', until: '2026-05-31' },
+      }),
+    ];
+    const r = computeForecastV4({ transactions: txs, expenseCategories: GYM_CATS, now: NOW });
+    expect(r.byCategory['palestra']).toBeUndefined();
+    expect(r.totalForecast).toBe(0);
+  });
+});
+
+describe('computeForecastV4 — seasonal partial payment', () => {
+  it('forecasts only the missing part when the seasonal spend was partially paid', () => {
+    const txs = [
+      tx('2024-06-10', 870, { category: 'assicurazioni' }),
+      tx('2025-06-10', 880, { category: 'assicurazioni' }),
+      // first tranche already paid this month, before the snapshot
+      tx('2026-06-05', 400, { category: 'assicurazioni' }),
+    ];
+    const r = computeForecastV4({ transactions: txs, expenseCategories: CATS, now: NOW });
+    const ass = r.byCategory['assicurazioni'];
+    expect(ass.spentToDate).toBe(400);
+    expect(ass.seasonalDetectedRemaining).toBe(475); // 875 − 400
+    expect(ass.totalForecast).toBe(875);             // not 400 + 875
+  });
+});
+
+describe('computeForecastV4 — planned-like exclusion cap', () => {
+  it('a single planned expense replaces at most ONE similar historical tx per month', () => {
+    const NOW1 = new Date(2026, 5, 1); // 1 June
+    // History: every month TWO similar 300 € one-offs after day 1. This month
+    // the user planned ONE 300 € payment → the second monthly 300 must stay
+    // in the residual tail (only one is replaced by the planned expense).
+    const hist = (m: string) => [
+      tx(`${m}-10`, 300, { category: 'spesa' }), tx(`${m}-20`, 300, { category: 'spesa' }),
+    ];
+    const txs = [
+      ...hist('2026-03'), ...hist('2026-04'), ...hist('2026-05'),
+      tx('2026-06-10', 300, { category: 'spesa', description: 'Rata' }), // planned
+    ];
+    const r = computeForecastV4({ transactions: txs, expenseCategories: CATS, now: NOW1 });
+    const spesa = r.byCategory['spesa'];
+    expect(spesa.plannedManualRemaining).toBe(300);
+    expect(spesa.residualStatisticalRemaining).toBe(300); // the second monthly 300
+    expect(spesa.totalForecast).toBe(600);
+  });
+});
+
+describe('computeForecastV4 — empirical reliability counts zero-spend months', () => {
+  it('a budget that never materialised drives reliability to the floor', () => {
+    // Activity in Jan+Feb only, then three CONFIRMED budgeted months (Mar–May)
+    // with ZERO spend: the budget clearly does not predict spend.
+    const txs = [
+      tx('2026-01-20', 50, { category: 'acquisti' }),
+      tx('2026-02-20', 50, { category: 'acquisti' }),
+    ];
+    const budgetHistory = ['2026-03', '2026-04', '2026-05', '2026-06'].map(month => ({
+      month, categoryBudgets: { acquisti: 600 }, status: 'confirmed' as const, source: 'manual',
+    }));
+    const r = computeForecastV4({
+      transactions: txs, expenseCategories: CATS, now: NOW,
+      budgetHistory, applyBudgetSignal: true,
+    });
+    const acq = r.byCategory['acquisti'];
+    expect(acq.budgetReliabilitySource).toBe('empirical');
+    expect(acq.budgetReliabilitySampleCount).toBe(3);
+    expect(acq.budgetReliability).toBe(0.15); // clamped floor, was 0.25 fallback
+    // Adjustment scaled by the empirical floor, not the (higher) fallback.
+    expect(acq.budgetSignalAdjustment!).toBe(Math.round((acq.budgetGap ?? 0) * 0.15));
+  });
+});
+
 describe('computeForecastV4 — seasonal/planned anti double-count', () => {
   it('does not add a seasonal insurance amount when a similar planned expense already covers it', () => {
     const txs = [
@@ -206,6 +303,7 @@ describe('computeForecastV4 — fixed categories never sum the budget on top', (
     const cats: CategoryDef[] = [
       { id: 'finanziamento', label: 'Finanziamento auto', icon: '🚗', color: '#000', kind: 'expense' },
       { id: 'spesa', label: 'Spesa', icon: '🛒', color: '#000', kind: 'expense' },
+      { id: 'uscite', label: 'Uscite', icon: '🍽️', color: '#000', kind: 'expense' },
     ];
     const NOW1 = new Date(2026, 5, 1); // 1 June → the whole month is still "remaining"
     // Non-recurring €300 monthly history + a €300 payment this month (planned vs 1 Jun).
@@ -213,15 +311,23 @@ describe('computeForecastV4 — fixed categories never sum the budget on top', (
       tx('2026-03-10', 300, { category: cat }), tx('2026-04-10', 300, { category: cat }),
       tx('2026-05-10', 300, { category: cat }), tx('2026-06-10', 300, { category: cat, description: 'Rata' }),
     ];
+    // Control: same history but NO planned payment this month.
+    const noPlanned = [
+      tx('2026-03-10', 300, { category: 'uscite' }), tx('2026-04-10', 300, { category: 'uscite' }),
+      tx('2026-05-10', 300, { category: 'uscite' }),
+    ];
     const r = computeForecastV4({
-      transactions: [...mk('finanziamento'), ...mk('spesa')], expenseCategories: cats, now: NOW1,
+      transactions: [...mk('finanziamento'), ...mk('spesa'), ...noPlanned], expenseCategories: cats, now: NOW1,
     });
     const fin = r.byCategory['finanziamento'];
     expect(fin.plannedManualRemaining).toBe(300);
     expect(fin.residualStatisticalRemaining).toBe(0); // suppressed for the fixed category
     expect(fin.totalForecast).toBe(300);              // not 600
-    // Control: an identical VARIABLE category keeps its residual (the estimator fires),
-    // proving the fixed-category suppression is what removes the double.
-    expect(r.byCategory['spesa'].residualStatisticalRemaining).toBeGreaterThan(0);
+    // A VARIABLE category is protected too: the planned 300 replaces the
+    // amount-similar historical one-offs in the residual tail (no more double).
+    expect(r.byCategory['spesa'].residualStatisticalRemaining).toBe(0);
+    expect(r.byCategory['spesa'].totalForecast).toBe(300);
+    // Control: with NO planned expense this month the estimator still fires.
+    expect(r.byCategory['uscite'].residualStatisticalRemaining).toBeGreaterThan(0);
   });
 });

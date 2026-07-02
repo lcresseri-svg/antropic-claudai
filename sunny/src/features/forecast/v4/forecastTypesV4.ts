@@ -45,7 +45,14 @@ export interface PlannedExpenseV4 {
 /** A detected seasonal expense candidate for a target calendar month. */
 export interface SeasonalExpenseCandidateV4 {
   categoryId: string;
+  /** Amount still expected this month (reduced when partially paid already). */
   expectedAmount: number;
+  /**
+   * Full historical seasonal amount, before subtracting any partial payment
+   * already made this month. Used to match historical occurrences (residual
+   * tail anti double-count). Equals expectedAmount when nothing was paid yet.
+   */
+  expectedAmountFull?: number;
   /** 0-based calendar month the spend recurs in (Jan = 0). */
   expectedMonth: number;
   confidence: ConfidenceV4;

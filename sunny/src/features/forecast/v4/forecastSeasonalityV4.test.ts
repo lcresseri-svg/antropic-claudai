@@ -65,6 +65,37 @@ describe('detectSeasonalExpensesV4 — insurance February', () => {
     expect(candidates).toHaveLength(0);
   });
 
+  it('subtracts a PARTIAL large payment already made this month (remaining only)', () => {
+    const txs = [
+      mkTx('2024-02-10', 870),
+      mkTx('2025-02-12', 880),
+      mkTx('2026-02-03', 400), // first tranche, on/before the snapshot
+    ];
+    const candidates = detectSeasonalExpensesV4({
+      ...baseInput, transactions: txs,
+      snapshotISO: '2026-02-05',
+      spentToDate: { assicurazioni: 400 },
+    });
+    expect(candidates).toHaveLength(1);
+    expect(candidates[0].expectedAmount).toBe(475);      // 875 − 400
+    expect(candidates[0].expectedAmountFull).toBe(875);  // kept for tail matching
+  });
+
+  it('skips entirely when the large payment this month is already similar to the full amount', () => {
+    const txs = [
+      mkTx('2024-02-10', 870),
+      mkTx('2025-02-12', 880),
+      mkTx('2026-02-03', 850),
+    ];
+    // spentToDate deliberately empty: this exercises the large-payment guard
+    // itself, not the aggregate spent-similar one.
+    const candidates = detectSeasonalExpensesV4({
+      ...baseInput, transactions: txs,
+      snapshotISO: '2026-02-05',
+    });
+    expect(candidates).toHaveLength(0);
+  });
+
   it('single occurrence → medium confidence only when the category looks seasonal', () => {
     const txs = [mkTx('2025-02-12', 880)];
     const candidates = detectSeasonalExpensesV4({ ...baseInput, transactions: txs });

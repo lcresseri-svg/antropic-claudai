@@ -564,6 +564,10 @@ export function buildInsights(input: InsightInput): Insight[] {
           monthlyIncome, monthlyInvestments,
           avgIncome: h.avgIncome, avgInvest: h.avgInvest,
           upcomingIncome, upcomingInvest, now,
+          // Budget context (when the caller has it): keeps this projection
+          // consistent with the Piano screen — fixed categories floored to
+          // their budget, unconfirmed budgets damped by the engine.
+          categoryBudgets: input.budgets,
         })
       : forecastSavings({
           monthlyIncome, monthlyExpenses, monthlyInvestments,

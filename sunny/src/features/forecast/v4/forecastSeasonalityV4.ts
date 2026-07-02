@@ -48,17 +48,22 @@ export interface DetectSeasonalInput {
   periodicCategoryIds?: Set<string>;
 }
 
-/** Sum of large (≥ 300 €) expense txs for a category in a YYYY-MM month. */
+/**
+ * Sum of large (≥ 300 €) expense txs for a category in a YYYY-MM month,
+ * optionally bounded to dates on/before `onOrBeforeISO`.
+ */
 function largeTotalForMonth(
   transactions: Transaction[],
   categoryId: string,
   monthKey: string,
+  onOrBeforeISO?: string,
 ): number {
   let sum = 0;
   for (const t of transactions) {
     if (t.type !== 'expense') continue;
     if (t.category !== categoryId) continue;
     if (t.date.slice(0, 7) !== monthKey) continue;
+    if (onOrBeforeISO && t.date > onOrBeforeISO) continue;
     const share = ownShare(t);
     if (share >= SEASONAL_MIN_AMOUNT) sum += share;
   }
@@ -69,7 +74,7 @@ export function detectSeasonalExpensesV4(
   input: DetectSeasonalInput,
 ): SeasonalExpenseCandidateV4[] {
   const {
-    transactions, targetMonthIndex, targetYear,
+    transactions, targetMonthIndex, targetYear, targetMonthKey, snapshotISO,
     labelOf, plannedRemaining, recurringRemaining, spentToDate,
   } = input;
   const lookbackYears = input.lookbackYears ?? 2;
@@ -118,22 +123,35 @@ export function detectSeasonalExpensesV4(
     }
 
     // ── Anti double-count guards ───────────────────────────────────────────
-    // Already covered by a similar planned/recurring remaining → skip.
-    const planned = plannedRemaining[categoryId] ?? 0;
-    const recurring = recurringRemaining[categoryId] ?? 0;
-    if (planned > 0 && amountsSimilar(planned, expectedAmount)) continue;
-    if (recurring > 0 && amountsSimilar(recurring, expectedAmount)) continue;
     // A similar large amount already spent this month → it already happened.
     const spent = spentToDate[categoryId] ?? 0;
     if (spent > 0 && (amountsSimilar(spent, expectedAmount) || spent >= expectedAmount)) continue;
+    // PARTIAL payment: part of the seasonal spend already happened this month
+    // (e.g. 400 of an expected ~870 insurance paid in tranches). Only what's
+    // still missing is forecast; the FULL amount is kept for tail matching.
+    const largeSpent = Math.round(
+      largeTotalForMonth(transactions, categoryId, targetMonthKey, snapshotISO),
+    );
+    const remaining = expectedAmount - largeSpent;
+    if (largeSpent > 0 && (remaining <= 0 || amountsSimilar(largeSpent, expectedAmount))) continue;
+    // Already covered by a similar planned/recurring remaining → skip.
+    // Compared against BOTH the full amount (user planned the whole thing) and
+    // the remaining one (user planned just the missing tranche).
+    const planned = plannedRemaining[categoryId] ?? 0;
+    const recurring = recurringRemaining[categoryId] ?? 0;
+    if (planned > 0 && (amountsSimilar(planned, expectedAmount) || amountsSimilar(planned, remaining))) continue;
+    if (recurring > 0 && (amountsSimilar(recurring, expectedAmount) || amountsSimilar(recurring, remaining))) continue;
 
     candidates.push({
       categoryId,
-      expectedAmount,
+      expectedAmount: remaining,
+      expectedAmountFull: expectedAmount,
       expectedMonth: targetMonthIndex,
       confidence,
       sourceMonths: occurrences.map(o => o.monthKey),
-      reason,
+      reason: largeSpent > 0
+        ? `${reason} Già pagato in parte questo mese (€${largeSpent}): previsto il residuo.`
+        : reason,
     });
   }
 

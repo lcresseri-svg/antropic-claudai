@@ -22,9 +22,10 @@ import {
   ForecastV4Diagnostics, SeasonalExpenseCandidateV4, PlannedExpenseV4,
   BudgetHistoryEntryV4, ConfidenceV4,
 } from './forecastTypesV4';
+import { isExpiredTemplate } from '../../../shared/recurrence';
 import {
   computeSpentToDate, computePlannedManualRemaining, computeRecurringRemaining,
-  buildPlannedExpensesFromTransactions, isDeterministicLikeTransactionV4,
+  buildPlannedExpensesFromTransactions, deterministicLikeKindV4,
 } from './forecastPlannedV4';
 import { detectSeasonalExpensesV4 } from './forecastSeasonalityV4';
 import { computeResidualStatisticalRemainingV4 } from './forecastResidualV4';
@@ -40,21 +41,41 @@ export const FORECAST_V4_WARNING =
   'Per forecast entro ±5%, pianifica o conferma le spese rilevanti sopra 300 €. ' +
   'Sunny userà budget e stagionalità per stimare le spese non ancora registrate.';
 
-/** Trailing-median statistical proxy used to build reliability samples. */
-function statisticalProxy(monthlyActual: Map<string, number>, beforeKey: string): number {
-  const priors = [...monthlyActual.entries()]
-    .filter(([k]) => k < beforeKey)
-    .sort(([a], [b]) => b.localeCompare(a))
-    .slice(0, 3)
-    .map(([, v]) => v);
+/** YYYY-MM key shifted by `delta` calendar months. */
+function shiftMonthKey(key: string, delta: number): string {
+  const [y, m] = key.split('-').map(Number);
+  const d = new Date(y, m - 1 + delta, 1);
+  return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}`;
+}
+
+/**
+ * Trailing-median statistical proxy used to build reliability samples: median
+ * spend over the 3 CALENDAR months before `beforeKey`, zero-filled for months
+ * with no spend (bounded by the category's first activity). Matches the
+ * residual estimator, which also counts genuine zero months.
+ */
+function statisticalProxy(
+  monthlyActual: Map<string, number>,
+  beforeKey: string,
+  firstMonth: string,
+): number {
+  const priors: number[] = [];
+  for (let i = 1; i <= 3; i++) {
+    const k = shiftMonthKey(beforeKey, -i);
+    if (k < firstMonth) break; // before the category existed — not a genuine zero
+    priors.push(monthlyActual.get(k) ?? 0);
+  }
   return median(priors);
 }
 
 /**
  * Build (budget, statisticalForecast, actual) reliability samples for a category
  * from CONFIRMED historical budget months only (never the target month, never
- * unconfirmed snapshots). Returns [] when there's no usable history, so the
- * engine falls back to the per-category default reliability.
+ * unconfirmed snapshots). Months with NO spend after the category's first
+ * activity count as actual = 0 — a budget that didn't materialise at all is the
+ * strongest evidence of unreliability and must not be dropped. Returns [] when
+ * there's no usable history, so the engine falls back to the per-category
+ * default reliability.
  */
 function buildReliabilitySamples(
   categoryId: string,
@@ -63,18 +84,22 @@ function buildReliabilitySamples(
   targetMonthKey: string,
 ): ReliabilitySampleV4[] {
   if (!budgetHistory || budgetHistory.length === 0) return [];
+  if (monthlyActual.size === 0) return []; // category never had any spend
+  let firstMonth = '';
+  for (const k of monthlyActual.keys()) {
+    if (!firstMonth || k < firstMonth) firstMonth = k;
+  }
   const samples: ReliabilitySampleV4[] = [];
   for (const entry of budgetHistory) {
     if (entry.month >= targetMonthKey) continue;        // never the target/future months
     if (entry.status !== 'confirmed') continue;         // only confirmed history counts
+    if (entry.month < firstMonth) continue;             // category didn't exist yet
     const budget = entry.categoryBudgets[categoryId];
     if (!budget || budget <= 0) continue;
-    const actual = monthlyActual.get(entry.month);
-    if (actual == null) continue;
     samples.push({
       budget,
-      statisticalForecast: statisticalProxy(monthlyActual, entry.month),
-      actual,
+      statisticalForecast: statisticalProxy(monthlyActual, entry.month, firstMonth),
+      actual: monthlyActual.get(entry.month) ?? 0,
     });
   }
   return samples;
@@ -120,8 +145,9 @@ export function computeForecastV4(input: ForecastV4Input): ForecastV4Result {
   const coveredMonths = coverageWindow.filter(k => budgetHistory.some(b => b.month === k)).length;
   const budgetHistoryCoverageRatio = Math.round((coveredMonths / coverageWindow.length) * 100) / 100;
 
-  // Only expenses are forecast.
-  const expenses = input.transactions.filter(t => t.type === 'expense');
+  // Only expenses are forecast. Expired recurring templates (a series advanced
+  // past its own `until`) are dead-series markers, not spend — never counted.
+  const expenses = input.transactions.filter(t => t.type === 'expense' && !isExpiredTemplate(t));
   const labelOf = (id: string) =>
     input.expenseCategories.find(c => c.id === id)?.label ?? id;
 
@@ -183,8 +209,11 @@ export function computeForecastV4(input: ForecastV4Input): ForecastV4Result {
     const seasonal = Math.round(seasonalCandidate?.expectedAmount ?? 0);
 
     // Anti double-count: exclude deterministic-like txs from the residual tail.
-    const isDetLike = (tx: Transaction) =>
-      isDeterministicLikeTransactionV4(tx, { plannedExpenses, seasonalCandidate });
+    // Each planned expense replaces at most ONE similar historical tx per month.
+    const classifyDetLike = (tx: Transaction) =>
+      deterministicLikeKindV4(tx, { plannedExpenses, seasonalCandidate });
+    const plannedCountForCategory =
+      plannedExpenses.filter(p => p.categoryId === categoryId).length;
 
     const budget = targetCategoryBudgets[categoryId] ?? 0;
     const residualRes = computeResidualStatisticalRemainingV4({
@@ -194,7 +223,9 @@ export function computeForecastV4(input: ForecastV4Input): ForecastV4Result {
       targetMonthIndex,
       targetYear,
       historicalTransactions: expenses,
-      isDeterministicLike: isDetLike,
+      isDeterministicLike: (tx: Transaction) => classifyDetLike(tx) !== null,
+      classifyDeterministicLike: classifyDetLike,
+      maxPlannedLikeExclusionsPerMonth: plannedCountForCategory,
       hasBudget: budget > 0,
       hasPlanned: planned > 0,
       hasRecurring: recurring > 0,
