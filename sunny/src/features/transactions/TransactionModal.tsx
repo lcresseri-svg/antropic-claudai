@@ -6,6 +6,8 @@ import { useSettings } from '../../shared/providers/settings';
 import { expandRecurringOnCreate, shouldExpandOnSave } from '../../shared/recurrence';
 import { useEscapeKey } from '../../shared/hooks/useEscapeKey';
 import { useScrollLock } from '../../shared/useScrollLock';
+import { useDelayedUnmount } from '../../shared/hooks/useDelayedUnmount';
+import { SHEET_EXIT_MS } from '../../shared/motion';
 
 interface Props {
   open: boolean;
@@ -97,6 +99,7 @@ export function TransactionModal({ open, editing, groupTransfers = [], seriesEdi
   }, [open, editing, groupTransfers.length]);
 
   useScrollLock(open);
+  const mounted = useDelayedUnmount(open, SHEET_EXIT_MS);
 
   useEscapeKey(onClose, open);
 
@@ -276,16 +279,16 @@ export function TransactionModal({ open, editing, groupTransfers = [], seriesEdi
     doSubmit(false);
   };
 
-  if (!open) return null;
+  if (!mounted) return null;
 
   const td = today(), yd = yesterday();
 
   return (
     <div className="fixed inset-0 z-50 flex items-end sm:items-center justify-center p-3"
       onClick={e => { if (e.target === e.currentTarget) onClose(); }}>
-      <div className="absolute inset-0 bg-black/60 backdrop-blur-sm animate-fade-in-fast" />
+      <div className={`absolute inset-0 bg-black/60 backdrop-blur-sm ${open ? 'animate-fade-in-fast' : 'animate-fade-out-fast'}`} />
 
-      <div className="relative w-full max-w-sm sm:max-w-lg glass-elevated rounded-3xl shadow-float max-h-[88vh] overflow-y-auto scrollbar-hide animate-sheet-up">
+      <div className={`relative w-full max-w-sm sm:max-w-lg glass-elevated rounded-3xl shadow-float max-h-[88vh] overflow-y-auto scrollbar-hide ${open ? 'animate-sheet-up' : 'animate-sheet-down'}`}>
         <div className="sticky top-0 bg-[var(--modal-hdr-bg)] backdrop-blur-xl z-10 px-5 pt-5 pb-3 flex items-center justify-between">
           <h2 className="text-base font-semibold text-primary">{seriesEdit ? 'Modifica serie' : editing ? 'Modifica' : 'Nuova transazione'}</h2>
           <button onClick={onClose} className="w-8 h-8 rounded-full bg-elevated flex items-center justify-center text-secondary">✕</button>

@@ -38,7 +38,7 @@ function NavBtn({ to, label, icon }: { to: string; label: string; icon: React.Re
   return (
     <NavLink to={to} aria-label={label} end
       className={({ isActive }) =>
-        `flex flex-col items-center justify-center gap-0.5 px-1.5 py-1 rounded-2xl transition-colors flex-1 min-w-0 ${
+        `flex flex-col items-center justify-center gap-0.5 px-1.5 py-1 rounded-2xl transform-gpu transition-all duration-200 ease-standard active:scale-[0.97] flex-1 min-w-0 ${
           isActive ? 'glass-active-pill text-gold' : 'text-secondary'
         }`
       }>

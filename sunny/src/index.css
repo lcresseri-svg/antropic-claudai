@@ -210,6 +210,28 @@ html.light .text-\[\#88B0C0\]     { color: #2F6F8F; }
 html.light .text-\[\#E6B95C\]     { color: rgb(var(--c-gold)); }
 html.light .text-\[\#E6B95C\]\/80 { color: rgb(var(--c-gold) / 0.9); }
 
+/* ─── Motion: shared utilities + accessibility ──────────────────────────────────
+   Tokens live in tailwind.config.js (keyframes/easings) and src/shared/motion.ts
+   (JS mirror). Only cheap, GPU-friendly properties are animated (opacity/transform). */
+
+/* Press feedback for tappable surfaces (cards, rows, chips). Kept tiny and quick
+   so it reads as responsiveness, not as an effect. Don't put it on inputs or
+   scroll containers. */
+.pressable { transition: transform 120ms cubic-bezier(0.2, 0, 0, 1); }
+.pressable:active { transform: scale(0.98); }
+
+/* Reduced motion: collapse every animation/transition to imperceptible. Exit
+   timers in JS (useDelayedUnmount) simply over-wait — nothing depends on
+   animation events. Spinners freeze: acceptable, they're decorative. */
+@media (prefers-reduced-motion: reduce) {
+  *, *::before, *::after {
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
+  }
+  html { scroll-behavior: auto !important; }
+}
+
 /* ─── Print: the Monthly Recap export, forced LIGHT on white ────────────────────
    Reuses the app's own components but overrides every token to the light theme
    (regardless of the on-screen theme), hides the app chrome, and lets the recap
