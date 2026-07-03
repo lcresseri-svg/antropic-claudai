@@ -1,6 +1,4 @@
 import { useEscapeKey } from '../../shared/hooks/useEscapeKey';
-import { useDelayedUnmount } from '../../shared/hooks/useDelayedUnmount';
-import { SHEET_EXIT_MS } from '../../shared/motion';
 
 interface Props {
   open: boolean;
@@ -14,14 +12,13 @@ interface Props {
  */
 export function SeriesEditChoiceSheet({ open, onClose, onChoose }: Props) {
   useEscapeKey(onClose, open);
-  const mounted = useDelayedUnmount(open, SHEET_EXIT_MS);
-  if (!mounted) return null;
+  if (!open) return null;
 
   return (
     <div className="fixed inset-0 z-[60] flex items-end sm:items-center justify-center p-3"
       onClick={e => { if (e.target === e.currentTarget) onClose(); }}>
-      <div className={`absolute inset-0 bg-black/70 backdrop-blur-md ${open ? 'animate-fade-in-fast' : 'animate-fade-out-fast'}`} />
-      <div className={`relative w-full max-w-md glass-elevated rounded-3xl shadow-float ${open ? 'animate-sheet-up' : 'animate-sheet-down'}`}>
+      <div className="absolute inset-0 bg-black/70 backdrop-blur-md animate-fade-in-fast" />
+      <div className="relative w-full max-w-md glass-elevated rounded-3xl shadow-float animate-sheet-up">
 
         <div className="flex items-center justify-between px-6 pt-6 pb-1">
           <h3 className="text-base font-semibold text-primary">Movimento ricorrente</h3>

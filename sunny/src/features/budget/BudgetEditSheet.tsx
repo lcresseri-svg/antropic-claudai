@@ -2,8 +2,6 @@ import { useState, useEffect } from 'react';
 import { CategoryDef } from '../../types';
 import { formatCurrency } from '../../utils';
 import { useEscapeKey } from '../../shared/hooks/useEscapeKey';
-import { useDelayedUnmount } from '../../shared/hooks/useDelayedUnmount';
-import { SHEET_EXIT_MS } from '../../shared/motion';
 
 type Tab = 'savings' | 'income' | 'expenses' | 'investments';
 
@@ -56,17 +54,16 @@ export function BudgetEditSheet({
   }, [open, defaultTab, savingsTarget]);
 
   useEscapeKey(onClose, open);
-  const mounted = useDelayedUnmount(open, SHEET_EXIT_MS);
 
-  if (!mounted) return null;
+  if (!open) return null;
 
   const isPreset = TARGET_PRESETS.includes(savingsTarget);
 
   return (
     <div className="fixed inset-0 z-[60] flex items-end sm:items-center justify-center p-3"
       onClick={e => { if (e.target === e.currentTarget) onClose(); }}>
-      <div className={`absolute inset-0 bg-black/70 backdrop-blur-md ${open ? 'animate-fade-in-fast' : 'animate-fade-out-fast'}`} />
-      <div className={`relative w-full max-w-md glass-elevated rounded-3xl shadow-float max-h-[85vh] flex flex-col ${open ? 'animate-sheet-up' : 'animate-sheet-down'}`}>
+      <div className="absolute inset-0 bg-black/70 backdrop-blur-md animate-fade-in-fast" />
+      <div className="relative w-full max-w-md glass-elevated rounded-3xl shadow-float animate-sheet-up max-h-[85vh] flex flex-col">
 
         {/* Header */}
         <div className="flex items-center justify-between px-6 pt-6 pb-3 shrink-0">

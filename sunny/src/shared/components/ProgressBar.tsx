@@ -17,10 +17,10 @@ export function ProgressBar({ value, max, color = 'rgb(var(--c-gold))', pending 
   const pendPct = Math.min(clamp((pending / safeMax) * 100), 100 - valPct);
   return (
     <div className={`h-1.5 rounded-full progress-track overflow-hidden flex ${className}`}>
-      <div className="h-full transition-[width] duration-[600ms] ease-emphasized"
+      <div className="h-full transition-all duration-500"
         style={{ width: `${valPct}%`, backgroundColor: color }} />
       {pendPct > 0 && (
-        <div className="h-full transition-[width] duration-[600ms] ease-emphasized"
+        <div className="h-full transition-all duration-500"
           style={{
             width: `${pendPct}%`,
             // Lighter, hatched fill = "programmato" (committed, not yet spent).
