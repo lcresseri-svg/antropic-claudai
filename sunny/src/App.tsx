@@ -431,11 +431,6 @@ function Main({ user, onLogOut, onDeleteAccount }: {
         )}
 
         <main className="max-w-2xl mx-auto md:max-w-none px-5 md:px-8 pt-4 md:pt-2 pb-24 md:pb-2">
-          {/* Page transition: keyed on the FIRST path segment so switching tab
-              fades the new screen in (opacity+translateY, 200ms), while intra-
-              section navigation (/settings/*, /recap/:ym) does NOT remount and
-              keeps its internal state. Routes/paths/guards untouched. */}
-          <div key={location.pathname.split('/')[1] || 'home'} className="animate-page-in">
           <Routes>
             <Route path="/" element={
               uiV2 ? (
@@ -615,7 +610,6 @@ function Main({ user, onLogOut, onDeleteAccount }: {
             } />
             <Route path="*" element={<Navigate to="/" replace />} />
           </Routes>
-          </div>
         </main>
 
         </div>{/* end scroll container */}

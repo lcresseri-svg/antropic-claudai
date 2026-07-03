@@ -63,7 +63,7 @@ function SideLink({ to, label, icon }: { to: string; label: string; icon: React.
   return (
     <NavLink to={to} end
       className={({ isActive }) =>
-        `flex items-center gap-3 px-3.5 py-2.5 rounded-xl text-sm font-medium transform-gpu transition-all duration-200 ease-standard active:scale-[0.98] ${
+        `flex items-center gap-3 px-3.5 py-2.5 rounded-xl text-sm font-medium transition-colors ${
           isActive
             ? 'bg-gold/8 text-gold'
             : 'text-secondary hover:text-primary hover:bg-card-hover'

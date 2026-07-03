@@ -1,40 +1,30 @@
-import { useEffect, useRef } from 'react';
+import { useEffect } from 'react';
 import { Insight, InsightChart } from './insightsEngine';
 import { formatCurrency } from '../../utils';
 import { useScrollLock } from '../../shared/useScrollLock';
-import { useDelayedUnmount } from '../../shared/hooks/useDelayedUnmount';
-import { SHEET_EXIT_MS } from '../../shared/motion';
 
 interface Props {
   insight: Insight | null;
   onClose: () => void;
 }
 
-export function InsightDetailSheet({ insight: activeInsight, onClose }: Props) {
-  const open = !!activeInsight;
-  useScrollLock(open);
+export function InsightDetailSheet({ insight, onClose }: Props) {
+  useScrollLock(!!insight);
   useEffect(() => {
-    if (!activeInsight) return;
+    if (!insight) return;
     const onKey = (e: KeyboardEvent) => { if (e.key === 'Escape') onClose(); };
     window.addEventListener('keydown', onKey);
     return () => { window.removeEventListener('keydown', onKey); };
-  }, [activeInsight, onClose]);
+  }, [insight, onClose]);
 
-  // Keep rendering the LAST insight while the close animation plays (the parent
-  // nulls the prop on close, but the sheet must not go blank mid-exit).
-  const lastRef = useRef<Insight | null>(null);
-  if (activeInsight) lastRef.current = activeInsight;
-  const insight = activeInsight ?? lastRef.current;
-
-  const mounted = useDelayedUnmount(open, SHEET_EXIT_MS);
-  if (!mounted || !insight) return null;
+  if (!insight) return null;
   const ex = insight.explain;
 
   return (
     <div className="fixed inset-0 z-[60] flex items-end sm:items-center justify-center p-3"
       onClick={e => { if (e.target === e.currentTarget) onClose(); }}>
-      <div className={`absolute inset-0 bg-black/70 backdrop-blur-md ${open ? 'animate-fade-in-fast' : 'animate-fade-out-fast'}`} />
-      <div className={`relative w-full max-w-md glass-elevated rounded-3xl shadow-float max-h-[85vh] flex flex-col overflow-hidden ${open ? 'animate-sheet-up' : 'animate-sheet-down'}`}>
+      <div className="absolute inset-0 bg-black/70 backdrop-blur-md animate-fade-in-fast" />
+      <div className="relative w-full max-w-md glass-elevated rounded-3xl shadow-float animate-sheet-up max-h-[85vh] flex flex-col overflow-hidden">
 
         {/* Header */}
         <div className="flex items-start gap-3.5 px-6 pt-6 pb-4">

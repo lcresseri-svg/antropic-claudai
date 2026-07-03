@@ -36,7 +36,7 @@ export function TransactionRow({ tx, selectable, selected, upcoming, onToggle, o
   return (
     <button
       onClick={handleClick}
-      className={`w-full flex items-center gap-3.5 py-3 text-left transform-gpu transition-all duration-150 ease-standard active:bg-card-hover active:scale-[0.99] rounded-xl -mx-2 px-2 ${isProjected ? 'opacity-60' : ''}`}
+      className={`w-full flex items-center gap-3.5 py-3 text-left transition-colors active:bg-card-hover rounded-xl -mx-2 px-2 ${isProjected ? 'opacity-60' : ''}`}
     >
       {selectable && (
         <span className={`w-5 h-5 rounded-full border-2 flex items-center justify-center flex-shrink-0 transition-colors ${
