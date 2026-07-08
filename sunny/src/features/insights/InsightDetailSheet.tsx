@@ -40,7 +40,7 @@ export function InsightDetailSheet({ insight, onClose }: Props) {
             className="w-8 h-8 rounded-full bg-elevated flex items-center justify-center text-secondary text-sm flex-shrink-0">✕</button>
         </div>
 
-        <div className="overflow-y-auto scrollbar-hide px-6 pb-7 space-y-5">
+        <div className="overflow-y-auto overscroll-contain scrollbar-hide px-6 pb-7 space-y-5">
           {ex?.chart && <MiniBars chart={ex.chart} accent={insight.accent} />}
 
           {ex ? (

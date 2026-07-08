@@ -12,12 +12,14 @@ export function SheetShell({ open, title, onClose, children }: {
     <div className="fixed inset-0 z-50 flex items-end sm:items-center justify-center p-3"
       onClick={e => { if (e.target === e.currentTarget) onClose(); }}>
       <div className="absolute inset-0 bg-black/60 backdrop-blur-sm animate-fade-in-fast" />
-      <div className="relative w-full max-w-sm sm:max-w-lg glass-elevated rounded-3xl shadow-float max-h-[88vh] overflow-y-auto scrollbar-hide animate-sheet-up">
-        <div className="sticky top-0 bg-[var(--modal-hdr-bg)] backdrop-blur-xl z-10 px-5 pt-5 pb-3 flex items-center justify-between">
+      {/* The card is a fixed mask (header stays put); only the content window
+          scrolls, and overscroll-contain keeps the scroll from chaining out. */}
+      <div className="relative w-full max-w-sm sm:max-w-lg glass-elevated rounded-3xl shadow-float max-h-[88vh] overflow-hidden flex flex-col animate-sheet-up">
+        <div className="shrink-0 bg-[var(--modal-hdr-bg)] px-5 pt-5 pb-3 flex items-center justify-between">
           <h2 className="text-base font-semibold text-primary">{title}</h2>
           <button onClick={onClose} className="w-8 h-8 rounded-full bg-elevated flex items-center justify-center text-secondary">✕</button>
         </div>
-        <div className="px-5 sm:px-7 pb-5 sm:pb-7 space-y-3 sm:space-y-4">{children}</div>
+        <div className="flex-1 min-h-0 overflow-y-auto overscroll-contain scrollbar-hide px-5 sm:px-7 pb-5 sm:pb-7 space-y-3 sm:space-y-4">{children}</div>
       </div>
     </div>
   );

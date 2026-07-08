@@ -287,14 +287,18 @@ export function TransactionModal({ open, editing, groupTransfers = [], seriesEdi
 
       {/* Mobile: the card fills the screen (minus a 12px + safe-area margin, so
           the backdrop peeks around the rounded corners and it still reads as a
-          card). From `sm` up it stays the compact centered sheet as before. */}
-      <div className="relative w-full max-w-none h-full max-h-full sm:max-w-lg sm:h-auto sm:max-h-[88vh] glass-elevated rounded-3xl shadow-float overflow-y-auto scrollbar-hide animate-sheet-up">
-        <div className="sticky top-0 bg-[var(--modal-hdr-bg)] backdrop-blur-xl z-10 px-5 pt-5 pb-3 flex items-center justify-between">
+          card). From `sm` up it stays the compact centered sheet as before.
+          The CARD ITSELF never scrolls: it's a fixed mask (header + footer)
+          around an internal scrolling window (the form fields). overscroll-contain
+          stops the scroll from chaining to the page when the window hits its end. */}
+      <div className="relative w-full max-w-none h-full max-h-full sm:max-w-lg sm:h-auto sm:max-h-[88vh] glass-elevated rounded-3xl shadow-float overflow-hidden flex flex-col animate-sheet-up">
+        <div className="shrink-0 bg-[var(--modal-hdr-bg)] px-5 pt-5 pb-3 flex items-center justify-between">
           <h2 className="text-base font-semibold text-primary">{seriesEdit ? 'Modifica serie' : editing ? 'Modifica' : 'Nuova transazione'}</h2>
           <button onClick={onClose} className="w-8 h-8 rounded-full bg-elevated flex items-center justify-center text-secondary">✕</button>
         </div>
 
-        <form onSubmit={submit} className="px-5 sm:px-7 space-y-3 sm:space-y-4">
+        <form onSubmit={submit} className="flex-1 min-h-0 flex flex-col">
+          <div className="flex-1 min-h-0 overflow-y-auto overscroll-contain scrollbar-hide px-5 sm:px-7 pb-4 space-y-3 sm:space-y-4">
           {seriesEdit && (
             <p className="text-[11px] text-secondary bg-elevated rounded-xl px-3 py-2 leading-snug">
               🔁 Stai modificando l'intera serie. Le modifiche valgono per le occorrenze future; le voci già registrate non cambiano.
@@ -580,11 +584,11 @@ export function TransactionModal({ open, editing, groupTransfers = [], seriesEdi
                   {seriesEdit ? 'Elimina serie' : 'Elimina transazione'}
                 </button>
           )}
+          </div>
 
-          {/* Action bar pinned to the card's bottom edge (mirrors the sticky
-              header): the form scrolls underneath, the CTA stays reachable.
-              Full-bleed via negative margins; same blurred bg as the header. */}
-          <div className="sticky bottom-0 z-10 -mx-5 sm:-mx-7 px-5 sm:px-7 pt-3 pb-5 sm:pb-7 bg-[var(--modal-hdr-bg)] backdrop-blur-xl space-y-2">
+          {/* Fixed action bar: part of the card's mask (like the header), the
+              form scrolls in the window above it. */}
+          <div className="shrink-0 px-5 sm:px-7 pt-3 pb-5 sm:pb-7 bg-[var(--modal-hdr-bg)] space-y-2">
             <button type="submit"
               className="w-full py-3 rounded-2xl font-semibold transition-transform active:scale-[0.98]"
               style={{ backgroundColor: typeColor(type, theme), color: typeOnColor(theme) }}>
