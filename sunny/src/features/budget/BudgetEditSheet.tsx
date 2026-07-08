@@ -94,7 +94,7 @@ export function BudgetEditSheet({
         </div>
 
         {/* Content */}
-        <div className="overflow-y-auto scrollbar-hide px-6 pb-6 flex-1">
+        <div className="overflow-y-auto overscroll-contain scrollbar-hide px-6 pb-6 flex-1">
           {tab === 'savings' && (
             <>
               <p className="label-caps text-secondary mb-3">Quanto vuoi risparmiare questo mese?</p>

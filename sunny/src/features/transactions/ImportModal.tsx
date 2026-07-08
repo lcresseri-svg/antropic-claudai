@@ -136,7 +136,7 @@ export function ImportModal({ open, onClose, onImport }: Props) {
           <button onClick={close} className="w-8 h-8 rounded-full bg-elevated flex items-center justify-center text-secondary">✕</button>
         </div>
 
-        <div className="flex-1 overflow-y-auto scrollbar-hide px-6">
+        <div className="flex-1 overflow-y-auto overscroll-contain scrollbar-hide px-6">
           {step === 'upload' && (
             <div className="space-y-3">
               <div
@@ -181,18 +181,18 @@ export function ImportModal({ open, onClose, onImport }: Props) {
                 </div>
               )}
               {errors.length > 0 && (
-                <div className="bg-[#C0605A]/10 rounded-2xl p-3 max-h-24 overflow-y-auto space-y-1">
+                <div className="bg-[#C0605A]/10 rounded-2xl p-3 max-h-24 overflow-y-auto overscroll-contain space-y-1">
                   {errors.map((e, i) => <p key={i} className="text-xs text-[#C0605A]">{e}</p>)}
                 </div>
               )}
               {warnings.length > 0 && (
-                <div className="bg-[#E6B95C]/10 rounded-2xl p-3 max-h-24 overflow-y-auto space-y-1">
+                <div className="bg-[#E6B95C]/10 rounded-2xl p-3 max-h-24 overflow-y-auto overscroll-contain space-y-1">
                   <p className="text-xs font-medium text-gold mb-1">Tipi non riconosciuti — importati come Uscita:</p>
                   {warnings.map((w, i) => <p key={i} className="text-xs text-[#E6B95C]/80">{w}</p>)}
                 </div>
               )}
               {parsed.length > 0 && (
-                <div className="glass-card rounded-2xl divide-y divide-white/[0.06] max-h-72 overflow-y-auto scrollbar-hide">
+                <div className="glass-card rounded-2xl divide-y divide-white/[0.06] max-h-72 overflow-y-auto overscroll-contain scrollbar-hide">
                   {parsed.slice(0, 60).map((tx, i) => (
                     <div key={i} className="flex items-center gap-3 p-3 text-sm">
                       <span className="text-secondary text-xs w-12 flex-shrink-0">{formatDate(tx.date)}</span>

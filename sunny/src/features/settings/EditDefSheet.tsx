@@ -87,7 +87,7 @@ export function EditDefSheet({ open, draft, withKind, canDelete, showFundType, o
     <div className="fixed inset-0 z-[60] flex items-end sm:items-center justify-center p-3"
       onClick={e => { if (e.target === e.currentTarget) onClose(); }}>
       <div className="absolute inset-0 bg-black/60 backdrop-blur-sm animate-fade-in-fast" />
-      <div className="relative w-full max-w-md glass-elevated rounded-3xl p-6 shadow-float animate-sheet-up max-h-[90vh] overflow-y-auto scrollbar-hide">
+      <div className="relative w-full max-w-md glass-elevated rounded-3xl p-6 shadow-float animate-sheet-up max-h-[90vh] overflow-y-auto overscroll-contain scrollbar-hide">
         <h2 className="text-base font-semibold text-primary mb-4">{sheetTitle}</h2>
         <p className="text-xs font-medium text-secondary mb-2 px-1">Nome e icona</p>
         <div className="flex items-center gap-3 mb-5">

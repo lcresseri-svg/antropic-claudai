@@ -25,7 +25,7 @@ export function OptionSheet({ open, title, options, onPick, onClose, footer }: P
             className="w-8 h-8 rounded-full bg-elevated flex items-center justify-center text-secondary text-sm">✕</button>
         </div>
 
-        <div className="grid grid-cols-2 gap-2 overflow-y-auto scrollbar-hide px-6 pb-6">
+        <div className="grid grid-cols-2 gap-2 overflow-y-auto overscroll-contain scrollbar-hide px-6 pb-6">
           {options.map(o => (
             <button key={o.id} onClick={() => onPick(o.id)}
               className="flex items-center gap-3 p-3.5 rounded-2xl bg-elevated active:bg-card-hover transition-colors text-left">

@@ -37,7 +37,7 @@ export function FeedbackSheet({ open, user, onClose }: Props) {
             className="w-10 h-10 -mr-1.5 rounded-full bg-elevated flex items-center justify-center text-secondary text-base active:scale-90 transition-transform">✕</button>
         </div>
 
-        <div className="overflow-y-auto scrollbar-hide px-6 pb-6 flex-1">
+        <div className="overflow-y-auto overscroll-contain scrollbar-hide px-6 pb-6 flex-1">
           {done ? (
             <div className="text-center py-10">
               <p className="text-4xl mb-3">🙏</p>
