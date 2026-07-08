@@ -294,7 +294,7 @@ export function TransactionModal({ open, editing, groupTransfers = [], seriesEdi
           <button onClick={onClose} className="w-8 h-8 rounded-full bg-elevated flex items-center justify-center text-secondary">✕</button>
         </div>
 
-        <form onSubmit={submit} className="px-5 sm:px-7 pb-5 sm:pb-7 space-y-3 sm:space-y-4">
+        <form onSubmit={submit} className="px-5 sm:px-7 space-y-3 sm:space-y-4">
           {seriesEdit && (
             <p className="text-[11px] text-secondary bg-elevated rounded-xl px-3 py-2 leading-snug">
               🔁 Stai modificando l'intera serie. Le modifiche valgono per le occorrenze future; le voci già registrate non cambiano.
@@ -568,19 +568,6 @@ export function TransactionModal({ open, editing, groupTransfers = [], seriesEdi
             </>
           )}
 
-          <button type="submit"
-            className="w-full py-3 rounded-2xl font-semibold transition-transform active:scale-[0.98]"
-            style={{ backgroundColor: typeColor(type, theme), color: typeOnColor(theme) }}>
-            {editing ? 'Salva modifiche' : `Aggiungi ${TYPE_META[type].label.toLowerCase()}`}
-          </button>
-
-          {!editing && (
-            <button type="button" onClick={() => doSubmit(true)}
-              className="w-full py-2.5 rounded-2xl text-sm font-medium text-secondary bg-elevated active:bg-card-hover transition-colors">
-              Salva e aggiungi un'altra
-            </button>
-          )}
-
           {editing && (
             confirmDelete
               ? <button type="button"
@@ -593,6 +580,24 @@ export function TransactionModal({ open, editing, groupTransfers = [], seriesEdi
                   {seriesEdit ? 'Elimina serie' : 'Elimina transazione'}
                 </button>
           )}
+
+          {/* Action bar pinned to the card's bottom edge (mirrors the sticky
+              header): the form scrolls underneath, the CTA stays reachable.
+              Full-bleed via negative margins; same blurred bg as the header. */}
+          <div className="sticky bottom-0 z-10 -mx-5 sm:-mx-7 px-5 sm:px-7 pt-3 pb-5 sm:pb-7 bg-[var(--modal-hdr-bg)] backdrop-blur-xl space-y-2">
+            <button type="submit"
+              className="w-full py-3 rounded-2xl font-semibold transition-transform active:scale-[0.98]"
+              style={{ backgroundColor: typeColor(type, theme), color: typeOnColor(theme) }}>
+              {editing ? 'Salva modifiche' : `Aggiungi ${TYPE_META[type].label.toLowerCase()}`}
+            </button>
+
+            {!editing && (
+              <button type="button" onClick={() => doSubmit(true)}
+                className="w-full py-2.5 rounded-2xl text-sm font-medium text-secondary bg-elevated active:bg-card-hover transition-colors">
+                Salva e aggiungi un'altra
+              </button>
+            )}
+          </div>
         </form>
       </div>
     </div>

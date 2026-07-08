@@ -17,6 +17,10 @@ git.
 
 ---
 
+## 2026-07-08
+
+- **[Claude]** **Card transazione: pulsanti d'azione fissi in basso, form che scorre sotto.** In `TransactionModal` i CTA — "Aggiungi {tipo}" / "Salva modifiche" e "Salva e aggiungi un'altra" — sono ora in un **footer `sticky bottom-0`** dentro la card (speculare all'header sticky in alto): full-bleed con margini negativi, stesso sfondo sfumato `--modal-hdr-bg` + `backdrop-blur-xl`, restano sempre raggiungibili mentre il resto del form scorre sotto. "Elimina transazione/serie" resta nel flusso scorrevole (azione distruttiva, meglio non a portata di pollice fisso). Il footer resta dentro il `<form>` così `type="submit"` continua a funzionare. Solo struttura/classi, nessuna logica. `tsc` pulito, build OK, **319 test verdi**. `(pending)`
+
 ## 2026-07-03
 
 - **[Claude]** **Mobile: la card della transazione (+) si apre a tutto schermo, restando una card.** Su telefono (sotto `sm`) `TransactionModal` ora riempie lo schermo: `h-full max-w-none` con un margine di 12px + safe-area iOS (`max(0.75rem, env(safe-area-inset-top/bottom))`) attorno, così il backdrop resta visibile ai bordi e i `rounded-3xl` la fanno leggere ancora come **card**, non come una pagina nativa. Da `sm` in su invariata (sheet compatta centrata, `max-w-lg`/`max-h-[88vh]`). Vale sia per la nuova transazione (+) sia per la modifica (stessa modale). Solo classi CSS, nessuna logica. `tsc` pulito, build OK, **319 test verdi**. `(pending)`
