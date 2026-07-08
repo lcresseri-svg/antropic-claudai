@@ -17,6 +17,10 @@ git.
 
 ---
 
+## 2026-07-03
+
+- **[Claude]** **Mobile: la card della transazione (+) si apre a tutto schermo, restando una card.** Su telefono (sotto `sm`) `TransactionModal` ora riempie lo schermo: `h-full max-w-none` con un margine di 12px + safe-area iOS (`max(0.75rem, env(safe-area-inset-top/bottom))`) attorno, così il backdrop resta visibile ai bordi e i `rounded-3xl` la fanno leggere ancora come **card**, non come una pagina nativa. Da `sm` in su invariata (sheet compatta centrata, `max-w-lg`/`max-h-[88vh]`). Vale sia per la nuova transazione (+) sia per la modifica (stessa modale). Solo classi CSS, nessuna logica. `tsc` pulito, build OK, **319 test verdi**. `(pending)`
+
 ## 2026-07-02
 
 - **[Claude]** **Revert completo del motion design (PR #87).** Su feedback dell'utente ("non funzionano bene"), ripristinato lo stato pre-motion: rimossi `shared/motion.ts` e `useDelayedUnmount`, tornate le chiusure immediate delle sheet, via la page transition, i keyframes/easing ricalibrati, il press feedback su nav/righe e il blocco `prefers-reduced-motion`. L'app è identica a prima della PR #87. Un eventuale secondo tentativo andrà fatto in modo più mirato e testato su dispositivo reale. `(pending)`
