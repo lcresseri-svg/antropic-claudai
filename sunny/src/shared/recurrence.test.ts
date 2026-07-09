@@ -58,15 +58,24 @@ describe('expandRecurringOnCreate', () => {
     expect(out.find(d => d.recurring)).toBeUndefined();
   });
 
-  it('shared recurring: only the ORIGINAL-date instance keeps the storni groupId', () => {
+  it('shared recurring: every instance keeps the groupId (the storno series advances in lockstep)', () => {
     // Shared expense (storni group g1) that is also a monthly series, back-dated.
+    // The storno transfer is ITS OWN series expanded the same way, so month N's
+    // expense and storno instances share groupId + date; edit-time grouping only
+    // matches same-date siblings, so months can't cross-contaminate.
     const t = base({ date: '2026-04-04', recurring: { freq: 'monthly' }, seriesId: 's', groupId: 'g1' });
     const out = expandRecurringOnCreate(t, TODAY);
-    const instances = out.filter(d => !d.recurring);
-    expect(instances.find(d => d.date === '2026-04-04')!.groupId).toBe('g1'); // matches its storni
-    expect(instances.find(d => d.date === '2026-05-04')!.groupId).toBeUndefined();
-    expect(instances.find(d => d.date === '2026-06-04')!.groupId).toBeUndefined();
-    expect(out.find(d => d.recurring)!.groupId).toBeUndefined(); // template unlinked too
+    out.forEach(d => expect(d.groupId).toBe('g1'));
+  });
+
+  it('shared recurring pair: expense and storno expand in lockstep (same dates, same groupId)', () => {
+    const exp = base({ date: '2026-04-04', recurring: { freq: 'monthly' }, seriesId: 'se', groupId: 'g1' });
+    const sto = base({ type: 'transfer', category: 'trasferimento', toAccount: 'altro', amount: 50,
+      date: '2026-04-04', recurring: { freq: 'monthly' }, seriesId: 'st', groupId: 'g1' });
+    const expOut = expandRecurringOnCreate(exp, TODAY).filter(d => !d.recurring);
+    const stoOut = expandRecurringOnCreate(sto, TODAY).filter(d => !d.recurring);
+    expect(stoOut.map(d => d.date)).toEqual(expOut.map(d => d.date)); // lockstep dates
+    stoOut.forEach(d => { expect(d.groupId).toBe('g1'); expect(d.type).toBe('transfer'); });
   });
 });
 
@@ -120,29 +129,21 @@ describe('catchUpRecurring', () => {
     expect(advance).toEqual([{ id: 'tpl', date: '2026-06-04', seriesId: 's' }]);
   });
 
-  it('shared recurring: instances keep the groupId ONLY when real group siblings share that date', () => {
+  it('shared recurring pair: expense + storno templates materialize in lockstep with the groupId', () => {
+    // Both templates share the groupId and the same rule/date; catch-up creates
+    // both months' pairs with matching date + groupId, so each month's expense
+    // folds ITS OWN storno at edit time (same-date grouping in App).
     const txs = [
-      // Template of a shared series, still at its original date (never advanced),
-      // with its storni transfer created on that same date.
-      t({ id: 'tpl', date: '2026-04-04', recurring: { freq: 'monthly' }, seriesId: 's', groupId: 'g1' }),
-      t({ id: 'storno', date: '2026-04-04', type: 'transfer', toAccount: 'x', groupId: 'g1' }),
+      t({ id: 'tplE', date: '2026-05-04', recurring: { freq: 'monthly' }, seriesId: 'se', groupId: 'g1' }),
+      t({ id: 'tplS', date: '2026-05-04', type: 'transfer', toAccount: 'x', amount: 50,
+          recurring: { freq: 'monthly' }, seriesId: 'st', groupId: 'g1' }),
     ];
     const { creates } = catchUpRecurring(txs, TODAY);
-    expect(creates.find(c => c.date === '2026-04-04')!.groupId).toBe('g1'); // its storni exist
-    expect(creates.find(c => c.date === '2026-05-04')!.groupId).toBeUndefined();
-    expect(creates.find(c => c.date === '2026-06-04')!.groupId).toBeUndefined();
-  });
-
-  it('legacy template with a STALE groupId (no same-date siblings) never stamps instances', () => {
-    const txs = [
-      // Already-advanced template carrying the original event's groupId; the
-      // storni live months back on a different date.
-      t({ id: 'tpl', date: '2026-05-04', recurring: { freq: 'monthly' }, seriesId: 's', groupId: 'g1' }),
-      t({ id: 'storno', date: '2026-01-04', type: 'transfer', toAccount: 'x', groupId: 'g1' }),
-    ];
-    const { creates } = catchUpRecurring(txs, TODAY);
-    expect(creates.length).toBeGreaterThan(0);
-    creates.forEach(c => expect(c.groupId).toBeUndefined());
+    const expenses = creates.filter(c => c.type === 'expense');
+    const storni = creates.filter(c => c.type === 'transfer');
+    expect(expenses.map(c => c.date)).toEqual(['2026-05-04', '2026-06-04']);
+    expect(storni.map(c => c.date)).toEqual(['2026-05-04', '2026-06-04']); // lockstep
+    creates.forEach(c => expect(c.groupId).toBe('g1'));
   });
 });
 
