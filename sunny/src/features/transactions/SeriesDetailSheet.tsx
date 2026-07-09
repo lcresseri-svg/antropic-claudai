@@ -1,6 +1,7 @@
 import { Transaction } from '../../types';
 import { useSettings } from '../../shared/providers/settings';
 import { buildSeriesSummary } from '../../shared/recurrence';
+import { buildEquivalentRows } from './seriesDisplay';
 import { formatCurrency, formatDateFull } from '../../utils';
 import { ProgressBar } from '../../shared/components/ProgressBar';
 import { useEscapeKey } from '../../shared/hooks/useEscapeKey';
@@ -77,10 +78,21 @@ export function SeriesDetailSheet({ open, anchor, allTransactions, onClose, onEd
             </span>
           </div>
 
+          {/* Equivalenti — subscriptions and plain recurring, never installments
+              (a rata is a slice of a fixed plan, not an ongoing cost rate). */}
+          {s.kind !== 'installment' && s.freq && (
+            <div>
+              <p className="label-caps text-secondary mb-2 px-1">Equivalenti</p>
+              <div className="bg-card rounded-2xl px-4 py-3 space-y-2">
+                {buildEquivalentRows(s.amount, s.freq).map(e => (
+                  <Line key={e.label} label={e.label} value={e.value} />
+                ))}
+              </div>
+            </div>
+          )}
+
           {s.kind === 'subscription' && (
             <div className="bg-card rounded-2xl px-4 py-3 space-y-2">
-              <Line label="Equivalente mensile" value={formatCurrency(s.monthlyEquivalent ?? 0)} />
-              <Line label="Equivalente annuale" value={formatCurrency(s.annualEquivalent ?? 0)} />
               <Line label="Prossimo pagamento" value={s.nextDate ? formatDateFull(s.nextDate) : '—'} />
               <Line label="Pagato quest'anno" value={formatCurrency(s.paidThisYear)} />
               <Line label="Totale pagato" value={`${formatCurrency(s.paidAmount)} · ${s.paidCount} pagament${s.paidCount === 1 ? 'o' : 'i'}`} />

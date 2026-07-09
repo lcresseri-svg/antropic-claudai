@@ -108,10 +108,17 @@ export function DashboardV2(p: Props) {
 
       {/* ── 1. Patrimonio netto ── */}
       <div className="pt-4 md:pt-0 pb-6 border-b border-white/[0.04]">
-        <p className="label-caps text-secondary mb-3">Patrimonio netto</p>
-        <p className="text-[44px] leading-none font-bold text-primary balance-num">
-          {formatCurrency(p.netWorth)}
-        </p>
+        <button onClick={() => navigate('/wealth-history')} className="text-left group block w-full">
+          <p className="label-caps text-secondary mb-3 flex items-center gap-1">
+            Patrimonio netto
+            <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round" className="text-secondary group-hover:text-gold transition-colors">
+              <path d="m9 18 6-6-6-6"/>
+            </svg>
+          </p>
+          <p className="text-[44px] leading-none font-bold text-primary balance-num">
+            {formatCurrency(p.netWorth)}
+          </p>
+        </button>
         <div className="flex gap-8 mt-6 pt-5 border-t border-white/[0.04]">
           <div>
             <p className="label-caps text-secondary mb-1.5">Liquidità</p>
