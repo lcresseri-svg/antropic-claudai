@@ -64,9 +64,11 @@ export function projectOccurrences(
   // Fast-forward past occurrences before the visible window start.
   while (d < fromISO && --guard > 0) d = addPeriod(d, rule.freq);
   while (d <= upper && out.length < cap && --guard > 0) {
-    // Strip the recurring rule: a projected row is an occurrence, not the template.
-    const { recurring: _r, projected: _p, ...rest } = template;
-    void _r; void _p;
+    // Strip the recurring rule: a projected row is an occurrence, not the
+    // template. Also strip groupId — the storni/commission group belongs to the
+    // template's original event, not to future virtual occurrences.
+    const { recurring: _r, projected: _p, groupId: _g, ...rest } = template;
+    void _r; void _p; void _g;
     out.push({ ...rest, id: `${template.id}__${d}`, date: d, seriesId, projected: true });
     d = addPeriod(d, rule.freq);
   }
@@ -148,17 +150,22 @@ export function expandRecurringOnCreate<T extends Omit<Transaction, 'id'>>(
   let guard = 400;
   while (date <= todayISO && (!rule.until || date <= rule.until) && guard-- > 0) {
     // Realized occurrence: strip the recurring rule, keep the series link.
+    // The groupId (storni / commission link of a SHARED expense) belongs to the
+    // ORIGINAL event only — its siblings are dated base.date. Copying it onto
+    // later occurrences would tie every month to the first month's storni
+    // (editing month N would then delete/recreate month 1's transfers).
     const { recurring: _r, ...rest } = base;
     void _r;
-    out.push({ ...(rest as T), seriesId, date });
+    out.push({ ...(rest as T), seriesId, date, groupId: date === base.date ? base.groupId : undefined });
     date = addPeriod(date, rule.freq);
   }
   // No past occurrence materialized → the series starts in the future: keep the
   // single template as a "previsto".
   if (out.length === 0) return [base];
   // Advance the template to its next future occurrence (unless the series ended).
+  // The template represents FUTURE occurrences: no group link (see above).
   if (!rule.until || date <= rule.until) {
-    out.push({ ...base, seriesId, date });
+    out.push({ ...base, seriesId, date, groupId: undefined });
   }
   return out;
 }
@@ -223,6 +230,13 @@ export function catchUpRecurring(
     // template untouched — never delete it.
     if (rule.until && t.date > rule.until) continue;
     if (t.date > todayISO) continue; // next occurrence still in the future → nothing due
+    // The template's groupId (storni / commission of a SHARED expense) belongs to
+    // the ORIGINAL event: an instance may keep it only when real group siblings
+    // exist on that same date. Otherwise strip it, or every month would end up
+    // tied to the first month's storni.
+    const groupDates = t.groupId
+      ? new Set(transactions.filter(x => x.groupId === t.groupId && x.id !== t.id).map(x => x.date))
+      : null;
     let date = t.date;
     let guard = 400;
     while (date <= todayISO && (!rule.until || date <= rule.until) && guard-- > 0) {
@@ -230,7 +244,7 @@ export function catchUpRecurring(
       if (!have.has(key)) {
         const { recurring: _r, id: _id, ...rest } = t;
         void _r; void _id;
-        creates.push({ ...rest, seriesId, date });
+        creates.push({ ...rest, seriesId, date, groupId: groupDates?.has(date) ? t.groupId : undefined });
         have.add(key);
       }
       date = addPeriod(date, rule.freq);

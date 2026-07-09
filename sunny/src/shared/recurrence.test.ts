@@ -57,6 +57,17 @@ describe('expandRecurringOnCreate', () => {
     expect(instances.map(d => d.date)).toEqual(['2026-03-04', '2026-04-04']);
     expect(out.find(d => d.recurring)).toBeUndefined();
   });
+
+  it('shared recurring: only the ORIGINAL-date instance keeps the storni groupId', () => {
+    // Shared expense (storni group g1) that is also a monthly series, back-dated.
+    const t = base({ date: '2026-04-04', recurring: { freq: 'monthly' }, seriesId: 's', groupId: 'g1' });
+    const out = expandRecurringOnCreate(t, TODAY);
+    const instances = out.filter(d => !d.recurring);
+    expect(instances.find(d => d.date === '2026-04-04')!.groupId).toBe('g1'); // matches its storni
+    expect(instances.find(d => d.date === '2026-05-04')!.groupId).toBeUndefined();
+    expect(instances.find(d => d.date === '2026-06-04')!.groupId).toBeUndefined();
+    expect(out.find(d => d.recurring)!.groupId).toBeUndefined(); // template unlinked too
+  });
 });
 
 describe('catchUpRecurring', () => {
@@ -107,6 +118,31 @@ describe('catchUpRecurring', () => {
     const { creates, advance } = catchUpRecurring(txs, TODAY);
     expect(creates.map(c => c.date)).toEqual(['2026-04-04', '2026-05-04']);
     expect(advance).toEqual([{ id: 'tpl', date: '2026-06-04', seriesId: 's' }]);
+  });
+
+  it('shared recurring: instances keep the groupId ONLY when real group siblings share that date', () => {
+    const txs = [
+      // Template of a shared series, still at its original date (never advanced),
+      // with its storni transfer created on that same date.
+      t({ id: 'tpl', date: '2026-04-04', recurring: { freq: 'monthly' }, seriesId: 's', groupId: 'g1' }),
+      t({ id: 'storno', date: '2026-04-04', type: 'transfer', toAccount: 'x', groupId: 'g1' }),
+    ];
+    const { creates } = catchUpRecurring(txs, TODAY);
+    expect(creates.find(c => c.date === '2026-04-04')!.groupId).toBe('g1'); // its storni exist
+    expect(creates.find(c => c.date === '2026-05-04')!.groupId).toBeUndefined();
+    expect(creates.find(c => c.date === '2026-06-04')!.groupId).toBeUndefined();
+  });
+
+  it('legacy template with a STALE groupId (no same-date siblings) never stamps instances', () => {
+    const txs = [
+      // Already-advanced template carrying the original event's groupId; the
+      // storni live months back on a different date.
+      t({ id: 'tpl', date: '2026-05-04', recurring: { freq: 'monthly' }, seriesId: 's', groupId: 'g1' }),
+      t({ id: 'storno', date: '2026-01-04', type: 'transfer', toAccount: 'x', groupId: 'g1' }),
+    ];
+    const { creates } = catchUpRecurring(txs, TODAY);
+    expect(creates.length).toBeGreaterThan(0);
+    creates.forEach(c => expect(c.groupId).toBeUndefined());
   });
 });
 
