@@ -29,8 +29,16 @@
 // sum of flows, and gaps forward-fill by construction.
 
 import { Transaction, AccountDef, CategoryDef, ownShare, investSign } from '../../types';
-import { localISO } from './categoryAnalytics';
 import { capitalize } from '../../utils';
+
+/**
+ * "Today" MUST use the same convention as useTransactions' realized filter
+ * (UTC `toISOString()`), NOT the local date: otherwise, between local midnight
+ * and the UTC midnight, this screen would already count movements dated the new
+ * local day while the dashboard still shows them as "Programmato" — and the two
+ * liquidity figures would disagree.
+ */
+const dashboardToday = (now: Date) => now.toISOString().slice(0, 10);
 
 export type WealthPeriod = '1m' | '3m' | '6m' | '1y' | 'all' | 'custom';
 export type WealthMetric = 'total' | 'liquidity' | 'investments';
@@ -193,7 +201,7 @@ export function getWealthRange(
   opts?: { now?: Date; customStart?: string; customEnd?: string },
 ): WealthRange {
   const now = opts?.now ?? new Date();
-  const todayISO = localISO(now);
+  const todayISO = dashboardToday(now);
   if (period === 'custom') {
     const startISO = opts?.customStart ?? shiftMonthsISO(todayISO, -1);
     const rawEnd = opts?.customEnd ?? todayISO;
@@ -352,7 +360,7 @@ export function buildWealthComparisons(
   opts?: { now?: Date },
 ): WealthComparison[] {
   const now = opts?.now ?? new Date();
-  const todayISO = localISO(now);
+  const todayISO = dashboardToday(now);
   const periods: Exclude<WealthPeriod, 'all' | 'custom'>[] = ['1m', '3m', '6m', '1y'];
   return periods.map(period => {
     const months = period === '1m' ? 1 : period === '3m' ? 3 : period === '6m' ? 6 : 12;

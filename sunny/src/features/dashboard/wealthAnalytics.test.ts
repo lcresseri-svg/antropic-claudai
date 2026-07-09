@@ -5,8 +5,9 @@ import {
 } from './wealthAnalytics';
 import { Transaction, AccountDef, CategoryDef } from '../../types';
 
-// Fixed "now": 15 July 2026, mid-month, no DST edge.
-const NOW = new Date(2026, 6, 15, 12, 0, 0);
+// Fixed "now": 15 July 2026, mid-month, no DST edge. Anchored in UTC because
+// the engine derives "today" with the dashboard's convention (toISOString).
+const NOW = new Date('2026-07-15T12:00:00Z');
 const TODAY = '2026-07-15';
 
 const ACCOUNTS: AccountDef[] = [
@@ -155,6 +156,17 @@ describe('buildWealthHistory — stock semantics', () => {
     expect(p1y.length).toBe(13);      // 12 monthly steps + today
     // All series end exactly today.
     for (const pts of [p1m, p3m, p1y]) expect(pts[pts.length - 1].date).toBe(TODAY);
+  });
+
+  it('"today" follows the dashboard convention (UTC toISOString), so the two screens agree', () => {
+    // Just after local midnight in Italy (UTC+2) the UTC date is still the 14th:
+    // the last point must stop at the 14th — exactly like the dashboard's
+    // realized filter — and NOT count movements dated the new local day.
+    const lateNight = new Date('2026-07-14T22:30:00Z'); // 00:30 local (CEST) on the 15th
+    const txs = [tx({ date: '2026-07-15', amount: 100 })]; // dated the new local day
+    const pts = buildWealthHistory(txs, ACCOUNTS, CATS, '1m', { now: lateNight });
+    expect(pts[pts.length - 1].date).toBe('2026-07-14');
+    expect(pts[pts.length - 1].total).toBe(1500); // the 15th's expense NOT counted yet
   });
 
   it("'all' starts at the first movement", () => {
