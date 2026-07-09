@@ -84,6 +84,23 @@ describe('transaction validation', () => {
     await assertFails(setDoc(doc(db, `users/${A}/transactions/b6`), validTxn({ recurring: { freq: 'fortnightly' } })));
     await assertFails(setDoc(doc(db, `users/${A}/transactions/b7`), validTxn({ shared: 999 })));
   });
+  it('accepts valid seriesMeta (subscription / installment), rejects malformed', async () => {
+    const db = dbOf(A);
+    await assertSucceeds(setDoc(doc(db, `users/${A}/transactions/s1`),
+      validTxn({ recurring: { freq: 'monthly' }, seriesId: 's', seriesMeta: { kind: 'subscription', createdAt: 1 } })));
+    await assertSucceeds(setDoc(doc(db, `users/${A}/transactions/s2`),
+      validTxn({ recurring: { freq: 'monthly', until: '2027-12-15' }, seriesId: 'r',
+        seriesMeta: { kind: 'installment', installment: { totalAmount: 2400, totalInstallments: 24, firstDate: '2026-01-15' } } })));
+    // instance without a rule still carries the badge meta
+    await assertSucceeds(setDoc(doc(db, `users/${A}/transactions/s3`),
+      validTxn({ seriesId: 's', seriesMeta: { kind: 'subscription' } })));
+    await assertFails(setDoc(doc(db, `users/${A}/transactions/sb1`),
+      validTxn({ seriesMeta: { kind: 'weird' } })));
+    await assertFails(setDoc(doc(db, `users/${A}/transactions/sb2`),
+      validTxn({ seriesMeta: { kind: 'installment', installment: { totalAmount: -5, totalInstallments: 24, firstDate: '2026-01-15' } } })));
+    await assertFails(setDoc(doc(db, `users/${A}/transactions/sb3`),
+      validTxn({ seriesMeta: { kind: 'installment', installment: { totalAmount: 100, totalInstallments: 0, firstDate: '2026-01-15' } } })));
+  });
 });
 
 describe('forecastSnapshots (write-once)', () => {

@@ -1,5 +1,5 @@
 import { describe, it, expect } from 'vitest';
-import { expandRecurringOnCreate, catchUpRecurring, isPending, isExpiredTemplate, shouldExpandOnSave, seriesInstanceUpdates, dissolveSeries, addPeriod } from './recurrence';
+import { expandRecurringOnCreate, catchUpRecurring, isPending, isExpiredTemplate, shouldExpandOnSave, seriesInstanceUpdates, dissolveSeries, addPeriod, monthlyEquivalent, nthOccurrenceDate, buildSeriesSummary } from './recurrence';
 import { Transaction } from '../types';
 
 const TODAY = '2026-06-04';
@@ -319,5 +319,104 @@ describe('dissolveSeries', () => {
     const { unlink, remove } = dissolveSeries(all, { id: 'tpl', seriesId: 's' }, TODAY);
     expect(unlink).toHaveLength(0);
     expect(remove).toHaveLength(0);
+  });
+});
+
+describe('monthlyEquivalent / nthOccurrenceDate', () => {
+  it('monthlyEquivalent uses the fixed-cost-load multipliers', () => {
+    expect(monthlyEquivalent(10, 'monthly')).toBe(10);
+    expect(monthlyEquivalent(120, 'yearly')).toBe(10);
+    expect(monthlyEquivalent(10, 'weekly')).toBeCloseTo(43.3);
+    expect(monthlyEquivalent(1, 'daily')).toBe(30);
+  });
+
+  it('nthOccurrenceDate is 1-based and consistent with addPeriod', () => {
+    expect(nthOccurrenceDate('2026-01-15', 'monthly', 1)).toBe('2026-01-15');
+    expect(nthOccurrenceDate('2026-01-15', 'monthly', 3)).toBe('2026-03-15');
+    expect(nthOccurrenceDate('2026-01-15', 'monthly', 24)).toBe('2027-12-15');
+    expect(nthOccurrenceDate('2026-01-15', 'weekly', 2)).toBe(addPeriod('2026-01-15', 'weekly'));
+  });
+});
+
+describe('buildSeriesSummary', () => {
+  const t = (over: Partial<Transaction>): Transaction => ({
+    id: Math.random().toString(36).slice(2), date: '2026-06-04', description: 'X', amount: 10,
+    type: 'expense', category: 'abbonamenti', account: 'conto', ...over,
+  });
+
+  it('monthly subscription: equivalents, next date, paid totals', () => {
+    const all = [
+      t({ id: 'tpl', date: '2026-07-01', amount: 10, recurring: { freq: 'monthly' }, seriesId: 's',
+          seriesMeta: { kind: 'subscription' } }),
+      t({ id: 'i1', date: '2026-04-01', amount: 10, seriesId: 's' }),
+      t({ id: 'i2', date: '2026-05-01', amount: 10, seriesId: 's' }),
+      t({ id: 'i3', date: '2026-06-01', amount: 10, seriesId: 's' }),
+    ];
+    const s = buildSeriesSummary(all, all[1], TODAY);
+    expect(s.kind).toBe('subscription');
+    expect(s.monthlyEquivalent).toBe(10);
+    expect(s.annualEquivalent).toBe(120);
+    expect(s.nextDate).toBe('2026-07-01');
+    expect(s.ended).toBe(false);
+    expect(s.paidCount).toBe(3);
+    expect(s.paidAmount).toBe(30);
+    expect(s.paidThisYear).toBe(30);
+  });
+
+  it('annual subscription: monthly equivalent = amount / 12', () => {
+    const all = [
+      t({ id: 'tpl', date: '2027-01-10', amount: 120, recurring: { freq: 'yearly' }, seriesId: 'y',
+          seriesMeta: { kind: 'subscription' } }),
+      t({ id: 'i1', date: '2026-01-10', amount: 120, seriesId: 'y' }),
+    ];
+    const s = buildSeriesSummary(all, all[0], TODAY);
+    expect(s.monthlyEquivalent).toBeCloseTo(10);
+    expect(s.annualEquivalent).toBeCloseTo(120);
+    expect(s.paidCount).toBe(1);
+  });
+
+  it('installment 7/24: remaining, residual amount, progress', () => {
+    const meta = { kind: 'installment' as const, installment: { totalAmount: 2400, totalInstallments: 24, firstDate: '2025-12-04' } };
+    const paid = Array.from({ length: 7 }, (_, i) =>
+      t({ id: `i${i}`, date: nthOccurrenceDate('2025-12-04', 'monthly', i + 1), amount: 100, seriesId: 'r', seriesMeta: meta }));
+    const all = [
+      t({ id: 'tpl', date: '2026-07-04', amount: 100, recurring: { freq: 'monthly', until: '2027-11-04' }, seriesId: 'r', seriesMeta: meta }),
+      ...paid,
+    ];
+    const s = buildSeriesSummary(all, paid[3], TODAY);
+    expect(s.kind).toBe('installment');
+    expect(s.paidCount).toBe(7);
+    expect(s.installment).toEqual({
+      totalAmount: 2400,
+      totalInstallments: 24,
+      remainingInstallments: 17,
+      remainingAmount: 2400 - 700,
+      progress: 7 / 24,
+    });
+    expect(s.nextDate).toBe('2026-07-04');
+  });
+
+  it('legacy series without seriesMeta is treated as plain recurring', () => {
+    const all = [
+      t({ id: 'tpl', date: '2026-07-04', recurring: { freq: 'monthly' }, seriesId: 's' }),
+      t({ id: 'i1', date: '2026-06-04', seriesId: 's' }),
+    ];
+    const s = buildSeriesSummary(all, all[1], TODAY);
+    expect(s.kind).toBe('recurring');
+    expect(s.monthlyEquivalent).toBeUndefined();
+    expect(s.installment).toBeUndefined();
+    expect(s.nextDate).toBe('2026-07-04');
+  });
+
+  it('ended series (until in the past / expired template) → ended, no nextDate', () => {
+    const all = [
+      t({ id: 'tpl', date: '2026-06-04', amount: 10, recurring: { freq: 'monthly', until: '2026-05-31' }, seriesId: 's' }),
+      t({ id: 'i1', date: '2026-04-04', seriesId: 's' }),
+      t({ id: 'i2', date: '2026-05-04', seriesId: 's' }),
+    ];
+    const s = buildSeriesSummary(all, all[1], TODAY);
+    expect(s.ended).toBe(true);
+    expect(s.nextDate).toBeNull();
+    expect(s.paidCount).toBe(2);
   });
 });

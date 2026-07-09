@@ -1,9 +1,9 @@
 import { useState, useEffect } from 'react';
-import { Transaction, TransactionType, TYPE_META, TYPE_ORDER, RecurrenceRule, AccountDef, typeColor, typeOnColor } from '../../types';
+import { Transaction, TransactionType, TYPE_META, TYPE_ORDER, RecurrenceRule, SeriesMeta, SeriesKind, AccountDef, typeColor, typeOnColor } from '../../types';
 import { formatCurrency, formatDate, guessCategory } from '../../utils';
 import { Candidate, Recognition, RECOGNITION_THRESHOLD } from './categoryRecognition';
 import { useSettings } from '../../shared/providers/settings';
-import { expandRecurringOnCreate, shouldExpandOnSave } from '../../shared/recurrence';
+import { expandRecurringOnCreate, shouldExpandOnSave, monthlyEquivalent, nthOccurrenceDate } from '../../shared/recurrence';
 import { useEscapeKey } from '../../shared/hooks/useEscapeKey';
 import { useScrollLock } from '../../shared/useScrollLock';
 
@@ -22,6 +22,11 @@ interface Props {
 
 interface Reimb { amount: string; account: string }
 
+/** Series choice in the modal: none, or one of the smart-series kinds. */
+type ModalSeriesKind = 'none' | SeriesKind;
+
+const r2 = (n: number) => Math.round(n * 100) / 100;
+
 const today = () => new Date().toISOString().slice(0, 10);
 const yesterday = () => { const d = new Date(); d.setDate(d.getDate() - 1); return d.toISOString().slice(0, 10); };
 
@@ -37,9 +42,14 @@ export function TransactionModal({ open, editing, groupTransfers = [], seriesEdi
   const [notes, setNotes] = useState('');
   const [isShared, setIsShared] = useState(false);
   const [reimbursements, setReimbursements] = useState<Reimb[]>([]);
-  const [isRecurring, setIsRecurring] = useState(false);
+  const [seriesKind, setSeriesKind] = useState<ModalSeriesKind>('none');
   const [recurringFreq, setRecurringFreq] = useState<RecurrenceRule['freq']>('monthly');
   const [recurringUntil, setRecurringUntil] = useState('');
+  // Installment plan inputs (kind='installment'): the per-installment amount and
+  // the series end are DERIVED from these at submit, never entered directly.
+  const [instTotal, setInstTotal] = useState('');
+  const [instCount, setInstCount] = useState('');
+  const [instFirstDate, setInstFirstDate] = useState(today());
   const [fee, setFee] = useState('');
   const [tfr, setTfr] = useState('');
 
@@ -70,9 +80,14 @@ export function TransactionModal({ open, editing, groupTransfers = [], seriesEdi
       setReimbursements(hasGroup
         ? groupStorni.map(t => ({ amount: String(t.amount), account: t.toAccount ?? '' }))
         : []);
-      setIsRecurring(!!editing.recurring);
+      // Legacy series without seriesMeta open as plain 'recurring'.
+      setSeriesKind(editing.recurring ? (editing.seriesMeta?.kind ?? 'recurring') : 'none');
       setRecurringFreq(editing.recurring?.freq ?? 'monthly');
       setRecurringUntil(editing.recurring?.until ?? '');
+      const inst = editing.seriesMeta?.installment;
+      setInstTotal(inst ? String(inst.totalAmount) : '');
+      setInstCount(inst ? String(inst.totalInstallments) : '');
+      setInstFirstDate(inst?.firstDate ?? editing.date);
       setFee((editing.type === 'transfer' || editing.type === 'investment')
         ? String(groupTransfers.find(t => t.type === 'expense')?.amount ?? '')
         : '');
@@ -84,7 +99,8 @@ export function TransactionModal({ open, editing, groupTransfers = [], seriesEdi
       setAccount((lastAcc && visibleAccounts.some(a => a.id === lastAcc)) ? lastAcc : (visibleAccounts[0]?.id ?? ''));
       setToAccount(visibleAccounts[1]?.id ?? ''); setNotes('');
       setIsShared(false); setReimbursements([]);
-      setIsRecurring(false); setRecurringFreq('monthly'); setRecurringUntil('');
+      setSeriesKind('none'); setRecurringFreq('monthly'); setRecurringUntil('');
+      setInstTotal(''); setInstCount(''); setInstFirstDate(today());
       setFee(''); setTfr('');
     }
     setAmountError(false);
@@ -162,24 +178,51 @@ export function TransactionModal({ open, editing, groupTransfers = [], seriesEdi
   const resetKeepContext = () => {
     setDescription(''); setAmount(''); setNotes('');
     setIsShared(false); setReimbursements([]);
-    setIsRecurring(false); setRecurringFreq('monthly'); setRecurringUntil('');
+    setSeriesKind('none'); setRecurringFreq('monthly'); setRecurringUntil('');
+    setInstTotal(''); setInstCount(''); setInstFirstDate(today());
     setFee(''); setTfr('');
     setAmountError(false); setConfirmDelete(false); setShowMore(false);
     setCategoryTouched(true); // keep type, category, account, date
   };
 
   const doSubmit = (keepOpen: boolean) => {
-    const value = parseFloat(amount.replace(',', '.'));
+    const isSeries = seriesKind !== 'none';
+    const isInstallment = seriesKind === 'installment';
+    // Installment: the per-installment amount and the series end are DERIVED
+    // from the plan (totale / numero rate), the main amount field is ignored.
+    const instTotalVal = parseFloat(instTotal.replace(',', '.')) || 0;
+    const instCountVal = parseInt(instCount, 10) || 0;
+    const rataVal = isInstallment && instCountVal > 0 ? r2(instTotalVal / instCountVal) : 0;
+    const value = isInstallment ? rataVal : parseFloat(amount.replace(',', '.'));
     if (!value || value <= 0) { setAmountError(true); return; }
     setAmountError(false);
 
-    const recurring: RecurrenceRule | undefined = isRecurring
-      ? { freq: recurringFreq, until: recurringUntil || undefined }
-      : undefined;
+    // The installment plan starts at its own first-installment date.
+    const effDate = isInstallment ? instFirstDate : date;
+
+    const recurring: RecurrenceRule | undefined = !isSeries
+      ? undefined
+      : isInstallment
+        ? { freq: recurringFreq, until: nthOccurrenceDate(instFirstDate, recurringFreq, instCountVal) }
+        : { freq: recurringFreq, until: recurringUntil || undefined };
     // Stable series id: preserve an existing one (series edits churn the doc id,
     // and single-instance edits must keep their link); otherwise mint one for a
     // brand-new series, falling back to the legacy template's own id.
-    const seriesId = editing?.seriesId ?? (isRecurring ? (editing?.id ?? crypto.randomUUID()) : undefined);
+    const seriesId = editing?.seriesId ?? (isSeries ? (editing?.id ?? crypto.randomUUID()) : undefined);
+    // Smart-series metadata: INPUT data only (derived figures are computed at
+    // runtime by buildSeriesSummary). Plain 'recurring' keeps whatever meta it
+    // already had (usually none — legacy compatibility); a single-occurrence
+    // edit (no rule on the doc) preserves the instance's badge meta; turning a
+    // TEMPLATE's series off (dissolve) drops the meta.
+    const seriesMeta: SeriesMeta | undefined =
+      seriesKind === 'subscription'
+        ? { kind: 'subscription', createdAt: editing?.seriesMeta?.createdAt ?? Date.now() }
+      : isInstallment
+        ? { kind: 'installment', createdAt: editing?.seriesMeta?.createdAt ?? Date.now(),
+            installment: { totalAmount: r2(instTotalVal), totalInstallments: instCountVal, firstDate: instFirstDate } }
+      : seriesKind === 'recurring'
+        ? (editing?.seriesMeta?.kind === 'recurring' ? editing.seriesMeta : undefined)
+      : (editing?.seriesId && !editing?.recurring ? editing?.seriesMeta : undefined);
     const desc = description.trim() || defaultDesc.trim() || 'Senza nome';
     // Delete only the group members this edit reconstructs: editing an expense
     // recreates its storni (transfers); editing a transfer/investment recreates
@@ -198,7 +241,7 @@ export function TransactionModal({ open, editing, groupTransfers = [], seriesEdi
     // back-dated months would never be created at save time. Editing an existing
     // series/instance is left untouched (those occurrences already exist).
     const todayISO = new Date().toISOString().slice(0, 10);
-    const expandNow = shouldExpandOnSave(editing, isRecurring);
+    const expandNow = shouldExpandOnSave(editing, isSeries);
     const finalize = (docs: Omit<Transaction, 'id'>[]) =>
       expandNow ? docs.flatMap(d => expandRecurringOnCreate(d, todayISO)) : docs;
 
@@ -216,14 +259,14 @@ export function TransactionModal({ open, editing, groupTransfers = [], seriesEdi
       const create: Omit<Transaction, 'id'>[] = [];
       for (const r of storni) {
         create.push({
-          type: 'transfer', description: `Storno · ${desc}`, amount: r.amount, date,
+          type: 'transfer', description: `Storno · ${desc}`, amount: r.amount, date: effDate,
           category: 'trasferimento', account, toAccount: r.account, groupId,
         });
       }
       if (net > 0) {
         create.push({
-          type: 'expense', description: desc, amount: net, date,
-          category, account, notes: notes.trim() || undefined, groupId, recurring, seriesId,
+          type: 'expense', description: desc, amount: net, date: effDate,
+          category, account, notes: notes.trim() || undefined, groupId, recurring, seriesId, seriesMeta,
         });
       }
       if (account) try { localStorage.setItem('sunny:lastAccount', account); } catch { /* ignore */ }
@@ -248,12 +291,12 @@ export function TransactionModal({ open, editing, groupTransfers = [], seriesEdi
     const tfrClean = tfrRaw > 0 ? Math.min(tfrRaw, value) : undefined;
 
     const create: Omit<Transaction, 'id'>[] = [{
-      type, description: desc, amount: value, date,
+      type, description: desc, amount: value, date: effDate,
       category: type === 'transfer' ? 'trasferimento' : category,
       account,
       toAccount: type === 'transfer' ? toAccount : undefined,
       notes: notes.trim() || undefined,
-      recurring, seriesId,
+      recurring, seriesId, seriesMeta,
       ...(type === 'investment' && tfrClean ? { tfr: tfrClean } : {}),
       // Investments keep their flow direction on edit ('out' stays a withdrawal);
       // anything created here is a deposit ('in').
@@ -263,7 +306,7 @@ export function TransactionModal({ open, editing, groupTransfers = [], seriesEdi
     if (hasFee) {
       create.push({
         type: 'expense', description: `Commissione · ${desc}`,
-        amount: feeVal, date, category: 'altro', account, groupId: groupId!,
+        amount: feeVal, date: effDate, category: 'altro', account, groupId: groupId!,
       });
     }
     if (account) try { localStorage.setItem('sunny:lastAccount', account); } catch { /* ignore */ }
@@ -532,43 +575,108 @@ export function TransactionModal({ open, editing, groupTransfers = [], seriesEdi
             </ToggleBlock>
           )}
 
-          {/* Recurring */}
-          <ToggleBlock
-            title="Ricorrente"
-            subtitle="Si ripete nel tempo — ti avvisa prima della scadenza"
-            on={isRecurring}
-            onToggle={() => setIsRecurring(r => !r)}>
-            <div className="space-y-3">
-              <div>
-                <label className="text-xs font-medium text-secondary mb-2 block">Frequenza</label>
-                <div className="grid grid-cols-2 gap-2">
-                  {(['daily', 'weekly', 'monthly', 'yearly'] as const).map(f => (
-                    <button key={f} type="button" onClick={() => setRecurringFreq(f)}
-                      className={`py-2 rounded-xl text-xs font-semibold transition-colors ${recurringFreq === f ? 'bg-gold text-bg' : 'bg-elevated text-secondary'}`}>
-                      {f === 'daily' ? 'Ogni giorno' : f === 'weekly' ? 'Ogni settimana' : f === 'monthly' ? 'Ogni mese' : 'Ogni anno'}
-                    </button>
-                  ))}
-                </div>
-              </div>
-
-              <div>
-                <div className="flex items-center justify-between mb-1.5">
-                  <label className="text-xs font-medium text-secondary">Fine ricorrenza</label>
-                  {recurringUntil && (
-                    <button type="button" onClick={() => setRecurringUntil('')}
-                      className="text-[11px] font-medium text-gold">
-                      Rimuovi
-                    </button>
-                  )}
-                </div>
-                <input type="date" value={recurringUntil} onChange={e => setRecurringUntil(e.target.value)}
-                  className="block w-full min-w-0 box-border appearance-none bg-elevated rounded-xl px-3 py-3.5 text-primary text-sm outline-none focus:ring-1 focus:ring-gold/40" />
-                <p className={`text-[11px] mt-1.5 px-1 ${recurringUntil ? 'text-secondary' : 'invisible'}`}>
-                  {recurringUntil ? `Si ripete fino al ${formatDate(recurringUntil)}, poi smette` : 'placeholder'}
-                </p>
+          {/* Serie: nessuna / ricorrente / abbonamento / a rate */}
+          <div className="glass-card rounded-2xl overflow-hidden">
+            <div className="px-4 py-3">
+              <p className="text-sm font-medium text-primary">Serie</p>
+              <p className="text-xs text-secondary mt-0.5">Si ripete nel tempo: ricorrenza, abbonamento o piano a rate</p>
+              <div className="grid grid-cols-4 gap-1.5 mt-3">
+                {([['none', 'Nessuna'], ['recurring', 'Ricorrente'], ['subscription', 'Abbonam.'], ['installment', 'A rate']] as [ModalSeriesKind, string][]).map(([k, lbl]) => (
+                  <button key={k} type="button" onClick={() => setSeriesKind(k)}
+                    className={`py-2 rounded-xl text-[11px] font-semibold transition-colors ${seriesKind === k ? 'bg-gold text-bg' : 'bg-elevated text-secondary'}`}>
+                    {lbl}
+                  </button>
+                ))}
               </div>
             </div>
-          </ToggleBlock>
+
+            {seriesKind !== 'none' && (
+              <div className="border-t border-white/[0.06] px-4 pb-4 pt-3 space-y-3">
+                <div>
+                  <label className="text-xs font-medium text-secondary mb-2 block">Frequenza</label>
+                  <div className="grid grid-cols-2 gap-2">
+                    {(['daily', 'weekly', 'monthly', 'yearly'] as const).map(f => (
+                      <button key={f} type="button" onClick={() => setRecurringFreq(f)}
+                        className={`py-2 rounded-xl text-xs font-semibold transition-colors ${recurringFreq === f ? 'bg-gold text-bg' : 'bg-elevated text-secondary'}`}>
+                        {f === 'daily' ? 'Ogni giorno' : f === 'weekly' ? 'Ogni settimana' : f === 'monthly' ? 'Ogni mese' : 'Ogni anno'}
+                      </button>
+                    ))}
+                  </div>
+                </div>
+
+                {seriesKind !== 'installment' ? (
+                  <>
+                    <div>
+                      <div className="flex items-center justify-between mb-1.5">
+                        <label className="text-xs font-medium text-secondary">Fine ricorrenza</label>
+                        {recurringUntil && (
+                          <button type="button" onClick={() => setRecurringUntil('')}
+                            className="text-[11px] font-medium text-gold">
+                            Rimuovi
+                          </button>
+                        )}
+                      </div>
+                      <input type="date" value={recurringUntil} onChange={e => setRecurringUntil(e.target.value)}
+                        className="block w-full min-w-0 box-border appearance-none bg-elevated rounded-xl px-3 py-3.5 text-primary text-sm outline-none focus:ring-1 focus:ring-gold/40" />
+                      <p className={`text-[11px] mt-1.5 px-1 ${recurringUntil ? 'text-secondary' : 'invisible'}`}>
+                        {recurringUntil ? `Si ripete fino al ${formatDate(recurringUntil)}, poi smette` : 'placeholder'}
+                      </p>
+                    </div>
+
+                    {seriesKind === 'subscription' && (() => {
+                      const amt = parseFloat(amount.replace(',', '.')) || 0;
+                      const me = monthlyEquivalent(amt, recurringFreq);
+                      return (
+                        <div className="bg-elevated rounded-xl px-3 py-2.5 space-y-1">
+                          <Row label="Equivalente mensile" value={amt > 0 ? formatCurrency(me) : '—'} muted />
+                          <Row label="Equivalente annuale" value={amt > 0 ? formatCurrency(me * 12) : '—'} muted />
+                        </div>
+                      );
+                    })()}
+                  </>
+                ) : (
+                  (() => {
+                    const tot = parseFloat(instTotal.replace(',', '.')) || 0;
+                    const n = parseInt(instCount, 10) || 0;
+                    const rata = tot > 0 && n > 0 ? r2(tot / n) : 0;
+                    return (
+                      <>
+                        <div className="grid grid-cols-2 gap-3">
+                          <div>
+                            <label className="text-xs font-medium text-secondary mb-1.5 block">Totale piano (€)</label>
+                            <input type="text" inputMode="decimal" value={instTotal}
+                              onChange={e => setInstTotal(e.target.value.replace(/[^\d.,]/g, ''))}
+                              placeholder="0,00"
+                              className="w-full bg-elevated rounded-xl px-3 py-3 text-primary text-sm outline-none focus:ring-1 focus:ring-gold/40 balance-num" />
+                          </div>
+                          <div>
+                            <label className="text-xs font-medium text-secondary mb-1.5 block">Numero rate</label>
+                            <input type="text" inputMode="numeric" value={instCount}
+                              onChange={e => setInstCount(e.target.value.replace(/\D/g, ''))}
+                              placeholder="12"
+                              className="w-full bg-elevated rounded-xl px-3 py-3 text-primary text-sm outline-none focus:ring-1 focus:ring-gold/40 balance-num" />
+                          </div>
+                        </div>
+                        <div>
+                          <label className="text-xs font-medium text-secondary mb-1.5 block">Data prima rata</label>
+                          <input type="date" value={instFirstDate} onChange={e => setInstFirstDate(e.target.value)}
+                            className="block w-full min-w-0 box-border appearance-none bg-elevated rounded-xl px-3 py-3.5 text-primary text-sm outline-none focus:ring-1 focus:ring-gold/40" />
+                        </div>
+                        <div className="bg-elevated rounded-xl px-3 py-2.5 space-y-1">
+                          <Row label="Importo rata" value={rata > 0 ? formatCurrency(rata) : '—'} muted />
+                          <Row label="Ultima rata"
+                            value={n > 0 && instFirstDate ? formatDate(nthOccurrenceDate(instFirstDate, recurringFreq, n)) : '—'} muted />
+                        </div>
+                        <p className="text-[11px] text-secondary px-1 leading-snug">
+                          L'importo della rata e la fine del piano sono calcolati da totale, numero rate e frequenza.
+                        </p>
+                      </>
+                    );
+                  })()
+                )}
+              </div>
+            )}
+          </div>
             </>
           )}
 

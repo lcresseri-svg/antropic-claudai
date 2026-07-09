@@ -90,6 +90,7 @@ export interface Transaction {
   groupId?: string;      // links a split expense with its reimbursement transfers
   recurring?: RecurrenceRule;
   seriesId?: string;     // stable id linking a recurring template to its materialized instances
+  seriesMeta?: SeriesMeta; // "smart series" flavour (subscription / installment); absent = plain recurring
   projected?: boolean;   // CLIENT-ONLY: a virtual future occurrence — NEVER persisted to Firestore
   demo?: boolean;        // written by onboarding demo data; removable from Settings
   createdAt?: number;    // ms epoch — when this document was created; used to break same-date sort ties
@@ -101,6 +102,26 @@ export interface RecurrenceRule {
 }
 
 export type Freq = RecurrenceRule['freq'];
+
+/** Flavour of a recurring series. Legacy series without seriesMeta = 'recurring'. */
+export type SeriesKind = 'recurring' | 'subscription' | 'installment';
+
+/**
+ * Series metadata stored on the template (and copied onto its instances by the
+ * normal materialization spread). Only INPUT data lives here — derived figures
+ * (paid amount, remaining, monthly equivalent, …) are computed at runtime by
+ * buildSeriesSummary and never persisted.
+ */
+export interface SeriesMeta {
+  kind: SeriesKind;
+  createdAt?: number;
+  subscription?: { label?: string };
+  installment?: {
+    totalAmount: number;       // full plan amount (all installments together)
+    totalInstallments: number; // number of installments in the plan
+    firstDate: string;         // YYYY-MM-DD of the first installment
+  };
+}
 
 /** The portion of an expense that is actually yours (excludes the shared part). */
 export function ownShare(t: Transaction): number {

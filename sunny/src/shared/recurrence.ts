@@ -1,4 +1,4 @@
-import { Transaction, Freq, ownShare } from '../types';
+import { Transaction, Freq, SeriesKind, ownShare } from '../types';
 
 // Monthly-equivalent multipliers — kept identical to the original "fixed cost
 // load" insight so refactors don't shift existing numbers.
@@ -8,6 +8,21 @@ const MONTHLY_EQUIV: Record<Freq, number> = {
   monthly: 1,
   yearly: 1 / 12,
 };
+
+/** Monthly-equivalent cost of `amount` repeating at `freq` (same multipliers as
+ *  the fixed-cost-load insight, so all screens show identical numbers). */
+export function monthlyEquivalent(amount: number, freq: Freq): number {
+  return amount * MONTHLY_EQUIV[freq];
+}
+
+/** Date of the n-th occurrence (1-based: n=1 → `start`) of a series starting at
+ *  `start` with frequency `freq`. Uses addPeriod to stay byte-identical with the
+ *  materialization engine. */
+export function nthOccurrenceDate(start: string, freq: Freq, n: number): string {
+  let d = start;
+  for (let i = 1; i < n; i++) d = addPeriod(d, freq);
+  return d;
+}
 
 /**
  * Next occurrence date (YYYY-MM-DD) after advancing one period.
@@ -321,12 +336,117 @@ export function dissolveSeries(
     if (t.date > todayISO) {
       remove.push(t.id);                         // future occurrence → delete
     } else {
-      const { id: _id, recurring: _r, seriesId: _s, ...rest } = t;
-      void _id; void _r; void _s;
+      const { id: _id, recurring: _r, seriesId: _s, seriesMeta: _m, ...rest } = t;
+      void _id; void _r; void _s; void _m;
       unlink.push({ id: t.id, data: { ...rest } }); // past → normal, unlinked
     }
   }
   return { unlink, remove };
+}
+
+// ── Series summary (smart series: recurring / subscription / installment) ─────
+
+export interface SeriesSummary {
+  seriesId: string;
+  kind: SeriesKind;
+  template?: Transaction;
+  /** Real recorded occurrences of the series, date ascending. */
+  occurrences: Transaction[];
+  description: string;
+  category: string;
+  type: Transaction['type'];
+  /** Per-occurrence amount (from the template, falling back to the anchor). */
+  amount: number;
+  freq?: Freq;
+  until?: string;
+  /** True when the series is over (past `until`, expired template, or no template left). */
+  ended: boolean;
+  /** Next due occurrence (the template's pointer), null when the series is over. */
+  nextDate: string | null;
+  paidCount: number;
+  paidAmount: number;      // ownShare for expenses
+  paidThisYear: number;    // ownShare, occurrences in the year of todayISO
+  /** Subscription only. */
+  monthlyEquivalent?: number;
+  annualEquivalent?: number;
+  /** Installment only — derived at runtime, never persisted. */
+  installment?: {
+    totalAmount: number;
+    totalInstallments: number;
+    remainingInstallments: number;
+    remainingAmount: number;
+    /** paidCount / totalInstallments, clamped to [0, 1]. */
+    progress: number;
+  };
+}
+
+/**
+ * Runtime summary of a series, computed from the transactions already in memory
+ * (nothing derived is ever stored). `anchor` may be the template, a recorded
+ * occurrence, or a projected virtual row. Legacy series without seriesMeta are
+ * plain 'recurring'.
+ */
+export function buildSeriesSummary(
+  allTransactions: Transaction[],
+  anchor: Transaction,
+  todayISO: string,
+): SeriesSummary {
+  const sid = anchor.seriesId ?? anchor.id;
+  const template = allTransactions.find(t => t.recurring && !t.projected && (t.seriesId ?? t.id) === sid);
+  const occurrences = allTransactions
+    .filter(t => !t.recurring && !t.projected && t.seriesId === sid)
+    .sort((a, b) => (a.date < b.date ? -1 : a.date > b.date ? 1 : 0));
+
+  const meta = template?.seriesMeta ?? anchor.seriesMeta;
+  const kind: SeriesKind = meta?.kind ?? 'recurring';
+  const rule = template?.recurring ?? anchor.recurring;
+  const amount = template?.amount ?? anchor.amount;
+  const ended = !template
+    || isExpiredTemplate(template)
+    || (!!rule?.until && rule.until < todayISO);
+  const nextDate = !ended && template ? template.date : null;
+
+  const paid = occurrences.filter(t => t.date <= todayISO);
+  const paidCount = paid.length;
+  const paidAmount = paid.reduce((s, t) => s + ownShare(t), 0);
+  const year = todayISO.slice(0, 4);
+  const paidThisYear = paid.filter(t => t.date.startsWith(year)).reduce((s, t) => s + ownShare(t), 0);
+
+  const summary: SeriesSummary = {
+    seriesId: sid,
+    kind,
+    template,
+    occurrences,
+    description: template?.description ?? anchor.description,
+    category: template?.category ?? anchor.category,
+    type: template?.type ?? anchor.type,
+    amount,
+    freq: rule?.freq,
+    until: rule?.until,
+    ended,
+    nextDate,
+    paidCount,
+    paidAmount,
+    paidThisYear,
+  };
+
+  if (kind === 'subscription' && rule) {
+    summary.monthlyEquivalent = monthlyEquivalent(amount, rule.freq);
+    summary.annualEquivalent = summary.monthlyEquivalent * 12;
+  }
+
+  if (kind === 'installment' && meta?.installment) {
+    const { totalAmount, totalInstallments } = meta.installment;
+    summary.installment = {
+      totalAmount,
+      totalInstallments,
+      remainingInstallments: Math.max(0, totalInstallments - paidCount),
+      remainingAmount: Math.max(0, totalAmount - paidAmount),
+      progress: Math.min(1, Math.max(0, totalInstallments > 0 ? paidCount / totalInstallments : 0)),
+    };
+  }
+
+  return summary;
 }
 
 /**
