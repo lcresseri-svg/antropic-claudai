@@ -31,7 +31,7 @@ import { SettingsScreen } from './features/settings/SettingsScreen';
 import { AICoachScreen } from './features/aiCoach/AICoachScreen';
 import { AICoachWidget } from './features/aiCoach/AICoachWidget';
 import { TransactionModal } from './features/transactions/TransactionModal';
-import { SeriesEditChoiceSheet } from './features/transactions/SeriesEditChoiceSheet';
+import { SeriesDetailSheet } from './features/transactions/SeriesDetailSheet';
 import { ImportModal } from './features/transactions/ImportModal';
 import { BottomNav } from './shared/components/BottomNav';
 import { SideNav } from './shared/components/SideNav';
@@ -184,7 +184,7 @@ function Main({ user, onLogOut, onDeleteAccount }: {
   const uiV2 = canUseUiV2(user);
   const [editing, setEditing] = useState<Transaction | null>(null);
   const [seriesEdit, setSeriesEdit] = useState(false);
-  const [seriesChoice, setSeriesChoice] = useState<Transaction | null>(null);
+  const [seriesDetail, setSeriesDetail] = useState<Transaction | null>(null);
   const [modalOpen, setModalOpen] = useState(false);
   const [defaultType, setDefaultType] = useState<TransactionType | undefined>();
   const [importOpen, setImportOpen] = useState(false);
@@ -292,20 +292,12 @@ function Main({ user, onLogOut, onDeleteAccount }: {
     setEditing(null); setSeriesEdit(false); setDefaultType(type); setModalOpen(true);
   };
 
-  // Outlook-style: opening an occurrence opens the series.
+  // Tapping anything that belongs to a series (template, recorded occurrence,
+  // projected row) opens the SERIES DETAIL sheet — summary + actions. Plain
+  // one-off movements go straight to the edit modal as before.
   const openEdit = (t: Transaction) => {
-    if (t.projected) {
-      // Virtual occurrence → edit the underlying series (template). Only the
-      // template is a real doc; if it can't be resolved, do nothing (a projected
-      // row's synthetic id must never reach a write path).
-      const tpl = findTemplate(t);
-      if (tpl) startEdit(tpl, true);
-    } else if (t.recurring) {
-      // The template row itself → series edit.
-      startEdit(t, true);
-    } else if (t.seriesId) {
-      // A past, already-recorded instance → ask "just this one" or "the series".
-      setSeriesChoice(t);
+    if (t.projected || t.recurring || t.seriesId) {
+      setSeriesDetail(t);
     } else {
       startEdit(t, false);
     }
@@ -633,17 +625,18 @@ function Main({ user, onLogOut, onDeleteAccount }: {
         onClose={() => setModalOpen(false)}
         onSave={handleSave}
       />
-      <SeriesEditChoiceSheet
-        open={!!seriesChoice}
-        onClose={() => setSeriesChoice(null)}
-        onChoose={scope => {
-          const inst = seriesChoice;
-          setSeriesChoice(null);
-          if (!inst) return;
-          if (scope === 'single') { startEdit(inst, false); return; }
-          const tpl = findTemplate(inst);
-          startEdit(tpl ?? inst, !!tpl);
+      <SeriesDetailSheet
+        open={!!seriesDetail}
+        anchor={seriesDetail}
+        allTransactions={tx.allTransactions}
+        onClose={() => setSeriesDetail(null)}
+        onEditSingle={t => { setSeriesDetail(null); startEdit(t, false); }}
+        onEditSeries={t => {
+          setSeriesDetail(null);
+          const tpl = findTemplate(t);
+          startEdit(tpl ?? t, !!tpl);
         }}
+        onViewMovements={sid => { setSeriesDetail(null); navigate(`/transactions?series=${sid}`); }}
       />
       <ImportModal open={importOpen} onClose={() => setImportOpen(false)} onImport={tx.addTransactions} />
       <PushPromoSheet

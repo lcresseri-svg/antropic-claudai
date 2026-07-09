@@ -24,6 +24,10 @@ export function TransactionRow({ tx, selectable, selected, upcoming, onToggle, o
   // A RECORDED occurrence of a series (incl. old ones — they carry seriesId even
   // though the recurring rule lives on the template). Projected rows keep 🗓️.
   const isSeries = !isProjected && (!!tx.recurring || !!tx.seriesId);
+  // Smart-series flavour: legacy series without seriesMeta are plain 'recurring'.
+  const seriesBadge = tx.seriesMeta?.kind === 'subscription' ? '💳 Abbonamento'
+    : tx.seriesMeta?.kind === 'installment' ? '🧾 Rata'
+    : '🔁 Ricorrente';
 
   const prefix = isIncome ? '+' : isTransfer ? '' : '−';
   const amountClass = isIncome ? 'text-green' : isInvestment ? 'text-gold' : isTransfer ? 'text-[#88B0C0]' : 'text-primary';
@@ -58,7 +62,7 @@ export function TransactionRow({ tx, selectable, selected, upcoming, onToggle, o
               they carry seriesId even though the recurring rule lives on the template). */}
           {isSeries && (
             <span className="flex-shrink-0 inline-flex items-center gap-0.5 rounded-full bg-gold/15 text-gold text-[10px] font-semibold px-1.5 py-0.5 leading-none">
-              🔁 Ricorrente
+              {seriesBadge}
             </span>
           )}
         </div>

@@ -85,6 +85,11 @@ export function TransactionList({ transactions, projected = [], onEdit, onDelete
   // of a transfer (account or toAccount).
   const accFilter = searchParams.get('account');
   const clearAccFilter = () => setSearchParams(p => { p.delete('account'); return p; }, { replace: true });
+  // Optional series filter (?series=<seriesId>) — set by the SeriesDetailSheet's
+  // "Vedi movimenti della serie". Matches instances (seriesId), the template
+  // (seriesId, or its own id for legacy templates) and projected rows.
+  const seriesFilter = searchParams.get('series');
+  const clearSeriesFilter = () => setSearchParams(p => { p.delete('series'); return p; }, { replace: true });
   const [search, setSearch] = useState('');
   const [typeFilter, setTypeFilter] = useState<TransactionType | 'all'>('all');
   const [groupMode, setGroupMode] = useState<GroupMode>('month');
@@ -159,6 +164,7 @@ export function TransactionList({ transactions, projected = [], onEdit, onDelete
       .filter(t => typeFilter === 'all' || t.type === typeFilter)
       .filter(t => !catFilter || t.category === catFilter)
       .filter(t => !accFilter || t.account === accFilter || t.toAccount === accFilter)
+      .filter(t => !seriesFilter || t.seriesId === seriesFilter || t.id === seriesFilter)
       .filter(t => !cutoff || new Date(t.date) >= cutoff)
       .filter(matches)
       .sort((a, b) => {
@@ -173,7 +179,12 @@ export function TransactionList({ transactions, projected = [], onEdit, onDelete
         }
         return sortDir === 'desc' ? diff : -diff;
       });
-  }, [transactions, projected, projView, typeFilter, period, search, sortKey, sortDir, categories, accounts, catFilter, accFilter]);
+  }, [transactions, projected, projView, typeFilter, period, search, sortKey, sortDir, categories, accounts, catFilter, accFilter, seriesFilter]);
+
+  // Human name for the active series filter pill ("Serie: Netflix").
+  const seriesFilterLabel = seriesFilter
+    ? (transactions.find(t => t.seriesId === seriesFilter || t.id === seriesFilter)?.description ?? 'serie')
+    : null;
 
   const groups = useMemo(() => {
     const map = new Map<string, Transaction[]>();
@@ -387,8 +398,17 @@ export function TransactionList({ transactions, projected = [], onEdit, onDelete
         </div>
 
         {/* Filtri attivi — pill rimovibili */}
-        {(period !== 'all' || projView !== PROJ_DEFAULT || catFilter || accFilter) && (
+        {(period !== 'all' || projView !== PROJ_DEFAULT || catFilter || accFilter || seriesFilter) && (
           <div className="flex flex-wrap gap-2">
+            {seriesFilter && (
+              <button onClick={clearSeriesFilter}
+                className="inline-flex items-center gap-1.5 bg-gold/10 text-gold rounded-full pl-3 pr-2 py-1 text-xs font-medium">
+                🔁 Serie: {seriesFilterLabel}
+                <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round">
+                  <path d="M18 6 6 18M6 6l12 12" />
+                </svg>
+              </button>
+            )}
             {catFilter && (
               <button onClick={clearCatFilter}
                 className="inline-flex items-center gap-1.5 bg-gold/10 text-gold rounded-full pl-3 pr-2 py-1 text-xs font-medium">

@@ -46,6 +46,25 @@ service cloud.firestore {
               d.recurring is map
               && d.recurring.freq in ['daily', 'weekly', 'monthly', 'yearly']
               && (!('until' in d.recurring) || vDate(d.recurring.until))
+           ))
+        // Smart-series metadata (subscription / installment). Input data only —
+        // derived figures are computed client-side and never stored.
+        && (!('seriesMeta' in d) || (
+              d.seriesMeta is map
+              && d.seriesMeta.kind in ['recurring', 'subscription', 'installment']
+              && (!('createdAt' in d.seriesMeta) || d.seriesMeta.createdAt is number)
+              && (!('subscription' in d.seriesMeta) || (
+                    d.seriesMeta.subscription is map
+                    && (!('label' in d.seriesMeta.subscription) || vStr(d.seriesMeta.subscription.label, 200))
+                 ))
+              && (!('installment' in d.seriesMeta) || (
+                    d.seriesMeta.installment is map
+                    && d.seriesMeta.installment.totalAmount is number
+                    && d.seriesMeta.installment.totalAmount > 0
+                    && d.seriesMeta.installment.totalInstallments is int
+                    && d.seriesMeta.installment.totalInstallments > 0
+                    && vDate(d.seriesMeta.installment.firstDate)
+                 ))
            ));
     }
 
