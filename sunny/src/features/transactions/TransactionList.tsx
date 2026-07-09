@@ -104,6 +104,29 @@ export function TransactionList({ transactions, projected = [], onEdit, onDelete
   const [picker, setPicker] = useState<'category' | 'account' | null>(null);
   const [confirmDelete, setConfirmDelete] = useState(false);
 
+  // Series display support for the rows: instances don't carry the recurring
+  // rule, so resolve each series' frequency from its (visible) template; for
+  // installments, number every recorded rata by its position in the plan.
+  const { seriesFreqById, installmentIndexById } = useMemo(() => {
+    const freq = new Map<string, NonNullable<Transaction['recurring']>['freq']>();
+    const bySeries = new Map<string, Transaction[]>();
+    for (const t of transactions) {
+      if (t.projected) continue;
+      if (t.recurring) { freq.set(t.seriesId ?? t.id, t.recurring.freq); continue; }
+      if (t.seriesId && t.seriesMeta?.kind === 'installment') {
+        const list = bySeries.get(t.seriesId) ?? [];
+        list.push(t);
+        bySeries.set(t.seriesId, list);
+      }
+    }
+    const idx = new Map<string, number>();
+    for (const list of bySeries.values()) {
+      list.sort((a, b) => a.date.localeCompare(b.date) || (a.createdAt ?? 0) - (b.createdAt ?? 0));
+      list.forEach((t, i) => idx.set(t.id, i + 1));
+    }
+    return { seriesFreqById: freq, installmentIndexById: idx };
+  }, [transactions]);
+
   // Esc chiude il pannello filtri; finché è aperto blocca lo scroll di sfondo.
   useEffect(() => {
     if (!filterOpen) return;
@@ -539,6 +562,8 @@ export function TransactionList({ transactions, projected = [], onEdit, onDelete
                 <div className="divide-y divide-divider">
                   {txs.map(tx => (
                     <TransactionRow key={tx.id} tx={tx} upcoming={isUpcoming(tx)}
+                      seriesFreq={tx.seriesId ? seriesFreqById.get(tx.seriesId) : undefined}
+                      installmentPaid={installmentIndexById.get(tx.id)}
                       selectable={selectMode && !tx.projected} selected={selected.has(tx.id)}
                       onToggle={toggle} onClick={onEdit} />
                   ))}

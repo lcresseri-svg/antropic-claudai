@@ -1,6 +1,7 @@
-import { Transaction, TYPE_META, ownShare } from '../../types';
+import { Transaction, TYPE_META, ownShare, Freq } from '../../types';
 import { formatCurrency, formatDateFull } from '../../utils';
 import { useSettings } from '../../shared/providers/settings';
+import { formatSeriesSecondaryAmount, installmentPaidLabel } from './seriesDisplay';
 
 interface Props {
   tx: Transaction;
@@ -8,11 +9,16 @@ interface Props {
   selected?: boolean;
   /** Show as a forecast ("Programmato"): recurring projection or planned one-off. */
   upcoming?: boolean;
+  /** Frequency of the series this row belongs to (resolved from the template by
+   *  the list — instances don't carry the recurring rule themselves). */
+  seriesFreq?: Freq;
+  /** For installment instances: 1-based position of THIS rata in the plan. */
+  installmentPaid?: number;
   onToggle?: (id: string) => void;
   onClick?: (tx: Transaction) => void;
 }
 
-export function TransactionRow({ tx, selectable, selected, upcoming, onToggle, onClick }: Props) {
+export function TransactionRow({ tx, selectable, selected, upcoming, seriesFreq, installmentPaid, onToggle, onClick }: Props) {
   const { getCat, getAcc } = useSettings();
   const cat = getCat(tx.category);
   const acc = getAcc(tx.account);
@@ -31,6 +37,17 @@ export function TransactionRow({ tx, selectable, selected, upcoming, onToggle, o
 
   const prefix = isIncome ? '+' : isTransfer ? '' : '−';
   const amountClass = isIncome ? 'text-green' : isInvestment ? 'text-gold' : isTransfer ? 'text-[#88B0C0]' : 'text-primary';
+
+  // Small line under the amount: the recurrence equivalent (yearly → per month,
+  // monthly → per year, …) or the installment progress. Recorded occurrences
+  // only — projected rows keep "Programmato", shared expenses keep "tua:".
+  const seriesSecondary = isSeries
+    ? (tx.seriesMeta?.kind === 'installment'
+      ? (tx.seriesMeta.installment && installmentPaid != null
+        ? installmentPaidLabel(installmentPaid, tx.seriesMeta.installment.totalInstallments)
+        : null)
+      : formatSeriesSecondaryAmount(tx, seriesFreq))
+    : null;
 
   const handleClick = () => {
     if (selectable) onToggle?.(tx.id);
@@ -83,6 +100,8 @@ export function TransactionRow({ tx, selectable, selected, upcoming, onToggle, o
           <p className="text-[11px] text-secondary mt-0.5">
             tua: {formatCurrency(ownShare(tx))}
           </p>
+        ) : seriesSecondary ? (
+          <p className="text-[11px] text-secondary mt-0.5 balance-num">{seriesSecondary}</p>
         ) : !isTransfer ? (
           <p className="text-[11px] text-secondary mt-0.5">{TYPE_META[tx.type].label}</p>
         ) : null}

@@ -18,6 +18,7 @@ import { DashboardV2 } from './features/dashboard/DashboardV2';
 import { InvestmentsScreen } from './features/dashboard/InvestmentsScreen';
 import { CategorySpendingScreen } from './features/dashboard/CategorySpendingScreen';
 import { AccountBalanceScreen } from './features/dashboard/AccountBalanceScreen';
+import { WealthHistoryScreen } from './features/dashboard/WealthHistoryScreen';
 import { MonthlyRecapScreen } from './features/recap/MonthlyRecapScreen';
 import { RecapPrompt } from './features/recap/RecapPrompt';
 import { InsightsScreen } from './features/insights/InsightsScreen';
@@ -45,6 +46,7 @@ import { ForecastV2Screen } from './features/forecast/ForecastV2Screen';
 import { ForecastV3Screen } from './features/forecast/ForecastV3Screen';
 import { PushPromoSheet } from './shared/components/PushPromoSheet';
 import { WhatsNewModal } from './shared/components/WhatsNewModal';
+import { ReleaseNotice } from './features/notifications/ReleaseNotice';
 import { pushSupported, hasLocalToken } from './shared/push';
 
 function Loader({ phase }: { phase: string }) {
@@ -555,6 +557,11 @@ function Main({ user, onLogOut, onDeleteAccount }: {
                 <AccountBalanceScreen transactions={tx.transactions} />
               </div>
             } />
+            <Route path="/wealth-history" element={
+              <div className="pt-4 md:pt-6">
+                <WealthHistoryScreen transactions={tx.transactions} />
+              </div>
+            } />
             <Route path="/recap/:ym" element={
               <div className="pt-4 md:pt-6">
                 <MonthlyRecapScreen transactions={tx.transactions} />
@@ -647,6 +654,10 @@ function Main({ user, onLogOut, onDeleteAccount }: {
 
       {/* "Novità" popup — shown once per highlighted release, to all users. */}
       <WhatsNewModal />
+
+      {/* One-shot release notice — once per user per notice id, only after the
+          initial data load (never over the loading state). */}
+      {!tx.loading && <ReleaseNotice userId={user.uid} />}
     </div>
   );
 }
