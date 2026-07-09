@@ -201,12 +201,12 @@ export const processRecurringTransactions = onSchedule(
         // Backfill from the template's own doc id for legacy templates.
         const seriesId = (tx.seriesId as string | undefined) ?? doc.id;
 
-        // Instance copy: drop the recurring rule and the stored id; keep seriesId.
-        // Also drop groupId: the storni/commission group of a SHARED expense
-        // belongs to the template's ORIGINAL event only — copying it onto every
-        // month's instance would tie them all to the first month's transfers
-        // (the client-side catch-up applies the same rule).
-        const { recurring: _r, id: _id, groupId: _g, ...instanceData } = tx;
+        // Instance copy: drop the recurring rule and the stored id; keep seriesId
+        // AND groupId. A SHARED series repeats whole — the storno transfer is its
+        // own template advancing in lockstep — so month N's expense and storno
+        // instances share groupId + date. The client only groups SAME-DATE
+        // siblings at edit time, so months can't cross-contaminate.
+        const { recurring: _r, id: _id, ...instanceData } = tx;
         const batch = db.batch();
 
         // CATCH-UP: materialize EVERY missed occurrence (date <= today) in one run,

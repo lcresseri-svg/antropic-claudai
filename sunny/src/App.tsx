@@ -305,9 +305,9 @@ function Main({ user, onLogOut, onDeleteAccount }: {
 
   // Group siblings of the doc being edited (storni of a shared expense, or the
   // commission of a transfer/investment). For SERIES members, only siblings on
-  // the SAME DATE count: instances materialized before the groupId fix carry the
-  // template's groupId, and without this guard editing month N would show — and
-  // on save delete/recreate — month 1's storni.
+  // the SAME DATE count: a shared series propagates its groupId to every
+  // occurrence (the storno is its own lockstep series), so month N's expense
+  // must fold ONLY month N's storno — never another month's transfers.
   const groupTransfers = (editing?.groupId && (editing.type === 'expense' || editing.type === 'transfer' || editing.type === 'investment'))
     ? tx.transactions.filter(t =>
         t.groupId === editing.groupId && t.id !== editing.id &&

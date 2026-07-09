@@ -261,6 +261,11 @@ export function TransactionModal({ open, editing, groupTransfers = [], seriesEdi
         create.push({
           type: 'transfer', description: `Storno · ${desc}`, amount: r.amount, date: effDate,
           category: 'trasferimento', account, toAccount: r.account, groupId,
+          // A SHARED series repeats WHOLE: the storno is its own series, advancing
+          // in lockstep with the expense (same rule, same dates), so every month
+          // gets its transfer too. The shared groupId + the same-date guard at
+          // edit time link each month's expense to that month's storno.
+          ...(recurring ? { recurring, seriesId: crypto.randomUUID() } : {}),
         });
       }
       if (net > 0) {
