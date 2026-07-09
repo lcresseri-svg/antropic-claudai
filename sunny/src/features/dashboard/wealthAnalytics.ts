@@ -19,10 +19,11 @@
 // and an investment deposit moves value liquidity → investments leaving the
 // total unchanged.
 //
-// Market value (CategoryDef.currentValue) is a MANUAL snapshot with no history:
-// past points are reconstructed from movements (deposited capital); only the
-// FINAL point — today — swaps in currentValue where available, so the latent
-// P/L appears as the closing snapshot, per spec.
+// Investments are counted AT NET DEPOSITED CAPITAL (versato): the manual
+// market value (CategoryDef.currentValue) is deliberately IGNORED, so the
+// series is net of latent interest/gains and today's total matches the
+// dashboard's "Investito" figure. The P/L view stays on the Investimenti
+// screen, where the controvalore belongs.
 //
 // Values are STOCKS: each point is the value AT that date (cumulative), never a
 // sum of flows, and gaps forward-fill by construction.
@@ -131,15 +132,12 @@ interface RawSample { liquidity: number; investments: number; total: number; }
 /**
  * Values of the three series at each sample date (ascending). Single forward
  * walk over the (sorted) transactions — O(txs + samples).
- * `todayISO` marks the closing snapshot: from that date on, categories with a
- * manual currentValue use it instead of the reconstructed deposited capital.
  */
 function sampleWealth(
   transactions: Transaction[],
   accounts: AccountDef[],
   categories: CategoryDef[],
   sampleDates: string[],
-  todayISO: string,
 ): RawSample[] {
   const txs = transactions.filter(counts).slice().sort((a, b) => a.date.localeCompare(b.date));
 
@@ -152,10 +150,6 @@ function sampleWealth(
   const invested: Record<string, number> = {};
   for (const c of categories) {
     if (c.kind === 'investment' && c.initialBalance) invested[c.id] = (invested[c.id] ?? 0) + c.initialBalance;
-  }
-  const currentValueByCat: Record<string, number> = {};
-  for (const c of categories) {
-    if (c.kind === 'investment' && c.currentValue != null) currentValueByCat[c.id] = c.currentValue;
   }
 
   const bal = (id: string, delta: number) => { if (!id) return; accountBalances[id] = (accountBalances[id] ?? 0) + delta; };
@@ -179,15 +173,10 @@ function sampleWealth(
     let liquidity = 0;
     for (const v of Object.values(accountBalances)) liquidity += v;
 
-    // Per-category floor at 0 (mirror useTransactions); at the closing snapshot
-    // the manual market value wins over the reconstructed deposited capital.
-    const useCurrentValue = sampleDate >= todayISO;
-    const catIds = new Set([...Object.keys(invested), ...Object.keys(currentValueByCat)]);
+    // Per-category floor at 0 (mirror useTransactions) — net deposited capital,
+    // never the manual market value.
     let investments = 0;
-    for (const id of catIds) {
-      const deposited = Math.max(0, invested[id] ?? 0);
-      investments += useCurrentValue && currentValueByCat[id] != null ? currentValueByCat[id] : deposited;
-    }
+    for (const v of Object.values(invested)) investments += Math.max(0, v);
 
     out.push({ liquidity: r2(liquidity), investments: r2(investments), total: r2(liquidity + investments) });
   }
@@ -278,13 +267,11 @@ export function buildWealthHistory(
   period: WealthPeriod,
   opts?: WealthHistoryOpts,
 ): WealthPoint[] {
-  const now = opts?.now ?? new Date();
-  const todayISO = localISO(now);
   const range = getWealthRange(period, transactions, opts);
   const step = bucketStep(period, range.startISO, range.endISO);
   const dates = buildSampleDates(range.startISO, range.endISO, step);
   const spansYears = range.startISO.slice(0, 4) !== range.endISO.slice(0, 4);
-  const samples = sampleWealth(transactions, accounts, categories, dates, todayISO);
+  const samples = sampleWealth(transactions, accounts, categories, dates);
   return dates.map((date, i) => ({
     label: pointLabel(date, step, spansYears),
     date,
@@ -370,7 +357,7 @@ export function buildWealthComparisons(
   return periods.map(period => {
     const months = period === '1m' ? 1 : period === '3m' ? 3 : period === '6m' ? 6 : 12;
     const startISO = shiftMonthsISO(todayISO, -months);
-    const [s, e] = sampleWealth(transactions, accounts, categories, [startISO, todayISO], todayISO);
+    const [s, e] = sampleWealth(transactions, accounts, categories, [startISO, todayISO]);
     return {
       period,
       label: COMPARISON_LABEL[period],

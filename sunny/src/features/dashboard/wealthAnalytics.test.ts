@@ -92,18 +92,18 @@ describe('buildWealthHistory — stock semantics', () => {
     expect(pts[pts.length - 1].total).toBe(3500);
   });
 
-  it('uses currentValue as the closing snapshot; history stays on deposited capital', () => {
+  it('ignores currentValue: investments are net deposited capital (al netto degli interessi)', () => {
     const cats = CATS.map(c => c.id === 'etf' ? { ...c, currentValue: 900 } : c);
     const txs = [tx({ date: '2026-07-05', type: 'investment', category: 'etf', amount: 400 })];
     const pts = buildWealthHistory(txs, ACCOUNTS, cats, '1m', { now: NOW });
-    const mid = pts.find(p => p.date === '2026-07-10')!;      // history → deposited
-    const last = pts[pts.length - 1];                          // today → market value
+    const mid = pts.find(p => p.date === '2026-07-10')!;
+    const last = pts[pts.length - 1];
     expect(mid.investments).toBe(400);
-    expect(last.investments).toBe(900);
-    expect(last.total).toBe(1100 + 900);
+    expect(last.investments).toBe(400);        // NOT 900: latent gains excluded
+    expect(last.total).toBe(1500);             // matches the dashboard net worth
   });
 
-  it('falls back to deposited capital when currentValue is absent', () => {
+  it('investments track the deposited capital when no currentValue exists', () => {
     const txs = [tx({ date: '2026-07-05', type: 'investment', category: 'etf', amount: 400 })];
     const pts = buildWealthHistory(txs, ACCOUNTS, CATS, '1m', { now: NOW });
     expect(pts[pts.length - 1].investments).toBe(400);
