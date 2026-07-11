@@ -11,6 +11,7 @@ import { removeCategoryDef, removeAccountDef, visibleDefs } from './softDelete';
 import { buildExportPayload, downloadJson, downloadCsv, BudgetExportInput } from './dataExport';
 import { isForecastV4EnabledForUser } from '../forecast/forecastFeatureGate';
 import { isAdminUser } from '../../shared/featureFlags';
+import { isFeatureEnabled } from '../../shared/featureRollout';
 import { APP_VERSION, APP_CHANNEL, VERSIONS } from '../../appInfo';
 
 interface Props {
@@ -432,6 +433,12 @@ export function SettingsScreen({ user, transactions, budgetExport, onLogOut, onD
                 )}
                 {isAdmin && (
                   <Row icon="📈" color="#6FA8DC" label="Metriche (admin)" sub="DAU/WAU/MAU e engagement" onClick={() => navigate('/metrics')} />
+                )}
+                {isFeatureEnabled('wealth_v2', user) && (
+                  <Row icon="🏛️" color="#8FB0A0" label="Patrimonio V2 (anteprima)" sub="Decomposizione, snapshot, liquidità disponibile" onClick={() => navigate('/wealth-v2')} />
+                )}
+                {isFeatureEnabled('commitments', user) && (
+                  <Row icon="📌" color="#88B0C0" label="Impegni (anteprima)" sub="Abbonamenti, rate, ricorrenti e scadenze" onClick={() => navigate('/commitments')} />
                 )}
               </MenuSection>
               <MenuSection title="Scorciatoie">

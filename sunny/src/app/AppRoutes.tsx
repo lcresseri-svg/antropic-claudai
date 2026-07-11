@@ -5,6 +5,7 @@ import { useSettings } from '../shared/providers/settings';
 import { useTransactions } from '../shared/hooks/useTransactions';
 import { useBudget } from '../shared/hooks/useBudget';
 import { isAdminUser } from '../shared/featureFlags';
+import { isFeatureEnabled } from '../shared/featureRollout';
 import { isForecastV4EnabledForUser } from '../features/forecast/forecastFeatureGate';
 import { DashboardV2 } from '../features/dashboard/DashboardV2';
 import { BudgetDisabled } from '../features/budget/BudgetDisabled';
@@ -24,6 +25,8 @@ const SettingsScreen = lazy(() => import('../features/settings/SettingsScreen').
 const AICoachScreen = lazy(() => import('../features/aiCoach/AICoachScreen').then(m => ({ default: m.AICoachScreen })));
 const ForecastV3Screen = lazy(() => import('../features/forecast/ForecastV3Screen').then(m => ({ default: m.ForecastV3Screen })));
 const MetricsScreen = lazy(() => import('../features/metrics/MetricsScreen').then(m => ({ default: m.MetricsScreen })));
+const WealthV2Screen = lazy(() => import('../features/wealth/WealthV2Screen').then(m => ({ default: m.WealthV2Screen })));
+const CommitmentsScreen = lazy(() => import('../features/wealth/CommitmentsScreen').then(m => ({ default: m.CommitmentsScreen })));
 
 /** In-flow loading placeholder — no layout shift, no white screen. */
 function RouteFallback() {
@@ -195,6 +198,22 @@ export function AppRoutes({ user, brand, tx, budget, editing, onLogOut, onDelete
               userId={user.uid}
             />
           </div>
+        } />
+        {/* Gated features (central rollout registry, admin-only for now).
+            Data access is additionally enforced by Firestore rules. */}
+        <Route path="/wealth-v2" element={
+          isFeatureEnabled('wealth_v2', user)
+            ? <div className="pt-4 md:pt-6">
+                <WealthV2Screen user={user} transactions={tx.transactions} liquidity={tx.liquidity} />
+              </div>
+            : <Navigate to="/" replace />
+        } />
+        <Route path="/commitments" element={
+          isFeatureEnabled('commitments', user)
+            ? <div className="pt-4 md:pt-6">
+                <CommitmentsScreen transactions={tx.allTransactions} />
+              </div>
+            : <Navigate to="/" replace />
         } />
         {/* Admin-only metrics dashboard — gated on the admin identity because
             it reads admin-only DATA (metrics/*), not to hide a feature. */}
