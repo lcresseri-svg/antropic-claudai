@@ -1,5 +1,8 @@
 import { User } from 'firebase/auth';
 
+/** Minimal identity shape — compatible with firebase/auth User. */
+export interface UserLike { uid?: string | null }
+
 // Per-user feature gating.
 //
 // ROLLOUT (2026-06-16): every feature that used to be admin-only became visible
@@ -21,7 +24,7 @@ export const ADMIN_UIDS: readonly string[] = [
 // Identity check — INDEPENDENT of any feature flag. Use ONLY for admin-only
 // data paths and for the `admin` rollout stage, never to hide generally
 // available UI.
-export function isAdminUser(user: User | null): boolean {
+export function isAdminUser(user: UserLike | null): boolean {
   return !!user && !!user.uid && ADMIN_UIDS.includes(user.uid);
 }
 

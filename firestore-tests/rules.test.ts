@@ -110,6 +110,90 @@ describe('forecastSnapshots (write-once)', () => {
     await assertSucceeds(setDoc(ref, { monthKey: '2026-06', snapshotDay: 15, actual: 100, predicted: 110 }));
     await assertFails(deleteDoc(ref));
   });
+  it('rejects malformed payloads (bad monthKey / snapshotDay / metrics)', async () => {
+    const db = dbOf(A);
+    await assertFails(setDoc(doc(db, `users/${A}/forecastSnapshots/x1`),
+      { monthKey: 'giugno', snapshotDay: 15, actual: 100, predicted: 110 }));
+    await assertFails(setDoc(doc(db, `users/${A}/forecastSnapshots/x2`),
+      { monthKey: '2026-06', snapshotDay: 42, actual: 100, predicted: 110 }));
+    await assertFails(setDoc(doc(db, `users/${A}/forecastSnapshots/x3`),
+      { monthKey: '2026-06', snapshotDay: 15, actual: 'cento', predicted: 110 }));
+  });
+});
+
+describe('meta/* specific rules', () => {
+  it('settings: valid payload ok; bad theme / huge categories rejected', async () => {
+    const db = dbOf(A);
+    await assertSucceeds(setDoc(doc(db, `users/${A}/meta/settings`),
+      { categories: [], accounts: [], theme: 'dark', enableBudget: true }));
+    await assertSucceeds(setDoc(doc(db, `users/${A}/meta/settings`),
+      { theme: 'system' })); // legacy value stays accepted
+    await assertFails(setDoc(doc(db, `users/${A}/meta/settings`), { theme: 'neon' }));
+    await assertFails(setDoc(doc(db, `users/${A}/meta/settings`), { enableBudget: 'yes' }));
+  });
+  it('budget: negative savingsTarget rejected; maps required when present', async () => {
+    const db = dbOf(A);
+    await assertSucceeds(setDoc(doc(db, `users/${A}/meta/budget`),
+      { savingsTarget: 500, categoryBudgets: { spesa: 300 } }));
+    await assertFails(setDoc(doc(db, `users/${A}/meta/budget`), { savingsTarget: -1 }));
+    await assertFails(setDoc(doc(db, `users/${A}/meta/budget`), { categoryBudgets: 'tutte' }));
+  });
+  it('aiCoach: client read ok, client write denied (Admin SDK only)', async () => {
+    await env.withSecurityRulesDisabled(async (ctx) => {
+      await setDoc(doc(ctx.firestore(), `users/${A}/meta/aiCoach`), { dailyCount: 3 });
+    });
+    const db = dbOf(A);
+    await assertSucceeds(getDoc(doc(db, `users/${A}/meta/aiCoach`)));
+    await assertFails(setDoc(doc(db, `users/${A}/meta/aiCoach`), { dailyCount: 0 }));
+  });
+  it('unknown legacy meta doc keeps owner-only access', async () => {
+    const db = dbOf(A);
+    await assertSucceeds(setDoc(doc(db, `users/${A}/meta/legacyThing`), { anything: true }));
+    await assertFails(setDoc(doc(dbOf(B), `users/${A}/meta/legacyThing`), { anything: true }));
+  });
+});
+
+describe('wealthSnapshots', () => {
+  const snap = (over: Record<string, unknown> = {}) => ({
+    dateKey: '2026-07-10', version: 1, totalNetWorth: 1000, cash: 400,
+    investments: 600, source: 'live', ...over,
+  });
+  it('owner create + idempotent update ok; delete denied', async () => {
+    const db = dbOf(A);
+    const ref = doc(db, `users/${A}/wealthSnapshots/2026-07-10`);
+    await assertSucceeds(setDoc(ref, snap()));
+    await assertSucceeds(setDoc(ref, snap({ cash: 410, totalNetWorth: 1010 })));
+    await assertFails(deleteDoc(ref));
+  });
+  it('rejects id/dateKey mismatch, bad source, non-numeric values', async () => {
+    const db = dbOf(A);
+    await assertFails(setDoc(doc(db, `users/${A}/wealthSnapshots/2026-07-10`), snap({ dateKey: '2026-07-09' })));
+    await assertFails(setDoc(doc(db, `users/${A}/wealthSnapshots/2026-07-10`), snap({ source: 'guess' })));
+    await assertFails(setDoc(doc(db, `users/${A}/wealthSnapshots/2026-07-10`), snap({ cash: 'molti' })));
+    await assertFails(setDoc(doc(db, `users/${A}/wealthSnapshots/not-a-date`), snap({ dateKey: 'not-a-date' })));
+  });
+  it('non-owner denied', async () => {
+    await assertFails(setDoc(doc(dbOf(B), `users/${A}/wealthSnapshots/2026-07-10`), snap()));
+    await assertFails(getDoc(doc(dbOf(B), `users/${A}/wealthSnapshots/2026-07-10`)));
+  });
+});
+
+describe('monthlyPlans', () => {
+  const plan = (over: Record<string, unknown> = {}) => ({
+    month: '2026-07', version: 1, expectedIncome: 2400, savingsTarget: 500,
+    categoryBudgets: { spesa: 300 }, plannedEvents: [], status: 'draft',
+    source: 'manual', ...over,
+  });
+  it('owner write ok; id/month mismatch and bad enums rejected', async () => {
+    const db = dbOf(A);
+    await assertSucceeds(setDoc(doc(db, `users/${A}/monthlyPlans/2026-07`), plan()));
+    await assertFails(setDoc(doc(db, `users/${A}/monthlyPlans/2026-08`), plan()));
+    await assertFails(setDoc(doc(db, `users/${A}/monthlyPlans/2026-07`), plan({ status: 'maybe' })));
+    await assertFails(setDoc(doc(db, `users/${A}/monthlyPlans/2026-07`), plan({ expectedIncome: -1 })));
+  });
+  it('non-owner denied', async () => {
+    await assertFails(setDoc(doc(dbOf(B), `users/${A}/monthlyPlans/2026-07`), plan()));
+  });
 });
 
 describe('derived/encouraging', () => {
