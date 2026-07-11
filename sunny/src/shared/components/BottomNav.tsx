@@ -2,10 +2,9 @@ import { NavLink } from 'react-router-dom';
 
 interface Props {
   onAdd: () => void;
-  uiV2?: boolean;
 }
 
-export function BottomNav({ onAdd, uiV2 = false }: Props) {
+export function BottomNav({ onAdd }: Props) {
   return (
     <nav
       className="fixed bottom-0 inset-x-0 z-30 safe-bottom pointer-events-none md:hidden"
@@ -13,8 +12,8 @@ export function BottomNav({ onAdd, uiV2 = false }: Props) {
     >
       <div className="max-w-md mx-auto px-3 pb-2 flex justify-center">
         <div className="pointer-events-auto w-full flex items-center justify-around glass-nav rounded-[28px] px-2 py-1.5 shadow-float">
-          <NavBtn to="/" label={uiV2 ? 'Oggi' : 'Home'} icon={<HomeIcon />} />
-          <NavBtn to="/insights" label={uiV2 ? 'Consigli' : 'Insight'} icon={<InsightIcon />} />
+          <NavBtn to="/" label="Oggi" icon={<HomeIcon />} />
+          <NavBtn to="/insights" label="Consigli" icon={<InsightIcon />} />
 
           <button
             onClick={onAdd}
@@ -26,7 +25,7 @@ export function BottomNav({ onAdd, uiV2 = false }: Props) {
             </svg>
           </button>
 
-          <NavBtn to="/budget" label={uiV2 ? 'Piano' : 'Budget'} icon={<TargetIcon />} />
+          <NavBtn to="/budget" label="Piano" icon={<TargetIcon />} />
           <NavBtn to="/transactions" label="Movimenti" icon={<ListIcon />} />
         </div>
       </div>

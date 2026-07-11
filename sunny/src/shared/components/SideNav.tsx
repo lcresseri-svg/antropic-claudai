@@ -5,10 +5,9 @@ interface Props {
   onAdd: () => void;
   onImport: () => void;
   aiEnabled?: boolean;
-  uiV2?: boolean;
 }
 
-export function SideNav({ loading, onAdd, onImport, aiEnabled = true, uiV2 = false }: Props) {
+export function SideNav({ loading, onAdd, onImport, aiEnabled = true }: Props) {
   const navigate = useNavigate();
 
   return (
@@ -28,9 +27,9 @@ export function SideNav({ loading, onAdd, onImport, aiEnabled = true, uiV2 = fal
 
       {/* Nav links */}
       <nav className="flex-1 p-3 space-y-0.5 overflow-y-auto">
-        <SideLink to="/" label={uiV2 ? 'Oggi' : 'Dashboard'} icon={<HomeIcon />} />
-        <SideLink to="/insights" label={uiV2 ? 'Consigli' : 'Insight'} icon={<InsightIcon />} />
-        <SideLink to="/budget" label={uiV2 ? 'Piano' : 'Budget'} icon={<TargetIcon />} />
+        <SideLink to="/" label="Oggi" icon={<HomeIcon />} />
+        <SideLink to="/insights" label="Consigli" icon={<InsightIcon />} />
+        <SideLink to="/budget" label="Piano" icon={<TargetIcon />} />
         <SideLink to="/transactions" label="Movimenti" icon={<ListIcon />} />
         {aiEnabled && <SideLink to="/ai-coach" label="AI Coach" icon={<AICoachIcon />} />}
       </nav>

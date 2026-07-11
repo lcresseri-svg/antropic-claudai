@@ -18,7 +18,6 @@ interface Props {
   transactions: Transaction[];
   /** Monthly budget state — included in the GDPR data export when present. */
   budgetExport?: BudgetExportInput;
-  uiV2?: boolean;
   onLogOut: () => void;
   onDeleteAll: () => Promise<void>;
   onDeleteAccount: () => Promise<void>;
@@ -42,7 +41,7 @@ function reorder<T>(arr: T[], from: number, to: number): T[] {
   return next;
 }
 
-export function SettingsScreen({ user, transactions, budgetExport, uiV2 = false, onLogOut, onDeleteAll, onDeleteAccount }: Props) {
+export function SettingsScreen({ user, transactions, budgetExport, onLogOut, onDeleteAll, onDeleteAccount }: Props) {
   const navigate = useNavigate();
   const location = useLocation();
   const { categories, accounts, visibleCategories, visibleAccounts, theme, includeInvestments, enableInvestments, countInvestmentsInExpenses, enableBudget, insightDepth, aiEnabled, aiCoachWidgetEnabled, detailedInvestments, saveCategories, saveAccounts, saveTheme, saveIncludeInvestments, saveEnableInvestments, saveCountInvestmentsInExpenses, saveEnableBudget, saveInsightDepth, saveAiEnabled, saveAiCoachWidgetEnabled } = useSettings();
@@ -212,7 +211,7 @@ export function SettingsScreen({ user, transactions, budgetExport, uiV2 = false,
   const startDrag = (list: 'accounts' | TransactionType, idx: number, startY: number) =>
     setDrag({ list, fromIdx: idx, overIdx: idx, startY });
 
-  // Reusable settings rows/blocks. The granular sub-screens (uiV2) compose
+  // Reusable settings rows/blocks. The granular sub-screens compose
   // these individually; the legacy combined "Generali" page renders them all.
   const rowTheme = (
     <ToggleRow
@@ -403,8 +402,7 @@ export function SettingsScreen({ user, transactions, budgetExport, uiV2 = false,
           </div>
 
           {/* Main entries */}
-          {uiV2 ? (
-            <div className="space-y-5">
+          <div className="space-y-5">
               <MenuSection title="Preferenze">
                 <Row icon="🎨" color="#8B8B8B" label="Aspetto" sub="Tema chiaro/scuro" onClick={() => enterSub('aspetto')} />
               </MenuSection>
@@ -439,23 +437,7 @@ export function SettingsScreen({ user, transactions, budgetExport, uiV2 = false,
               <MenuSection title="Scorciatoie">
                 <Row icon="⚡" color="#E6B95C" label="Aggiungi spese da iPhone" sub="Scorciatoia iOS per registrare spese" onClick={() => enterSub('shortcut')} />
               </MenuSection>
-            </div>
-          ) : (
-            <div className="bg-card rounded-2xl divide-y divide-divider md:bg-transparent md:divide-y-0 md:grid md:grid-cols-2 md:gap-3">
-              <Row icon="⚙️" color="#8B8B8B" label="Generali" sub="Tema, patrimonio" onClick={() => enterSub('generali')} />
-              <Row icon="🗂️" color="#6FA8DC" label="Gestione" sub="Conti e categorie" onClick={() => enterSub('gestione')} />
-              <Row icon="💾" color="#8A9270" label="Dati" sub="Esporta, elimina" onClick={() => enterSub('dati')} />
-              <Row icon="ℹ️" color="#88B0C0" label="Come funziona" sub="Calcoli e formule" onClick={() => enterSub('info')} />
-              <Row icon="💬" color="#E6B95C" label="Lascia un feedback" sub="Problemi, idee, suggerimenti" onClick={() => setFeedbackOpen(true)} />
-              <Row icon="⚡" color="#E6B95C" label="Spese da iPhone" sub="Scorciatoia iOS" onClick={() => enterSub('shortcut')} />
-              {forecastV4Enabled && (
-                <Row icon="🔮" color="#E6B95C" label="Previsione V4 (admin)" sub="Motore forecast sperimentale" onClick={() => navigate('/forecast-v3')} />
-              )}
-              {isAdmin && (
-                <Row icon="📈" color="#6FA8DC" label="Metriche (admin)" sub="DAU/WAU/MAU e engagement" onClick={() => navigate('/metrics')} />
-              )}
-            </div>
-          )}
+          </div>
 
           <div className="text-center pt-2 space-y-1.5">
             <p className="text-xs text-secondary/60 flex items-center justify-center gap-1.5">
@@ -464,7 +446,6 @@ export function SettingsScreen({ user, transactions, budgetExport, uiV2 = false,
                 <span className="px-1.5 py-0.5 rounded-md bg-gold/15 text-gold text-[10px] font-semibold tracking-wide uppercase">beta</span>
               )}
             </p>
-            {!uiV2 && <button onClick={() => enterSub('versioni')} className="text-xs font-medium text-gold">Registro versioni</button>}
           </div>
         </>
       )}
@@ -482,7 +463,7 @@ export function SettingsScreen({ user, transactions, budgetExport, uiV2 = false,
         </>
       )}
 
-      {/* uiV2: granular tabs — each shows only its own settings */}
+      {/* Granular tabs — each shows only its own settings */}
       {sub === 'aspetto' && (
         <>
           <ManageHeader title="Aspetto" editMode={false} onBack={exitToMenu} onToggleEdit={() => {}} hideEdit />
