@@ -27,6 +27,7 @@ const ForecastV3Screen = lazy(() => import('../features/forecast/ForecastV3Scree
 const MetricsScreen = lazy(() => import('../features/metrics/MetricsScreen').then(m => ({ default: m.MetricsScreen })));
 const WealthV2Screen = lazy(() => import('../features/wealth/WealthV2Screen').then(m => ({ default: m.WealthV2Screen })));
 const CommitmentsScreen = lazy(() => import('../features/wealth/CommitmentsScreen').then(m => ({ default: m.CommitmentsScreen })));
+const MonthlyPlanScreen = lazy(() => import('../features/budget/MonthlyPlanScreen').then(m => ({ default: m.MonthlyPlanScreen })));
 
 /** In-flow loading placeholder — no layout shift, no white screen. */
 function RouteFallback() {
@@ -150,7 +151,9 @@ export function AppRoutes({ user, brand, tx, budget, editing, onLogOut, onDelete
         {aiEnabled && (
           <Route path="/ai-coach" element={
             <div className="pt-4 md:pt-6">
-              <AICoachScreen user={user} />
+              <AICoachScreen user={user}
+                transactions={tx.transactions} liquidity={tx.liquidity}
+                savingsTarget={budget.budget.savingsTarget} />
             </div>
           } />
         )}
@@ -212,6 +215,14 @@ export function AppRoutes({ user, brand, tx, budget, editing, onLogOut, onDelete
           isFeatureEnabled('commitments', user)
             ? <div className="pt-4 md:pt-6">
                 <CommitmentsScreen transactions={tx.allTransactions} />
+              </div>
+            : <Navigate to="/" replace />
+        } />
+        <Route path="/monthly-plan" element={
+          isFeatureEnabled('monthly_plan_v2', user)
+            ? <div className="pt-4 md:pt-6">
+                <MonthlyPlanScreen user={user} transactions={tx.transactions}
+                  monthlyIncome={tx.monthlyIncome} monthlyInvestments={tx.monthlyInvestments} />
               </div>
             : <Navigate to="/" replace />
         } />

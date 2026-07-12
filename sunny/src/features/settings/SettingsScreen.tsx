@@ -440,6 +440,12 @@ export function SettingsScreen({ user, transactions, budgetExport, onLogOut, onD
                 {isFeatureEnabled('commitments', user) && (
                   <Row icon="📌" color="#88B0C0" label="Impegni (anteprima)" sub="Abbonamenti, rate, ricorrenti e scadenze" onClick={() => navigate('/commitments')} />
                 )}
+                {isFeatureEnabled('monthly_plan_v2', user) && (
+                  <Row icon="🗓️" color="#E6B95C" label="Piano mensile V2 (anteprima)" sub="Piano, consuntivo e previsione a confronto" onClick={() => navigate('/monthly-plan')} />
+                )}
+                {isFeatureEnabled('forecast_unified', user) && (
+                  <Row icon="🧭" color="#8A9270" label="Forecast unificato (anteprima)" sub="Motori a confronto e backtest baseline" onClick={() => navigate('/forecast-v3')} />
+                )}
               </MenuSection>
               <MenuSection title="Scorciatoie">
                 <Row icon="⚡" color="#E6B95C" label="Aggiungi spese da iPhone" sub="Scorciatoia iOS per registrare spese" onClick={() => enterSub('shortcut')} />
