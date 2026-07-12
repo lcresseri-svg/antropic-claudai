@@ -22,7 +22,6 @@ interface Props {
   onBulkUpdate: (ids: string[], patch: TransactionPatch) => void;
   onBulkDelete: (ids: string[]) => void;
   onAdd: () => void;
-  uiV2?: boolean;
 }
 
 type GroupMode = 'month' | 'account' | 'category';
@@ -69,7 +68,7 @@ function projectedCutoffISO(v: ProjView, now: Date): string | null {
   return d.toISOString().slice(0, 10);
 }
 
-export function TransactionList({ transactions, projected = [], onEdit, onDelete, onBulkUpdate, onBulkDelete, onAdd, uiV2 = false }: Props) {
+export function TransactionList({ transactions, projected = [], onEdit, onDelete, onBulkUpdate, onBulkDelete, onAdd }: Props) {
   const { categories, accounts, getAcc, getCat, theme, enableInvestments, countInvestmentsInExpenses } = useSettings();
   // When enabled, investments count as an outflow inside the group subtotals
   // (deposits subtract, withdrawals add — direction-aware), with an ⓘ breakdown.
@@ -489,25 +488,18 @@ export function TransactionList({ transactions, projected = [], onEdit, onDelete
                 {allCollapsed ? 'Espandi' : 'Comprimi'}
               </button>
             )}
-            {uiV2 ? (
-              <button onClick={() => selectMode ? exitSelect() : setSelectMode(true)}
-                aria-label={selectMode ? 'Annulla selezione' : 'Seleziona'}
-                className={`w-8 h-8 rounded-xl flex items-center justify-center transition-colors ${
-                  selectMode ? 'bg-gold/10 text-gold' : 'text-secondary hover:text-primary'
-                }`}>
-                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.75" strokeLinecap="round" strokeLinejoin="round">
-                  <rect x="3" y="3" width="7" height="7" rx="1.5"/>
-                  <rect x="14" y="3" width="7" height="7" rx="1.5"/>
-                  <rect x="3" y="14" width="7" height="7" rx="1.5"/>
-                  <path d="m14 17.5 2 2 4-4"/>
-                </svg>
-              </button>
-            ) : (
-              <button onClick={() => selectMode ? exitSelect() : setSelectMode(true)}
-                className="text-xs font-medium text-gold px-2 py-1.5 active:bg-card-hover rounded-lg transition-colors">
-                {selectMode ? 'Annulla' : 'Seleziona'}
-              </button>
-            )}
+            <button onClick={() => selectMode ? exitSelect() : setSelectMode(true)}
+              aria-label={selectMode ? 'Annulla selezione' : 'Seleziona'}
+              className={`w-8 h-8 rounded-xl flex items-center justify-center transition-colors ${
+                selectMode ? 'bg-gold/10 text-gold' : 'text-secondary hover:text-primary'
+              }`}>
+              <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.75" strokeLinecap="round" strokeLinejoin="round">
+                <rect x="3" y="3" width="7" height="7" rx="1.5"/>
+                <rect x="14" y="3" width="7" height="7" rx="1.5"/>
+                <rect x="3" y="14" width="7" height="7" rx="1.5"/>
+                <path d="m14 17.5 2 2 4-4"/>
+              </svg>
+            </button>
           </div>
         </div>
       </div>

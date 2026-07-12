@@ -1,5 +1,5 @@
 import { ReactNode } from 'react';
-import { ArcLogo } from '../../App';
+import { ArcLogo } from '../../shared/components/ArcLogo';
 
 interface Props {
   step: number;

@@ -19,7 +19,13 @@ jobs:
           cache-dependency-path: sunny/package-lock.json
       - run: npm ci
         working-directory: sunny
+      - name: Typecheck
+        run: npx tsc --noEmit
+        working-directory: sunny
       - run: npm test
+        working-directory: sunny
+      - name: Build frontend
+        run: npm run build
         working-directory: sunny
 
   functions-build:
@@ -32,6 +38,9 @@ jobs:
           cache: npm
           cache-dependency-path: functions/package-lock.json
       - run: npm ci
+        working-directory: functions
+      - name: Typecheck
+        run: npx tsc --noEmit
         working-directory: functions
       - run: npm run build
         working-directory: functions

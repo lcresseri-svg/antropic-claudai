@@ -254,3 +254,15 @@ html.light .text-\[\#E6B95C\]\/80 { color: rgb(var(--c-gold) / 0.9); }
   .recap-movements thead { display: table-header-group; }
   .recap-movements tr { page-break-inside: avoid; }
 }
+
+/* Accessibilità: rispetta la preferenza di sistema "riduci animazioni".
+   Le transizioni/animazioni decorative collassano a un frame; il layout e la
+   funzionalità restano identici. */
+@media (prefers-reduced-motion: reduce) {
+  *, *::before, *::after {
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
+    scroll-behavior: auto !important;
+  }
+}

@@ -1,17 +1,39 @@
-import { useEffect } from 'react';
+import { useEffect, useState } from 'react';
 import { User } from 'firebase/auth';
+import { Transaction } from '../../types';
 import { useSettings } from '../../shared/providers/settings';
+import { isFeatureEnabled } from '../../shared/featureRollout';
 import { useAICoach } from './useAICoach';
 import { AffordabilityForm } from './AffordabilityForm';
 import { AffordabilityResultCard } from './AffordabilityResultCard';
+import { DecisionCoachPanel } from './DecisionCoachPanel';
+import { AffordabilityRequest } from './aiCoachTypes';
 import { logEvent } from '../../shared/analytics/metrics';
 
-export function AICoachScreen({ user }: { user?: User | null }) {
+interface Props {
+  user?: User | null;
+  /** Needed only by the gated Decision Coach panel. */
+  transactions?: Transaction[];
+  liquidity?: number;
+  savingsTarget?: number;
+}
+
+export function AICoachScreen({ user, transactions, liquidity, savingsTarget }: Props) {
   const { categories } = useSettings();
   const { status, result, errorMsg, remaining, analyze, reset } = useAICoach();
+  // Last submitted request — feeds the deterministic Decision Coach panel.
+  const [lastReq, setLastReq] = useState<AffordabilityRequest | null>(null);
+
+  const decisionCoachEnabled = isFeatureEnabled('decision_coach', user ?? null)
+    && transactions != null && liquidity != null;
 
   // metrics: aicoach_open on mount (fire-and-forget).
   useEffect(() => { if (user) logEvent(user.uid, 'aicoach_open'); }, [user]);
+
+  const submit = (req: AffordabilityRequest) => {
+    setLastReq(req);
+    return analyze(req);
+  };
 
   return (
     <div className="pt-4 md:pt-6 max-w-lg">
@@ -24,12 +46,23 @@ export function AICoachScreen({ user }: { user?: User | null }) {
       <p className="text-sm text-secondary mb-6">Descrivi un acquisto e ti dico se i tuoi numeri lo reggono.</p>
 
       {status === 'done' && result ? (
-        <AffordabilityResultCard result={result} categories={categories} onReset={reset} />
+        <div className="space-y-4">
+          {decisionCoachEnabled && lastReq && transactions && liquidity != null && (
+            <DecisionCoachPanel
+              itemName={lastReq.itemName}
+              cost={lastReq.cost}
+              transactions={transactions}
+              liquidity={liquidity}
+              savingsTarget={savingsTarget ?? result.savingsTarget ?? 0}
+            />
+          )}
+          <AffordabilityResultCard result={result} categories={categories} onReset={reset} />
+        </div>
       ) : (
         <div className="space-y-4">
           <div className="rounded-2xl bg-card border border-divider px-5 py-5">
             <AffordabilityForm
-              onSubmit={analyze}
+              onSubmit={submit}
               loading={status === 'loading'}
             />
           </div>

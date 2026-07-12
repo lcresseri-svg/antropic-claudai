@@ -80,8 +80,64 @@ service cloud.firestore {
         allow create, update: if owner(userId) && validTxn(request.resource.data);
       }
 
+      // ── meta/* — one rule per KNOWN document, with light non-breaking
+      // validation (only fields that are present are checked, so legacy docs
+      // keep working). Unknown doc names keep the historical owner-only
+      // access until they too are enumerated (gradual hardening).
+      match /meta/settings {
+        allow read: if owner(userId);
+        allow write: if owner(userId)
+          && (!('categories' in request.resource.data) || (request.resource.data.categories is list && request.resource.data.categories.size() <= 500))
+          && (!('accounts' in request.resource.data) || (request.resource.data.accounts is list && request.resource.data.accounts.size() <= 200))
+          && (!('theme' in request.resource.data) || request.resource.data.theme in ['system', 'dark', 'light'])
+          && (!('insightDepth' in request.resource.data) || request.resource.data.insightDepth in ['minimal', 'medium', 'advanced'])
+          && (!('enableInvestments' in request.resource.data) || request.resource.data.enableInvestments is bool)
+          && (!('enableBudget' in request.resource.data) || request.resource.data.enableBudget is bool)
+          && (!('aiEnabled' in request.resource.data) || request.resource.data.aiEnabled is bool);
+      }
+
+      match /meta/budget {
+        allow read: if owner(userId);
+        allow write: if owner(userId)
+          && (!('savingsTarget' in request.resource.data) || (request.resource.data.savingsTarget is number && request.resource.data.savingsTarget >= 0))
+          && (!('categoryBudgets' in request.resource.data) || request.resource.data.categoryBudgets is map)
+          && (!('incomeBudgets' in request.resource.data) || request.resource.data.incomeBudgets is map)
+          && (!('investmentBudgets' in request.resource.data) || request.resource.data.investmentBudgets is map);
+      }
+
+      match /meta/push {
+        allow read: if owner(userId);
+        allow write: if owner(userId)
+          && (!('tokens' in request.resource.data) || request.resource.data.tokens is map)
+          && (!('reminders' in request.resource.data) || request.resource.data.reminders is map);
+      }
+
+      match /meta/onboarding {
+        allow read: if owner(userId);
+        allow write: if owner(userId)
+          && (!('completed' in request.resource.data) || request.resource.data.completed is bool)
+          && (!('currentStep' in request.resource.data) || request.resource.data.currentStep is number);
+      }
+
+      match /meta/activity {
+        allow read: if owner(userId);
+        allow write: if owner(userId)
+          && (!('lastActiveAt' in request.resource.data) || request.resource.data.lastActiveAt is number)
+          && (!('activeDays' in request.resource.data) || (request.resource.data.activeDays is list && request.resource.data.activeDays.size() <= 60));
+      }
+
+      // AI rate-limit state is managed by Cloud Functions (Admin SDK); the
+      // client may read its remaining quota but never write it.
+      match /meta/aiCoach {
+        allow read: if owner(userId);
+        allow write: if false;
+      }
+
+      // Legacy fallback for meta docs not yet enumerated above. Kept for
+      // backward compatibility; shrink over time as docs get specific rules.
       match /meta/{doc} {
-        allow read, write: if owner(userId);
+        allow read, write: if owner(userId)
+          && !(doc in ['settings', 'budget', 'push', 'onboarding', 'activity', 'aiCoach']);
       }
 
       // Monthly budget snapshots (doc id = YYYY-MM). Owner-only; light non-breaking
@@ -100,9 +156,53 @@ service cloud.firestore {
       // Forecast backtest snapshots: immutable audit trail written by the V3 engine.
       // Write-once: only create is allowed — update and delete are intentionally
       // denied. (Verified: the client only ever creates non-existent snapshots.)
+      // Payload validation: the core identifying/metric fields must be typed.
       match /forecastSnapshots/{snapshotId} {
         allow read: if owner(userId);
-        allow create: if owner(userId);
+        allow create: if owner(userId)
+          && request.resource.data.monthKey is string
+          && request.resource.data.monthKey.matches('^[0-9]{4}-[0-9]{2}$')
+          && request.resource.data.snapshotDay is int
+          && request.resource.data.snapshotDay >= 1
+          && request.resource.data.snapshotDay <= 31
+          && request.resource.data.actual is number
+          && request.resource.data.predicted is number;
+      }
+
+      // Daily wealth snapshots (doc id = YYYY-MM-DD, Europe/Rome). Owner-only.
+      // Create AND update are allowed with the same validation — regeneration
+      // is idempotent (same day → same doc, overwritten in place). Deletes are
+      // denied to clients: snapshots are an audit trail.
+      match /wealthSnapshots/{day} {
+        allow read: if owner(userId);
+        allow create, update: if owner(userId)
+          && day.matches('^[0-9]{4}-[0-9]{2}-[0-9]{2}$')
+          && request.resource.data.dateKey == day
+          && request.resource.data.version is int
+          && request.resource.data.version >= 1
+          && request.resource.data.totalNetWorth is number
+          && request.resource.data.cash is number
+          && request.resource.data.investments is number
+          && request.resource.data.source in ['live', 'backfill_real', 'backfill_estimated'];
+      }
+
+      // Monthly plans V2 (doc id = YYYY-MM). Owner-only; same shape discipline
+      // as budgetHistory. Deletes denied (write validation requires a payload).
+      match /monthlyPlans/{month} {
+        allow read: if owner(userId);
+        allow write: if owner(userId)
+          && month.matches('^[0-9]{4}-[0-9]{2}$')
+          && request.resource.data.month == month
+          && request.resource.data.version is int
+          && request.resource.data.expectedIncome is number
+          && request.resource.data.expectedIncome >= 0
+          && request.resource.data.savingsTarget is number
+          && request.resource.data.savingsTarget >= 0
+          && request.resource.data.categoryBudgets is map
+          && request.resource.data.plannedEvents is list
+          && request.resource.data.plannedEvents.size() <= 100
+          && request.resource.data.status in ['draft', 'confirmed']
+          && request.resource.data.source in ['manual', 'copied_from_previous_month', 'from_recurring', 'auto'];
       }
 
       // Encouraging-insights pool consumed by the sendEncouragingInsight function.
@@ -115,6 +215,17 @@ service cloud.firestore {
         allow write: if owner(userId)
           && request.resource.data.items is list
           && request.resource.data.items.size() <= 50;
+      }
+
+      // Derived monthly aggregates (versioned, regenerable, on-demand — the
+      // original transactions stay the source of truth). Owner-only; deletes
+      // denied like the other derived data.
+      match /derived/monthlyAggregates {
+        allow read: if owner(userId);
+        allow create, update: if owner(userId)
+          && request.resource.data.version is int
+          && request.resource.data.months is list
+          && request.resource.data.months.size() <= 600;
       }
 
       // Behavioural metric events (name+ts only — never financial data). The

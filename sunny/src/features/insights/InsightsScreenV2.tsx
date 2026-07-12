@@ -5,6 +5,8 @@ import { Transaction } from '../../types';
 import { db } from '../../lib/firebase';
 import { useSettings } from '../../shared/providers/settings';
 import { buildInsights, Insight, InsightCategory } from './insightsEngine';
+import { topInsight } from './insightRankingV2';
+import { isFeatureEnabled } from '../../shared/featureRollout';
 import { InsightDetailSheet } from './InsightDetailSheet';
 import { InsightFeedback } from '../feedback/InsightFeedback';
 import { logEvent } from '../../shared/analytics/metrics';
@@ -94,6 +96,11 @@ export function InsightsScreenV2(p: Props) {
     ).catch(() => encouragingPoolWritten.delete(user.uid)); // allow a retry if the write failed
   }, [user, insights]);
 
+  // Ranking V2 (gated): ONE prioritized insight on top, scored on impact /
+  // urgency / confidence / novelty / actionability by the pure ranking module.
+  const rankingEnabled = isFeatureEnabled('insight_ranking_v2', user);
+  const top = rankingEnabled ? topInsight(insights) : null;
+
   // Group insights into 4 display groups
   const grouped = new Map<DisplayGroup, Insight[]>();
   for (const ins of insights) {
@@ -118,6 +125,30 @@ export function InsightsScreenV2(p: Props) {
           <SummaryPill label="Uscite"  value={formatCurrency(p.monthlyExpenses)} color="rgb(var(--c-secondary))" />
           <SummaryPill label={saved >= 0 ? 'Risparmiato' : 'Sforamento'} value={formatCurrency(Math.abs(saved))} color={saved >= 0 ? 'var(--accent)' : 'var(--accent-red)'} />
         </div>
+      )}
+
+      {top && (
+        <section className="mb-6" aria-label="Insight prioritario">
+          <div className="flex items-center gap-2 mb-3 px-1">
+            <span className="text-sm">🎯</span>
+            <p className="label-caps text-secondary">In evidenza (V2)</p>
+          </div>
+          <div className="glass-card rounded-2xl p-4 ring-1 ring-gold/30">
+            <div className="flex items-start gap-3.5">
+              <div className="w-9 h-9 rounded-xl flex items-center justify-center text-base flex-shrink-0"
+                style={{ backgroundColor: top.insight.accent + '18' }}>
+                {top.insight.icon}
+              </div>
+              <div className="min-w-0 flex-1">
+                <p className="text-sm font-medium text-primary leading-snug">{top.insight.title}</p>
+                <p className="text-xs mt-0.5 leading-snug" style={{ color: top.insight.accent + 'cc' }}>{top.insight.detail}</p>
+                <p className="text-[10px] text-secondary mt-1.5">
+                  priorità {top.total} · impatto {top.scores.impact} · urgenza {top.scores.urgency} · dominio {top.domain.replace('_', ' ')}
+                </p>
+              </div>
+            </div>
+          </div>
+        </section>
       )}
 
       <div className="space-y-8">

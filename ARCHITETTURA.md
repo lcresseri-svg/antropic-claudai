@@ -1,6 +1,9 @@
 # Sunny — Come funziona tutto
 
-> Versione corrente: **1.8.11** · branch di lavoro: `claude/sunny-finance-mvp-HRtWy`
+> Versione corrente: **1.14.0** · branch di lavoro: `claude/sunny-consolidate-refactor-87ug0n`
+> Le sezioni sui motori (previsione, insight, ricorrenze) restano la
+> descrizione autorevole; struttura, Functions e sicurezza sono aggiornate al
+> refactor di consolidamento (vedi anche HANDOFF.md).
 
 ---
 
@@ -25,33 +28,53 @@
 /
 ├── sunny/                  ← app React
 │   ├── src/
-│   │   ├── App.tsx         ← routing, init Firebase, guard auth
-│   │   ├── types.ts        ← Transaction, CategoryDef, Account, ecc.
+│   │   ├── App.tsx         ← SOLO bootstrap: splash, guard auth, provider, layout
+│   │   ├── app/            ← shell applicativa
+│   │   │   ├── AppRoutes.tsx          ← routing (schermate lazy, gate feature)
+│   │   │   ├── AppHeader.tsx          ← header mobile
+│   │   │   ├── useTransactionEditing.ts ← stato modale/serie + handleSave
+│   │   │   ├── ErrorBoundary.tsx      ← nessuna schermata bianca
+│   │   │   └── SyncStatusBanner.tsx   ← stato offline/sincronizzazione
+│   │   ├── types.ts        ← Transaction, CategoryDef, AccountDef, ecc.
 │   │   ├── utils.ts        ← formatCurrency, formatDate, ecc.
-│   │   ├── lib/
-│   │   │   └── firebase.ts ← init app/auth/firestore/messaging
+│   │   ├── lib/firebase.ts ← init app/auth/firestore (+ App Check opzionale)
 │   │   ├── shared/
-│   │   │   ├── providers/
-│   │   │   │   └── settings.tsx   ← SettingsContext (categorie, conti, toggles)
-│   │   │   ├── hooks/
-│   │   │   │   ├── useTransactions.ts  ← listener Firestore realtime
-│   │   │   │   └── useBudget.ts        ← budget su Firestore
-│   │   │   ├── recurrence.ts      ← logica ricorrenze
-│   │   │   └── push.ts            ← registrazione token FCM
+│   │   │   ├── providers/settings.tsx ← SettingsContext (categorie, conti, toggles)
+│   │   │   ├── hooks/      ← useTransactions, useBudget, usePush, useAuth
+│   │   │   ├── featureFlags.ts        ← identità admin (SOLO data-access)
+│   │   │   ├── featureRollout.ts      ← flag centralizzati funzioni in anteprima
+│   │   │   ├── monthlyAggregates.ts   ← aggregati mensili derivati (predisposti)
+│   │   │   └── recurrence.ts          ← logica ricorrenze/serie
 │   │   └── features/
-│   │       ├── dashboard/         ← Home, AIDigestCard
-│   │       ├── transactions/      ← TransactionList, TransactionModal, TransactionRow
-│   │       ├── insights/          ← InsightsScreen, insightsEngine.ts ← motore insight
-│   │       ├── budget/            ← BudgetScreen, budgetUtils.ts ← motore previsioni
-│   │       ├── investments/       ← InvestmentsScreen
-│   │       └── settings/          ← SettingsScreen, EditDefSheet
-├── functions/
-│   └── src/index.ts        ← Cloud Functions: sendTestPush, generateDigest
+│   │       ├── dashboard/  ← DashboardV2 (unica Home), analytics, WealthHistory
+│   │       ├── transactions/ ← lista, modale, import, riconoscimento categoria
+│   │       ├── insights/   ← InsightsScreenV2 (unica), insightsEngine, ranking V2
+│   │       ├── budget/     ← BudgetScreenV2 (unica), budgetUtils, monthlyBudget,
+│   │       │                  monthlyPlanV2 (+ store/screen, admin)
+│   │       ├── forecast/   ← engine V2 (baseline) / V3 (ufficiale) / v4/ (admin),
+│   │       │                  service/ (ForecastService unificato + baseline backtest)
+│   │       ├── wealth/     ← Patrimonio V2, snapshot, liquidità disponibile,
+│   │       │                  impegni (tutti admin-only)
+│   │       ├── investments/ ← sheet operazioni investimento
+│   │       ├── aiCoach/    ← AI Coach + Decision Coach deterministico (admin)
+│   │       └── settings/   ← SettingsScreen, export, shortcut iOS
+├── functions/src/
+│   ├── index.ts            ← SOLO re-export (i nomi esportati = nomi deployati)
+│   ├── shared.ts           ← init Admin SDK, auth/CORS/push helper, App Check soft
+│   ├── recurring.ts        ← materializzazione ricorrenti
+│   ├── notifications.ts    ← promemoria schedulati + push di test + encouraging
+│   ├── ai.ts               ← generateDigest, generateAffordabilityAdvice (Gemini)
+│   ├── shortcuts.ts        ← API shortcut spese iOS (token dedicati)
+│   ├── metrics.ts          ← rollup metriche DAU/WAU/MAU
+│   ├── deletion.ts         ← onUserDeleted (pulizia completa)
+│   └── feedback.ts         ← onFeedbackCreated (notifica admin)
 ├── firestore.rules         ← regole sicurezza Firestore
+├── firestore-tests/        ← test Rules su emulatore
 ├── firebase.json           ← config hosting + functions
 └── .github/workflows/
-    ├── deploy-firebase.yml ← CI/CD hosting (solo push su main)
-    └── deploy-functions.yml← CI/CD functions (solo push su main)
+    ├── ci-tests.yml        ← PR: typecheck+test+build frontend, functions, Rules
+    ├── deploy-firebase.yml ← deploy hosting (solo push su main)
+    └── deploy-functions.yml← deploy functions (solo push su main)
 ```
 
 ---
@@ -63,13 +86,23 @@ Tutto è sotto `users/{uid}/` — ogni utente vede solo i propri dati.
 ```
 users/{uid}/
   transactions/{txId}      ← ogni transazione
-  meta/settings            ← un unico documento con categorie, conti, toggles
-  meta/budget              ← obiettivi, budget per categoria, entrate/investimenti pianificati
-  meta/push                ← token FCM per le notifiche push
-  meta/activity            ← metriche presenza: { lastActiveAt, activeDays[] } (DAU/WAU/MAU)
-  events/{autoId}          ← metriche comportamento: { name, ts } SOLO — mai dati finanziari
+  meta/settings            ← categorie, conti, toggles (rules con validazione)
+  meta/budget              ← obiettivi, budget per categoria (rules con validazione)
+  meta/push                ← token FCM + preferenze promemoria
+  meta/onboarding          ← stato onboarding
+  meta/activity            ← metriche presenza { lastActiveAt, activeDays[] }
+  meta/aiCoach             ← rate-limit AI (SOLO Admin SDK; client read-only)
+  budgetHistory/{YYYY-MM}  ← snapshot budget mensile (status/source)
+  monthlyPlans/{YYYY-MM}   ← Piano mensile V2 (admin, flag monthly_plan_v2)
+  wealthSnapshots/{YYYY-MM-DD} ← snapshot patrimoniali (admin, flag wealth_v2)
+  forecastSnapshots/{id}   ← audit backtest forecast (create-only, validati)
+  derived/encouraging      ← pool insight positivi per la push opzionale
+  derived/monthlyAggregates← aggregati mensili derivati (versionati, on-demand)
+  events/{autoId}          ← metriche comportamento { name, ts } SOLO
 
-metrics/{YYYY-MM-DD}       ← top-level: aggregato giornaliero, scritto da Cloud Function, letto solo admin
+feedback/{fid}             ← top-level: feedback utenti (create per tutti, read admin)
+metrics/{YYYY-MM-DD}       ← top-level: aggregato giornaliero (Admin SDK; read admin)
+expenseTokens/{sha256}     ← top-level: token shortcut iOS (SOLO Admin SDK)
 ```
 
 ### Metriche self-hosted (DAU/WAU/MAU + engagement)
@@ -207,16 +240,31 @@ Salvato su `users/{uid}/meta/budget` in Firestore:
 
 ---
 
-## Cloud Functions (`functions/src/index.ts`)
+## Cloud Functions (`functions/src/`)
 
-Entrambe le funzioni richiedono autenticazione Firebase (token Bearer verificato via Admin SDK):
+`index.ts` è solo un layer di re-export: i NOMI esportati sono i nomi
+deployati e non cambiano; regioni (`europe-west1`) e schedule vivono accanto a
+ogni funzione nel proprio modulo.
 
-| Function | Trigger | Cosa fa |
-|----------|---------|---------|
-| `sendTestPush` | HTTP POST autenticato | Invia una notifica push di test al token FCM dell'utente |
-| `generateDigest` | HTTP POST autenticato | Chiama Gemini con le transazioni del mese, restituisce 2-3 frasi di riepilogo AI |
+| Funzione | Modulo | Trigger/Schedule (Europe/Rome) |
+|----------|--------|--------------------------------|
+| `processRecurringTransactions` | recurring | `0 0 * * *` |
+| `sendTestPush` | notifications | HTTP POST autenticato |
+| `remindLogExpenses` | notifications | `0 13,21 * * *` |
+| `sendMonthlySummary` | notifications | `0 10 1 * *` |
+| `remindUpcomingPayments` | notifications | `0 18 * * *` |
+| `remindInactivity` | notifications | `0 21 * * *` |
+| `remindMonthEnd` | notifications | `0 19 28-31 * *` |
+| `sendEncouragingInsight` | notifications | `0 11 */2 * *` (opt-in) |
+| `generateDigest` / `generateAffordabilityAdvice` | ai | HTTP POST autenticato, rate-limit per utente, App Check soft |
+| `issueExpenseToken` / `listExpenseTokens` / `revokeExpenseToken` / `getExpenseOptions` / `addExpense` | shortcuts | HTTP (token dedicati) |
+| `rollupMetrics` / `testMetricsRollup` | metrics | `15 0 * * *` / HTTP admin |
+| `onUserDeleted` | deletion | Firestore trigger |
+| `onFeedbackCreated` | feedback | Firestore trigger |
 
-CORS ristretto a origini esplicite. Nessun dato sensibile nei log di produzione.
+CORS ristretto a origini esplicite. Nessun dato finanziario/PII nei log
+(`logError` logga solo code/message). Le funzioni AI verificano anche l'header
+App Check in modalità "soft": il rifiuto scatta solo con `APPCHECK_ENFORCE=true`.
 
 ---
 
@@ -238,14 +286,38 @@ push su main
 
 ### Firestore rules
 - Ogni documento sotto `users/{uid}/` è accessibile solo all'utente autenticato con quell'UID.
-- `create` e `update` validano che i campi obbligatori esistano e che `amount` sia positivo.
+- Transazioni: `create`/`update` validano tipi, enum, range, lunghezze (amount > 0, date ISO, seriesMeta ben formato).
+- `meta/*`: regole SPECIFICHE per settings/budget/push/onboarding/activity con
+  validazione leggera e compatibile coi dati legacy (es. `theme: 'system'`
+  resta valido); `meta/aiCoach` è read-only per il client; i doc meta non
+  ancora enumerati mantengono il fallback owner-only (hardening graduale).
+- `forecastSnapshots`: owner-only, create-only (audit trail), payload validato.
+- `wealthSnapshots`: owner-only, create+update idempotente (stesso giorno →
+  stesso doc), MAI delete; `monthlyPlans` e `derived/monthlyAggregates`
+  validati per shape/enum.
+- I test in `firestore-tests/rules.test.ts` coprono tutte queste regole.
+
+### Feature gating
+- `shared/featureFlags.ts`: SOLO identità admin per accesso a DATI riservati
+  (feedback, metrics). Mai per nascondere UI generalmente disponibile.
+- `shared/featureRollout.ts`: registro centrale dei flag delle funzioni in
+  anteprima (`wealth_v2`, `available_cash`, `forecast_unified`,
+  `monthly_plan_v2`, `commitments`, `decision_coach`, `insight_ranking_v2`)
+  con stadi deterministici admin → allowlist → percentuale (hash FNV-1a per
+  utente) → tutti. I flag client nascondono UI: l'autorizzazione sui dati
+  resta sempre lato server (Rules/Functions).
 
 ### Cloud Functions
 - Il `uid` viene estratto dal token Firebase verificato lato server — non si fida mai del body della richiesta.
-- CORS ristretto alle origini di produzione + localhost.
+- CORS ristretto alle origini di produzione + localhost; body cap 100 KB;
+  rate-limit atomici per utente sulle funzioni AI.
+- App Check: client inizializzato solo se `VITE_APPCHECK_SITE_KEY` è
+  configurata (rollout non bloccante); server in modalità log-only finché non
+  si imposta `APPCHECK_ENFORCE=true` sulle functions.
 
 ### Dati
 - Tutto in chiaro su Firestore (cifratura E2E valutata e rimossa per semplicità operativa — v1.8.8).
+- Nei log delle Functions mai importi, descrizioni, token o PII.
 
 ---
 

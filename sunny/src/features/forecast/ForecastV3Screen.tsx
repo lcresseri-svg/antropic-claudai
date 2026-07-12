@@ -19,6 +19,8 @@ import {
 } from './forecastDiagnostics';
 import { ForecastV4Panel } from './v4/ForecastV4Panel';
 import { BudgetHistoryEntryV4, BudgetMonthStatusV4 } from './v4/forecastTypesV4';
+import { UnifiedForecastPanel } from './service/UnifiedForecastPanel';
+import { isFeatureEnabled } from '../../shared/featureRollout';
 
 interface Props {
   transactions: Transaction[];
@@ -236,6 +238,20 @@ export function ForecastV3Screen({
           budgetHistory={budgetHistoryV4}
           currentMonthBudgetStatus={currentMonthBudgetStatus}
           v3ProjectedExpenses={v3.projectedExpenses}
+        />
+      )}
+
+      {/* Forecast unificato — admin only (flag forecast_unified): un contratto
+          di output su motori intercambiabili + backtest vs baseline naive. */}
+      {isFeatureEnabled('forecast_unified', { uid: userId }) && (
+        <UnifiedForecastPanel
+          transactions={transactions}
+          expenseCategories={expenseCategories}
+          monthlyIncome={monthlyIncome}
+          monthlyInvestments={monthlyInvestments}
+          categoryBudgets={budget?.categoryBudgets}
+          budgetHistory={budgetHistoryV4}
+          currentMonthBudgetStatus={currentMonthBudgetStatus}
         />
       )}
 
