@@ -196,6 +196,18 @@ describe('monthlyPlans', () => {
   });
 });
 
+describe('derived/monthlyAggregates', () => {
+  it('owner can write a versioned doc; malformed and non-owner denied', async () => {
+    const db = dbOf(A);
+    await assertSucceeds(setDoc(doc(db, `users/${A}/derived/monthlyAggregates`),
+      { version: 1, lastMonth: '2026-06', months: [], generatedAt: Date.now() }));
+    await assertFails(setDoc(doc(db, `users/${A}/derived/monthlyAggregates`),
+      { version: 'uno', months: [] }));
+    await assertFails(setDoc(doc(dbOf(B), `users/${A}/derived/monthlyAggregates`),
+      { version: 1, months: [] }));
+  });
+});
+
 describe('derived/encouraging', () => {
   it('owner can write a valid payload; other derived docs denied', async () => {
     const db = dbOf(A);

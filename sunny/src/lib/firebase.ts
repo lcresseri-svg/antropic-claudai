@@ -20,6 +20,28 @@ const firebaseConfig = {
 
 const app = initializeApp(firebaseConfig);
 
+// App Check (reCAPTCHA v3) — NON-BLOCKING rollout: initialized only when a
+// site key is configured, so environments without one (local dev included)
+// keep working untouched. Server enforcement is a separate, later switch
+// (functions: APPCHECK_ENFORCE). For local testing set
+// VITE_APPCHECK_DEBUG_TOKEN (see .env.example).
+const appCheckSiteKey = import.meta.env.VITE_APPCHECK_SITE_KEY as string | undefined;
+if (appCheckSiteKey) {
+  const debugToken = import.meta.env.VITE_APPCHECK_DEBUG_TOKEN as string | undefined;
+  if (debugToken) {
+    (self as unknown as { FIREBASE_APPCHECK_DEBUG_TOKEN?: string }).FIREBASE_APPCHECK_DEBUG_TOKEN = debugToken;
+  }
+  // Dynamic import: the App Check bundle loads only where the key exists.
+  import('firebase/app-check')
+    .then(({ initializeAppCheck, ReCaptchaV3Provider }) => {
+      initializeAppCheck(app, {
+        provider: new ReCaptchaV3Provider(appCheckSiteKey),
+        isTokenAutoRefreshEnabled: true,
+      });
+    })
+    .catch(() => { /* App Check unavailable: never block the app */ });
+}
+
 // Persistent IndexedDB cache: serves data instantly from local cache while
 // the network refresh runs in the background.
 // Single-tab manager avoids cross-tab locking issues that can prevent the

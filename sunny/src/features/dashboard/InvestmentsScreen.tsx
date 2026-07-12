@@ -206,7 +206,7 @@ export function InvestmentsScreen({ investmentByCategory, investmentTotal, month
             const catOps = expanded ? investTx.filter(t => t.category === p.cat.id) : [];
             return (
               <div key={p.cat.id} className={`glass-card rounded-2xl ${empty ? 'opacity-50' : ''}`}>
-                <button type="button" className="w-full text-left px-4 pt-3.5 pb-3"
+                <button type="button" className="w-full text-left px-4 pt-3.5"
                   onClick={() => setExpandedCat(e => e === p.cat.id ? null : p.cat.id)}>
                   {/* Row 1 — identity + value */}
                   <div className="flex items-center gap-3">
@@ -240,34 +240,34 @@ export function InvestmentsScreen({ investmentByCategory, investmentTotal, month
                   <div className="mt-3 h-[6px] rounded-full overflow-hidden" style={{ backgroundColor: 'rgba(255,255,255,0.05)' }}>
                     <div className="h-full rounded-full" style={{ width: `${Math.min(100, pctOf * 100)}%`, backgroundColor: p.cat.color }} />
                   </div>
-                  {/* Row 3 — operational */}
-                  <div className="mt-2.5 flex flex-wrap items-center gap-x-2 gap-y-1 text-[11px]">
-                    <span className="text-secondary balance-num">Versato {formatCurrency(p.versato)}</span>
-                    {pmPctCat != null && (
-                      <span className="font-semibold balance-num" style={{ color: pmPctCat >= 0 ? GREEN : RED }}>
-                        {pmPctCat >= 0 ? '+' : '−'}{Math.abs(pmPctCat).toFixed(1)}%
-                      </span>
-                    )}
-                    <span role="button" tabIndex={0}
-                      onClick={e => { e.stopPropagation(); setValueCat(p.cat); }}
-                      onKeyDown={e => { if (e.key === 'Enter') { e.stopPropagation(); setValueCat(p.cat); } }}
-                      className="flex items-center gap-1 font-medium cursor-pointer"
-                      style={{ color: (p.controvalore == null || p.stale) ? AMBER : 'rgb(var(--c-secondary))' }}>
-                      <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-                        <path d="M17 3a2.8 2.8 0 1 1 4 4L7.5 20.5 2 22l1.5-5.5z" />
-                      </svg>
-                      {p.controvalore == null ? 'imposta controvalore' : p.stale ? 'valore da aggiornare' : 'aggiorna valore'}
-                    </span>
-                    {p.versato > 0 && (
-                      <span role="button" tabIndex={0}
-                        onClick={e => { e.stopPropagation(); openWithdraw(p.cat.id); }}
-                        onKeyDown={e => { if (e.key === 'Enter') { e.stopPropagation(); openWithdraw(p.cat.id); } }}
-                        className="ml-auto text-secondary font-medium cursor-pointer active:text-primary">
-                        Disinvesti ↓
-                      </span>
-                    )}
-                  </div>
                 </button>
+                {/* Row 3 — operational. OUTSIDE the expand button so these can
+                    be real <button> elements (no nested buttons, no span
+                    role="button"). */}
+                <div className="px-4 pb-3 mt-2.5 flex flex-wrap items-center gap-x-2 gap-y-1 text-[11px]">
+                  <span className="text-secondary balance-num">Versato {formatCurrency(p.versato)}</span>
+                  {pmPctCat != null && (
+                    <span className="font-semibold balance-num" style={{ color: pmPctCat >= 0 ? GREEN : RED }}>
+                      {pmPctCat >= 0 ? '+' : '−'}{Math.abs(pmPctCat).toFixed(1)}%
+                    </span>
+                  )}
+                  <button type="button"
+                    onClick={() => setValueCat(p.cat)}
+                    className="flex items-center gap-1 font-medium min-h-[28px]"
+                    style={{ color: (p.controvalore == null || p.stale) ? AMBER : 'rgb(var(--c-secondary))' }}>
+                    <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                      <path d="M17 3a2.8 2.8 0 1 1 4 4L7.5 20.5 2 22l1.5-5.5z" />
+                    </svg>
+                    {p.controvalore == null ? 'imposta controvalore' : p.stale ? 'valore da aggiornare' : 'aggiorna valore'}
+                  </button>
+                  {p.versato > 0 && (
+                    <button type="button"
+                      onClick={() => openWithdraw(p.cat.id)}
+                      className="ml-auto text-secondary font-medium active:text-primary min-h-[28px]">
+                      Disinvesti ↓
+                    </button>
+                  )}
+                </div>
                 {/* Detail: operations of this category */}
                 {expanded && catOps.length > 0 && (
                   <div className="border-t border-white/[0.05] px-4 pb-3 divide-y divide-divider">

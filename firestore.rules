@@ -217,6 +217,17 @@ service cloud.firestore {
           && request.resource.data.items.size() <= 50;
       }
 
+      // Derived monthly aggregates (versioned, regenerable, on-demand — the
+      // original transactions stay the source of truth). Owner-only; deletes
+      // denied like the other derived data.
+      match /derived/monthlyAggregates {
+        allow read: if owner(userId);
+        allow create, update: if owner(userId)
+          && request.resource.data.version is int
+          && request.resource.data.months is list
+          && request.resource.data.months.size() <= 600;
+      }
+
       // Behavioural metric events (name+ts only — never financial data). The
       // owner can create allow-listed events and read their own; update/delete
       // are denied to clients (retention/purge runs via the Admin SDK).

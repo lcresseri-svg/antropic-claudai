@@ -1,4 +1,4 @@
-export const APP_VERSION = '1.13.0';
+export const APP_VERSION = '1.14.0';
 
 /**
  * Release channel. While in 'beta' the app is still under active development
@@ -19,6 +19,15 @@ export interface VersionEntry {
 
 /** Registro versioni mostrato in Impostazioni → Registro versioni. */
 export const VERSIONS: VersionEntry[] = [
+  {
+    version: '1.14.0', date: '2026-07-12', title: 'App più solida e veloce',
+    changes: [
+      'L\'app si apre più in fretta: le schermate si caricano solo quando servono.',
+      'Se sei offline te lo diciamo chiaramente: i dati vengono dalla copia locale e si sincronizzano al ritorno della connessione.',
+      'In caso di errore imprevisto niente più schermata bianca: puoi riprovare o ricaricare senza perdere nulla.',
+      'Migliorie di accessibilità: pulsanti reali e meno animazioni se il sistema lo richiede.',
+    ],
+  },
   {
     version: '1.13.0', date: '2026-06-17', title: 'Aggiungi spese da iPhone',
     highlight: true, // ← accende il popup "Novità" per tutti gli utenti
