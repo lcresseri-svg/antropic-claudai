@@ -84,6 +84,19 @@ describe('transaction validation', () => {
     await assertFails(setDoc(doc(db, `users/${A}/transactions/b6`), validTxn({ recurring: { freq: 'fortnightly' } })));
     await assertFails(setDoc(doc(db, `users/${A}/transactions/b7`), validTxn({ shared: 999 })));
   });
+  it('accepts valueDelta/valueEffect (controvalore sync), rejects malformed', async () => {
+    const db = dbOf(A);
+    await assertSucceeds(setDoc(doc(db, `users/${A}/transactions/v1`),
+      validTxn({ type: 'investment', direction: 'out', valueDelta: -500,
+        valueEffect: { category: 'etf', delta: -500, appliedAt: Date.now() } })));
+    await assertFails(setDoc(doc(db, `users/${A}/transactions/v2`),
+      validTxn({ valueDelta: 'tanto' })));
+    await assertFails(setDoc(doc(db, `users/${A}/transactions/v3`),
+      validTxn({ valueEffect: { category: 'etf', delta: 'boh', appliedAt: 1 } })));
+    await assertFails(setDoc(doc(db, `users/${A}/transactions/v4`),
+      validTxn({ valueEffect: { category: 'etf', delta: 10, appliedAt: 1, extra: true } })));
+  });
+
   it('accepts valid seriesMeta (subscription / installment), rejects malformed', async () => {
     const db = dbOf(A);
     await assertSucceeds(setDoc(doc(db, `users/${A}/transactions/s1`),

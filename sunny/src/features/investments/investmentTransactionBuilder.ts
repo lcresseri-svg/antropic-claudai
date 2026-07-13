@@ -66,23 +66,6 @@ export function buildInvestmentDeposit(input: DepositInput): Omit<Transaction, '
   return txs;
 }
 
-/**
- * Net invested VALUE per category for a set of (already expanded) transactions:
- * +amount for a deposit (direction !== 'out'), −amount for a withdrawal. Only
- * `type === 'investment'` rows count — a linked commission is an expense and must
- * not change the position's value. Used to bump the manually entered market value
- * (controvalore) when the user adds to a position, so it tracks the fresh capital.
- */
-export function investmentValueDeltas(txs: Omit<Transaction, 'id'>[]): Record<string, number> {
-  const out: Record<string, number> = {};
-  for (const t of txs) {
-    if (t.type !== 'investment') continue;
-    const sign = t.direction === 'out' ? -1 : 1;
-    out[t.category] = r2((out[t.category] ?? 0) + sign * t.amount);
-  }
-  return out;
-}
-
 // ── Withdrawal (Disinvesti) ────────────────────────────────────────────────────
 
 export interface WithdrawalInput {
@@ -146,6 +129,10 @@ export function buildInvestmentWithdrawal(input: WithdrawalInput): WithdrawalRes
     amount: capitaleRimborsato, date: input.date,
     category: input.category, account: input.toAccount,
     notes, groupId,
+    // The 'out' leg carries capitaleRimborsato (versato/account math), but the
+    // POSITION VALUE drops by the full cash withdrawn: the explicit valueDelta
+    // lets the controvalore sync reproduce newCurrentValue exactly.
+    valueDelta: r2(-amount),
   }];
   if (plusMinus > 0) {
     transactions.push({

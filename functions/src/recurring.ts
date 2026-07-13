@@ -1,6 +1,49 @@
 import { onSchedule } from 'firebase-functions/v2/scheduler';
 import { db, sendToUser, addPeriod, Freq } from './shared';
 
+const r2 = (n: number) => Math.round(n * 100) / 100;
+
+interface CategoryLike {
+  id?: string;
+  kind?: string;
+  currentValue?: number;
+  lastValueUpdate?: string;
+  [k: string]: unknown;
+}
+
+/**
+ * Controvalore sync for CF-materialized instances — mirrors the client's
+ * investmentValueCore semantics:
+ *   versamento (direction ≠ 'out') → currentValue += amount
+ *   prelievo   (direction 'out')   → currentValue −= amount (mai < 0, clamp
+ *                                    sequenziale dentro la stessa run)
+ * Missing currentValue starts from 0; a fully-clamped no-op never materializes
+ * an explicit value; initialBalance/tfrAmount are untouched. Returns the delta
+ * ACTUALLY applied — stamped on the instance as `valueEffect` so the client
+ * treats it as managed (exact revert on edit/delete, never re-applied).
+ */
+function applyInstanceValueDelta(
+  categories: CategoryLike[],
+  instance: Record<string, unknown>,
+  todayISO: string,
+): { delta: number; changed: boolean } {
+  if (instance.type !== 'investment') return { delta: 0, changed: false };
+  const amount = Number(instance.amount);
+  const categoryId = instance.category as string | undefined;
+  if (!categoryId || !Number.isFinite(amount) || amount <= 0) return { delta: 0, changed: false };
+  const requested = instance.direction === 'out' ? -amount : amount;
+
+  const cat = categories.find(c => c.id === categoryId);
+  if (!cat || cat.kind !== 'investment') return { delta: 0, changed: false };
+  const before = typeof cat.currentValue === 'number' ? cat.currentValue : 0;
+  const after = r2(Math.max(0, before + requested));
+  const applied = r2(after - before);
+  if (applied === 0) return { delta: 0, changed: false };
+  cat.currentValue = after;
+  cat.lastValueUpdate = todayISO;
+  return { delta: applied, changed: true };
+}
+
 // ─────────────────────────────────────────────────────────────────────────────
 // RECURRING TRANSACTIONS
 //
@@ -49,38 +92,63 @@ export const processRecurringTransactions = onSchedule(
         // Backfill from the template's own doc id for legacy templates.
         const seriesId = (tx.seriesId as string | undefined) ?? doc.id;
 
-        // Instance copy: drop the recurring rule and the stored id; keep seriesId
-        // AND groupId. A SHARED series repeats whole — the storno transfer is its
-        // own template advancing in lockstep — so month N's expense and storno
-        // instances share groupId + date. The client only groups SAME-DATE
-        // siblings at edit time, so months can't cross-contaminate.
-        const { recurring: _r, id: _id, ...instanceData } = tx;
-        const batch = db.batch();
+        // Instance copy: drop the recurring rule, the stored id and any stray
+        // valueEffect stamp (a template is a pointer, never a managed flow);
+        // keep seriesId AND groupId. A SHARED series repeats whole — the storno
+        // transfer is its own template advancing in lockstep — so month N's
+        // expense and storno instances share groupId + date. The client only
+        // groups SAME-DATE siblings at edit time, so months can't cross-contaminate.
+        const { recurring: _r, id: _id, valueEffect: _ve, ...instanceData } = tx;
+        const isInvestment = tx.type === 'investment';
+        const settingsRef = db.doc(`users/${userId}/meta/settings`);
 
-        // CATCH-UP: materialize EVERY missed occurrence (date <= today) in one run,
-        // not just the next one, so a template that fell behind (or whose `until`
-        // already passed) still produces all its due instances. Guard caps runaway.
-        let date = tx.date as string;
-        let guard = 400;
-        let advanced = false;
-        while (date <= today && (!recurring.until || date <= recurring.until) && guard-- > 0) {
-          const newRef = txsRef.doc();
-          // Override date: each catch-up instance lands on its own occurrence date,
-          // not the template's original (first) date carried in instanceData.
-          batch.set(newRef, { ...instanceData, id: newRef.id, seriesId, date });
-          date = addPeriod(date, recurring.freq);
-          advanced = true;
-          created++;
-          createdByUser[userId] = (createdByUser[userId] ?? 0) + 1;
-        }
+        // CATCH-UP inside ONE Firestore transaction: instances, template advance
+        // and (for investment series) the controvalore update commit together —
+        // atomic and idempotent (a re-run sees the already-advanced template and
+        // creates nothing). Guard 400 keeps writes well under the 500 limit.
+        const createdHere = await db.runTransaction(async (trx) => {
+          const settingsSnap = isInvestment ? await trx.get(settingsRef) : null;
+          const categories: CategoryLike[] =
+            ((settingsSnap?.data()?.categories as CategoryLike[] | undefined) ?? [])
+              .map(c => ({ ...c }));
 
-        if (advanced) {
-          // Always advance the template to its next date — even past `until`, in
-          // which case it becomes an EXPIRED template (kept in Firestore, hidden
-          // from the client's lists/totals, still resolvable as a series).
-          // NON-DESTRUCTIVE: we never delete templates here.
-          batch.update(doc.ref, { date, seriesId });
-          await batch.commit();
+          let date = tx.date as string;
+          let guard = 400;
+          let count = 0;
+          let valuesChanged = false;
+          const now = Date.now();
+          while (date <= today && (!recurring.until || date <= recurring.until) && guard-- > 0) {
+            const newRef = txsRef.doc();
+            // Override date: each catch-up instance lands on its own occurrence
+            // date, not the template's original (first) date in instanceData.
+            const instance: Record<string, unknown> = { ...instanceData, id: newRef.id, seriesId, date };
+            if (isInvestment && settingsSnap?.exists) {
+              // Sequentially-clamped controvalore effect, stamped on the
+              // instance so the client treats it as managed (exact revert on
+              // edit/delete, never applied twice).
+              const { delta, changed } = applyInstanceValueDelta(categories, instance, today);
+              if (changed) valuesChanged = true;
+              instance.valueEffect = { category: instance.category, delta, appliedAt: now };
+            }
+            trx.set(newRef, instance);
+            date = addPeriod(date, recurring.freq);
+            count++;
+          }
+
+          if (count > 0) {
+            // Always advance the template to its next date — even past `until`,
+            // in which case it becomes an EXPIRED template (kept in Firestore,
+            // hidden from lists/totals, still resolvable as a series).
+            // NON-DESTRUCTIVE: we never delete templates here.
+            trx.update(doc.ref, { date, seriesId });
+            if (valuesChanged) trx.update(settingsRef, { categories });
+          }
+          return count;
+        });
+
+        created += createdHere;
+        if (createdHere > 0) {
+          createdByUser[userId] = (createdByUser[userId] ?? 0) + createdHere;
         }
         // An orphan template already past `until` is left in place (expired/hidden);
         // it is intentionally NOT deleted.
