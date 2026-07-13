@@ -287,7 +287,10 @@ function Main({ user, onLogOut, onDeleteAccount }: {
         }}
         onViewMovements={sid => { editing.closeSeriesDetail(); navigate(`/transactions?series=${sid}`); }}
       />
-      <ImportModal open={importOpen} onClose={() => setImportOpen(false)} onImport={tx.addTransactions} />
+      {/* Import CSV: gli investimenti importati restano UNMANAGED (nessun effetto
+          sul controvalore) — lo storico importato è già riconciliato a mano. */}
+      <ImportModal open={importOpen} onClose={() => setImportOpen(false)}
+        onImport={txs => tx.addTransactions(txs, { syncInvestments: false })} />
       <PushPromoSheet
         open={showPushPromo}
         onClose={dismissPushPromo}

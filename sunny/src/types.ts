@@ -94,6 +94,23 @@ export interface Transaction {
   projected?: boolean;   // CLIENT-ONLY: a virtual future occurrence — NEVER persisted to Firestore
   demo?: boolean;        // written by onboarding demo data; removable from Settings
   createdAt?: number;    // ms epoch — when this document was created; used to break same-date sort ties
+  /** Investments only: explicit market-value delta this movement applies to the
+   *  category's currentValue, when it differs from ±amount (e.g. a withdrawal's
+   *  'out' leg carries capitaleRimborsato but must drop the value by the full
+   *  cash out). Default: investSign(t) * amount. */
+  valueDelta?: number;
+  /** Bookkeeping stamp: the currentValue change ACTUALLY applied (post-clamp)
+   *  for this document. Present = managed; absent = legacy/unmanaged (its
+   *  edits/deletes never touch currentValue). Written atomically with the
+   *  settings update — never by hand. */
+  valueEffect?: AppliedValueEffect;
+}
+
+/** The currentValue change actually applied by a managed investment document. */
+export interface AppliedValueEffect {
+  category: string;   // CategoryDef.id the delta was applied to
+  delta: number;      // signed, post-clamp (never drives currentValue below 0)
+  appliedAt: number;  // ms epoch
 }
 
 export interface RecurrenceRule {

@@ -1,26 +1,16 @@
 import { useState, useEffect, useCallback, useMemo } from 'react';
-import {
-  collection, query, orderBy, onSnapshot,
-  addDoc, deleteDoc, doc, setDoc, updateDoc, writeBatch,
-} from 'firebase/firestore';
+import { collection, query, orderBy, onSnapshot, doc, updateDoc } from 'firebase/firestore';
 import { User } from 'firebase/auth';
 import { AccountDef, CategoryDef, Transaction, TransactionPatch, ownShare, investSign } from '../../types';
 import { isPending, isExpiredTemplate } from '../recurrence';
 import { db } from '../../lib/firebase';
-
-// Recursively drop `undefined` values — Firestore rejects writes that contain
-// `undefined` anywhere, including nested objects (e.g. recurring.until).
-function stripUndefined<T>(obj: T): T {
-  if (Array.isArray(obj)) return obj.map(v => stripUndefined(v)) as T;
-  if (obj && typeof obj === 'object') {
-    return Object.fromEntries(
-      Object.entries(obj as Record<string, unknown>)
-        .filter(([, v]) => v !== undefined)
-        .map(([k, v]) => [k, stripUndefined(v)]),
-    ) as T;
-  }
-  return obj;
-}
+// Every write goes through the controvalore-sync layer: investment movements
+// atomically update the category's currentValue (stamped + idempotent), all
+// other movements fall through to plain batched writes.
+import {
+  createTransactionsSynced, replaceTransactionSynced, replaceGroupSynced,
+  deleteTransactionsSynced, patchTransactionsSynced,
+} from '../../features/investments/investmentValueSync';
 
 export function useTransactions(user: User | null, accounts: AccountDef[] = [], includeInvestments = true, categories: CategoryDef[] = [], enableInvestments = true) {
   const [rawTransactions, setRawTransactions] = useState<Transaction[]>([]);
@@ -73,8 +63,6 @@ export function useTransactions(user: User | null, accounts: AccountDef[] = [], 
   // all documents). The listener only needs to restart when the actual user changes.
   }, [user?.uid]);
 
-  const colRef = useCallback(() => collection(db, 'users', user!.uid, 'transactions'), [user]);
-
   // Stamp every newly created document with its creation time — used to break
   // same-date sort ties deterministically (most-recently-added first).
   const withCreatedAt = (tx: Omit<Transaction, 'id'>): Omit<Transaction, 'id'> =>
@@ -82,47 +70,42 @@ export function useTransactions(user: User | null, accounts: AccountDef[] = [], 
 
   const addTransaction = useCallback((tx: Omit<Transaction, 'id'>) => {
     if (!user) return;
-    addDoc(colRef(), stripUndefined(withCreatedAt(tx)));
-  }, [user, colRef]);
+    createTransactionsSynced(user.uid, [withCreatedAt(tx)]);
+  }, [user]);
 
-  const addTransactions = useCallback(async (txs: Omit<Transaction, 'id'>[]) => {
+  /** Bulk create. `syncInvestments: false` (CSV import) keeps investments
+   *  UNMANAGED like legacy data: importing history must never bump the
+   *  controvalore the user already reconciled by hand. */
+  const addTransactions = useCallback(async (
+    txs: Omit<Transaction, 'id'>[],
+    opts?: { syncInvestments?: boolean },
+  ) => {
     if (!user) return;
-    // Firestore allows max 500 writes per batch — chunk to stay under the limit.
-    for (let i = 0; i < txs.length; i += 450) {
-      const batch = writeBatch(db);
-      txs.slice(i, i + 450).forEach(tx => batch.set(doc(colRef()), stripUndefined(withCreatedAt(tx))));
-      await batch.commit();
-    }
-  }, [user, colRef]);
+    await createTransactionsSynced(user.uid, txs.map(withCreatedAt), opts);
+  }, [user]);
 
   const replaceGroup = useCallback((deleteIds: string[], create: Omit<Transaction, 'id'>[]) => {
     if (!user) return;
-    const batch = writeBatch(db);
-    deleteIds.forEach(id => batch.delete(doc(db, 'users', user.uid, 'transactions', id)));
-    create.forEach(tx => batch.set(doc(colRef()), stripUndefined(withCreatedAt(tx))));
-    batch.commit();
-  }, [user, colRef]);
+    replaceGroupSynced(user.uid, deleteIds, create.map(withCreatedAt));
+  }, [user]);
 
-  // Edit a SINGLE document in place: overwrite the SAME doc id (setDoc, no merge)
-  // instead of delete+recreate, so an already-inserted transaction is never
-  // removed by an edit — only its contents change (and its id/createdAt survive).
-  // Used for plain edits and series-template edits; group restructures (split /
-  // commission) still go through replaceGroup.
+  // Edit a SINGLE document in place: overwrite the SAME doc id (no delete), so
+  // an already-inserted transaction is never removed by an edit — only its
+  // contents change (and its id/createdAt survive). Investment edits revert the
+  // previously applied controvalore delta and apply the new one atomically.
   const replaceInPlace = useCallback((id: string, data: Omit<Transaction, 'id'>) => {
     if (!user) return;
-    setDoc(doc(db, 'users', user.uid, 'transactions', id), stripUndefined(data));
+    replaceTransactionSynced(user.uid, id, data);
   }, [user]);
 
   // Materialize overdue recurring occurrences: create the realized instances and
   // advance their templates to the next date. NON-DESTRUCTIVE — never deletes
   // (an ended series' template is just advanced past `until` → expired/hidden).
   //
-  // INDEPENDENT writes (not one atomic batch): a single un-chunked batch is
-  // all-or-nothing AND silently swallows errors, so ONE malformed template
-  // (e.g. a legacy doc the hardened rules reject) or a >500-write backlog would
-  // block materialization for EVERY series — leaving all recurring stuck as
-  // "previsto" with no "fatto". Here each occurrence is written on its own, so a
-  // bad row only loses itself. Creates run (and settle) FIRST: templates are only
+  // INDEPENDENT writes (not one all-or-nothing batch): ONE malformed template
+  // must not block materialization for EVERY series. Each occurrence is written
+  // on its own (with its controvalore effect applied atomically), so a bad row
+  // only loses itself. Creates run (and settle) FIRST: templates are only
   // advanced afterwards, so if a create fails the next catch-up retries it
   // (catchUpRecurring dedups already-materialized occurrences → no duplicates).
   const materializeRecurring = useCallback(async (
@@ -135,50 +118,37 @@ export function useTransactions(user: User | null, accounts: AccountDef[] = [], 
 
     // 1) Realized instances — each independent so one bad row can't block others.
     await Promise.allSettled(
-      creates.map(tx => addDoc(colRef(), stripUndefined(withCreatedAt(tx))).catch(log('create'))),
+      creates.map(tx => createTransactionsSynced(user.uid, [withCreatedAt(tx)]).catch(log('create'))),
     );
-    // 2) Advance the templates (after the instances exist). No deletions.
+    // 2) Advance the templates (after the instances exist). No deletions. A
+    //    template is a pointer, not a flow: advancing it never touches values,
+    //    so the plain (offline-safe) update stays.
     await Promise.allSettled(
       advance.map(a =>
         updateDoc(doc(db, 'users', user.uid, 'transactions', a.id), { date: a.date, seriesId: a.seriesId }).catch(log('advance'))),
     );
-  }, [user, colRef]);
-
-  const updateTransaction = useCallback((id: string, patch: Partial<Omit<Transaction, 'id'>>) => {
-    if (!user) return;
-    updateDoc(doc(db, 'users', user.uid, 'transactions', id), stripUndefined(patch));
   }, [user]);
 
   const updateTransactions = useCallback((ids: string[], patch: TransactionPatch) => {
     if (!user) return;
-    const batch = writeBatch(db);
-    const clean = stripUndefined(patch);
-    ids.forEach(id => batch.update(doc(db, 'users', user.uid, 'transactions', id), clean));
-    batch.commit();
+    patchTransactionsSynced(user.uid, ids, patch);
   }, [user]);
 
   const deleteTransaction = useCallback((id: string) => {
     if (!user) return;
-    deleteDoc(doc(db, 'users', user.uid, 'transactions', id));
+    deleteTransactionsSynced(user.uid, [id]);
   }, [user]);
 
   const deleteTransactions = useCallback((ids: string[]) => {
     if (!user) return;
-    const batch = writeBatch(db);
-    ids.forEach(id => batch.delete(doc(db, 'users', user.uid, 'transactions', id)));
-    batch.commit();
+    deleteTransactionsSynced(user.uid, ids);
   }, [user]);
 
   const deleteAll = useCallback(async () => {
     if (!user) return;
     // Use the RAW set so a manual "delete everything" also clears expired
     // templates (which are hidden from `transactions`).
-    const ids = rawTransactions.map(t => t.id);
-    for (let i = 0; i < ids.length; i += 450) {
-      const batch = writeBatch(db);
-      ids.slice(i, i + 450).forEach(id => batch.delete(doc(db, 'users', user.uid, 'transactions', id)));
-      await batch.commit();
-    }
+    await deleteTransactionsSynced(user.uid, rawTransactions.map(t => t.id));
   }, [user, rawTransactions]);
 
   // ── Derived ────────────────────────────────────────────────────────────────
@@ -285,7 +255,7 @@ export function useTransactions(user: User | null, accounts: AccountDef[] = [], 
   return {
     transactions, allTransactions: rawTransactions, loading, synced, error,
     addTransaction, addTransactions, replaceGroup, replaceInPlace, materializeRecurring,
-    updateTransaction, updateTransactions,
+    updateTransactions,
     deleteTransaction, deleteTransactions, deleteAll,
     ...derived,
   };

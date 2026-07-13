@@ -42,6 +42,18 @@ service cloud.firestore {
         && (!('seriesId' in d) || vStr(d.seriesId, 128))
         && (!('groupId' in d) || vStr(d.groupId, 128))
         && (!('demo' in d) || d.demo is bool)
+        // Controvalore sync (investments): optional explicit value delta and
+        // the bookkeeping stamp of the delta actually applied. Bounded numbers
+        // only — the same anti-DoS cap used for amount.
+        && (!('valueDelta' in d) || (d.valueDelta is number && d.valueDelta >= -1000000000 && d.valueDelta <= 1000000000))
+        && (!('valueEffect' in d) || (
+              d.valueEffect is map
+              && d.valueEffect.keys().hasOnly(['category', 'delta', 'appliedAt'])
+              && vStr(d.valueEffect.category, 200)
+              && d.valueEffect.delta is number
+              && d.valueEffect.delta >= -1000000000 && d.valueEffect.delta <= 1000000000
+              && d.valueEffect.appliedAt is number
+           ))
         && (!('recurring' in d) || (
               d.recurring is map
               && d.recurring.freq in ['daily', 'weekly', 'monthly', 'yearly']
