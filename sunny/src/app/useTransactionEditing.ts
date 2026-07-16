@@ -93,7 +93,10 @@ export function useTransactionEditing(user: User, tx: Tx) {
         (!editing.seriesId || t.date === editing.date))
     : [];
 
-  const handleSave = (deleteIds: string[], create: Omit<Transaction, 'id'>[]) => {
+  // Returns a Promise that settles with the underlying writes: the modal AWAITS
+  // it for investment movements (atomic-or-nothing, Retry on failure) and stays
+  // fire-and-forget for plain offline-safe movements.
+  const handleSave = async (deleteIds: string[], create: Omit<Transaction, 'id'>[]): Promise<void> => {
     const todayISO = new Date().toISOString().slice(0, 10);
     // Simple single-document edit → update IN PLACE (same id, no delete), so an
     // already-inserted transaction is never removed by the code. Group restructures
@@ -105,28 +108,28 @@ export function useTransactionEditing(user: User, tx: Tx) {
       // recurring badge). User-initiated, so the future-delete is intended here.
       if (seriesEdit && editing.recurring && !create[0].recurring) {
         const sid = editing.seriesId ?? editing.id;
-        tx.replaceInPlace(editing.id, {
+        await tx.replaceInPlace(editing.id, {
           ...create[0], recurring: undefined, seriesId: undefined,
           createdAt: editing.createdAt ?? Date.now(),
         });
         const { unlink, remove } = dissolveSeries(tx.allTransactions, { id: editing.id, seriesId: sid }, todayISO);
-        for (const u of unlink) tx.replaceInPlace(u.id, u.data);
-        if (remove.length) tx.deleteTransactions(remove);
+        for (const u of unlink) await tx.replaceInPlace(u.id, u.data);
+        if (remove.length) await tx.deleteTransactions(remove);
         return;
       }
       const payload = { ...create[0], createdAt: editing.createdAt ?? Date.now() };
-      tx.replaceInPlace(editing.id, payload);
+      await tx.replaceInPlace(editing.id, payload);
       // Editing the whole SERIES propagates the change to every already-recorded
       // ("contabilizzata") occurrence too — not just the template + future
       // projections. Each occurrence keeps its OWN date/id/link; only the content
       // changes. In place (setDoc, same id), so nothing is ever deleted.
       if (seriesEdit) {
         for (const u of seriesInstanceUpdates(tx.allTransactions, editing, payload)) {
-          tx.replaceInPlace(u.id, u.data);
+          await tx.replaceInPlace(u.id, u.data);
         }
       }
     } else {
-      tx.replaceGroup(deleteIds, create);
+      await tx.replaceGroup(deleteIds, create);
     }
     // metrics: count brand-new adds only.
     if (!editing) logEvent(user.uid, 'tx_add');

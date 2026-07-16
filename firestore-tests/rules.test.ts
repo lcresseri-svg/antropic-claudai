@@ -97,6 +97,36 @@ describe('transaction validation', () => {
       validTxn({ valueEffect: { category: 'etf', delta: 10, appliedAt: 1, extra: true } })));
   });
 
+  it('accepts statsSpreadMonths 2–120 (int) and valuePending bool, rejects malformed', async () => {
+    const db = dbOf(A);
+    await assertSucceeds(setDoc(doc(db, `users/${A}/transactions/sp1`),
+      validTxn({ type: 'investment', direction: 'in', statsSpreadMonths: 12 })));
+    await assertSucceeds(setDoc(doc(db, `users/${A}/transactions/sp2`),
+      validTxn({ type: 'investment', direction: 'in', statsSpreadMonths: 2 })));
+    await assertSucceeds(setDoc(doc(db, `users/${A}/transactions/sp3`),
+      validTxn({ type: 'investment', direction: 'in', statsSpreadMonths: 120 })));
+    await assertFails(setDoc(doc(db, `users/${A}/transactions/spb1`),
+      validTxn({ statsSpreadMonths: 1 })));
+    await assertFails(setDoc(doc(db, `users/${A}/transactions/spb2`),
+      validTxn({ statsSpreadMonths: 121 })));
+    await assertFails(setDoc(doc(db, `users/${A}/transactions/spb3`),
+      validTxn({ statsSpreadMonths: 6.5 })));
+    await assertFails(setDoc(doc(db, `users/${A}/transactions/spb4`),
+      validTxn({ statsSpreadMonths: 'dodici' })));
+    // valuePending: boolean marker of a deferred (future-dated) investment effect.
+    await assertSucceeds(setDoc(doc(db, `users/${A}/transactions/vp1`),
+      validTxn({ type: 'investment', direction: 'in', date: '2027-01-01', valuePending: true })));
+    await assertFails(setDoc(doc(db, `users/${A}/transactions/vpb1`),
+      validTxn({ valuePending: 'yes' })));
+  });
+
+  it('legacy docs stay valid: no new field is required', async () => {
+    // Pre-feature documents carry none of statsSpreadMonths / valuePending /
+    // valueEffect / tfr — they must keep writing (edits) without any migration.
+    await assertSucceeds(setDoc(doc(dbOf(A), `users/${A}/transactions/legacy1`),
+      validTxn({ type: 'investment', direction: 'in' })));
+  });
+
   it('accepts valid seriesMeta (subscription / installment), rejects malformed', async () => {
     const db = dbOf(A);
     await assertSucceeds(setDoc(doc(db, `users/${A}/transactions/s1`),

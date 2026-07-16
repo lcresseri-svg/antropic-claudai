@@ -6,18 +6,19 @@
 // account's OPENING balance (initial balance + the net of every movement dated
 // before the period) and then moves movement-by-movement.
 //
-// The sign of a movement on a single account's cash balance mirrors the
-// canonical math in useTransactions.ts (the app-wide source of truth):
+// The sign of a movement on a single account's cash balance is delegated to
+// shared/financialFlow.accountDelta (the app-wide source of truth, shared with
+// useTransactions.ts):
 //   income      on account        → +amount
 //   expense     on account        → −ownShare
-//   investment  on account        → −investSign(t)·amount   (deposit out / withdrawal in)
+//   investment  deposit           → −(amount − TFR)   (the TFR share never
+//                                    touches the account; source-less = 0)
+//   investment  withdrawal ('out') → +amount           (credits the destination)
 //   transfer    out (account)      → −amount
 //   transfer    in  (toAccount)    → +amount
-// Investments are direction-aware: a deposit debits the source account, a
-// withdrawal CREDITS the destination — so the spec's "investimenti sempre −" is
-// the deposit case; withdrawals correctly add liquidity back.
 
-import { Transaction, AccountDef, ownShare, investSign } from '../../types';
+import { Transaction, AccountDef, ownShare } from '../../types';
+import { accountDelta } from '../../shared/financialFlow';
 import {
   PeriodType, PeriodRange, getPeriodRange, localISO,
 } from './categoryAnalytics';
@@ -33,22 +34,12 @@ const counts = (t: Transaction) => !t.projected;
 
 /**
  * Signed impact of a single transaction on ONE account's cash balance.
- * Single source of truth shared by the curve and the period quadratura.
- * Date/projected filtering is the caller's responsibility.
+ * Thin re-export of the app-wide helper so the curve, the period quadratura and
+ * useTransactions can never disagree. Date/projected filtering is the caller's
+ * responsibility.
  */
 export function signedDelta(t: Transaction, accountId: string): number {
-  switch (t.type) {
-    case 'income':     return t.account === accountId ? t.amount : 0;
-    case 'expense':    return t.account === accountId ? -ownShare(t) : 0;
-    case 'investment': return t.account === accountId ? -investSign(t) * t.amount : 0;
-    case 'transfer': {
-      let d = 0;
-      if (t.account === accountId) d -= t.amount;       // outgoing leg
-      if (t.toAccount === accountId) d += t.amount;     // incoming leg
-      return d;
-    }
-    default: return 0;
-  }
+  return accountDelta(t, accountId);
 }
 
 /**
@@ -102,7 +93,11 @@ export function aggregateAccountFlow(
     if (t.date > endISO) continue; // future / beyond the period
     if (t.type === 'income' && t.account === account.id) income += t.amount;
     else if (t.type === 'expense' && t.account === account.id) expense += ownShare(t);
-    else if (t.type === 'investment' && t.account === account.id) investment += investSign(t) * t.amount;
+    else if (t.type === 'investment' && t.account === account.id) {
+      // Only the cash that really moved through THIS account: non-TFR share of
+      // deposits out, returned capital of withdrawals back in.
+      investment += -signedDelta(t, account.id);
+    }
     else if (t.type === 'transfer') {
       if (t.toAccount === account.id) transferIn += t.amount;
       if (t.account === account.id) transferOut += t.amount;
@@ -168,7 +163,9 @@ export function aggregateAccountBalanceTrend(
   return buckets.map(b => ({ label: b.label, balance: balanceAsOf(transactions, account, b.end) }));
 }
 
-/** Recent movements touching the account within the period, newest first. */
+/** Recent movements that REALLY move this account's balance within the period,
+ *  newest first. A source-less deposit or a fully-TFR contribution has zero
+ *  cash impact on any account, so it never appears here. */
 export function getAccountMovements(
   transactions: Transaction[],
   account: AccountDef,
@@ -182,7 +179,8 @@ export function getAccountMovements(
   return transactions
     .filter(t =>
       counts(t) && t.date >= startISO && t.date <= endISO &&
-      (t.account === account.id || t.toAccount === account.id),
+      (t.account === account.id || t.toAccount === account.id) &&
+      Math.abs(signedDelta(t, account.id)) > 0.005,
     )
     .sort((a, b) => b.date.localeCompare(a.date) || (b.createdAt ?? 0) - (a.createdAt ?? 0));
 }

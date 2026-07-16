@@ -19,7 +19,8 @@
  * Transfers between tracked accounts never move the total (inherited from the
  * shared sampling engine) and deposits are NEVER counted as returns.
  */
-import { Transaction, AccountDef, CategoryDef, ownShare, investSign, STALE_DAYS } from '../../types';
+import { Transaction, AccountDef, CategoryDef, investSign, STALE_DAYS } from '../../types';
+import { aggregateFlow, accountDelta } from '../../shared/financialFlow';
 import {
   WealthPeriod, WealthPeriodSummary, WealthComparison,
   buildWealthPeriodSummary, buildWealthComparisons, getWealthRange,
@@ -30,16 +31,23 @@ const r2 = (n: number) => Math.round(n * 100) / 100;
 export interface WealthV2Decomposition {
   /** end − start of the (versato-based) total over the period. */
   deltaTotal: number;
-  /** Entrate − uscite (own share) realized inside the period. */
+  /** Risparmio: entrate ordinarie − uscite (own share) realized in the period.
+   *  External contributions and TFR stay OUT of this term (separate below). */
   netSavings: number;
-  /** Net deposits − withdrawals inside the period. Moves cash→invested;
-   *  contributes 0 to the total — shown to keep it separate from returns. */
+  /** Apporti esterni: quota non-TFR dei depositi SENZA conto nel periodo.
+   *  They grow the total without crossing any tracked account. */
+  externalContributions: number;
+  /** Quota TFR dei depositi del periodo: grows invested capital (and the
+   *  total) without ever debiting an account. */
+  tfrContributions: number;
+  /** Net deposits − withdrawals inside the period. The account-funded non-TFR
+   *  share moves cash→invested; shown to keep it separate from returns. */
   investmentFlows: number;
   /** Realized investment return inside the period. 0 on the versato series;
    *  populated only when real snapshot history provides market values. */
   investmentReturn: number;
-  /** Residual: deltaTotal − netSavings − investmentReturn. Captures per-category
-   *  floors at 0 and legacy inconsistencies. Normally ≈ 0. */
+  /** Residual: deltaTotal − netSavings − external − TFR − investmentReturn.
+   *  Captures per-category floors at 0 and legacy inconsistencies. Normally ≈ 0. */
   adjustments: number;
 }
 
@@ -115,18 +123,21 @@ export function buildWealthV2Summary(
   // ── Decomposition ───────────────────────────────────────────────────────────
   const inPeriod = realizedInPeriod(transactions, range.startISO, range.endISO)
     .filter(t => t.date <= todayISO);
-  let income = 0, expenses = 0, invFlows = 0;
+  let invFlows = 0;
   for (const t of inPeriod) {
-    if (t.type === 'income') income += t.amount;
-    else if (t.type === 'expense') expenses += ownShare(t);
-    else if (t.type === 'investment') invFlows += investSign(t) * t.amount;
+    if (t.type === 'investment') invFlows += investSign(t) * t.amount;
     // transfers: intentionally ignored — they never change the total.
   }
-  const netSavings = r2(income - expenses);
+  // Components kept SEPARATE (never folded into "risparmio"): external
+  // contributions and TFR quotas grow the total without being income.
+  const flow = aggregateFlow(inPeriod);
+  const netSavings = r2(flow.ordinaryIncome - flow.expenses);
+  const externalContributions = flow.externalContributions;
+  const tfrContributions = flow.tfrExcluded;
   const deltaTotal = base.total.delta;
   // No snapshot history wired yet → realized return is 0 (never invented).
   const investmentReturn = 0;
-  const adjustments = r2(deltaTotal - netSavings - investmentReturn);
+  const adjustments = r2(deltaTotal - netSavings - externalContributions - tfrContributions - investmentReturn);
 
   // ── Today at market value ───────────────────────────────────────────────────
   // Per-category invested capital (versato): initial + deposits − withdrawals,
@@ -172,16 +183,14 @@ export function buildWealthV2Summary(
     netWorthAtMarket: r2(liquidityToday + marketValue),
   };
 
-  // ── Composition: cash per account (today) ──────────────────────────────────
+  // ── Composition: cash per account (today) — shared accountDelta math ───────
   const balances: Record<string, number> = {};
   for (const a of accounts) if (a.initialBalance) balances[a.id] = a.initialBalance;
-  const bal = (id: string, d: number) => { if (!id) return; balances[id] = (balances[id] ?? 0) + d; };
+  const bal = (id: string, d: number) => { if (!id || d === 0) return; balances[id] = (balances[id] ?? 0) + d; };
   for (const t of transactions) {
     if (t.projected || t.date > todayISO) continue;
-    if (t.type === 'income') bal(t.account, t.amount);
-    else if (t.type === 'expense') bal(t.account, -ownShare(t));
-    else if (t.type === 'investment') bal(t.account, -investSign(t) * t.amount);
-    else if (t.type === 'transfer') { bal(t.account, -t.amount); if (t.toAccount) bal(t.toAccount, t.amount); }
+    bal(t.account, accountDelta(t, t.account));
+    if (t.type === 'transfer' && t.toAccount) bal(t.toAccount, accountDelta(t, t.toAccount));
   }
   const accountEntries: WealthV2CompositionEntry[] = accounts
     .filter(a => !a.archived && Math.abs(balances[a.id] ?? 0) > 0.005)
@@ -201,7 +210,7 @@ export function buildWealthV2Summary(
   return {
     period,
     base,
-    decomposition: { deltaTotal, netSavings, investmentFlows: r2(invFlows), investmentReturn, adjustments },
+    decomposition: { deltaTotal, netSavings, externalContributions, tfrContributions, investmentFlows: r2(invFlows), investmentReturn, adjustments },
     marketToday,
     composition: { accounts: accountEntries, investments: investmentEntries },
     comparisons: buildWealthComparisons(transactions, accounts, categories, { now }),

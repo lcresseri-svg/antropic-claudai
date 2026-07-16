@@ -17,7 +17,8 @@
  * No mass writes at app open: the caller (admin screen) triggers today's
  * snapshot at most once per session, and backfill always runs dry-run first.
  */
-import { Transaction, AccountDef, CategoryDef, ownShare, investSign, STALE_DAYS } from '../../types';
+import { Transaction, AccountDef, CategoryDef, STALE_DAYS } from '../../types';
+import { accountDelta, investedDelta } from '../../shared/financialFlow';
 
 export const WEALTH_SNAPSHOT_VERSION = 1;
 
@@ -82,14 +83,12 @@ export function buildWealthSnapshot(
 
   for (const t of transactions) {
     if (t.projected || t.date > dateKey) continue;
-    if (t.type === 'income') bal(t.account, t.amount);
-    else if (t.type === 'expense') bal(t.account, -ownShare(t));
-    else if (t.type === 'investment') {
-      bal(t.account, -investSign(t) * t.amount);
-      invested[t.category] = (invested[t.category] ?? 0) + investSign(t) * t.amount;
-    } else if (t.type === 'transfer') {
-      bal(t.account, -t.amount);
-      if (t.toAccount) bal(t.toAccount, t.amount);
+    // Shared accountDelta math: TFR share and source-less deposits never touch
+    // any account; invested capital counts the FULL amount (direction-aware).
+    bal(t.account, accountDelta(t, t.account));
+    if (t.type === 'transfer' && t.toAccount) bal(t.toAccount, accountDelta(t, t.toAccount));
+    if (t.type === 'investment') {
+      invested[t.category] = (invested[t.category] ?? 0) + investedDelta(t);
     }
   }
 

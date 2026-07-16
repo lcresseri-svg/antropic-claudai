@@ -2,7 +2,8 @@
 // once the admin beta is validated.
 import { useState, useMemo } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { Transaction, ownShare, investSign } from '../../types';
+import { Transaction, ownShare } from '../../types';
+import { FlowBreakdown, accountDelta } from '../../shared/financialFlow';
 import { formatCurrency } from '../../utils';
 import { CategoryCard } from './CategoryCard';
 import { AccountsCard } from './AccountsCard';
@@ -23,6 +24,8 @@ interface Props {
   monthlyIncome: number;
   monthlyExpenses: number;
   monthlyInvestments: number;
+  /** Unified cash flow of the current month (single source of truth). */
+  monthlyFlow: FlowBreakdown;
   investmentByCategory: Record<string, number>;
   accountBalances: Record<string, number>;
   trend: { key: string; income: number; expense: number; invest: number }[];
@@ -42,7 +45,7 @@ interface Props {
 
 export function DashboardV2(p: Props) {
   const navigate = useNavigate();
-  const { enableInvestments, countInvestmentsInExpenses, getCat, insightDepth, visibleCategories } = useSettings();
+  const { enableInvestments, getCat, insightDepth, visibleCategories } = useSettings();
   const [accMode, setAccMode] = useState<'balance' | 'spending'>('balance');
 
   // Current-month derived values (period selector moved to CategorySpendingScreen)
@@ -63,19 +66,17 @@ export function DashboardV2(p: Props) {
         categoryTotals[t.category] = (categoryTotals[t.category] ?? 0) + ownShare(t);
         expenseByAccount[t.account] = (expenseByAccount[t.account] ?? 0) + ownShare(t);
       } else if (t.type === 'investment' && t.account) {
-        // Net invested out of the source account (deposit debits, withdrawal credits).
-        investByAccount[t.account] = (investByAccount[t.account] ?? 0) + investSign(t) * t.amount;
+        // Cash that really left/re-entered this account (non-TFR share of
+        // deposits out, returned capital back in) — real movements only.
+        investByAccount[t.account] = (investByAccount[t.account] ?? 0) - accountDelta(t, t.account);
       }
     }
     return { currentMonthCategoryTotals: categoryTotals, currentMonthExpenseByAccount: expenseByAccount, currentMonthInvestByAccount: investByAccount };
   }, [p.transactions]);
 
-  // When the user opts to count investments inside the "Uscite" total, the monthly
-  // outflow becomes expenses + net invested; "Risparmio" stays Entrate − Uscite so
-  // the three cards reconcile. Off (default) keeps the previous behaviour.
-  const countInvest = enableInvestments && countInvestmentsInExpenses;
-  const monthlyOutflow = countInvest ? p.monthlyExpenses + p.monthlyInvestments : p.monthlyExpenses;
-  const savings = p.monthlyIncome - monthlyOutflow;
+  // Unified cash flow: the three cards always reconcile (netFlow = cashIn − cashOut),
+  // TFR excluded, source-less contributions counted as inflows.
+  const flow = p.monthlyFlow;
 
   const insights = useMemo(() =>
     buildInsights({
@@ -90,13 +91,14 @@ export function DashboardV2(p: Props) {
     }),
   [p.transactions, p.monthlyIncome, p.monthlyExpenses, p.monthlyInvestments, getCat, insightDepth, visibleCategories, p.portfolio]);
 
+  // The digest describes the DISPLAYED month flow (same numbers as the cards).
   const digestInput = useMemo(() => ({
-    income: p.monthlyIncome,
-    expenses: p.monthlyExpenses,
+    income: flow.cashIn,
+    expenses: flow.cashOut,
     investments: p.monthlyInvestments,
-    saved: p.monthlyIncome - p.monthlyExpenses - p.monthlyInvestments,
+    saved: flow.netFlow,
     topInsights: insights.slice(0, 5).map(i => i.title),
-  }), [p.monthlyIncome, p.monthlyExpenses, p.monthlyInvestments, insights]);
+  }), [flow, p.monthlyInvestments, insights]);
 
   return (
     <div className="pb-32">
@@ -138,17 +140,27 @@ export function DashboardV2(p: Props) {
         </div>
       </div>
 
-      {/* ── 2. Questo mese ── */}
+      {/* ── 2. Questo mese — flusso unificato ── */}
       <section className="mt-6">
         <p className="label-caps text-secondary mb-3 px-0.5">Questo mese</p>
         <div className="grid grid-cols-3 gap-2">
-          <MonthStatCard label="Entrate"  value={p.monthlyIncome}    colorClass="text-green" />
-          <MonthStatCard label="Uscite"   value={monthlyOutflow}     colorClass="text-secondary"
-            info={countInvest ? <OutflowInfo expenses={p.monthlyExpenses} investments={p.monthlyInvestments} /> : undefined} />
+          <MonthStatCard label="Entrate" value={flow.cashIn} colorClass="text-green"
+            info={<OutflowInfo ariaLabel="Dettaglio entrate" lines={[
+              { label: 'Entrate ordinarie', value: flow.ordinaryIncome },
+              ...(flow.externalContributions > 0 ? [{ label: 'Apporti esterni', value: flow.externalContributions, valueClass: 'text-gold' }] : []),
+              ...(flow.capitalReturned > 0 ? [{ label: 'Rientri da disinvestimenti', value: flow.capitalReturned, valueClass: 'text-gold' }] : []),
+              ...(flow.tfrExcluded > 0 ? [{ label: 'TFR escluso', value: flow.tfrExcluded, valueClass: 'text-secondary' }] : []),
+            ]} />} />
+          <MonthStatCard label="Uscite" value={flow.cashOut} colorClass="text-secondary"
+            info={<OutflowInfo ariaLabel="Dettaglio uscite" lines={[
+              { label: 'Spese', value: flow.expenses },
+              ...(flow.investedFromAccounts > 0 ? [{ label: 'Investimenti dai conti', value: flow.investedFromAccounts, valueClass: 'text-gold' }] : []),
+              ...(flow.tfrExcluded > 0 ? [{ label: 'TFR escluso', value: flow.tfrExcluded, valueClass: 'text-secondary' }] : []),
+            ]} />} />
           <MonthStatCard
-            label="Risparmio"
-            value={savings}
-            colorClass={savings >= 0 ? 'text-gold' : 'text-red'}
+            label="Flusso netto"
+            value={flow.netFlow}
+            colorClass={flow.netFlow >= 0 ? 'text-gold' : 'text-red'}
           />
         </div>
       </section>

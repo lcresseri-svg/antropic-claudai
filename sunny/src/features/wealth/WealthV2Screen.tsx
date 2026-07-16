@@ -136,14 +136,17 @@ export function WealthV2Screen({ user, transactions, liquidity }: Props) {
       <section className="bg-card rounded-2xl p-5">
         <h2 className="text-sm font-semibold text-primary mb-3">Da cosa dipende la variazione</h2>
         <dl className="space-y-2 text-sm">
-          <div className="flex justify-between"><dt className="text-secondary">Risparmio netto (entrate − uscite)</dt><dd className={tone(d.netSavings)}>{sign(d.netSavings)}</dd></div>
+          <div className="flex justify-between"><dt className="text-secondary">Risparmio (entrate − uscite)</dt><dd className={tone(d.netSavings)}>{sign(d.netSavings)}</dd></div>
+          <div className="flex justify-between"><dt className="text-secondary">Apporti esterni (senza conto)</dt><dd className={tone(d.externalContributions)}>{sign(d.externalContributions)}</dd></div>
+          <div className="flex justify-between"><dt className="text-secondary">TFR</dt><dd className={tone(d.tfrContributions)}>{sign(d.tfrContributions)}</dd></div>
           <div className="flex justify-between"><dt className="text-secondary">Rendimento investimenti (storicizzato)</dt><dd className={tone(d.investmentReturn)}>{sign(d.investmentReturn)}</dd></div>
           <div className="flex justify-between"><dt className="text-secondary">Rettifiche</dt><dd className={tone(d.adjustments)}>{sign(d.adjustments)}</dd></div>
           <div className="flex justify-between border-t border-divider pt-2 font-semibold"><dt className="text-primary">Δ patrimonio</dt><dd className={tone(d.deltaTotal)}>{sign(d.deltaTotal)}</dd></div>
         </dl>
         <p className="text-[11px] text-secondary mt-3">
-          Versamenti netti del periodo: {sign(d.investmentFlows)} — spostano liquidità in investimenti
-          senza cambiare il totale e non sono mai contati come rendimento.
+          Versamenti netti del periodo: {sign(d.investmentFlows)} — la quota finanziata dai conti sposta
+          liquidità in investimenti senza cambiare il totale; apporti esterni e TFR restano componenti
+          separate e non sono mai contati come rendimento né come risparmio.
           Rendimento latente a oggi: <span className={tone(m.marketGain)}>{sign(m.marketGain)}</span> ({fmtPct(m.marketGainPct)}).
         </p>
       </section>

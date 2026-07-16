@@ -9,15 +9,17 @@
 //   investments = Σ per-category invested value (initial + deposits − withdrawals,
 //                 floored at 0 per category, like useTransactions)
 //
-// The per-transaction cash math is IDENTICAL to useTransactions.ts (the
-// app-wide source of truth):
-//   income      → +amount            on account
-//   expense     → −ownShare          on account
-//   investment  → −investSign·amount on account, +investSign·amount on category
+// The per-transaction cash math is delegated to shared/financialFlow (the
+// app-wide source of truth shared with useTransactions.ts):
+//   income      → +amount              on account
+//   expense     → −ownShare            on account
+//   investment  → accountDelta on account (non-TFR share only; source-less = 0),
+//                 +investSign·amount on category (FULL amount, TFR included)
 //   transfer    → −amount from account, +amount to toAccount
-// so by construction a transfer between tracked accounts never moves the total,
-// and an investment deposit moves value liquidity → investments leaving the
-// total unchanged.
+// so by construction a transfer between tracked accounts never moves the total;
+// an account-funded deposit moves its non-TFR share liquidity → investments,
+// while the TFR share and source-less deposits GROW the total (external inflows
+// that never crossed a tracked account).
 //
 // Investments are counted AT NET DEPOSITED CAPITAL (versato): the manual
 // market value (CategoryDef.currentValue) is deliberately IGNORED, so the
@@ -28,7 +30,8 @@
 // Values are STOCKS: each point is the value AT that date (cumulative), never a
 // sum of flows, and gaps forward-fill by construction.
 
-import { Transaction, AccountDef, CategoryDef, ownShare, investSign } from '../../types';
+import { Transaction, AccountDef, CategoryDef } from '../../types';
+import { accountDelta, investedDelta } from '../../shared/financialFlow';
 import { capitalize } from '../../utils';
 
 /**
@@ -167,14 +170,10 @@ function sampleWealth(
   for (const sampleDate of sampleDates) {
     while (i < txs.length && txs[i].date <= sampleDate) {
       const t = txs[i++];
-      if (t.type === 'income') bal(t.account, t.amount);
-      else if (t.type === 'expense') bal(t.account, -ownShare(t));
-      else if (t.type === 'investment') {
-        bal(t.account, -investSign(t) * t.amount);
-        invested[t.category] = (invested[t.category] ?? 0) + investSign(t) * t.amount;
-      } else if (t.type === 'transfer') {
-        bal(t.account, -t.amount);
-        if (t.toAccount) bal(t.toAccount, t.amount);
+      bal(t.account, accountDelta(t, t.account));
+      if (t.type === 'transfer' && t.toAccount) bal(t.toAccount, accountDelta(t, t.toAccount));
+      if (t.type === 'investment') {
+        invested[t.category] = (invested[t.category] ?? 0) + investedDelta(t);
       }
     }
 

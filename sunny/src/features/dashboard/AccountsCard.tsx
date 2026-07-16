@@ -18,14 +18,14 @@ interface Props {
 const COLLAPSED_COUNT = 3;
 
 export function AccountsCard({ accountBalances, expenseByAccount, investByAccount = {}, mode, onToggle, onOpenDetail }: Props) {
-  const { accounts, getAcc, enableInvestments, countInvestmentsInExpenses } = useSettings();
+  const { accounts, getAcc, enableInvestments } = useSettings();
   const [showAll, setShowAll] = useState(false);
 
-  // Same visibility logic as the "Uscite" totals: when the user opts to count
-  // investments inside the spese, fold each account's net invested into its
-  // spending total (with an ⓘ breakdown). Off → expenses only, as before.
-  const countInvest = enableInvestments && countInvestmentsInExpenses;
-  const spendingByAccount: Record<string, number> = countInvest
+  // The cash flow always follows the real movements: what left an account for
+  // an investment IS an outflow of that account, so it folds into its spending
+  // total (with an ⓘ breakdown). investByAccount already carries only the cash
+  // that really moved (non-TFR share; source-less deposits touch no account).
+  const spendingByAccount: Record<string, number> = enableInvestments
     ? (() => {
         const out: Record<string, number> = { ...expenseByAccount };
         for (const id of Object.keys(investByAccount)) out[id] = (out[id] ?? 0) + investByAccount[id];
@@ -84,8 +84,11 @@ export function AccountsCard({ accountBalances, expenseByAccount, investByAccoun
             <div className="flex items-center gap-2.5 mb-1.5">
               <span className="w-7 h-7 rounded-xl flex items-center justify-center text-sm flex-shrink-0" style={{ backgroundColor: acc.color + '18' }}>{acc.icon}</span>
               <span className="text-[13px] text-primary flex-1 truncate">{acc.label}</span>
-              {mode === 'spending' && countInvest && (investByAccount[acc.id] ?? 0) !== 0 && (
-                <OutflowInfo expenses={expenseByAccount[acc.id] ?? 0} investments={investByAccount[acc.id] ?? 0} />
+              {mode === 'spending' && enableInvestments && (investByAccount[acc.id] ?? 0) !== 0 && (
+                <OutflowInfo ariaLabel="Dettaglio uscite conto" lines={[
+                  { label: 'Spese', value: expenseByAccount[acc.id] ?? 0 },
+                  { label: 'Investimenti dal conto', value: investByAccount[acc.id] ?? 0, valueClass: 'text-gold' },
+                ]} />
               )}
               <span className={`text-[13px] font-semibold balance-num ${value < 0 && mode === 'balance' ? 'text-[#E08B8B]' : 'text-primary'}`}>
                 {formatCurrency(value)}

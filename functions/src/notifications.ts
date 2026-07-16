@@ -81,23 +81,34 @@ export const sendMonthlySummary = onSchedule(
         .where('date', '<=', `${ym}-31`)
         .get();
 
-      let income = 0, expenses = 0, investments = 0;
+      // Mirror the client's unified flow (shared/financialFlow.ts): TFR is
+      // never cash, source-less deposits are external inflows, the withdrawal
+      // leg returns capital. "Messi da parte" = flusso netto (cashIn − cashOut).
+      let income = 0, cashIn = 0, cashOut = 0, any = false;
       snap.forEach(d => {
-        const t = d.data() as { type?: string; amount?: number; shared?: number };
+        const t = d.data() as { type?: string; amount?: number; shared?: number; direction?: string; account?: string; tfr?: number; recurring?: unknown };
+        if (t.recurring) return; // templates are pointers, not flows
         const amount = Number(t.amount) || 0;
-        if (t.type === 'income') income += amount;
-        else if (t.type === 'expense') expenses += amount - (Number(t.shared) || 0);
-        else if (t.type === 'investment') investments += amount;
+        if (!amount) return;
+        any = true;
+        if (t.type === 'income') { income += amount; cashIn += amount; }
+        else if (t.type === 'expense') cashOut += amount - (Number(t.shared) || 0);
+        else if (t.type === 'investment') {
+          if (t.direction === 'out') { cashIn += amount; return; }
+          const tfr = Math.min(Math.max(Number(t.tfr) || 0, 0), amount);
+          const nonTfr = amount - tfr;
+          if (t.account) cashOut += nonTfr; else cashIn += nonTfr;
+        }
       });
-      if (income === 0 && expenses === 0 && investments === 0) continue;
+      if (!any) continue;
 
-      const saved = income - expenses - investments;
+      const saved = cashIn - cashOut;
       const savedPct = income > 0 ? Math.round((saved / income) * 100) : 0;
 
       await sendToUser(
         userId,
         `📊 Il tuo riepilogo di ${meseCap} è pronto`,
-        `Apri Sunny per vedere com'è andata — ${euro(saved)} messi da parte (${savedPct}%).`,
+        `Apri Sunny per vedere com'è andata — ${euro(saved)} di flusso netto (${savedPct}%).`,
         'monthly',
         'monthly',
         `recap/${ym}`,
@@ -242,13 +253,16 @@ export const remindMonthEnd = onSchedule(
         .where('date', '<=', todayRome)
         .get();
 
+      // Real totals, direction-aware (net invested = deposits − withdrawals);
+      // recurring templates are pointers, not flows.
       let income = 0, expenses = 0, investments = 0;
       snap.forEach(d => {
-        const t = d.data() as { type?: string; amount?: number; shared?: number };
+        const t = d.data() as { type?: string; amount?: number; shared?: number; direction?: string; recurring?: unknown };
+        if (t.recurring) return;
         const amount = Number(t.amount) || 0;
         if (t.type === 'income') income += amount;
         else if (t.type === 'expense') expenses += amount - (Number(t.shared) || 0);
-        else if (t.type === 'investment') investments += amount;
+        else if (t.type === 'investment') investments += t.direction === 'out' ? -amount : amount;
       });
       if (income === 0 && expenses === 0 && investments === 0) continue;
 

@@ -92,4 +92,25 @@ describe('accountAnalytics', () => {
     // A = 105, B = 25, INV (500) excluded → 130 (not 630).
     expect(liq).toBe(130);
   });
+
+  it('8. TFR share of a deposit never touches the account (spec example)', () => {
+    // Deposit 300 with TFR 200 from account A: only 100 leaves the account.
+    const txs = [tx({ date: '2026-06-05', type: 'investment', amount: 300, tfr: 200, account: 'a', direction: 'in' })];
+    expect(signedDelta(txs[0], 'a')).toBe(-100);
+    const f = aggregateAccountFlow(txs, ACC_A, range, { now: NOW });
+    expect(f.investment).toBe(100);                 // only the cash that really moved
+    expect(f.closingBalance).toBe(0);               // 100 initial − 100
+    expect(balanceAsOf(txs, ACC_A, '2026-06-15')).toBe(0);
+  });
+
+  it('9. source-less / fully-TFR deposits never appear among the account movements', () => {
+    const txs = [
+      tx({ date: '2026-06-05', type: 'investment', amount: 300, account: '', direction: 'in' }),       // source-less
+      tx({ date: '2026-06-06', type: 'investment', amount: 200, tfr: 200, account: 'a', direction: 'in' }), // fully TFR → zero impact
+      tx({ date: '2026-06-07', type: 'investment', amount: 50, account: 'a', direction: 'in' }),        // real impact
+    ];
+    const movements = getAccountMovements(txs, ACC_A, range, NOW);
+    expect(movements).toHaveLength(1);
+    expect(movements[0].amount).toBe(50);
+  });
 });

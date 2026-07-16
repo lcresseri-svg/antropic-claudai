@@ -4,16 +4,28 @@ import { useSettings } from '../../shared/providers/settings';
 import { expandRecurringOnCreate } from '../../shared/recurrence';
 import { formatDate } from '../../utils';
 import { buildInvestmentDeposit } from './investmentTransactionBuilder';
+import { STATS_SPREAD_MIN, STATS_SPREAD_MAX } from './investmentStatsSpread';
 import { SheetShell, Field, EuroInput, Select, parseNum } from './SheetShell';
 
 interface Props {
   open: boolean;
   preselectCategory?: string;
-  onSave: (txs: Omit<Transaction, 'id'>[]) => void;
+  /** MUST resolve only after the atomic commit (movement + controvalore):
+   *  the sheet stays open with a Retry on failure — no partial states. */
+  onSave: (txs: Omit<Transaction, 'id'>[]) => Promise<void> | void;
   onClose: () => void;
 }
 
 const today = () => new Date().toISOString().slice(0, 10);
+
+/** Options for the statistical spread of a one-off deposit. */
+export const SPREAD_CHOICES: { value: number | 'none' | 'custom'; label: string }[] = [
+  { value: 'none', label: 'Nessuna' },
+  { value: 3, label: '3 mesi' },
+  { value: 6, label: '6 mesi' },
+  { value: 12, label: '12 mesi' },
+  { value: 'custom', label: 'Personalizzata' },
+];
 
 /** "Versa" — investment deposit form. Same logic as the historical
  *  TransactionModal investment path, via buildInvestmentDeposit. */
@@ -31,7 +43,11 @@ export function InvestmentDepositSheet({ open, preselectCategory, onSave, onClos
   const [isRecurring, setIsRecurring] = useState(false);
   const [recurringFreq, setRecurringFreq] = useState<RecurrenceRule['freq']>('monthly');
   const [recurringUntil, setRecurringUntil] = useState('');
+  const [spreadChoice, setSpreadChoice] = useState<'none' | 'custom' | number>('none');
+  const [spreadCustom, setSpreadCustom] = useState('');
   const [amountError, setAmountError] = useState(false);
+  const [saving, setSaving] = useState(false);
+  const [saveError, setSaveError] = useState(false);
 
   useEffect(() => {
     if (!open) return;
@@ -42,7 +58,8 @@ export function InvestmentDepositSheet({ open, preselectCategory, onSave, onClos
     setAccount((lastAcc && visibleAccounts.some(a => a.id === lastAcc)) ? lastAcc : (visibleAccounts[0]?.id ?? ''));
     setFee(''); setTfr(''); setNotes('');
     setIsRecurring(false); setRecurringFreq('monthly'); setRecurringUntil('');
-    setAmountError(false);
+    setSpreadChoice('none'); setSpreadCustom('');
+    setAmountError(false); setSaving(false); setSaveError(false);
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [open]);
 
@@ -50,8 +67,17 @@ export function InvestmentDepositSheet({ open, preselectCategory, onSave, onClos
   const isPension = detailedInvestments && selCat?.fundType === 'pension';
   const canNoAccount = detailedInvestments;
 
-  const submit = (e: React.FormEvent) => {
+  // Statistical spread: one-off deposits only (recurring series are excluded).
+  const spreadMonths = ((): number | undefined => {
+    if (isRecurring) return undefined;
+    if (spreadChoice === 'none') return undefined;
+    const n = spreadChoice === 'custom' ? parseInt(spreadCustom, 10) : spreadChoice;
+    return Number.isInteger(n) && n >= STATS_SPREAD_MIN && n <= STATS_SPREAD_MAX ? n : undefined;
+  })();
+
+  const submit = async (e: React.FormEvent) => {
     e.preventDefault();
+    if (saving) return; // no double submit
     const value = parseNum(amount);
     if (!value || value <= 0) { setAmountError(true); return; }
     if (!category) return;
@@ -68,12 +94,24 @@ export function InvestmentDepositSheet({ open, preselectCategory, onSave, onClos
       fee: parseNum(fee) || undefined,
       tfr: isPension ? parseNum(tfr) || undefined : undefined,
       recurring, seriesId,
+      statsSpreadMonths: spreadMonths,
     });
     // Past-dated recurring series: materialize overdue occurrences right away.
     const todayISO = today();
-    onSave(txs.flatMap(d => expandRecurringOnCreate(d, todayISO)));
-    if (account) try { localStorage.setItem('sunny:lastAccount', account); } catch { /* ignore */ }
-    onClose();
+    const docs = txs.flatMap(d => expandRecurringOnCreate(d, todayISO));
+
+    setSaving(true);
+    setSaveError(false);
+    try {
+      await onSave(docs);
+      if (account) try { localStorage.setItem('sunny:lastAccount', account); } catch { /* ignore */ }
+      onClose(); // only after the atomic commit
+    } catch {
+      // Nothing was saved (atomic or nothing): keep the sheet open, offer Retry.
+      setSaveError(true);
+    } finally {
+      setSaving(false);
+    }
   };
 
   return (
@@ -136,6 +174,35 @@ export function InvestmentDepositSheet({ open, preselectCategory, onSave, onClos
           </Field>
         )}
 
+        {/* Distribuzione statistica — one-off deposits only */}
+        {!isRecurring && (
+          <Field label="Distribuzione statistica (opzionale)">
+            <div className="grid grid-cols-5 gap-1.5">
+              {SPREAD_CHOICES.map(o => (
+                <button key={String(o.value)} type="button"
+                  onClick={() => setSpreadChoice(o.value as 'none' | 'custom' | number)}
+                  className={`py-2 rounded-xl text-[11px] font-semibold transition-colors ${spreadChoice === o.value ? 'bg-gold text-bg' : 'bg-elevated text-secondary'}`}>
+                  {o.label}
+                </button>
+              ))}
+            </div>
+            {spreadChoice === 'custom' && (
+              <div className="mt-2">
+                <input type="text" inputMode="numeric" value={spreadCustom} placeholder={`${STATS_SPREAD_MIN}–${STATS_SPREAD_MAX} mesi`}
+                  onChange={e => setSpreadCustom(e.target.value.replace(/\D/g, ''))}
+                  className="w-full bg-elevated rounded-xl px-3 py-2.5 text-primary text-sm outline-none focus:ring-1 focus:ring-gold/40 balance-num" />
+              </div>
+            )}
+            {spreadChoice !== 'none' && (
+              <p className="text-[11px] mt-1.5 px-1 text-secondary leading-snug">
+                Solo nelle statistiche: il movimento resta unico e conti, saldi e flusso di cassa
+                cambiano interamente alla data reale. Le medie e i trend degli investimenti
+                ripartiscono l'importo dal mese del versamento in avanti.
+              </p>
+            )}
+          </Field>
+        )}
+
         {/* Ricorrente */}
         <div className="glass-card rounded-2xl overflow-hidden">
           <button type="button" onClick={() => setIsRecurring(r => !r)}
@@ -178,10 +245,17 @@ export function InvestmentDepositSheet({ open, preselectCategory, onSave, onClos
             className="w-full bg-elevated rounded-2xl px-4 py-3 text-primary placeholder:text-secondary/50 outline-none focus:ring-1 focus:ring-gold/40" />
         </Field>
 
-        <button type="submit"
-          className="w-full py-3 rounded-2xl font-semibold transition-transform active:scale-[0.98]"
+        {saveError && (
+          <p className="text-xs text-red px-1 leading-snug">
+            Salvataggio non riuscito: nessun dato è stato scritto (movimento e controvalore
+            si aggiornano insieme). Controlla la connessione e riprova.
+          </p>
+        )}
+
+        <button type="submit" disabled={saving}
+          className="w-full py-3 rounded-2xl font-semibold transition-transform active:scale-[0.98] disabled:opacity-60"
           style={{ backgroundColor: 'var(--accent-hi)', color: 'var(--accent-on)' }}>
-          Versa
+          {saving ? 'Salvataggio…' : saveError ? 'Riprova' : 'Versa'}
         </button>
       </form>
     </SheetShell>

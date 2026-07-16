@@ -33,6 +33,8 @@ export interface DepositInput {
   recurring?: RecurrenceRule;
   seriesId?: string;
   groupId?: string;      // preserved on edit so the fee link survives
+  /** Statistical spread (2–120 months) — one-off deposits only, dropped for series. */
+  statsSpreadMonths?: number;
 }
 
 /**
@@ -47,6 +49,10 @@ export function buildInvestmentDeposit(input: DepositInput): Omit<Transaction, '
   const groupId = feeVal > 0 ? (input.groupId ?? crypto.randomUUID()) : input.groupId;
   const tfrClean = input.tfr && input.tfr > 0 ? Math.min(r2(input.tfr), input.amount) : undefined;
 
+  // Statistical spread applies to ONE-OFF deposits only — a series distributes
+  // itself naturally over time, so the field is dropped for recurring inputs.
+  const spread = !input.recurring && input.statsSpreadMonths ? input.statsSpreadMonths : undefined;
+
   const txs: Omit<Transaction, 'id'>[] = [{
     type: 'investment', direction: 'in',
     description: desc, amount: r2(input.amount), date: input.date,
@@ -54,6 +60,7 @@ export function buildInvestmentDeposit(input: DepositInput): Omit<Transaction, '
     notes: input.notes?.trim() || undefined,
     recurring: input.recurring, seriesId: input.seriesId,
     ...(tfrClean ? { tfr: tfrClean } : {}),
+    ...(spread ? { statsSpreadMonths: spread } : {}),
     ...(groupId ? { groupId } : {}),
   }];
   if (feeVal > 0) {

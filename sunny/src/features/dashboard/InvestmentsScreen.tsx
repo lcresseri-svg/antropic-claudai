@@ -8,6 +8,8 @@ import { plusMinusLatente, isStaleValue } from '../investments/investmentTransac
 import { InvestmentDepositSheet } from '../investments/InvestmentDepositSheet';
 import { InvestmentWithdrawSheet } from '../investments/InvestmentWithdrawSheet';
 import { SetCurrentValueSheet } from '../investments/SetCurrentValueSheet';
+import { InvestmentDetailSheet } from '../investments/InvestmentDetailSheet';
+import { monthlyInvestmentStats, statsSpreadOf, addMonths } from '../investments/investmentStatsSpread';
 
 interface Props {
   investmentByCategory: Record<string, number>;
@@ -15,7 +17,7 @@ interface Props {
   monthlyInvestments: number;
   trend: { key: string; income: number; expense: number; invest: number }[];
   transactions: Transaction[];
-  onAddTransactions: (txs: Omit<Transaction, 'id'>[]) => void;
+  onAddTransactions: (txs: Omit<Transaction, 'id'>[]) => Promise<void> | void;
 }
 
 const GREEN = 'var(--accent-green)';
@@ -33,7 +35,7 @@ export function InvestmentsScreen({ investmentByCategory, investmentTotal, month
   const [withdrawOpen, setWithdrawOpen] = useState(false);
   const [withdrawPreselect, setWithdrawPreselect] = useState<string | undefined>();
   const [valueCat, setValueCat] = useState<CategoryDef | null>(null);
-  const [expandedCat, setExpandedCat] = useState<string | null>(null);
+  const [detailCat, setDetailCat] = useState<CategoryDef | null>(null);
   const [showAllOps, setShowAllOps] = useState(false);
 
   const investTx = useMemo(
@@ -109,8 +111,15 @@ export function InvestmentsScreen({ investmentByCategory, investmentTotal, month
 
   const showFundDonut = detailedInvestments && fundAlloc.classifiedTotal > 0;
 
-  // ── 6-month net contributions (trend.invest is direction-aware) ─────────────
-  const last6 = trend.slice(-6);
+  // ── 6-month contributions — STATISTICAL (spread-aware) ─────────────────────
+  // One-off deposits with statsSpreadMonths are ripartiti per quota mensile di
+  // competenza (fino al mese corrente); everything else lands on its real month.
+  // The cash flow / recap keep the real amounts — this chart is a trend.
+  const last6 = useMemo(() => {
+    const curMonth = new Date().toISOString().slice(0, 7);
+    const stat = monthlyInvestmentStats(investTx, { untilMonth: curMonth });
+    return trend.slice(-6).map(t => ({ key: t.key, invest: stat.get(t.key) ?? 0 }));
+  }, [trend, investTx]);
   const maxAbs = Math.max(1, ...last6.map(t => Math.abs(t.invest)));
   const hasFlows = last6.some(t => t.invest !== 0);
   const currentKey = last6[last6.length - 1]?.key;
@@ -202,12 +211,11 @@ export function InvestmentsScreen({ investmentByCategory, investmentTotal, month
             const empty = p.versato <= 0 && p.controvalore == null;
             const pctOf = controvaloreTotale > 0 ? p.weightValue / controvaloreTotale : 0;
             const pmPctCat = p.pm != null && p.versato > 0 ? (p.pm / p.versato) * 100 : null;
-            const expanded = expandedCat === p.cat.id;
-            const catOps = expanded ? investTx.filter(t => t.category === p.cat.id) : [];
             return (
               <div key={p.cat.id} className={`glass-card rounded-2xl ${empty ? 'opacity-50' : ''}`}>
                 <button type="button" className="w-full text-left px-4 pt-3.5"
-                  onClick={() => setExpandedCat(e => e === p.cat.id ? null : p.cat.id)}>
+                  aria-label={`Apri dettaglio di ${p.cat.label}`}
+                  onClick={() => setDetailCat(p.cat)}>
                   {/* Row 1 — identity + value */}
                   <div className="flex items-center gap-3">
                     <span className="w-9 h-9 rounded-xl flex items-center justify-center text-base flex-shrink-0"
@@ -268,12 +276,6 @@ export function InvestmentsScreen({ investmentByCategory, investmentTotal, month
                     </button>
                   )}
                 </div>
-                {/* Detail: operations of this category */}
-                {expanded && catOps.length > 0 && (
-                  <div className="border-t border-white/[0.05] px-4 pb-3 divide-y divide-divider">
-                    {catOps.slice(0, 20).map(t => <OpRow key={t.id} t={t} accLabel={t.account ? getAcc(t.account).label : 'Senza conto'} />)}
-                  </div>
-                )}
               </div>
             );
           })}
@@ -315,8 +317,12 @@ export function InvestmentsScreen({ investmentByCategory, investmentTotal, month
           <div className="flex items-center gap-4 mt-3 text-[10px] text-secondary">
             <span className="flex items-center gap-1.5"><span className="w-2.5 h-2.5 rounded-sm inline-block" style={{ backgroundColor: 'var(--accent-gold)' }} /> Versato</span>
             <span className="flex items-center gap-1.5"><span className="w-2.5 h-2.5 rounded-sm inline-block" style={{ backgroundColor: 'rgba(224,85,85,0.75)' }} /> Disinvestito</span>
-            <span className="ml-auto balance-num">{formatCurrency(monthlyInvestments)} netti questo mese</span>
+            <span className="ml-auto balance-num">{formatCurrency(monthlyInvestments)} netti reali questo mese</span>
           </div>
+          <p className="text-[10px] text-secondary/70 mt-1.5 leading-snug">
+            Trend per competenza: i versamenti una tantum distribuiti contano per quota mensile.
+            Saldi e flusso di cassa restano sugli importi reali.
+          </p>
         </div>
       )}
 
@@ -368,7 +374,7 @@ export function InvestmentsScreen({ investmentByCategory, investmentTotal, month
             {(showAllOps ? investTx.slice(0, 50) : investTx.slice(0, 5)).map(t => (
               <OpRow key={t.id} t={t} icon={getCat(t.category).icon} color={getCat(t.category).color}
                 label={t.description || getCat(t.category).label}
-                accLabel={t.account ? getAcc(t.account).label : 'Senza conto'} />
+                accLabel={t.account ? getAcc(t.account).label : 'Apporto esterno'} />
             ))}
           </div>
           {investTx.length > 5 && !showAllOps && (
@@ -404,6 +410,19 @@ export function InvestmentsScreen({ investmentByCategory, investmentTotal, month
         onSave={v => { if (valueCat) saveCurrentValue(valueCat.id, v); }}
         onClose={() => setValueCat(null)}
       />
+      {detailCat && (
+        <InvestmentDetailSheet
+          // Resolve the LIVE category (currentValue may change while open).
+          category={visibleCategories.find(c => c.id === detailCat.id) ?? detailCat}
+          transactions={transactions}
+          deposited={investmentByCategory[detailCat.id] ?? 0}
+          portfolioTotal={controvaloreTotale}
+          onClose={() => setDetailCat(null)}
+          onDeposit={() => { setDetailCat(null); setDepositOpen(true); }}
+          onWithdraw={() => { const id = detailCat.id; setDetailCat(null); openWithdraw(id); }}
+          onSetValue={() => { const c = detailCat; setDetailCat(null); setValueCat(c); }}
+        />
+      )}
     </div>
   );
 }
@@ -413,6 +432,7 @@ function OpRow({ t, icon, color, label, accLabel }: {
   t: Transaction; icon?: string; color?: string; label?: string; accLabel: string;
 }) {
   const out = t.direction === 'out';
+  const spread = statsSpreadOf(t);
   return (
     <div className="flex items-center gap-3 py-2.5">
       <span className="w-8 h-8 rounded-xl flex items-center justify-center text-sm flex-shrink-0"
@@ -420,8 +440,18 @@ function OpRow({ t, icon, color, label, accLabel }: {
         {out ? '↓' : (icon ?? '↑')}
       </span>
       <div className="min-w-0 flex-1">
-        <p className="text-[13px] text-primary truncate">{label ?? t.description}</p>
-        <p className="text-[11px] text-secondary">{formatDate(t.date)} · {accLabel}</p>
+        <p className="text-[13px] text-primary truncate">
+          {label ?? t.description}
+          {spread != null && (
+            <span className="ml-1.5 inline-flex items-center rounded-full bg-gold/15 text-gold text-[10px] font-semibold px-1.5 py-0.5 leading-none align-middle">
+              Distribuito su {spread} mesi
+            </span>
+          )}
+        </p>
+        <p className="text-[11px] text-secondary">
+          {formatDate(t.date)} · {accLabel}
+          {t.tfr ? ` · TFR ${formatCurrency(t.tfr)}` : ''}
+        </p>
       </div>
       <span className="text-[13px] font-semibold balance-num flex-shrink-0" style={{ color: out ? RED : 'var(--accent)' }}>
         {out ? '−' : ''}{formatCurrency(t.amount)}

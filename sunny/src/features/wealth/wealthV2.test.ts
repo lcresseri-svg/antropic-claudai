@@ -32,16 +32,37 @@ const fixture: Transaction[] = [
 ];
 
 describe('buildWealthV2Summary', () => {
-  it('decomposition: delta = risparmio netto + rendimento + rettifiche', () => {
+  it('decomposition: delta = risparmio + apporti esterni + TFR + rendimento + rettifiche', () => {
     const s = buildWealthV2Summary(fixture, accounts, categories, '3m', { now: NOW });
     const d = s.decomposition;
-    expect(d.deltaTotal).toBeCloseTo(d.netSavings + d.investmentReturn + d.adjustments, 2);
+    expect(d.deltaTotal).toBeCloseTo(
+      d.netSavings + d.externalContributions + d.tfrContributions + d.investmentReturn + d.adjustments, 2);
     // Net savings over 3 months: 2000 − 500 − 60 = 1440.
     expect(d.netSavings).toBeCloseTo(1440, 2);
+    // No source-less deposits nor TFR in this fixture.
+    expect(d.externalContributions).toBe(0);
+    expect(d.tfrContributions).toBe(0);
     // No snapshot history → realized return is never invented.
     expect(d.investmentReturn).toBe(0);
     // Clean fixture → no residual adjustments.
     expect(d.adjustments).toBeCloseTo(0, 2);
+  });
+
+  it('decomposition separates external contributions and TFR from savings', () => {
+    const withTfr = [
+      ...fixture,
+      // Deposit 300 with TFR 200 from an account: only the TFR grows the total.
+      tx({ date: '2026-07-06', type: 'investment', category: 'crypto', amount: 300, tfr: 200 }),
+      // Source-less deposit 150: external contribution, grows the total in full.
+      tx({ date: '2026-07-07', type: 'investment', category: 'crypto', amount: 150, account: '' }),
+    ];
+    const s = buildWealthV2Summary(withTfr, accounts, categories, '3m', { now: NOW });
+    const d = s.decomposition;
+    expect(d.netSavings).toBeCloseTo(1440, 2);        // unchanged: not income
+    expect(d.externalContributions).toBeCloseTo(150, 2);
+    expect(d.tfrContributions).toBeCloseTo(200, 2);
+    expect(d.adjustments).toBeCloseTo(0, 2);
+    expect(d.deltaTotal).toBeCloseTo(1440 + 150 + 200, 2);
   });
 
   it('investment deposits and transfers do not change the total (no double counting)', () => {
