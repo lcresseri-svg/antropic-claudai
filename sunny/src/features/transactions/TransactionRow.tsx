@@ -1,6 +1,7 @@
 import { Transaction, TYPE_META, ownShare, Freq } from '../../types';
 import { formatCurrency, formatDateFull } from '../../utils';
 import { useSettings } from '../../shared/providers/settings';
+import { statsSpreadOf } from '../investments/investmentStatsSpread';
 import { formatSeriesSecondaryAmount, installmentPaidLabel } from './seriesDisplay';
 
 interface Props {
@@ -34,6 +35,8 @@ export function TransactionRow({ tx, selectable, selected, upcoming, seriesFreq,
   const seriesBadge = tx.seriesMeta?.kind === 'subscription' ? '💳 Abbonamento'
     : tx.seriesMeta?.kind === 'installment' ? '🧾 Rata'
     : '🔁 Ricorrente';
+  // Statistical spread badge (one-off investment deposits only).
+  const spreadMonths = statsSpreadOf(tx);
 
   const prefix = isIncome ? '+' : isTransfer ? '' : '−';
   const amountClass = isIncome ? 'text-green' : isInvestment ? 'text-gold' : isTransfer ? 'text-[#88B0C0]' : 'text-primary';
@@ -80,6 +83,11 @@ export function TransactionRow({ tx, selectable, selected, upcoming, seriesFreq,
           {isSeries && (
             <span className="flex-shrink-0 inline-flex items-center gap-0.5 rounded-full bg-gold/15 text-gold text-[10px] font-semibold px-1.5 py-0.5 leading-none">
               {seriesBadge}
+            </span>
+          )}
+          {spreadMonths != null && (
+            <span className="flex-shrink-0 inline-flex items-center gap-0.5 rounded-full bg-gold/15 text-gold text-[10px] font-semibold px-1.5 py-0.5 leading-none">
+              📊 Distribuito su {spreadMonths} mesi
             </span>
           )}
         </div>

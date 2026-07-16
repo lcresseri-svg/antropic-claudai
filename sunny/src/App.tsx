@@ -7,6 +7,7 @@ import { SettingsProvider, useSettings } from './shared/providers/settings';
 import { useBudget } from './shared/hooks/useBudget';
 import { greeting } from './utils';
 import { catchUpRecurring } from './shared/recurrence';
+import { reconcilePendingInvestments, romeTodayISO } from './features/investments/investmentValueSync';
 import { db } from './lib/firebase';
 import { useOnboarding } from './features/onboarding/useOnboarding';
 import { OnboardingScreen } from './features/onboarding/OnboardingScreen';
@@ -209,6 +210,17 @@ function Main({ user, onLogOut, onDeleteAccount }: {
     const todayISO = new Date().toISOString().slice(0, 10);
     const { creates, advance } = catchUpRecurring(tx.transactions, todayISO);
     if (creates.length || advance.length) tx.materializeRecurring(creates, advance);
+    // Investments that were future-dated at write time and are now due: apply
+    // their controvalore effect EXACTLY ONCE (idempotent reconciler — each doc
+    // is re-checked inside the transaction, so multi-device races are safe).
+    const dueISO = romeTodayISO();
+    const pendingDue = tx.transactions
+      .filter(t => t.valuePending === true && !t.valueEffect && t.date <= dueISO)
+      .map(t => t.id);
+    if (pendingDue.length) {
+      reconcilePendingInvestments(user.uid, pendingDue).catch(e =>
+        console.error('reconcilePendingInvestments failed', (e as { code?: string })?.code ?? e));
+    }
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [tx.synced]);
 

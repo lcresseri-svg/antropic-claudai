@@ -8,9 +8,10 @@ interface Props {
   open: boolean;
   investmentByCategory: Record<string, number>;
   preselectCategory?: string;
-  /** Receives the built transactions + the category and entered market value,
-   *  so the caller can persist both the txs and the updated currentValue. */
-  onSave: (categoryId: string, currentValueEntered: number, result: WithdrawalResult) => void;
+  /** Receives the built transactions + the category and entered market value.
+   *  MUST resolve only after the atomic commit — the sheet stays open with a
+   *  Retry on failure (no partial states). */
+  onSave: (categoryId: string, currentValueEntered: number, result: WithdrawalResult) => Promise<void> | void;
   onClose: () => void;
 }
 
@@ -31,6 +32,8 @@ export function InvestmentWithdrawSheet({ open, investmentByCategory, preselectC
   const [date, setDate] = useState(today());
   const [notes, setNotes] = useState('');
   const [error, setError] = useState('');
+  const [saving, setSaving] = useState(false);
+  const [saveError, setSaveError] = useState(false);
 
   const selCat = visibleCategories.find(c => c.id === category);
   const deposited = investmentByCategory[category] ?? 0;
@@ -41,6 +44,7 @@ export function InvestmentWithdrawSheet({ open, investmentByCategory, preselectC
       ? preselectCategory : (investCats[0]?.id ?? '');
     setCategory(first);
     setAmount(''); setFee(''); setFeeAccount(''); setNotes(''); setError('');
+    setSaving(false); setSaveError(false);
     setDate(today());
     setToAccount(visibleAccounts[0]?.id ?? '');
     // eslint-disable-next-line react-hooks/exhaustive-deps
@@ -62,8 +66,9 @@ export function InvestmentWithdrawSheet({ open, investmentByCategory, preselectC
       })
     : null;
 
-  const submit = (e: React.FormEvent) => {
+  const submit = async (e: React.FormEvent) => {
     e.preventDefault();
+    if (saving) return; // no double submit
     if (!category || deposited <= 0) { setError('Seleziona una categoria con capitale versato.'); return; }
     if (!(cvN > 0)) { setError('Inserisci il controvalore attuale della posizione.'); return; }
     if (!(amountN > 0)) { setError('Inserisci un importo valido.'); return; }
@@ -78,8 +83,16 @@ export function InvestmentWithdrawSheet({ open, investmentByCategory, preselectC
       feeAccount: feeAccount || undefined,
       notes: notes || undefined,
     });
-    onSave(category, cvN, result);
-    onClose();
+    setSaving(true);
+    setSaveError(false);
+    try {
+      await onSave(category, cvN, result);
+      onClose(); // only after the atomic commit
+    } catch {
+      setSaveError(true); // nothing was written: keep open, offer Retry
+    } finally {
+      setSaving(false);
+    }
   };
 
   return (
@@ -160,11 +173,17 @@ export function InvestmentWithdrawSheet({ open, investmentByCategory, preselectC
           )}
 
           {error && <p className="text-xs text-red px-1">{error}</p>}
+          {saveError && (
+            <p className="text-xs text-red px-1 leading-snug">
+              Salvataggio non riuscito: nessun dato è stato scritto (movimenti e controvalore
+              si aggiornano insieme). Controlla la connessione e riprova.
+            </p>
+          )}
 
-          <button type="submit"
-            className="w-full py-3 rounded-2xl font-semibold text-primary transition-transform active:scale-[0.98]"
+          <button type="submit" disabled={saving}
+            className="w-full py-3 rounded-2xl font-semibold text-primary transition-transform active:scale-[0.98] disabled:opacity-60"
             style={{ backgroundColor: 'rgba(255,255,255,0.06)', border: '1px solid rgba(255,255,255,0.12)' }}>
-            Disinvesti ↓
+            {saving ? 'Salvataggio…' : saveError ? 'Riprova' : 'Disinvesti ↓'}
           </button>
         </form>
       )}

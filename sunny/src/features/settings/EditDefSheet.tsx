@@ -14,6 +14,8 @@ export interface DefDraft {
   isInvestment?: boolean;
   fundType?: FundType;
   tfrAmount?: number;
+  /** Investment categories only: subscription date (never in the future). */
+  subscriptionDate?: string;
 }
 
 interface Props {
@@ -36,6 +38,7 @@ export function EditDefSheet({ open, draft, withKind, canDelete, showFundType, o
   const [initialBalance, setInitialBalance] = useState('');
   const [fundType, setFundType] = useState<FundType | ''>('');
   const [tfrAmount, setTfrAmount] = useState('');
+  const [subscriptionDate, setSubscriptionDate] = useState('');
   const [confirmingDelete, setConfirmingDelete] = useState(false);
   const [emojiExpanded, setEmojiExpanded] = useState(false);
 
@@ -46,6 +49,7 @@ export function EditDefSheet({ open, draft, withKind, canDelete, showFundType, o
     setInitialBalance(draft.initialBalance !== undefined ? String(draft.initialBalance) : '');
     setFundType(draft.fundType ?? '');
     setTfrAmount(draft.tfrAmount !== undefined ? String(draft.tfrAmount) : '');
+    setSubscriptionDate(draft.subscriptionDate ?? '');
     setConfirmingDelete(false);
     setEmojiExpanded(false);
   }, [open, draft]);
@@ -68,6 +72,11 @@ export function EditDefSheet({ open, draft, withKind, canDelete, showFundType, o
     ? `Modifica ${noun}`
     : `${isCategory ? 'Nuova' : 'Nuovo'} ${noun}`;
 
+  const todayISO = new Date().toISOString().slice(0, 10);
+  // Never in the future — the date anchors past history for duration/XIRR.
+  const validSubscription = subscriptionDate !== '' && subscriptionDate <= todayISO
+    ? subscriptionDate : undefined;
+
   const save = () => {
     if (!label.trim()) return;
     const parsedBalance = initialBalance !== '' ? parseFloat(initialBalance) : undefined;
@@ -80,6 +89,7 @@ export function EditDefSheet({ open, draft, withKind, canDelete, showFundType, o
       initialBalance: showBalance ? validBalance : undefined,
       fundType: showFunds && fundType ? fundType : undefined,
       tfrAmount: showFunds && fundType === 'pension' ? validTfr : undefined,
+      subscriptionDate: isInvestmentCategory ? validSubscription : undefined,
     });
   };
 
@@ -158,6 +168,27 @@ export function EditDefSheet({ open, draft, withKind, canDelete, showFundType, o
               {isInvestmentCategory
                 ? 'Quanto avevi già investito in questa categoria prima di usare Sunny'
                 : 'Saldo del conto quando hai iniziato a usare Sunny'}
+            </p>
+          </div>
+        )}
+
+        {isInvestmentCategory && (
+          <div className="mb-6">
+            <p className="text-xs font-medium text-secondary mb-2 px-1">Data di sottoscrizione</p>
+            <input
+              type="date" value={subscriptionDate} max={todayISO}
+              onChange={e => setSubscriptionDate(e.target.value)}
+              className="block w-full min-w-0 box-border appearance-none bg-elevated rounded-2xl px-4 py-3 text-primary text-sm outline-none focus:ring-1 focus:ring-gold/40"
+            />
+            {subscriptionDate > todayISO && (
+              <p className="text-[11px] px-1 mt-1.5" style={{ color: '#E08B8B' }}>
+                La data di sottoscrizione non può essere nel futuro.
+              </p>
+            )}
+            <p className="text-[11px] text-secondary/70 px-1 mt-1.5">
+              Usata per calcolare durata e rendimento annualizzato. Con capitale iniziale a 0
+              vale la data della prima operazione; con capitale iniziale &gt; 0 senza questa data
+              il rendimento annualizzato non è disponibile.
             </p>
           </div>
         )}

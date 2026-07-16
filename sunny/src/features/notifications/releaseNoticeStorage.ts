@@ -6,7 +6,7 @@
 // follows the user across devices.
 
 /** The notice currently live. Change id + texts in ReleaseNotice.tsx to ship a new one. */
-export const RELEASE_NOTICE_ID = 'wealth-series-update-2026-07';
+export const RELEASE_NOTICE_ID = 'investments-flow-2026-07';
 
 const key = (userId: string, noticeId: string) => `sunny_seen_notice_${noticeId}_${userId}`;
 

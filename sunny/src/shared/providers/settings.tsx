@@ -20,7 +20,9 @@ interface SettingsValue {
   theme: Theme;
   includeInvestments: boolean; // count invested capital in net worth
   enableInvestments: boolean;  // show/hide entire investments feature
-  countInvestmentsInExpenses: boolean; // count monthly investments inside the "Uscite" totals
+  // NB: the legacy Firestore field `countInvestmentsInExpenses` is intentionally
+  // IGNORED (never read, never deleted): the cash flow always follows the real
+  // movements now (see shared/financialFlow.ts).
   enableBudget: boolean;       // show/hide the budget feature
   insightDepth: InsightDepth;
   aiEnabled: boolean;
@@ -34,7 +36,6 @@ interface SettingsValue {
   saveTheme: (t: Theme) => void;
   saveIncludeInvestments: (v: boolean) => void;
   saveEnableInvestments: (v: boolean) => void;
-  saveCountInvestmentsInExpenses: (v: boolean) => void;
   saveEnableBudget: (v: boolean) => void;
   saveInsightDepth: (v: InsightDepth) => void;
   saveAiEnabled: (v: boolean) => void;
@@ -73,7 +74,6 @@ export function SettingsProvider({ user, children }: { user: User | null; childr
   const [theme, setTheme] = useState<Theme>(initialTheme);
   const [includeInvestments, setIncludeInvestments] = useState(true);
   const [enableInvestments, setEnableInvestments] = useState(true);
-  const [countInvestmentsInExpenses, setCountInvestmentsInExpenses] = useState(false);
   const [enableBudget, setEnableBudget] = useState(true);
   const [insightDepth, setInsightDepth] = useState<InsightDepth>('medium');
   const [aiEnabled, setAiEnabled] = useState(false);
@@ -94,7 +94,6 @@ export function SettingsProvider({ user, children }: { user: User | null; childr
       setTheme(initialTheme());
       setIncludeInvestments(true);
       setEnableInvestments(true);
-      setCountInvestmentsInExpenses(false);
       setEnableBudget(true);
       setInsightDepth('medium');
       setAiEnabled(false);
@@ -122,7 +121,6 @@ export function SettingsProvider({ user, children }: { user: User | null; childr
       setTheme((d.theme as Theme) ?? systemTheme());
       setIncludeInvestments(d.includeInvestments ?? true);
       setEnableInvestments(d.enableInvestments ?? true);
-      setCountInvestmentsInExpenses(d.countInvestmentsInExpenses ?? false);
       setEnableBudget(d.enableBudget ?? true);
       setInsightDepth((d.insightDepth as InsightDepth) ?? 'medium');
       setAiEnabled(d.aiEnabled ?? false);
@@ -162,11 +160,6 @@ export function SettingsProvider({ user, children }: { user: User | null; childr
   const saveEnableInvestments = useCallback((v: boolean) => {
     setEnableInvestments(v);
     if (user) setDoc(settingsRef(), { enableInvestments: v }, MERGE);
-  }, [user, settingsRef]);
-
-  const saveCountInvestmentsInExpenses = useCallback((v: boolean) => {
-    setCountInvestmentsInExpenses(v);
-    if (user) setDoc(settingsRef(), { countInvestmentsInExpenses: v }, MERGE);
   }, [user, settingsRef]);
 
   const saveEnableBudget = useCallback((v: boolean) => {
@@ -221,7 +214,7 @@ export function SettingsProvider({ user, children }: { user: User | null; childr
   );
 
   return (
-    <SettingsContext.Provider value={{ categories, accounts, visibleCategories, visibleAccounts, theme, includeInvestments, enableInvestments, countInvestmentsInExpenses, enableBudget, insightDepth, aiEnabled, aiCoachWidgetEnabled, detailedInvestments, settingsLoaded, getCat, getAcc, saveCategories, saveAccounts, saveTheme, saveIncludeInvestments, saveEnableInvestments, saveCountInvestmentsInExpenses, saveEnableBudget, saveInsightDepth, saveAiEnabled, saveAiCoachWidgetEnabled, saveCurrentValue }}>
+    <SettingsContext.Provider value={{ categories, accounts, visibleCategories, visibleAccounts, theme, includeInvestments, enableInvestments, enableBudget, insightDepth, aiEnabled, aiCoachWidgetEnabled, detailedInvestments, settingsLoaded, getCat, getAcc, saveCategories, saveAccounts, saveTheme, saveIncludeInvestments, saveEnableInvestments, saveEnableBudget, saveInsightDepth, saveAiEnabled, saveAiCoachWidgetEnabled, saveCurrentValue }}>
       {children}
     </SettingsContext.Provider>
   );

@@ -1,4 +1,4 @@
-export const APP_VERSION = '1.14.0';
+export const APP_VERSION = '1.15.0';
 
 /**
  * Release channel. While in 'beta' the app is still under active development
@@ -19,6 +19,20 @@ export interface VersionEntry {
 
 /** Registro versioni mostrato in Impostazioni → Registro versioni. */
 export const VERSIONS: VersionEntry[] = [
+  {
+    // NB: NIENTE `highlight` qui — questa release è annunciata dal ReleaseNotice
+    // ("Investimenti e flussi più chiari"): un solo popup, mai entrambi.
+    version: '1.15.0', date: '2026-07-16', title: 'Investimenti e flussi più chiari',
+    changes: [
+      'Flusso di cassa unificato: "Entrate" e "Uscite" seguono i movimenti reali dei conti, con dettaglio ⓘ (entrate ordinarie, apporti esterni, rientri; spese, investimenti dai conti). "Risparmio" diventa "Flusso netto".',
+      'Il TFR è sempre escluso dal flusso di cassa ma resta nel capitale investito, nel controvalore e nel patrimonio; i versamenti senza conto contano come apporti esterni in entrata.',
+      'Rimosso l\'interruttore "Conta gli investimenti nelle uscite": non serve più, il flusso segue sempre i movimenti reali.',
+      'Salvataggio investimenti più sicuro: movimento e controvalore si aggiornano in un\'unica operazione — se fallisce non viene scritto nulla e la form propone Riprova. I movimenti con data futura aggiornano il controvalore solo quando arriva il loro giorno.',
+      'Distribuzione statistica dei versamenti una tantum su 3/6/12 mesi (o personalizzata 2–120): solo per trend, medie e consigli — il movimento resta unico e i saldi non cambiano.',
+      'Nuovo dettaglio investimento: capitale netto, guadagno totale, guadagno medio annuo, rendimento annualizzato (XIRR), durata, capitale versato nel tempo, statistiche complete e movimenti recenti.',
+      'Nuova "Data di sottoscrizione" per le categorie investimento, usata per durata e rendimento annualizzato.',
+    ],
+  },
   {
     version: '1.14.0', date: '2026-07-12', title: 'App più solida e veloce',
     changes: [

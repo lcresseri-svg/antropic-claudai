@@ -1,4 +1,6 @@
 import { Transaction, CategoryDef, ownShare, investSign } from '../../types';
+import { aggregateFlow, liquidityDelta } from '../../shared/financialFlow';
+import { monthlyInvestmentStats } from '../investments/investmentStatsSpread';
 import { formatCurrency, capitalize } from '../../utils';
 import { monthProgress, forecastSavings, seasonalMonthlyAverage, seasonalVariableMonthly, robustAvg } from '../budget/budgetUtils';
 import { forecastSavingsV4 } from '../forecast/v4/forecastCompatV4';
@@ -160,9 +162,13 @@ function median(arr: number[]): number {
 
 export interface MonthStats {
   key: string;
+  /** Entrate ordinarie (type income) — external contributions stay separate. */
   income: number;
   expense: number;
+  /** Net REAL invested in the month (full amounts, direction-aware). */
   invest: number;
+  /** Flusso netto unificato (cashIn − cashOut): TFR escluso, apporti esterni e
+   *  capitale rientrato inclusi — same figure as the dashboard's "Flusso netto". */
   savings: number;
   savingsRate: number;
   txCount: number;
@@ -170,14 +176,16 @@ export interface MonthStats {
 
 export function monthStats(txs: Transaction[], key: string): MonthStats {
   let income = 0, expense = 0, invest = 0, txCount = 0;
+  const monthTx: Transaction[] = [];
   for (const t of txs) {
     if (!t.date.startsWith(key)) continue;
     txCount++;
+    monthTx.push(t);
     if (t.type === 'income')     income  += t.amount;
     else if (t.type === 'expense')    expense += ownShare(t);
     else if (t.type === 'investment') invest  += investSign(t) * t.amount;
   }
-  const savings = income - expense - invest;
+  const savings = aggregateFlow(monthTx).netFlow;
   return { key, income, expense, invest, savings, savingsRate: income > 0 ? savings / income : NaN, txCount };
 }
 
@@ -358,6 +366,19 @@ export function buildInsights(input: InsightInput): Insight[] {
   // 6-month span including the current (partial) month — used for charts.
   const span   = Array.from({ length: 6 }, (_, i) => monthStats(transactions, monthKey(5 - i, now)));
   const spanLbl = span.map(m => shortMonth(m.key));
+
+  // STATISTICAL monthly investment flows (competenza): one-off deposits with
+  // statsSpreadMonths are ripartiti sui mesi coperti (fino al mese corrente).
+  // Used ONLY by the investment-specific insights — every cash figure
+  // (forecasts, recap, savings) keeps the real amounts.
+  const investStat = monthlyInvestmentStats(transactions, { untilMonth: curMon });
+  const investStatOf = (k: string) => investStat.get(k) ?? 0;
+  const statMonthlyInvest = investStatOf(curMon);
+  const statAvgInvest = (windowN: number) => {
+    const keys = Array.from({ length: windowN }, (_, i) => monthKey(i + 1, now));
+    const activeVals = keys.map(investStatOf).filter(v => v !== 0);
+    return activeVals.length ? avg(activeVals) : 0;
+  };
 
   const months6  = recentMonths(transactions, 6, now).filter(m => m.txCount > 0);
   const months3  = recentMonths(transactions, 3, now).filter(m => m.txCount > 0);
@@ -639,19 +660,22 @@ export function buildInsights(input: InsightInput): Insight[] {
     }
   }
 
-  // ── 5. FORECAST — Investment pace ─────────────────────────────────────────
-  if (h.avgInvest > 0 || monthlyInvestments > 0) {
-    const invChart: InsightChart = { labels: spanLbl, values: span.map(m => Math.round(m.invest)), format: 'currency', refLine: Math.round(h.avgInvest), refLabel: 'media' };
-    if (h.avgInvest > 0 && monthlyInvestments === 0 && prog > 0.5) {
-      push({ icon: '📈', category: 'forecast', title: `Non hai ancora investito questo mese`, detail: `Di solito investi ~${formatCurrency(h.avgInvest)}/mese`, accent: ACCENT.gold, tone: 'neutral',
-        explain: { what: 'Promemoria: di solito a questo punto del mese hai già investito.', how: 'Confronto tra investimenti del mese (0) e la media storica mensile.', basis: 'Ultimi 3 mesi con dati.', chart: invChart } });
-    } else if (h.avgInvest > 0 && monthlyInvestments < h.avgInvest * 0.8 && prog > 0.5) {
-      push({ icon: '📈', category: 'forecast', title: `Investimenti sotto la media`, detail: `${formatCurrency(monthlyInvestments)} vs ~${formatCurrency(h.avgInvest)} di solito`, accent: ACCENT.gold, tone: 'neutral',
-        explain: { what: 'Stai investendo meno del tuo ritmo abituale.', how: 'Investimenti del mese vs media storica mensile.', basis: 'Ultimi 3 mesi con dati.', chart: invChart } });
-    } else if (monthlyInvestments > 0) {
-      const ref = h.avgInvest > 0 ? h.avgInvest : monthlyInvestments;
-      push({ icon: '📈', category: 'forecast', title: `Investiti ${formatCurrency(monthlyInvestments)} questo mese`, detail: `A questo ritmo ~${formatCurrency(ref * 12)}/anno`, accent: ACCENT.gold, tone: 'neutral',
-        explain: { what: 'Il tuo ritmo di investimento e la proiezione annuale.', how: `Investimenti mensili × 12 = ${formatCurrency(ref * 12)} stimati all'anno.`, basis: 'Mese corrente + media storica.', chart: invChart } });
+  // ── 5. FORECAST — Investment pace (statistical: spread-aware quotas) ──────
+  {
+    const avgInvStat = statAvgInvest(3);
+    if (avgInvStat > 0 || statMonthlyInvest > 0) {
+      const invChart: InsightChart = { labels: spanLbl, values: span.map(m => Math.round(investStatOf(m.key))), format: 'currency', refLine: Math.round(avgInvStat), refLabel: 'media' };
+      if (avgInvStat > 0 && statMonthlyInvest === 0 && prog > 0.5) {
+        push({ icon: '📈', category: 'forecast', title: `Non hai ancora investito questo mese`, detail: `Di solito investi ~${formatCurrency(avgInvStat)}/mese`, accent: ACCENT.gold, tone: 'neutral',
+          explain: { what: 'Promemoria: di solito a questo punto del mese hai già investito.', how: 'Confronto tra investimenti del mese (0) e la media storica mensile. I versamenti una tantum distribuiti contano per quota mensile.', basis: 'Ultimi 3 mesi con dati.', chart: invChart } });
+      } else if (avgInvStat > 0 && statMonthlyInvest < avgInvStat * 0.8 && prog > 0.5) {
+        push({ icon: '📈', category: 'forecast', title: `Investimenti sotto la media`, detail: `${formatCurrency(statMonthlyInvest)} vs ~${formatCurrency(avgInvStat)} di solito`, accent: ACCENT.gold, tone: 'neutral',
+          explain: { what: 'Stai investendo meno del tuo ritmo abituale.', how: 'Investimenti del mese vs media storica mensile. I versamenti una tantum distribuiti contano per quota mensile.', basis: 'Ultimi 3 mesi con dati.', chart: invChart } });
+      } else if (statMonthlyInvest > 0) {
+        const ref = avgInvStat > 0 ? avgInvStat : statMonthlyInvest;
+        push({ icon: '📈', category: 'forecast', title: `Investiti ${formatCurrency(statMonthlyInvest)} questo mese`, detail: `A questo ritmo ~${formatCurrency(ref * 12)}/anno`, accent: ACCENT.gold, tone: 'neutral',
+          explain: { what: 'Il tuo ritmo di investimento e la proiezione annuale.', how: `Investimenti mensili × 12 = ${formatCurrency(ref * 12)} stimati all'anno. I versamenti distribuiti contano per quota mensile.`, basis: 'Mese corrente + media storica.', chart: invChart } });
+      }
     }
   }
 
@@ -764,19 +788,22 @@ export function buildInsights(input: InsightInput): Insight[] {
     }
   }
 
-  // ── 11. TREND — Investment rate ────────────────────────────────────────────
-  if (h6.avgIncome > 0 && h6.avgInvest > 0) {
-    const investRate = Math.round((h6.avgInvest / h6.avgIncome) * 100);
-    const base: InsightExplain = {
-      what: 'Quanta parte del reddito destini agli investimenti.',
-      how: `Media investimenti mensili (${formatCurrency(h6.avgInvest)}) ÷ media entrate mensili (${formatCurrency(h6.avgIncome)}).`,
-      basis: 'Ultimi 6 mesi con dati.',
-      chart: { labels: ['Investito', 'Reddito'], values: [Math.round(h6.avgInvest), Math.round(h6.avgIncome)], format: 'currency', highlightIndex: 0 },
-    };
-    if (investRate >= 15) {
-      push({ icon: '💎', category: 'trend', title: `Stai investendo il ${investRate}% del reddito`, detail: `Ottimo ritmo — proietti ${formatCurrency(h6.avgInvest * 12)} investiti all'anno`, accent: ACCENT.gold, tone: 'positive', explain: base });
-    } else {
-      push({ icon: '📈', category: 'trend', title: `Investi il ${investRate}% del reddito`, detail: `A questo ritmo ${formatCurrency(h6.avgInvest * 12)}/anno · la soglia consigliata è 15%`, accent: ACCENT.info, tone: 'neutral', explain: base });
+  // ── 11. TREND — Investment rate (statistical: spread-aware quotas) ────────
+  {
+    const avgInvStat6 = statAvgInvest(6);
+    if (h6.avgIncome > 0 && avgInvStat6 > 0) {
+      const investRate = Math.round((avgInvStat6 / h6.avgIncome) * 100);
+      const base: InsightExplain = {
+        what: 'Quanta parte del reddito destini agli investimenti.',
+        how: `Media investimenti mensili (${formatCurrency(avgInvStat6)}) ÷ media entrate mensili (${formatCurrency(h6.avgIncome)}). I versamenti una tantum distribuiti contano per quota mensile.`,
+        basis: 'Ultimi 6 mesi con dati.',
+        chart: { labels: ['Investito', 'Reddito'], values: [Math.round(avgInvStat6), Math.round(h6.avgIncome)], format: 'currency', highlightIndex: 0 },
+      };
+      if (investRate >= 15) {
+        push({ icon: '💎', category: 'trend', title: `Stai investendo il ${investRate}% del reddito`, detail: `Ottimo ritmo — proietti ${formatCurrency(avgInvStat6 * 12)} investiti all'anno`, accent: ACCENT.gold, tone: 'positive', explain: base });
+      } else {
+        push({ icon: '📈', category: 'trend', title: `Investi il ${investRate}% del reddito`, detail: `A questo ritmo ${formatCurrency(avgInvStat6 * 12)}/anno · la soglia consigliata è 15%`, accent: ACCENT.info, tone: 'neutral', explain: base });
+      }
     }
   }
 
@@ -1268,9 +1295,8 @@ export function buildInsights(input: InsightInput): Insight[] {
   if (h.avgExpense > 0) {
     let netBalance = 0;
     for (const t of transactions) {
-      if (t.type === 'income')          netBalance += t.amount;
-      else if (t.type === 'expense')    netBalance -= ownShare(t);
-      else if (t.type === 'investment') netBalance -= investSign(t) * t.amount;
+      // Real cash only: TFR and source-less deposits never moved any account.
+      netBalance += liquidityDelta(t);
     }
     if (netBalance > 0) {
       const monthsCovered = netBalance / h.avgExpense;
@@ -1734,9 +1760,8 @@ export function buildInsights(input: InsightInput): Insight[] {
       let total = 0;
       for (const t of transactions) {
         if (!t.date.startsWith(k)) continue;
-        const v = t.type === 'income' ? t.amount
-          : t.type === 'expense' ? -ownShare(t)
-          : -investSign(t) * t.amount;
+        // Real cash impact (TFR / source-less deposits move no account).
+        const v = liquidityDelta(t);
         byDay[localDate(t.date).getDate()] += v;
         total += v;
       }

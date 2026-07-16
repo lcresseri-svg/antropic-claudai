@@ -2,6 +2,7 @@ import { useState, useEffect, useCallback, useMemo } from 'react';
 import { collection, query, orderBy, onSnapshot, doc, updateDoc } from 'firebase/firestore';
 import { User } from 'firebase/auth';
 import { AccountDef, CategoryDef, Transaction, TransactionPatch, ownShare, investSign } from '../../types';
+import { accountDelta, aggregateFlow } from '../financialFlow';
 import { isPending, isExpiredTemplate } from '../recurrence';
 import { db } from '../../lib/firebase';
 // Every write goes through the controvalore-sync layer: investment movements
@@ -68,9 +69,9 @@ export function useTransactions(user: User | null, accounts: AccountDef[] = [], 
   const withCreatedAt = (tx: Omit<Transaction, 'id'>): Omit<Transaction, 'id'> =>
     ({ ...tx, createdAt: Date.now() });
 
-  const addTransaction = useCallback((tx: Omit<Transaction, 'id'>) => {
+  const addTransaction = useCallback(async (tx: Omit<Transaction, 'id'>) => {
     if (!user) return;
-    createTransactionsSynced(user.uid, [withCreatedAt(tx)]);
+    await createTransactionsSynced(user.uid, [withCreatedAt(tx)]);
   }, [user]);
 
   /** Bulk create. `syncInvestments: false` (CSV import) keeps investments
@@ -84,18 +85,18 @@ export function useTransactions(user: User | null, accounts: AccountDef[] = [], 
     await createTransactionsSynced(user.uid, txs.map(withCreatedAt), opts);
   }, [user]);
 
-  const replaceGroup = useCallback((deleteIds: string[], create: Omit<Transaction, 'id'>[]) => {
+  const replaceGroup = useCallback(async (deleteIds: string[], create: Omit<Transaction, 'id'>[]) => {
     if (!user) return;
-    replaceGroupSynced(user.uid, deleteIds, create.map(withCreatedAt));
+    await replaceGroupSynced(user.uid, deleteIds, create.map(withCreatedAt));
   }, [user]);
 
   // Edit a SINGLE document in place: overwrite the SAME doc id (no delete), so
   // an already-inserted transaction is never removed by an edit — only its
   // contents change (and its id/createdAt survive). Investment edits revert the
   // previously applied controvalore delta and apply the new one atomically.
-  const replaceInPlace = useCallback((id: string, data: Omit<Transaction, 'id'>) => {
+  const replaceInPlace = useCallback(async (id: string, data: Omit<Transaction, 'id'>) => {
     if (!user) return;
-    replaceTransactionSynced(user.uid, id, data);
+    await replaceTransactionSynced(user.uid, id, data);
   }, [user]);
 
   // Materialize overdue recurring occurrences: create the realized instances and
@@ -129,19 +130,25 @@ export function useTransactions(user: User | null, accounts: AccountDef[] = [], 
     );
   }, [user]);
 
-  const updateTransactions = useCallback((ids: string[], patch: TransactionPatch) => {
+  const updateTransactions = useCallback(async (ids: string[], patch: TransactionPatch) => {
     if (!user) return;
-    patchTransactionsSynced(user.uid, ids, patch);
+    // The atomic (never-degraded) path is mandatory when an investment can be
+    // touched: either the patch retypes docs to investment, or one of the
+    // selected docs already is one.
+    const idSet = new Set(ids);
+    const mustSync = patch.type === 'investment'
+      || rawTransactions.some(t => idSet.has(t.id) && t.type === 'investment');
+    await patchTransactionsSynced(user.uid, ids, patch, { mustSync });
+  }, [user, rawTransactions]);
+
+  const deleteTransaction = useCallback(async (id: string) => {
+    if (!user) return;
+    await deleteTransactionsSynced(user.uid, [id]);
   }, [user]);
 
-  const deleteTransaction = useCallback((id: string) => {
+  const deleteTransactions = useCallback(async (ids: string[]) => {
     if (!user) return;
-    deleteTransactionsSynced(user.uid, [id]);
-  }, [user]);
-
-  const deleteTransactions = useCallback((ids: string[]) => {
-    if (!user) return;
-    deleteTransactionsSynced(user.uid, ids);
+    await deleteTransactionsSynced(user.uid, ids);
   }, [user]);
 
   const deleteAll = useCallback(async () => {
@@ -172,6 +179,10 @@ export function useTransactions(user: User | null, accounts: AccountDef[] = [], 
     const monthlyInvestments = enableInvestments
       ? monthTx.filter(t => t.type === 'investment').reduce((s, t) => s + investSign(t) * t.amount, 0)
       : 0;
+    // Unified cash flow of the current month (single source of truth for the
+    // dashboard cards): TFR excluded, source-less deposits counted as external
+    // inflows, returned capital counted as inflow, transfers excluded.
+    const monthlyFlow = aggregateFlow(monthTx);
 
     // NET deposited capital by category (all-time): initial balance + deposits
     // − withdrawals, floored at 0 per category. Zeroed when the feature is off.
@@ -193,20 +204,17 @@ export function useTransactions(user: User | null, accounts: AccountDef[] = [], 
       }
     }
 
-    // Per-account balance (initial balance + cash flow through the account)
+    // Per-account balance (initial balance + cash flow through the account).
+    // accountDelta is the single source of truth: a source-less investment and
+    // the TFR portion of a deposit never touch any account.
     const accountBalances: Record<string, number> = {};
     for (const a of accounts) {
       if (a.initialBalance) accountBalances[a.id] = a.initialBalance;
     }
+    const bal = (id: string, delta: number) => { if (!id || delta === 0) return; accountBalances[id] = (accountBalances[id] ?? 0) + delta; };
     for (const t of realized) {
-      // Ignore an empty account id: a source-less investment (TFR / employer
-      // contribution) adds to invested capital without drawing from any account.
-      const bal = (id: string, delta: number) => { if (!id) return; accountBalances[id] = (accountBalances[id] ?? 0) + delta; };
-      if (t.type === 'income') bal(t.account, t.amount);
-      // Deposit debits the source account; withdrawal CREDITS the destination.
-      else if (t.type === 'investment') bal(t.account, -investSign(t) * t.amount);
-      else if (t.type === 'expense') bal(t.account, -ownShare(t));
-      else if (t.type === 'transfer') { bal(t.account, -t.amount); if (t.toAccount) bal(t.toAccount, t.amount); }
+      bal(t.account, accountDelta(t, t.account));
+      if (t.type === 'transfer' && t.toAccount) bal(t.toAccount, accountDelta(t, t.toAccount));
     }
     const liquidity = Object.values(accountBalances).reduce((s, v) => s + v, 0);
     const netWorth = includeInvestments ? liquidity + investmentTotal : liquidity;
@@ -246,7 +254,7 @@ export function useTransactions(user: User | null, accounts: AccountDef[] = [], 
       .slice(0, 20);
 
     return {
-      monthlyIncome, monthlyExpenses, monthlyInvestments, investmentTotal, investmentByCategory,
+      monthlyIncome, monthlyExpenses, monthlyInvestments, monthlyFlow, investmentTotal, investmentByCategory,
       accountBalances, liquidity, netWorth, categoryTotals, expenseByAccount, trend,
       recentTransactions: recent, monthTx,
     };

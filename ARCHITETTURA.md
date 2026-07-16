@@ -1,6 +1,6 @@
 # Sunny — Come funziona tutto
 
-> Versione corrente: **1.14.0** · branch di lavoro: `claude/sunny-consolidate-refactor-87ug0n`
+> Versione corrente: **1.15.0** · branch di lavoro: `claude/fervent-dirac-mjlbmq`
 > Le sezioni sui motori (previsione, insight, ricorrenze) restano la
 > descrizione autorevole; struttura, Functions e sicurezza sono aggiornate al
 > refactor di consolidamento (vedi anche HANDOFF.md).
@@ -132,8 +132,49 @@ L'allowlist degli eventi è duplicata in 3 punti che vanno tenuti in sync: `metr
 | `recurring` | object? | `{freq, until?}` — solo sul template della serie |
 | `projected` | boolean? | `true` = occorrenza futura, solo display, non scritta su Firestore |
 | `split` | object? | `{totalAmount, myShare}` — spesa condivisa |
+| `direction` | `'in'`/`'out'`? | solo investimenti: assente/`in` = deposito, `out` = disinvestimento |
+| `tfr` | number? | quota TFR di un versamento in fondo pensione (≤ amount) |
+| `valueDelta` | number? | investimenti: delta esplicito sul controvalore (vince su ±amount) |
+| `valueEffect` | object? | stamp `{category, delta, appliedAt}` del delta controvalore APPLICATO (doc "managed") |
+| `valuePending` | boolean? | investimento con data futura: effetto controvalore rinviato al reconciler |
+| `statsSpreadMonths` | int? | 2–120: distribuzione SOLO statistica di un deposito una tantum |
 
 **Variabile vs Ricorrente:** `!seriesId && !recurring` = spesa variabile (non pianificata). Questa distinzione guida tutto il motore di previsione.
+
+### Flusso finanziario unico (`shared/financialFlow.ts`)
+
+Helper puro, singola fonte di verità per il cash flow (dashboard, saldi conto,
+analytics, subtotali Movimenti, recap, AI digest):
+
+```
+cashIn  = entrate ordinarie + apporti esterni non-TFR + capitale rientrato dai disinvestimenti
+cashOut = spese effettive + depositi non-TFR finanziati dai conti
+netFlow = cashIn − cashOut          (in UI: "Flusso netto")
+```
+
+- TFR (`clamp(tfr ?? 0, 0, amount)`): **mai** nel flusso e **mai** a carico del
+  conto; resta in capitale investito / controvalore / patrimonio.
+- Deposito senza conto (`account === ''`): apporto esterno → entrata del flusso.
+- Gamba `out` del disinvestimento = capitale rimborsato → entrata; plus/minus e
+  commissioni restano nelle rispettive transazioni (zero doppi conteggi).
+- Trasferimenti interni esclusi dal flusso globale.
+- Il campo legacy `countInvestmentsInExpenses` in `meta/settings` è IGNORATO
+  (mai letto né cancellato).
+
+### CategoryDef investimento
+
+`initialBalance` (capitale pre-Sunny), `fundType`, `tfrAmount`, `currentValue` +
+`lastValueUpdate` (controvalore manuale, sincronizzato atomicamente da
+`investmentValueSync` — nessun fallback plain-write: o commit atomico o errore
+con Retry in form; date future → `valuePending` + reconciler idempotente
+all'avvio), `subscriptionDate` (mai futura: àncora `initialBalance` per durata e
+XIRR; con `initialBalance=0` vale la prima operazione; con `initialBalance>0`
+senza data il rendimento annualizzato non è disponibile).
+
+La performance della posizione (XIRR money-weighted, guadagno totale, durata) è
+in `features/investments/investmentPerformance.ts`; la distribuzione statistica
+dei depositi in `investmentStatsSpread.ts` (quote al centesimo, residuo
+sull'ultimo mese, competenza fino al mese corrente).
 
 ---
 

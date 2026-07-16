@@ -76,6 +76,20 @@ describe('buildWealthHistory — stock semantics', () => {
     expect(after).toMatchObject({ liquidity: 1100, investments: 400, total: 1500 });
   });
 
+  it('spec example — deposit 300 with TFR 200 FROM an account: conto −100, investito +300, patrimonio +200', () => {
+    const txs = [tx({ date: '2026-07-10', type: 'investment', category: 'etf', amount: 300, tfr: 200 })];
+    const pts = buildWealthHistory(txs, ACCOUNTS, CATS, '1m', { now: NOW });
+    const after = pts.find(p => p.date === '2026-07-10')!;
+    expect(after).toMatchObject({ liquidity: 1400, investments: 300, total: 1700 });
+  });
+
+  it('spec example — deposit 300 with TFR 200 WITHOUT account: liquidità invariata, patrimonio +300', () => {
+    const txs = [tx({ date: '2026-07-10', type: 'investment', category: 'etf', amount: 300, tfr: 200, account: '' })];
+    const pts = buildWealthHistory(txs, ACCOUNTS, CATS, '1m', { now: NOW });
+    const after = pts.find(p => p.date === '2026-07-10')!;
+    expect(after).toMatchObject({ liquidity: 1500, investments: 300, total: 1800 });
+  });
+
   it('an investment withdrawal moves value back to liquidity, total unchanged', () => {
     const txs = [
       tx({ date: '2026-07-05', type: 'investment', category: 'etf', amount: 400 }),

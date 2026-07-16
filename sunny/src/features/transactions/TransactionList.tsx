@@ -1,10 +1,11 @@
 import { useState, useMemo, useEffect } from 'react';
 import { useSearchParams } from 'react-router-dom';
-import { Transaction, TransactionType, TYPE_META, TYPE_ORDER, TransactionPatch, typeColor, investSign } from '../../types';
+import { Transaction, TransactionType, TYPE_META, TYPE_ORDER, TransactionPatch, typeColor } from '../../types';
 import { formatCurrency, formatDate, formatMonthLong, capitalize } from '../../utils';
 import { useSettings } from '../../shared/providers/settings';
 import { isPending } from '../../shared/recurrence';
-import { OutflowInfo } from '../../shared/components/OutflowInfo';
+import { aggregateFlow, netFlowDelta } from '../../shared/financialFlow';
+import { OutflowInfo, FlowInfoLine } from '../../shared/components/OutflowInfo';
 import { TransactionRow } from './TransactionRow';
 import { OptionSheet } from '../../shared/components/OptionSheet';
 
@@ -69,16 +70,17 @@ function projectedCutoffISO(v: ProjView, now: Date): string | null {
 }
 
 export function TransactionList({ transactions, projected = [], onEdit, onDelete, onBulkUpdate, onBulkDelete, onAdd }: Props) {
-  const { categories, accounts, getAcc, getCat, theme, enableInvestments, countInvestmentsInExpenses } = useSettings();
-  // When enabled, investments count as an outflow inside the group subtotals
-  // (deposits subtract, withdrawals add — direction-aware), with an ⓘ breakdown.
-  const countInvestOut = enableInvestments && countInvestmentsInExpenses;
+  const { categories, accounts, getAcc, getCat, theme } = useSettings();
   // Optional category filter driven by the URL (?cat=<id>) — set when arriving
   // from the "Vedi tutti i movimenti" CTA of the Categorie analytics screen.
   // TODO: also honour a ?period= param to scope the list to a specific window.
   const [searchParams, setSearchParams] = useSearchParams();
   const catFilter = searchParams.get('cat');
   const clearCatFilter = () => setSearchParams(p => { p.delete('cat'); return p; }, { replace: true });
+  // Optional investment-position filter (?investment=<categoryId>) — set by the
+  // "Vedi tutti i movimenti" CTA of the InvestmentDetailSheet. Stable URL param.
+  const investFilter = searchParams.get('investment');
+  const clearInvestFilter = () => setSearchParams(p => { p.delete('investment'); return p; }, { replace: true });
   // Optional account filter (?account=<id>) — set when arriving from the "Vedi
   // tutti i movimenti" CTA of the Saldo-per-conto analytics. Matches either leg
   // of a transfer (account or toAccount).
@@ -185,6 +187,7 @@ export function TransactionList({ transactions, projected = [], onEdit, onDelete
     return [...realized, ...visibleProjected]
       .filter(t => typeFilter === 'all' || t.type === typeFilter)
       .filter(t => !catFilter || t.category === catFilter)
+      .filter(t => !investFilter || t.category === investFilter)
       .filter(t => !accFilter || t.account === accFilter || t.toAccount === accFilter)
       .filter(t => !seriesFilter || t.seriesId === seriesFilter || t.id === seriesFilter)
       .filter(t => !cutoff || new Date(t.date) >= cutoff)
@@ -201,7 +204,7 @@ export function TransactionList({ transactions, projected = [], onEdit, onDelete
         }
         return sortDir === 'desc' ? diff : -diff;
       });
-  }, [transactions, projected, projView, typeFilter, period, search, sortKey, sortDir, categories, accounts, catFilter, accFilter, seriesFilter]);
+  }, [transactions, projected, projView, typeFilter, period, search, sortKey, sortDir, categories, accounts, catFilter, accFilter, seriesFilter, investFilter]);
 
   // Human name for the active series filter pill ("Serie: Netflix").
   const seriesFilterLabel = seriesFilter
@@ -224,21 +227,30 @@ export function TransactionList({ transactions, projected = [], onEdit, onDelete
 
   // Subtotals reflect only realized (actual) transactions — projected occurrences
   // and planned future-dated one-offs are forecasts and must not inflate the total.
-  const signed = (t: Transaction) =>
-    t.type === 'income' ? t.amount
-    : t.type === 'expense' ? -t.amount
-    : (t.type === 'investment' && countInvestOut) ? -investSign(t) * t.amount
-    : 0;
+  // The signed value is the unified-flow contribution (netFlow share), so the
+  // group subtotals always reconcile with the dashboard's flow cards: TFR
+  // excluded, source-less deposits +, account-funded deposits −, withdrawals +.
+  const signed = (t: Transaction) => netFlowDelta(t);
   const groupSum = (txs: Transaction[]) =>
     txs.filter(t => !isUpcoming(t)).reduce((s, t) => s + signed(t), 0);
   const groupHasReal = (txs: Transaction[]) => txs.some(t => !isUpcoming(t));
   const groupProjectedSum = (txs: Transaction[]) =>
     txs.filter(isUpcoming).reduce((s, t) => s + signed(t), 0);
-  // Outflow split for the ⓘ breakdown on a group subtotal (realized rows only).
-  const groupExpenseOut = (txs: Transaction[]) =>
-    txs.filter(t => !isUpcoming(t) && t.type === 'expense').reduce((s, t) => s + t.amount, 0);
-  const groupInvestOut = (txs: Transaction[]) =>
-    txs.filter(t => !isUpcoming(t) && t.type === 'investment').reduce((s, t) => s + investSign(t) * t.amount, 0);
+  // Flow breakdown for the ⓘ on a group subtotal (realized rows only), shown
+  // when the group contains investment movements.
+  const groupFlowLines = (txs: Transaction[]): FlowInfoLine[] => {
+    const f = aggregateFlow(txs.filter(t => !isUpcoming(t)));
+    return [
+      ...(f.ordinaryIncome > 0 ? [{ label: 'Entrate', value: f.ordinaryIncome, valueClass: 'text-green' }] : []),
+      ...(f.expenses > 0 ? [{ label: 'Spese', value: -f.expenses }] : []),
+      ...(f.investedFromAccounts > 0 ? [{ label: 'Investimenti dai conti', value: -f.investedFromAccounts, valueClass: 'text-gold' }] : []),
+      ...(f.externalContributions > 0 ? [{ label: 'Apporti esterni', value: f.externalContributions, valueClass: 'text-gold' }] : []),
+      ...(f.capitalReturned > 0 ? [{ label: 'Rientri da disinvestimenti', value: f.capitalReturned, valueClass: 'text-gold' }] : []),
+      ...(f.tfrExcluded > 0 ? [{ label: 'TFR escluso', value: f.tfrExcluded, valueClass: 'text-secondary' }] : []),
+    ];
+  };
+  const groupHasInvestment = (txs: Transaction[]) =>
+    txs.some(t => !isUpcoming(t) && t.type === 'investment');
 
   const toggleCollapse = (key: string) => {
     setCollapsed(prev => {
@@ -420,8 +432,17 @@ export function TransactionList({ transactions, projected = [], onEdit, onDelete
         </div>
 
         {/* Filtri attivi — pill rimovibili */}
-        {(period !== 'all' || projView !== PROJ_DEFAULT || catFilter || accFilter || seriesFilter) && (
+        {(period !== 'all' || projView !== PROJ_DEFAULT || catFilter || accFilter || seriesFilter || investFilter) && (
           <div className="flex flex-wrap gap-2">
+            {investFilter && (
+              <button onClick={clearInvestFilter}
+                className="inline-flex items-center gap-1.5 bg-gold/10 text-gold rounded-full pl-3 pr-2 py-1 text-xs font-medium">
+                📈 Investimento: {getCat(investFilter).icon} {getCat(investFilter).label}
+                <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round">
+                  <path d="M18 6 6 18M6 6l12 12" />
+                </svg>
+              </button>
+            )}
             {seriesFilter && (
               <button onClick={clearSeriesFilter}
                 className="inline-flex items-center gap-1.5 bg-gold/10 text-gold rounded-full pl-3 pr-2 py-1 text-xs font-medium">
@@ -537,8 +558,8 @@ export function TransactionList({ transactions, projected = [], onEdit, onDelete
                 </div>
                 {groupHasReal(txs) ? (
                   <span className="flex items-center gap-1 flex-shrink-0">
-                    {countInvestOut && groupInvestOut(txs) !== 0 && (
-                      <OutflowInfo expenses={groupExpenseOut(txs)} investments={groupInvestOut(txs)} />
+                    {groupHasInvestment(txs) && (
+                      <OutflowInfo ariaLabel="Dettaglio flusso" lines={groupFlowLines(txs)} />
                     )}
                     <span className={`text-xs font-medium balance-num ${groupSum(txs) >= 0 ? 'text-green' : 'text-secondary'}`}>
                       {formatCurrency(groupSum(txs), { sign: true })}

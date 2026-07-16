@@ -53,6 +53,10 @@ export interface CategoryDef {
   tfrAmount?: number;      // pension funds only: portion of capital that is TFR
   currentValue?: number;   // investment categories only: market value, entered manually
   lastValueUpdate?: string; // ISO date of the last currentValue update
+  /** Investment categories only: date (YYYY-MM-DD, never future) the position was
+   *  subscribed. Anchors initialBalance in time for duration / annualized return.
+   *  Absent + initialBalance=0 → the first recorded operation is the start. */
+  subscriptionDate?: string;
   archived?: boolean;      // soft-deleted: removed by the user but still referenced in
                            // the transaction history. Resolved by getCat for display,
                            // hidden from every picker / management / planning list.
@@ -104,6 +108,15 @@ export interface Transaction {
    *  edits/deletes never touch currentValue). Written atomically with the
    *  settings update — never by hand. */
   valueEffect?: AppliedValueEffect;
+  /** Investments only: TRUE while the movement is future-dated and its
+   *  controvalore effect has NOT been applied yet. Cleared (and replaced by a
+   *  valueEffect stamp) by the idempotent reconciler once the date is due.
+   *  Distinguishes "pending, will be applied" from legacy/unmanaged docs. */
+  valuePending?: boolean;
+  /** One-off investment deposits only: spread the amount over N months (2–120)
+   *  in trends/averages/insights. PURELY STATISTICAL — the single real movement,
+   *  balances, cash flow, forecasts and currentValue are untouched. */
+  statsSpreadMonths?: number;
 }
 
 /** The currentValue change actually applied by a managed investment document. */

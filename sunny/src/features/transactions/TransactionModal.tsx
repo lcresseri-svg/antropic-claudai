@@ -17,7 +17,11 @@ interface Props {
    *  non-admin path: plain `guessCategory`, behaviour unchanged. */
   recognize?: (description: string, candidates: Candidate[]) => Recognition | null;
   onClose: () => void;
-  onSave: (deleteIds: string[], create: Omit<Transaction, 'id'>[]) => void;
+  /** For INVESTMENT movements the modal awaits the returned promise (atomic
+   *  commit movimento+controvalore): loading state, no double submit, stays
+   *  open with Retry on failure. Other types keep the offline-safe
+   *  fire-and-forget behaviour. */
+  onSave: (deleteIds: string[], create: Omit<Transaction, 'id'>[]) => void | Promise<void>;
 }
 
 interface Reimb { amount: string; account: string }
@@ -52,7 +56,12 @@ export function TransactionModal({ open, editing, groupTransfers = [], seriesEdi
   const [instFirstDate, setInstFirstDate] = useState(today());
   const [fee, setFee] = useState('');
   const [tfr, setTfr] = useState('');
+  // Statistical spread (one-off investment deposits only): 'none' | 3 | 6 | 12 | 'custom'.
+  const [spreadChoice, setSpreadChoice] = useState<'none' | 'custom' | number>('none');
+  const [spreadCustom, setSpreadCustom] = useState('');
 
+  const [saving, setSaving] = useState(false);
+  const [saveError, setSaveError] = useState(false);
   const [amountError, setAmountError] = useState(false);
   const [categoryTouched, setCategoryTouched] = useState(false);
   const [showMore, setShowMore] = useState(false);
@@ -92,6 +101,10 @@ export function TransactionModal({ open, editing, groupTransfers = [], seriesEdi
         ? String(groupTransfers.find(t => t.type === 'expense')?.amount ?? '')
         : '');
       setTfr(editing.tfr !== undefined ? String(editing.tfr) : '');
+      const sp = editing.statsSpreadMonths;
+      if (sp == null) { setSpreadChoice('none'); setSpreadCustom(''); }
+      else if (sp === 3 || sp === 6 || sp === 12) { setSpreadChoice(sp); setSpreadCustom(''); }
+      else { setSpreadChoice('custom'); setSpreadCustom(String(sp)); }
     } else {
       const lastAcc = localStorage.getItem('sunny:lastAccount');
       setType(defaultType ?? 'expense'); setDescription(''); setAmount(''); setDate(today());
@@ -102,7 +115,9 @@ export function TransactionModal({ open, editing, groupTransfers = [], seriesEdi
       setSeriesKind('none'); setRecurringFreq('monthly'); setRecurringUntil('');
       setInstTotal(''); setInstCount(''); setInstFirstDate(today());
       setFee(''); setTfr('');
+      setSpreadChoice('none'); setSpreadCustom('');
     }
+    setSaving(false); setSaveError(false);
     setAmountError(false);
     setCategoryTouched(!!editing);
     setConfirmDelete(false);
@@ -181,8 +196,39 @@ export function TransactionModal({ open, editing, groupTransfers = [], seriesEdi
     setSeriesKind('none'); setRecurringFreq('monthly'); setRecurringUntil('');
     setInstTotal(''); setInstCount(''); setInstFirstDate(today());
     setFee(''); setTfr('');
+    setSpreadChoice('none'); setSpreadCustom('');
     setAmountError(false); setConfirmDelete(false); setShowMore(false);
     setCategoryTouched(true); // keep type, category, account, date
+  };
+
+  /**
+   * Persist and close. INVESTMENT movements are atomic-or-nothing: await the
+   * commit (loading, no double submit) and keep the modal open with a Retry on
+   * failure — never a partial state. Everything else keeps the historical
+   * offline-safe fire-and-forget path (a batched write resolves on server ack,
+   * so awaiting it offline would hang the form for plain expenses).
+   */
+  const commit = async (deleteIds: string[], create: Omit<Transaction, 'id'>[], keepOpen: boolean) => {
+    const involvesInvestment = editing?.type === 'investment'
+      || create.some(t => t.type === 'investment')
+      || groupTransfers.some(t => t.type === 'investment');
+    if (!involvesInvestment) {
+      Promise.resolve(onSave(deleteIds, create)).catch(e =>
+        console.error('save failed', (e as { code?: string })?.code ?? e));
+      if (keepOpen && !editing) { resetKeepContext(); } else { onClose(); }
+      return;
+    }
+    if (saving) return;
+    setSaving(true);
+    setSaveError(false);
+    try {
+      await onSave(deleteIds, create);
+      if (keepOpen && !editing) { resetKeepContext(); } else { onClose(); }
+    } catch {
+      setSaveError(true); // nothing was written: stay open, offer Retry
+    } finally {
+      setSaving(false);
+    }
   };
 
   const doSubmit = (keepOpen: boolean) => {
@@ -275,8 +321,7 @@ export function TransactionModal({ open, editing, groupTransfers = [], seriesEdi
         });
       }
       if (account) try { localStorage.setItem('sunny:lastAccount', account); } catch { /* ignore */ }
-      onSave(deleteIds, finalize(create));
-      if (keepOpen && !editing) { resetKeepContext(); } else { onClose(); }
+      void commit(deleteIds, finalize(create), keepOpen);
       return;
     }
 
@@ -295,6 +340,13 @@ export function TransactionModal({ open, editing, groupTransfers = [], seriesEdi
     const tfrRaw = isPensionInvest ? parseFloat(tfr.replace(',', '.')) : NaN;
     const tfrClean = tfrRaw > 0 ? Math.min(tfrRaw, value) : undefined;
 
+    // Statistical spread: one-off investment DEPOSITS only (series excluded).
+    const effDirection = type === 'investment' ? (editing?.direction ?? 'in') : undefined;
+    const spreadRaw = spreadChoice === 'custom' ? parseInt(spreadCustom, 10) : spreadChoice;
+    const spreadClean = type === 'investment' && effDirection !== 'out' && !isSeries
+      && typeof spreadRaw === 'number' && Number.isInteger(spreadRaw) && spreadRaw >= 2 && spreadRaw <= 120
+      ? spreadRaw : undefined;
+
     const create: Omit<Transaction, 'id'>[] = [{
       type, description: desc, amount: value, date: effDate,
       category: type === 'transfer' ? 'trasferimento' : category,
@@ -303,9 +355,10 @@ export function TransactionModal({ open, editing, groupTransfers = [], seriesEdi
       notes: notes.trim() || undefined,
       recurring, seriesId, seriesMeta,
       ...(type === 'investment' && tfrClean ? { tfr: tfrClean } : {}),
+      ...(spreadClean ? { statsSpreadMonths: spreadClean } : {}),
       // Investments keep their flow direction on edit ('out' stays a withdrawal);
       // anything created here is a deposit ('in').
-      ...(type === 'investment' ? { direction: editing?.direction ?? 'in' as const } : {}),
+      ...(type === 'investment' ? { direction: effDirection } : {}),
       ...(groupId ? { groupId } : {}),
     }];
     if (hasFee) {
@@ -315,8 +368,7 @@ export function TransactionModal({ open, editing, groupTransfers = [], seriesEdi
       });
     }
     if (account) try { localStorage.setItem('sunny:lastAccount', account); } catch { /* ignore */ }
-    onSave(deleteIds, finalize(create));
-    if (keepOpen && !editing) { resetKeepContext(); } else { onClose(); }
+    void commit(deleteIds, finalize(create), keepOpen);
   };
 
   const submit = (e: React.FormEvent) => {
@@ -515,6 +567,31 @@ export function TransactionModal({ open, editing, groupTransfers = [], seriesEdi
             </Field>
           )}
 
+          {/* Distribuzione statistica — one-off investment deposits only */}
+          {type === 'investment' && (editing?.direction ?? 'in') !== 'out' && seriesKind === 'none' && (
+            <Field label="Distribuzione statistica (opzionale)">
+              <div className="grid grid-cols-5 gap-1.5">
+                {([['none', 'Nessuna'], [3, '3 mesi'], [6, '6 mesi'], [12, '12 mesi'], ['custom', 'Personal.']] as ['none' | 'custom' | number, string][]).map(([v, lbl]) => (
+                  <button key={String(v)} type="button" onClick={() => setSpreadChoice(v)}
+                    className={`py-2 rounded-xl text-[11px] font-semibold transition-colors ${spreadChoice === v ? 'bg-gold text-bg' : 'bg-elevated text-secondary'}`}>
+                    {lbl}
+                  </button>
+                ))}
+              </div>
+              {spreadChoice === 'custom' && (
+                <input type="text" inputMode="numeric" value={spreadCustom} placeholder="2–120 mesi"
+                  onChange={e => setSpreadCustom(e.target.value.replace(/\D/g, ''))}
+                  className="mt-2 w-full bg-elevated rounded-xl px-3 py-2.5 text-primary text-sm outline-none focus:ring-1 focus:ring-gold/40 balance-num" />
+              )}
+              {spreadChoice !== 'none' && (
+                <p className="text-[11px] mt-1.5 px-1 text-secondary leading-snug">
+                  Solo nelle statistiche: il movimento resta unico, conti e flusso di cassa
+                  cambiano interamente alla data reale.
+                </p>
+              )}
+            </Field>
+          )}
+
           {/* Vedi altro — opzioni avanzate */}
           <button type="button" onClick={() => setShowMore(s => !s)}
             className="w-full flex items-center justify-center gap-1.5 py-2 text-sm font-medium text-secondary">
@@ -687,9 +764,9 @@ export function TransactionModal({ open, editing, groupTransfers = [], seriesEdi
 
           {editing && (
             confirmDelete
-              ? <button type="button"
-                  onClick={() => { onSave([editing.id, ...groupTransfers.map(t => t.id)], []); onClose(); }}
-                  className="w-full py-3 rounded-2xl font-semibold text-[#E08B8B] text-sm bg-[#E08B8B]/15">
+              ? <button type="button" disabled={saving}
+                  onClick={() => void commit([editing.id, ...groupTransfers.map(t => t.id)], [], false)}
+                  className="w-full py-3 rounded-2xl font-semibold text-[#E08B8B] text-sm bg-[#E08B8B]/15 disabled:opacity-60">
                   {seriesEdit ? 'Conferma: elimina la serie' : 'Conferma eliminazione'}
                 </button>
               : <button type="button" onClick={() => setConfirmDelete(true)}
@@ -702,15 +779,21 @@ export function TransactionModal({ open, editing, groupTransfers = [], seriesEdi
           {/* Fixed action bar: part of the card's mask (like the header), the
               form scrolls in the window above it. */}
           <div className="shrink-0 px-5 sm:px-7 pt-3 pb-5 sm:pb-7 bg-[var(--modal-hdr-bg)] space-y-2">
-            <button type="submit"
-              className="w-full py-3 rounded-2xl font-semibold transition-transform active:scale-[0.98]"
+            {saveError && (
+              <p className="text-xs text-red px-1 leading-snug">
+                Salvataggio non riuscito: nessun dato è stato scritto (movimento e controvalore
+                si aggiornano insieme). Controlla la connessione e riprova.
+              </p>
+            )}
+            <button type="submit" disabled={saving}
+              className="w-full py-3 rounded-2xl font-semibold transition-transform active:scale-[0.98] disabled:opacity-60"
               style={{ backgroundColor: typeColor(type, theme), color: typeOnColor(theme) }}>
-              {editing ? 'Salva modifiche' : `Aggiungi ${TYPE_META[type].label.toLowerCase()}`}
+              {saving ? 'Salvataggio…' : saveError ? 'Riprova' : editing ? 'Salva modifiche' : `Aggiungi ${TYPE_META[type].label.toLowerCase()}`}
             </button>
 
             {!editing && (
-              <button type="button" onClick={() => doSubmit(true)}
-                className="w-full py-2.5 rounded-2xl text-sm font-medium text-secondary bg-elevated active:bg-card-hover transition-colors">
+              <button type="button" onClick={() => doSubmit(true)} disabled={saving}
+                className="w-full py-2.5 rounded-2xl text-sm font-medium text-secondary bg-elevated active:bg-card-hover transition-colors disabled:opacity-60">
                 Salva e aggiungi un'altra
               </button>
             )}

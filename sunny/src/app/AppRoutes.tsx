@@ -78,6 +78,7 @@ export function AppRoutes({ user, brand, tx, budget, editing, onLogOut, onDelete
             netWorth={tx.netWorth} liquidity={tx.liquidity} investmentTotal={tx.investmentTotal}
             monthlyIncome={tx.monthlyIncome} monthlyExpenses={tx.monthlyExpenses}
             monthlyInvestments={tx.monthlyInvestments}
+            monthlyFlow={tx.monthlyFlow}
             investmentByCategory={tx.investmentByCategory}
             accountBalances={tx.accountBalances}
             trend={tx.trend} transactions={tx.transactions}

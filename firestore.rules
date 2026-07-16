@@ -39,6 +39,11 @@ service cloud.firestore {
         && (!('direction' in d) || d.direction in ['in', 'out'])
         && (!('toAccount' in d) || vStr(d.toAccount, 200))
         && (!('tfr' in d) || (d.tfr is number && d.tfr >= 0 && d.tfr <= d.amount))
+        // Statistical spread of a one-off investment deposit (2–120 months).
+        && (!('statsSpreadMonths' in d) || (d.statsSpreadMonths is int && d.statsSpreadMonths >= 2 && d.statsSpreadMonths <= 120))
+        // Future-dated investment whose controvalore effect is deferred to the
+        // idempotent reconciler. Boolean marker, cleared once applied.
+        && (!('valuePending' in d) || d.valuePending is bool)
         && (!('seriesId' in d) || vStr(d.seriesId, 128))
         && (!('groupId' in d) || vStr(d.groupId, 128))
         && (!('demo' in d) || d.demo is bool)

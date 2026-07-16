@@ -96,18 +96,18 @@ describe('planValueChange — ciclo di vita', () => {
   const stamp = { category: 'etf', delta: 100, appliedAt: 1 };
 
   it('creazione (anche istanza di ricorrenza materializzata): applica e stampiglia', () => {
-    const p = planValueChange({ exists: false, next: invest() });
-    expect(p).toEqual({ revert: null, request: { category: 'etf', delta: 100 }, stamp: 'set' });
+    const p = planValueChange({ exists: false, todayISO: TODAY, next: invest() });
+    expect(p).toEqual({ revert: null, request: { category: 'etf', delta: 100 }, stamp: 'set', pending: false });
   });
 
   it('creazione di un template ricorrente: nessun effetto', () => {
-    const p = planValueChange({ exists: false, next: invest({ recurring: { freq: 'monthly' } }) });
-    expect(p).toEqual({ revert: null, request: null, stamp: 'none' });
+    const p = planValueChange({ exists: false, todayISO: TODAY, next: invest({ recurring: { freq: 'monthly' } }) });
+    expect(p).toEqual({ revert: null, request: null, stamp: 'none', pending: false });
   });
 
   it('modifica di documento gestito: annulla il delta APPLICATO, poi riapplica', () => {
     const p = planValueChange({
-      exists: true, priorType: 'investment', priorEffect: stamp,
+      exists: true, todayISO: TODAY, priorType: 'investment', priorEffect: stamp,
       next: invest({ amount: 150, direction: 'out', category: 'crypto' }),
     });
     expect(p.revert).toEqual({ category: 'etf', delta: -100 });      // annulla sull'etf
@@ -117,39 +117,39 @@ describe('planValueChange — ciclo di vita', () => {
 
   it('modifica che trasforma un investimento gestito in spesa: solo revert', () => {
     const p = planValueChange({
-      exists: true, priorType: 'investment', priorEffect: stamp,
+      exists: true, todayISO: TODAY, priorType: 'investment', priorEffect: stamp,
       next: { type: 'expense', amount: 100, category: 'spesa' },
     });
-    expect(p).toEqual({ revert: { category: 'etf', delta: -100 }, request: null, stamp: 'clear' });
+    expect(p).toEqual({ revert: { category: 'etf', delta: -100 }, request: null, stamp: 'clear', pending: false });
   });
 
   it('eliminazione: annulla solo ciò che era stato applicato', () => {
-    expect(planValueChange({ exists: true, priorType: 'investment', priorEffect: stamp, next: null }))
-      .toEqual({ revert: { category: 'etf', delta: -100 }, request: null, stamp: 'none' });
+    expect(planValueChange({ exists: true, todayISO: TODAY, priorType: 'investment', priorEffect: stamp, next: null }))
+      .toEqual({ revert: { category: 'etf', delta: -100 }, request: null, stamp: 'none', pending: false });
     // documento legacy (senza stamp): l'eliminazione non tocca nulla
-    expect(planValueChange({ exists: true, priorType: 'investment', priorEffect: null, next: null }))
-      .toEqual({ revert: null, request: null, stamp: 'none' });
+    expect(planValueChange({ exists: true, todayISO: TODAY, priorType: 'investment', priorEffect: null, next: null }))
+      .toEqual({ revert: null, request: null, stamp: 'none', pending: false });
   });
 
   it('legacy: investimento pre-feature resta unmanaged anche se modificato', () => {
     const p = planValueChange({
-      exists: true, priorType: 'investment', priorEffect: null,
+      exists: true, todayISO: TODAY, priorType: 'investment', priorEffect: null,
       next: invest({ amount: 999 }),
     });
-    expect(p).toEqual({ revert: null, request: null, stamp: 'none' });
+    expect(p).toEqual({ revert: null, request: null, stamp: 'none', pending: false });
   });
 
   it('transizione spesa → investimento: diventa gestito', () => {
     const p = planValueChange({
-      exists: true, priorType: 'expense', priorEffect: null,
+      exists: true, todayISO: TODAY, priorType: 'expense', priorEffect: null,
       next: invest(),
     });
-    expect(p).toEqual({ revert: null, request: { category: 'etf', delta: 100 }, stamp: 'set' });
+    expect(p).toEqual({ revert: null, request: { category: 'etf', delta: 100 }, stamp: 'set', pending: false });
   });
 
   it('doppia esecuzione: revert+riapplica dello stesso stato = effetto netto nullo', () => {
     const p = planValueChange({
-      exists: true, priorType: 'investment', priorEffect: stamp, next: invest(),
+      exists: true, todayISO: TODAY, priorType: 'investment', priorEffect: stamp, next: invest(),
     });
     const r = applyValueChanges(categories(), [p.revert!, p.request!], TODAY);
     expect(r.categories.find(c => c.id === 'etf')!.currentValue).toBe(1000); // invariato
@@ -160,16 +160,74 @@ describe('planValueChange — ciclo di vita', () => {
   });
 });
 
+describe('planValueChange — investimenti con data futura (pending)', () => {
+  const stamp = { category: 'etf', delta: 100, appliedAt: 1 };
+  const FUTURE = '2026-08-01';
+
+  it('creazione futura: nessun effetto subito, marcato valuePending', () => {
+    const p = planValueChange({ exists: false, todayISO: TODAY, next: invest({ date: FUTURE }) });
+    expect(p).toEqual({ revert: null, request: null, stamp: 'none', pending: true });
+  });
+
+  it('creazione con data odierna/passata: effetto immediato, non pending', () => {
+    const p = planValueChange({ exists: false, todayISO: TODAY, next: invest({ date: TODAY }) });
+    expect(p).toEqual({ revert: null, request: { category: 'etf', delta: 100 }, stamp: 'set', pending: false });
+  });
+
+  it('edit di un doc pending che resta futuro: resta pending, nessun effetto', () => {
+    const p = planValueChange({
+      exists: true, todayISO: TODAY, priorType: 'investment', priorEffect: null, priorPending: true,
+      next: invest({ date: FUTURE, amount: 250 }),
+    });
+    expect(p).toEqual({ revert: null, request: null, stamp: 'none', pending: true });
+  });
+
+  it('edit di un doc pending ri-datato a oggi: applica UNA volta e stampiglia', () => {
+    const p = planValueChange({
+      exists: true, todayISO: TODAY, priorType: 'investment', priorEffect: null, priorPending: true,
+      next: invest({ date: TODAY }),
+    });
+    expect(p).toEqual({ revert: null, request: { category: 'etf', delta: 100 }, stamp: 'set', pending: false });
+  });
+
+  it('edit di un doc GESTITO ri-datato al futuro: revert e torna pending', () => {
+    const p = planValueChange({
+      exists: true, todayISO: TODAY, priorType: 'investment', priorEffect: stamp,
+      next: invest({ date: FUTURE }),
+    });
+    expect(p).toEqual({ revert: { category: 'etf', delta: -100 }, request: null, stamp: 'clear', pending: true });
+  });
+
+  it('delete di un doc pending: nessun effetto da annullare', () => {
+    expect(planValueChange({ exists: true, todayISO: TODAY, priorType: 'investment', priorEffect: null, priorPending: true, next: null }))
+      .toEqual({ revert: null, request: null, stamp: 'none', pending: false });
+  });
+
+  it('legacy resta legacy anche se ri-datato al futuro (mai pending retroattivo)', () => {
+    const p = planValueChange({
+      exists: true, todayISO: TODAY, priorType: 'investment', priorEffect: null,
+      next: invest({ date: FUTURE }),
+    });
+    expect(p).toEqual({ revert: null, request: null, stamp: 'none', pending: false });
+  });
+
+  it('desiredValueDelta con todayISO: null per date future, valore per date dovute', () => {
+    expect(desiredValueDelta(invest({ date: FUTURE }), TODAY)).toBeNull();
+    expect(desiredValueDelta(invest({ date: TODAY }), TODAY)).toEqual({ category: 'etf', delta: 100 });
+    expect(desiredValueDelta(invest({ date: '2026-01-01' }), TODAY)).toEqual({ category: 'etf', delta: 100 });
+  });
+});
+
 describe('scenari end-to-end (pianifica + applica)', () => {
   it('ricorrenza materializzata: N istanze applicate una volta sola', () => {
     // Tre istanze create dal catch-up: ognuna pianificata come CREATE.
-    const plans = [1, 2, 3].map(() => planValueChange({ exists: false, next: invest({ amount: 100 }) }));
+    const plans = [1, 2, 3].map(() => planValueChange({ exists: false, todayISO: TODAY, next: invest({ amount: 100 }) }));
     const r = applyValueChanges(categories(), plans.map(p => p.request!), TODAY);
     expect(r.categories.find(c => c.id === 'etf')!.currentValue).toBe(1300);
     // Le istanze ora sono stampigliate: un secondo giro (modifica identica)
     // produce revert+apply nets zero → mai applicate due volte.
     const second = plans.map((_, i) => planValueChange({
-      exists: true, priorType: 'investment',
+      exists: true, todayISO: TODAY, priorType: 'investment',
       priorEffect: { category: 'etf', delta: r.applied[i].applied, appliedAt: 1 },
       next: invest({ amount: 100 }),
     }));
@@ -185,7 +243,7 @@ describe('scenari end-to-end (pianifica + applica)', () => {
     // Posizione: cv 1000, prelievo cash 600 → out leg amount=capRimborsato,
     // valueDelta = −600 → nuovo cv 400 (= max(0, 1000−600)).
     const out = invest({ direction: 'out', amount: 480, valueDelta: -600 });
-    const p = planValueChange({ exists: false, next: out });
+    const p = planValueChange({ exists: false, todayISO: TODAY, next: out });
     const r = applyValueChanges(categories(), [p.request!], TODAY);
     expect(r.categories.find(c => c.id === 'etf')!.currentValue).toBe(400);
   });

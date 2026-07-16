@@ -45,7 +45,7 @@ function reorder<T>(arr: T[], from: number, to: number): T[] {
 export function SettingsScreen({ user, transactions, budgetExport, onLogOut, onDeleteAll, onDeleteAccount }: Props) {
   const navigate = useNavigate();
   const location = useLocation();
-  const { categories, accounts, visibleCategories, visibleAccounts, theme, includeInvestments, enableInvestments, countInvestmentsInExpenses, enableBudget, insightDepth, aiEnabled, aiCoachWidgetEnabled, detailedInvestments, saveCategories, saveAccounts, saveTheme, saveIncludeInvestments, saveEnableInvestments, saveCountInvestmentsInExpenses, saveEnableBudget, saveInsightDepth, saveAiEnabled, saveAiCoachWidgetEnabled } = useSettings();
+  const { categories, accounts, visibleCategories, visibleAccounts, theme, includeInvestments, enableInvestments, enableBudget, insightDepth, aiEnabled, aiCoachWidgetEnabled, detailedInvestments, saveCategories, saveAccounts, saveTheme, saveIncludeInvestments, saveEnableInvestments, saveEnableBudget, saveInsightDepth, saveAiEnabled, saveAiCoachWidgetEnabled } = useSettings();
   const [sub, setSub] = useState<Sub>('menu');
   const [editing, setEditing] = useState<{ kind: 'category' | 'account'; draft: DefDraft; isNew: boolean; withKind?: boolean } | null>(null);
   const [confirmReset, setConfirmReset] = useState(false);
@@ -163,15 +163,28 @@ export function SettingsScreen({ user, transactions, budgetExport, onLogOut, onD
     if (!editing) return;
     if (editing.kind === 'category') {
       const kind = d.kind ?? 'expense';
-      const def: CategoryDef = { id: d.id, label: d.label, icon: d.icon, color: d.color, kind,
-        ...(kind === 'investment' && d.initialBalance !== undefined ? { initialBalance: d.initialBalance } : {}),
-        ...(kind === 'investment' && d.fundType ? { fundType: d.fundType } : {}),
-        ...(kind === 'investment' && d.fundType === 'pension' && d.tfrAmount !== undefined ? { tfrAmount: d.tfrAmount } : {}) };
+      // Start from the EXISTING definition so fields the sheet doesn't edit
+      // (currentValue, lastValueUpdate, archived) survive the edit — the
+      // controvalore sync depends on them.
+      const prev = categories.find(c => c.id === d.id);
+      const def: CategoryDef = { ...(prev ?? {}), id: d.id, label: d.label, icon: d.icon, color: d.color, kind };
+      delete def.initialBalance; delete def.fundType; delete def.tfrAmount; delete def.subscriptionDate;
+      if (kind === 'investment') {
+        if (d.initialBalance !== undefined) def.initialBalance = d.initialBalance;
+        if (d.fundType) def.fundType = d.fundType;
+        if (d.fundType === 'pension' && d.tfrAmount !== undefined) def.tfrAmount = d.tfrAmount;
+        if (d.subscriptionDate) def.subscriptionDate = d.subscriptionDate;
+      } else {
+        // No longer an investment: the manual market value loses meaning.
+        delete def.currentValue; delete def.lastValueUpdate;
+      }
       saveCategories(editing.isNew ? [...categories, def] : categories.map(c => c.id === d.id ? def : c));
     } else {
-      const def: AccountDef = { id: d.id, label: d.label, icon: d.icon, color: d.color,
-        ...(d.initialBalance !== undefined ? { initialBalance: d.initialBalance } : {}),
-        ...(d.isInvestment ? { isInvestment: true } : {}) };
+      const prev = accounts.find(a => a.id === d.id);
+      const def: AccountDef = { ...(prev ?? {}), id: d.id, label: d.label, icon: d.icon, color: d.color };
+      delete def.initialBalance;
+      if (d.initialBalance !== undefined) def.initialBalance = d.initialBalance;
+      if (d.isInvestment) def.isInvestment = true;
       saveAccounts(editing.isNew ? [...accounts, def] : accounts.map(a => a.id === d.id ? def : a));
     }
     setEditing(null);
@@ -236,16 +249,6 @@ export function SettingsScreen({ user, transactions, budgetExport, onLogOut, onD
       sub={includeInvestments ? 'Il patrimonio comprende il capitale investito' : 'Il patrimonio mostra solo la liquidità'}
       on={includeInvestments}
       onToggle={() => saveIncludeInvestments(!includeInvestments)}
-    />
-  ) : null;
-  const rowCountInvestExpense = enableInvestments ? (
-    <ToggleRow
-      icon="➖" label="Conta gli investimenti nelle uscite"
-      sub={countInvestmentsInExpenses
-        ? 'Il totale delle uscite include gli investimenti (con dettaglio ⓘ)'
-        : 'Gli investimenti restano fuori dal totale delle uscite'}
-      on={countInvestmentsInExpenses}
-      onToggle={() => saveCountInvestmentsInExpenses(!countInvestmentsInExpenses)}
     />
   ) : null;
   const rowBudget = (
@@ -469,7 +472,7 @@ export function SettingsScreen({ user, transactions, budgetExport, onLogOut, onD
           <ManageHeader title="Generali" editMode={false} onBack={exitToMenu} onToggleEdit={() => {}} hideEdit />
           <div className="space-y-5 md:max-w-xl">
             <SettingsGroup title="Aspetto">{rowTheme}</SettingsGroup>
-            <SettingsGroup title="Funzionalità">{rowInvest}{rowIncludeInvest}{rowCountInvestExpense}{rowBudget}</SettingsGroup>
+            <SettingsGroup title="Funzionalità">{rowInvest}{rowIncludeInvest}{rowBudget}</SettingsGroup>
             <SettingsGroup title="Analisi e AI">{rowAiEnabled}{rowAiCoach}{blockDepth}</SettingsGroup>
             {notificationsGroup}
           </div>
@@ -499,7 +502,7 @@ export function SettingsScreen({ user, transactions, budgetExport, onLogOut, onD
         <>
           <ManageHeader title="Investimenti" editMode={false} onBack={exitToMenu} onToggleEdit={() => {}} hideEdit />
           <div className="space-y-5 md:max-w-xl">
-            <SettingsGroup title="Portafoglio">{rowInvest}{rowIncludeInvest}{rowCountInvestExpense}</SettingsGroup>
+            <SettingsGroup title="Portafoglio">{rowInvest}{rowIncludeInvest}</SettingsGroup>
           </div>
         </>
       )}
