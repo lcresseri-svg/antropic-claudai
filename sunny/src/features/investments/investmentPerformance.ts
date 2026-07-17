@@ -1,29 +1,47 @@
 /**
  * Performance di una posizione d'investimento — PURE logic (no React/Firestore).
  *
- * Ricostruisce i flussi reali di una categoria investimento e ne deriva i KPI
- * del dettaglio: capitale netto, guadagno totale, guadagno medio annuo,
- * rendimento annualizzato (XIRR / money-weighted), durata e statistiche.
+ * Ricostruisce i flussi REALI di una categoria investimento e ne deriva i KPI
+ * del dettaglio. Regole comuni a TUTTE le metriche di questo modulo:
+ *
+ *  - importi reali (mai le quote di statsSpreadMonths);
+ *  - esclusi i movimenti futuri (date > oggi) e i template ricorrenti /
+ *    proiezioni — contano solo le occorrenze effettive;
+ *  - TFR e apporti senza conto contano PER INTERO come capitale versato
+ *    (la loro esclusione vale solo per il cash flow, non per la performance);
+ *  - data di partenza = subscriptionDate, con FALLBACK al primo movimento
+ *    effettivo quando manca;
+ *  - anni = giorni / 365,2425 (anno civile medio);
+ *  - con dati non validi le metriche valgono null (UI: "—" con spiegazione,
+ *    mai 0 inventato).
+ *
+ * KPI "Media annua semplice" (NON usa XIRR):
+ *    versato          = initialBalance + Σ versamenti effettivi (TFR/apporti inclusi)
+ *    prelevato        = Σ incassi dai disinvestimenti
+ *    guadagnoTotale   = currentValue + prelevato − versato
+ *    €/anno           = guadagnoTotale / anni
+ *    %/anno           = (guadagnoTotale / versato) / anni
+ *
+ * "Rendimento annualizzato (XIRR)" resta una statistica avanzata (money-
+ * weighted, bisezione robusta + rifinitura Newton) e non sostituisce il KPI.
  *
  * Convenzioni sui dati esistenti (investmentTransactionBuilder):
- *  - deposito: investment direction 'in' (amount = intero versamento, incl. TFR
- *    e apporti senza conto — per la PERFORMANCE contano per intero);
+ *  - deposito: investment direction 'in' (amount = intero versamento);
  *  - disinvestimento: la gamba 'out' porta amount = capitaleRimborsato e
  *    valueDelta = −cash incassato → l'INCASSO reale è |valueDelta| (fallback
  *    amount per dati legacy). Plus/minusvalenze restano nelle loro transazioni
  *    income/expense collegate via groupId — MAI ricontate qui;
  *  - commissioni: expense "Commissione…" con lo stesso groupId del movimento.
- *
- * Con dati insufficienti i KPI valgono null (UI: "—", mai 0 inventato).
  */
 import { Transaction, CategoryDef } from '../../types';
 
 const r2 = (n: number) => Math.round(n * 100) / 100;
 const DAY_MS = 86_400_000;
-const YEAR_DAYS = 365.25;
+/** Average Gregorian year (365,2425 days) — shared by duration, simple average and XIRR. */
+const YEAR_DAYS = 365.2425;
 
 /** Minimum position age for annualized figures (below → null, "—"). */
-export const MIN_YEARS_FOR_ANNUALIZED = 30 / 365.25;
+export const MIN_YEARS_FOR_ANNUALIZED = 30 / YEAR_DAYS;
 
 export interface CashFlow { date: string; amount: number }
 
@@ -33,7 +51,7 @@ function toTime(iso: string): number {
   return Date.parse(`${iso}T00:00:00Z`);
 }
 
-/** Net present value of dated flows at annual `rate` (Actual/365.25). */
+/** Net present value of dated flows at annual `rate` (Actual/365.2425). */
 export function xnpv(rate: number, flows: CashFlow[]): number {
   const t0 = toTime(flows[0].date);
   let s = 0;
@@ -112,7 +130,7 @@ export function withdrawalProceeds(t: Transaction): number {
 }
 
 export interface PositionMovements {
-  /** Realized investment flows of the category, date ascending. */
+  /** Investment flows of the category, date ascending. */
   flows: Transaction[];
   deposits: Transaction[];
   withdrawals: Transaction[];
@@ -122,16 +140,25 @@ export interface PositionMovements {
   realizedGain: number;   // Σ plusvalenze − Σ minusvalenze
 }
 
-/** Collect the realized movements of an investment category + linked legs. */
-export function collectPositionMovements(transactions: Transaction[], categoryId: string): PositionMovements {
+/**
+ * Collect the movements of an investment category + linked legs. Templates and
+ * projected rows are always excluded; pass `todayISO` to also exclude FUTURE
+ * movements (realized-only view — what every performance metric uses).
+ */
+export function collectPositionMovements(
+  transactions: Transaction[],
+  categoryId: string,
+  todayISO?: string,
+): PositionMovements {
+  const realized = (t: Transaction) => !todayISO || t.date <= todayISO;
   const flows = transactions
-    .filter(t => t.type === 'investment' && t.category === categoryId && !t.projected && !t.recurring)
+    .filter(t => t.type === 'investment' && t.category === categoryId && !t.projected && !t.recurring && realized(t))
     .sort((a, b) => a.date.localeCompare(b.date) || (a.createdAt ?? 0) - (b.createdAt ?? 0));
   const groupIds = new Set(flows.map(t => t.groupId).filter((g): g is string => !!g));
   const fees: Transaction[] = [];
   let realizedGain = 0;
   for (const t of transactions) {
-    if (t.projected || t.recurring || !t.groupId || !groupIds.has(t.groupId)) continue;
+    if (t.projected || t.recurring || !t.groupId || !groupIds.has(t.groupId) || !realized(t)) continue;
     if (t.type === 'expense' && t.category === '__minusvalenza__') realizedGain -= t.amount;
     else if (t.type === 'income' && t.category === '__plusvalenza__') realizedGain += t.amount;
     else if (t.type === 'expense' && t.description.startsWith('Commissione')) fees.push(t);
@@ -147,8 +174,16 @@ export function collectPositionMovements(transactions: Transaction[], categoryId
 
 // ── Performance summary ───────────────────────────────────────────────────────
 
+/** Why a metric is unavailable (UI shows "—" + this explanation). */
+export type MetricUnavailableReason =
+  | 'no-current-value'      // serve il controvalore
+  | 'no-start-date'         // né subscriptionDate né movimenti effettivi
+  | 'no-capital'            // capitale versato non valido (≤ 0)
+  | 'insufficient-duration' // posizione troppo giovane per annualizzare
+  | 'insufficient-data';    // solver XIRR senza soluzione affidabile
+
 export interface PositionPerformance {
-  /** Capitale conferito totale: initialBalance + depositi lordi (TFR e apporti inclusi). */
+  /** Capitale conferito totale: initialBalance + versamenti effettivi (TFR e apporti inclusi). */
   contributed: number;
   grossDeposits: number;
   depositCount: number;
@@ -163,20 +198,22 @@ export interface PositionPerformance {
   realizedGain: number;
   /** Guadagno latente = controvalore − capitale netto (null senza controvalore). */
   latentGain: number | null;
-  /** Guadagno totale = controvalore + incassi − conferito − commissioni (null senza controvalore). */
+  /** Guadagno totale (KPI) = controvalore + incassi − conferito − commissioni (null senza controvalore). */
   totalGain: number | null;
   /** totalGain / conferito (null senza dati). */
   totalGainPct: number | null;
-  /** Data di partenza della posizione (subscriptionDate o prima operazione). */
+  /** Data di partenza: subscriptionDate, fallback primo movimento effettivo. */
   startDate: string | null;
-  /** Durata in anni da startDate a oggi (null senza startDate). */
+  /** Durata in anni (giorni / 365,2425) da startDate alla data di valutazione. */
   years: number | null;
-  /** Guadagno medio annuo € = totalGain / anni (null con durata insufficiente). */
-  avgAnnualGain: number | null;
-  /** Rendimento annualizzato money-weighted (XIRR), null con dati insufficienti. */
+  /** MEDIA ANNUA SEMPLICE — guadagno = controvalore + prelevato − versato
+   *  (commissioni escluse per definizione), NON usa XIRR. */
+  simpleAnnualGain: number | null;      // €/anno = guadagno / anni
+  simpleAnnualGainPct: number | null;   // frazione/anno = (guadagno / versato) / anni
+  simpleUnavailableReason: MetricUnavailableReason | null;
+  /** Rendimento annualizzato money-weighted (XIRR) — statistica avanzata. */
   annualizedReturn: number | null;
-  /** Perché l'annualizzato non è disponibile (UI hint), quando null. */
-  annualizedUnavailableReason: 'no-current-value' | 'no-subscription-date' | 'insufficient-data' | null;
+  annualizedUnavailableReason: MetricUnavailableReason | null;
   /** TFR totale (tfrAmount pre-Sunny + quote tfr dei versamenti). */
   tfrTotal: number;
 }
@@ -184,11 +221,13 @@ export interface PositionPerformance {
 export interface PerformanceInput {
   category: CategoryDef;
   transactions: Transaction[];  // ALL transactions (the collector filters)
+  /** Data di valutazione: il controvalore corrente è considerato a questa data. */
   todayISO: string;
 }
 
 export function buildPositionPerformance({ category, transactions, todayISO }: PerformanceInput): PositionPerformance {
-  const m = collectPositionMovements(transactions, category.id);
+  // Realized-only: future movements and recurring templates never count here.
+  const m = collectPositionMovements(transactions, category.id, todayISO);
   const initial = category.initialBalance ?? 0;
   const grossDeposits = r2(m.deposits.reduce((s, t) => s + t.amount, 0));
   const capitalReturned = r2(m.withdrawals.reduce((s, t) => s + t.amount, 0));
@@ -200,11 +239,11 @@ export function buildPositionPerformance({ category, transactions, todayISO }: P
 
   const tfrTotal = r2((category.tfrAmount ?? 0) + m.deposits.reduce((s, t) => s + (t.tfr ?? 0), 0));
 
-  // Start of the position: the subscription date anchors initialBalance; when
-  // there's no pre-Sunny capital the first recorded operation starts the clock.
+  // Start of the position: subscriptionDate anchors initialBalance; FALLBACK to
+  // the first effective movement when the date is missing (same rule for the
+  // simple average AND the XIRR).
   const firstOp = m.flows[0]?.date ?? null;
-  const startDate = category.subscriptionDate
-    ?? (initial > 0 ? null : firstOp);
+  const startDate = category.subscriptionDate ?? firstOp;
   const years = startDate && startDate <= todayISO
     ? (toTime(todayISO) - toTime(startDate)) / DAY_MS / YEAR_DAYS
     : null;
@@ -214,27 +253,42 @@ export function buildPositionPerformance({ category, transactions, todayISO }: P
     : null;
   const totalGainPct = totalGain != null && contributed > 0 ? totalGain / contributed : null;
   const latentGain = currentValue != null ? r2(currentValue - netCapital) : null;
-  const avgAnnualGain = totalGain != null && years != null && years >= MIN_YEARS_FOR_ANNUALIZED
-    ? r2(totalGain / years)
-    : null;
 
-  // ── XIRR flows: whole contributions count (TFR/apporti inclusi) ────────────
+  // ── Media annua semplice (NO XIRR) ──────────────────────────────────────────
+  //   versato = initialBalance + versamenti effettivi (TFR/apporti inclusi)
+  //   guadagno = controvalore + prelevato − versato
+  let simpleAnnualGain: number | null = null;
+  let simpleAnnualGainPct: number | null = null;
+  let simpleReason: MetricUnavailableReason | null = null;
+  if (currentValue == null) simpleReason = 'no-current-value';
+  else if (!startDate) simpleReason = 'no-start-date';
+  else if (!(contributed > 0)) simpleReason = 'no-capital';
+  else if (years == null || years < MIN_YEARS_FOR_ANNUALIZED) simpleReason = 'insufficient-duration';
+  else {
+    const simpleGain = currentValue + proceeds - contributed;
+    simpleAnnualGain = r2(simpleGain / years);
+    simpleAnnualGainPct = (simpleGain / contributed) / years;
+  }
+
+  // ── XIRR (statistica avanzata) — stesse basi: flussi reali, TFR/apporti
+  //    inclusi, initialBalance ancorato a startDate (fallback compreso) ───────
   let annualizedReturn: number | null = null;
-  let reason: PositionPerformance['annualizedUnavailableReason'] = null;
+  let xirrReason: MetricUnavailableReason | null = null;
   if (currentValue == null) {
-    reason = 'no-current-value';
-  } else if (initial > 0 && !category.subscriptionDate) {
-    // Pre-Sunny capital with no anchor date → the timeline is unknown.
-    reason = 'no-subscription-date';
+    xirrReason = 'no-current-value';
+  } else if (!startDate) {
+    xirrReason = 'no-start-date';
+  } else if (years == null || years < MIN_YEARS_FOR_ANNUALIZED) {
+    xirrReason = 'insufficient-duration';
   } else {
     const flows: CashFlow[] = [];
-    if (initial > 0 && category.subscriptionDate) flows.push({ date: category.subscriptionDate, amount: -initial });
+    if (initial > 0) flows.push({ date: startDate, amount: -initial });
     for (const d of m.deposits) flows.push({ date: d.date, amount: -d.amount });
     for (const w of m.withdrawals) flows.push({ date: w.date, amount: withdrawalProceeds(w) });
     for (const f of m.fees) flows.push({ date: f.date, amount: -f.amount });
     if (currentValue > 0) flows.push({ date: todayISO, amount: currentValue });
-    annualizedReturn = years != null && years >= MIN_YEARS_FOR_ANNUALIZED ? xirr(flows) : null;
-    if (annualizedReturn == null) reason = 'insufficient-data';
+    annualizedReturn = xirr(flows);
+    if (annualizedReturn == null) xirrReason = 'insufficient-data';
   }
 
   return {
@@ -242,20 +296,24 @@ export function buildPositionPerformance({ category, transactions, todayISO }: P
     capitalReturned, proceeds, netCapital, fees,
     realizedGain: m.realizedGain, latentGain,
     totalGain, totalGainPct,
-    startDate, years, avgAnnualGain,
-    annualizedReturn, annualizedUnavailableReason: annualizedReturn == null ? reason : null,
+    startDate, years,
+    simpleAnnualGain, simpleAnnualGainPct,
+    simpleUnavailableReason: simpleAnnualGain == null ? simpleReason : null,
+    annualizedReturn,
+    annualizedUnavailableReason: annualizedReturn == null ? xirrReason : null,
     tfrTotal,
   };
 }
 
 /** Punti del capitale versato cumulato nel tempo (per il grafico): parte da
- *  initialBalance alla data di partenza e cambia a ogni movimento reale. */
+ *  initialBalance alla data di partenza e cambia a ogni movimento REALE
+ *  (i movimenti futuri non compaiono). */
 export function buildPaidInSeries(
   category: CategoryDef,
   transactions: Transaction[],
   todayISO: string,
 ): { date: string; value: number }[] {
-  const m = collectPositionMovements(transactions, category.id);
+  const m = collectPositionMovements(transactions, category.id, todayISO);
   const initial = category.initialBalance ?? 0;
   const start = category.subscriptionDate ?? m.flows[0]?.date ?? null;
   if (!start) return [];

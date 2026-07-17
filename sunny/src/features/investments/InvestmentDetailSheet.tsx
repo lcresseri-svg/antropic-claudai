@@ -140,6 +140,13 @@ export function InvestmentDetailSheet({
 
   const dash = '—';
 
+  const reasonLabel = (r: string | null): string =>
+    r === 'no-current-value' ? 'serve il controvalore'
+    : r === 'no-start-date' ? 'serve la data di sottoscrizione o un movimento'
+    : r === 'no-capital' ? 'capitale versato non valido'
+    : r === 'insufficient-duration' ? 'durata insufficiente'
+    : 'dati insufficienti';
+
   const kpis: { label: string; value: string; tone?: string; hint?: string }[] = [
     { label: 'Capitale investito netto', value: formatCurrency(perf.netCapital) },
     { label: 'Controvalore', value: controvalore != null ? formatCurrency(controvalore) : dash, hint: stale ? 'da aggiornare' : undefined },
@@ -150,17 +157,15 @@ export function InvestmentDetailSheet({
         : dash,
       tone: perf.totalGain != null ? (perf.totalGain >= 0 ? 'text-green' : 'text-red') : undefined,
     },
-    { label: 'Guadagno medio annuo', value: perf.avgAnnualGain != null ? `${formatCurrency(perf.avgAnnualGain, { sign: true })}/anno` : dash,
-      tone: perf.avgAnnualGain != null ? (perf.avgAnnualGain >= 0 ? 'text-green' : 'text-red') : undefined },
     {
-      label: 'Rendimento annualizzato',
-      value: perf.annualizedReturn != null ? fmtPct(perf.annualizedReturn) : dash,
-      tone: perf.annualizedReturn != null ? (perf.annualizedReturn >= 0 ? 'text-green' : 'text-red') : undefined,
-      hint: perf.annualizedReturn == null
-        ? (perf.annualizedUnavailableReason === 'no-current-value' ? 'serve il controvalore'
-          : perf.annualizedUnavailableReason === 'no-subscription-date' ? 'serve la data di sottoscrizione'
-          : 'dati insufficienti')
-        : undefined,
+      // Media annua SEMPLICE: (controvalore + prelevato − versato) spalmato
+      // sugli anni — importi reali, NON usa XIRR (che resta nelle statistiche).
+      label: 'Media annua semplice',
+      value: perf.simpleAnnualGain != null && perf.simpleAnnualGainPct != null
+        ? `${formatCurrency(perf.simpleAnnualGain, { sign: true })}/anno · ${fmtPct(perf.simpleAnnualGainPct)}/anno`
+        : dash,
+      tone: perf.simpleAnnualGain != null ? (perf.simpleAnnualGain >= 0 ? 'text-green' : 'text-red') : undefined,
+      hint: perf.simpleAnnualGain == null ? reasonLabel(perf.simpleUnavailableReason) : undefined,
     },
     { label: 'Durata', value: perf.years != null ? durationLabel(perf.years) : dash },
   ];
@@ -176,6 +181,8 @@ export function InvestmentDetailSheet({
     { label: 'Commissioni', value: perf.fees > 0 ? formatCurrency(perf.fees) : dash },
     { label: 'Guadagno realizzato', value: perf.realizedGain !== 0 ? formatCurrency(perf.realizedGain, { sign: true }) : dash },
     { label: 'Guadagno latente', value: perf.latentGain != null ? formatCurrency(perf.latentGain, { sign: true }) : dash },
+    // Statistica avanzata (money-weighted): non sostituisce la media annua semplice.
+    { label: 'Rendimento annualizzato (XIRR)', value: perf.annualizedReturn != null ? `${fmtPct(perf.annualizedReturn)}/anno` : dash },
     { label: 'TFR totale', value: perf.tfrTotal > 0 ? `${formatCurrency(perf.tfrTotal)}${perf.contributed > 0 ? ` · ${Math.round((perf.tfrTotal / perf.contributed) * 100)}%` : ''}` : dash },
     { label: 'Peso nel portafoglio', value: weight != null ? `${Math.round(weight * 100)}%` : dash },
     { label: 'Prima operazione', value: firstOp ? capitalize(formatDate(firstOp)) : dash },
