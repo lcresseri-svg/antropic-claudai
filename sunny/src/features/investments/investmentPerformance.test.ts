@@ -141,7 +141,7 @@ describe('buildPositionPerformance', () => {
     expect(p.tfrTotal).toBe(200);
   });
 
-  it('senza currentValue: guadagni e annualizzato non disponibili (mai 0 inventato)', () => {
+  it('senza currentValue: guadagni, media semplice e annualizzato non disponibili (mai 0 inventato)', () => {
     const p = buildPositionPerformance({
       category: cat(),
       transactions: [tx({ amount: 300, date: '2025-07-16' })],
@@ -149,21 +149,34 @@ describe('buildPositionPerformance', () => {
     });
     expect(p.totalGain).toBeNull();
     expect(p.latentGain).toBeNull();
-    expect(p.avgAnnualGain).toBeNull();
+    expect(p.simpleAnnualGain).toBeNull();
+    expect(p.simpleUnavailableReason).toBe('no-current-value');
     expect(p.annualizedReturn).toBeNull();
     expect(p.annualizedUnavailableReason).toBe('no-current-value');
   });
 
-  it('initialBalance>0 senza subscriptionDate: annualizzato non disponibile', () => {
+  it('fallback subscriptionDate → primo movimento effettivo, anche con initialBalance>0 (vale pure per XIRR)', () => {
     const p = buildPositionPerformance({
-      category: cat({ initialBalance: 1000, currentValue: 1100, lastValueUpdate: TODAY }),
+      category: cat({ initialBalance: 1000, currentValue: 1210, lastValueUpdate: TODAY }),
       transactions: [tx({ amount: 100, date: '2025-07-16' })],
       todayISO: TODAY,
     });
-    expect(p.annualizedReturn).toBeNull();
-    expect(p.annualizedUnavailableReason).toBe('no-subscription-date');
+    expect(p.startDate).toBe('2025-07-16');
+    expect(p.years).toBeCloseTo(1, 1);
+    expect(p.simpleAnnualGain).not.toBeNull();
+    expect(p.annualizedReturn).not.toBeNull(); // initialBalance ancorato al fallback
+  });
+
+  it('nessuna data e nessun movimento: no-start-date su entrambe le metriche', () => {
+    const p = buildPositionPerformance({
+      category: cat({ initialBalance: 1000, currentValue: 1100, lastValueUpdate: TODAY }),
+      transactions: [],
+      todayISO: TODAY,
+    });
     expect(p.startDate).toBeNull();
     expect(p.years).toBeNull();
+    expect(p.simpleUnavailableReason).toBe('no-start-date');
+    expect(p.annualizedUnavailableReason).toBe('no-start-date');
   });
 
   it('initialBalance=0: la prima operazione fa da data di partenza (fallback)', () => {
@@ -174,19 +187,107 @@ describe('buildPositionPerformance', () => {
     });
     expect(p.startDate).toBe('2025-07-16');
     expect(p.years).toBeCloseTo(1, 1);
-    expect(p.avgAnnualGain).not.toBeNull();
+    expect(p.simpleAnnualGain).not.toBeNull();
     expect(p.annualizedReturn).not.toBeNull();
   });
 
-  it('durata insufficiente (< ~1 mese): annualizzato e medio annuo a null', () => {
+  it('durata insufficiente (< ~1 mese): media semplice e annualizzato a null', () => {
     const p = buildPositionPerformance({
       category: cat({ currentValue: 101, lastValueUpdate: TODAY }),
       transactions: [tx({ amount: 100, date: '2026-07-10' })],
       todayISO: TODAY,
     });
-    expect(p.avgAnnualGain).toBeNull();
+    expect(p.simpleAnnualGain).toBeNull();
+    expect(p.simpleUnavailableReason).toBe('insufficient-duration');
     expect(p.annualizedReturn).toBeNull();
-    expect(p.annualizedUnavailableReason).toBe('insufficient-data');
+    expect(p.annualizedUnavailableReason).toBe('insufficient-duration');
+  });
+});
+
+describe('media annua semplice (KPI, senza XIRR)', () => {
+  it('esempio numerico: 10.000 versati 2 anni fa, controvalore 12.000 → ~1.000 €/anno · ~10%/anno', () => {
+    const p = buildPositionPerformance({
+      category: cat({ currentValue: 12000, lastValueUpdate: TODAY }),
+      transactions: [tx({ amount: 10000, date: '2024-07-16' })],
+      todayISO: TODAY,
+    });
+    // anni = 730 giorni / 365,2425 ≈ 1,9987
+    expect(p.years!).toBeCloseTo(730 / 365.2425, 4);
+    expect(p.simpleAnnualGain!).toBeGreaterThan(990);
+    expect(p.simpleAnnualGain!).toBeLessThan(1010);
+    expect(p.simpleAnnualGainPct!).toBeGreaterThan(0.099);
+    expect(p.simpleAnnualGainPct!).toBeLessThan(0.101);
+  });
+
+  it('il prelevato entra nel guadagno: controvalore + prelevato − versato', () => {
+    const p = buildPositionPerformance({
+      category: cat({ currentValue: 700, lastValueUpdate: TODAY, subscriptionDate: '2024-07-16' }),
+      transactions: [
+        tx({ amount: 1000, date: '2024-07-16' }),
+        tx({ direction: 'out', amount: 400, valueDelta: -500, date: '2025-07-16' }),
+      ],
+      todayISO: TODAY,
+    });
+    // guadagno = 700 + 500 − 1000 = 200; anni ≈ 2 → ~100 €/anno, ~10%/anno
+    expect(p.simpleAnnualGain!).toBeGreaterThan(95);
+    expect(p.simpleAnnualGain!).toBeLessThan(105);
+    expect(p.simpleAnnualGainPct!).toBeGreaterThan(0.095);
+    expect(p.simpleAnnualGainPct!).toBeLessThan(0.105);
+  });
+
+  it('il versato include TFR e apporti senza conto per intero', () => {
+    const p = buildPositionPerformance({
+      category: cat({ currentValue: 500, lastValueUpdate: TODAY }),
+      transactions: [
+        tx({ amount: 300, tfr: 200, account: '', date: '2025-07-16' }), // apporto esterno con TFR
+        tx({ amount: 100, date: '2025-07-16' }),
+      ],
+      todayISO: TODAY,
+    });
+    expect(p.contributed).toBe(400);
+    // guadagno = 500 − 400 = 100 su ~1 anno → ~100 €/anno, ~25%/anno
+    expect(p.simpleAnnualGain!).toBeCloseTo(100, 0);
+    expect(p.simpleAnnualGainPct!).toBeCloseTo(0.25, 2);
+  });
+
+  it('le commissioni NON entrano nella media semplice (a differenza del guadagno totale)', () => {
+    const g = 'grp';
+    const p = buildPositionPerformance({
+      category: cat({ currentValue: 1100, lastValueUpdate: TODAY, subscriptionDate: '2025-07-16' }),
+      transactions: [
+        tx({ amount: 1000, date: '2025-07-16', groupId: g }),
+        tx({ type: 'expense', category: 'altro', description: 'Commissione · ETF', amount: 10, groupId: g, direction: undefined, date: '2025-07-16' }),
+      ],
+      todayISO: TODAY,
+    });
+    expect(p.totalGain).toBe(90);                 // 1100 − 1000 − 10 (KPI guadagno totale)
+    expect(p.simpleAnnualGain!).toBeCloseTo(100, 0); // 1100 − 1000, commissioni escluse
+  });
+
+  it('movimenti futuri e template ricorrenti esclusi da versato, capitale netto e metriche', () => {
+    const p = buildPositionPerformance({
+      category: cat({ currentValue: 220, lastValueUpdate: TODAY }),
+      transactions: [
+        tx({ amount: 200, date: '2025-07-16' }),
+        tx({ amount: 900, date: '2026-12-01' }),                              // futuro → escluso
+        tx({ amount: 50, date: '2025-01-01', recurring: { freq: 'monthly' } }), // template → escluso
+      ],
+      todayISO: TODAY,
+    });
+    expect(p.contributed).toBe(200);
+    expect(p.netCapital).toBe(200);
+    expect(p.depositCount).toBe(1);
+    expect(p.simpleAnnualGain!).toBeCloseTo(20, 0); // (220 − 200) / ~1 anno
+  });
+
+  it('capitale versato non valido (0): no-capital', () => {
+    const p = buildPositionPerformance({
+      category: cat({ currentValue: 100, lastValueUpdate: TODAY, subscriptionDate: '2024-07-16' }),
+      transactions: [],
+      todayISO: TODAY,
+    });
+    expect(p.simpleAnnualGain).toBeNull();
+    expect(p.simpleUnavailableReason).toBe('no-capital');
   });
 });
 

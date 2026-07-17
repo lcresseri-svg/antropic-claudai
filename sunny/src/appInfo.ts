@@ -1,4 +1,4 @@
-export const APP_VERSION = '1.15.0';
+export const APP_VERSION = '1.15.1';
 
 /**
  * Release channel. While in 'beta' the app is still under active development
@@ -19,6 +19,15 @@ export interface VersionEntry {
 
 /** Registro versioni mostrato in Impostazioni → Registro versioni. */
 export const VERSIONS: VersionEntry[] = [
+  {
+    version: '1.15.1', date: '2026-07-17', title: 'Media annua semplice nel dettaglio investimento',
+    changes: [
+      'Il KPI "Guadagno medio annuo" diventa "Media annua semplice": (controvalore + prelevato − versato) diviso per gli anni, mostrato come €/anno e %/anno insieme — niente più XIRR nel KPI.',
+      'Il rendimento annualizzato (XIRR) resta disponibile tra le statistiche avanzate della posizione.',
+      'Stesse basi per entrambe le metriche: importi reali (mai le quote distribuite), movimenti futuri e template esclusi, TFR e apporti senza conto inclusi nel versato, data di sottoscrizione con fallback al primo movimento effettivo.',
+      'Quando data, durata o capitale versato non sono validi compare "—" con la spiegazione.',
+    ],
+  },
   {
     // NB: NIENTE `highlight` qui — questa release è annunciata dal ReleaseNotice
     // ("Investimenti e flussi più chiari"): un solo popup, mai entrambi.

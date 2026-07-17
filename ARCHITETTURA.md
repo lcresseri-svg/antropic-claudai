@@ -1,6 +1,6 @@
 # Sunny — Come funziona tutto
 
-> Versione corrente: **1.15.0** · branch di lavoro: `claude/fervent-dirac-mjlbmq`
+> Versione corrente: **1.15.1** · branch di lavoro: `claude/fervent-dirac-mjlbmq`
 > Le sezioni sui motori (previsione, insight, ricorrenze) restano la
 > descrizione autorevole; struttura, Functions e sicurezza sono aggiornate al
 > refactor di consolidamento (vedi anche HANDOFF.md).
@@ -171,10 +171,24 @@ all'avvio), `subscriptionDate` (mai futura: àncora `initialBalance` per durata 
 XIRR; con `initialBalance=0` vale la prima operazione; con `initialBalance>0`
 senza data il rendimento annualizzato non è disponibile).
 
-La performance della posizione (XIRR money-weighted, guadagno totale, durata) è
-in `features/investments/investmentPerformance.ts`; la distribuzione statistica
-dei depositi in `investmentStatsSpread.ts` (quote al centesimo, residuo
-sull'ultimo mese, competenza fino al mese corrente).
+La performance della posizione è in
+`features/investments/investmentPerformance.ts`. Regole comuni a tutte le
+metriche: importi reali (mai le quote di `statsSpreadMonths`), movimenti futuri
+e template esclusi, TFR e apporti senza conto inclusi per intero nel versato,
+data di partenza = `subscriptionDate` con fallback al primo movimento
+effettivo, anni = giorni / 365,2425, "—" con spiegazione quando i dati non
+sono validi.
+
+- **KPI "Media annua semplice"** (non usa XIRR):
+  `guadagno = controvalore + prelevato − versato` (commissioni escluse),
+  `€/anno = guadagno / anni`, `%/anno = (guadagno / versato) / anni`.
+- **"Rendimento annualizzato (XIRR)"**: statistica avanzata money-weighted
+  (depositi negativi, incassi positivi, commissioni negative, controvalore
+  finale positivo, `initialBalance` ancorato alla data di partenza).
+
+La distribuzione statistica dei depositi è in `investmentStatsSpread.ts`
+(quote al centesimo, residuo sull'ultimo mese, competenza fino al mese
+corrente).
 
 ---
 
