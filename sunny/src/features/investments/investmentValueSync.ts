@@ -204,22 +204,42 @@ export async function replaceTransactionSynced(uid: string, id: string, data: Tx
   await runOps(uid, [{ ref, data, isCreate: false }], true);
 }
 
-/** Delete documents, reverting stamped effects. */
-export async function deleteTransactionsSynced(uid: string, ids: string[]): Promise<void> {
+/**
+ * Delete documents. `mustSync` (from the caller's local data) TRUE when any
+ * deleted doc is an investment → atomic revert of its controvalore effect,
+ * failures propagate. FALSE → offline-safe batch delete (no currentValue to
+ * touch), so a flaky/offline connection never blocks a plain delete.
+ */
+export async function deleteTransactionsSynced(
+  uid: string,
+  ids: string[],
+  opts?: { mustSync?: boolean },
+): Promise<void> {
+  const mustSync = opts?.mustSync ?? true;
   for (let i = 0; i < ids.length; i += CHUNK) {
     const ops: SyncOp[] = ids.slice(i, i + CHUNK)
       .map(id => ({ ref: txDoc(uid, id), data: null, isCreate: false }));
-    await runOps(uid, ops, true);
+    await runOps(uid, ops, mustSync);
   }
 }
 
-/** Group restructure: delete + create in one atomic move. */
-export async function replaceGroupSynced(uid: string, deleteIds: string[], create: TxData[]): Promise<void> {
+/**
+ * Group restructure: delete + create together. `mustSync` (from the caller's
+ * local data) TRUE when any deleted OR created doc is an investment → atomic;
+ * FALSE → offline-safe batch (e.g. a shared expense + its storni).
+ */
+export async function replaceGroupSynced(
+  uid: string,
+  deleteIds: string[],
+  create: TxData[],
+  opts?: { mustSync?: boolean },
+): Promise<void> {
+  const mustSync = opts?.mustSync ?? true;
   const ops: SyncOp[] = [
     ...deleteIds.map(id => ({ ref: txDoc(uid, id), data: null as TxData | null, isCreate: false })),
     ...create.map(data => ({ ref: doc(txCol(uid)), data: data as TxData | null, isCreate: true })),
   ];
-  await runOps(uid, ops, true);
+  await runOps(uid, ops, mustSync);
 }
 
 /**
