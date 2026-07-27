@@ -1,5 +1,5 @@
 import { Transaction, CategoryDef, ownShare, investSign } from '../../types';
-import { aggregateFlow, liquidityDelta } from '../../shared/financialFlow';
+import { aggregateFlow, liquidityDelta, tfrPortion } from '../../shared/financialFlow';
 import { monthlyInvestmentStats } from '../investments/investmentStatsSpread';
 import { formatCurrency, capitalize } from '../../utils';
 import { monthProgress, forecastSavings, seasonalMonthlyAverage, seasonalVariableMonthly, robustAvg } from '../budget/budgetUtils';
@@ -367,6 +367,31 @@ export function buildInsights(input: InsightInput): Insight[] {
   const span   = Array.from({ length: 6 }, (_, i) => monthStats(transactions, monthKey(5 - i, now)));
   const spanLbl = span.map(m => shortMonth(m.key));
 
+  // Unified cash flow of the current month — SAME numbers as the dashboard
+  // cards: gli apporti esterni (depositi senza conto) contano come ENTRATE, il
+  // TFR resta escluso, il capitale rientrato dai disinvestimenti è un'entrata.
+  // Every month-flow insight below (sforamento, risparmiato finora, forecast)
+  // reads from here, never from the raw entrate−uscite−investimenti formula.
+  const monthFlow = aggregateFlow(transactions.filter(t => t.date.startsWith(curMon)));
+
+  // CASH view of investments (liquidity impact only): deposits funded from
+  // accounts net of TFR, withdrawals returning cash; source-less deposits = 0.
+  // Used by the cash forecast so a TFR/datore contribution never shows up as
+  // an outflow that will "drain" the month.
+  const investCashOfMonth = (k: string) => {
+    let s = 0;
+    for (const t of transactions) {
+      if (t.type !== 'investment' || t.date.slice(0, 7) !== k) continue;
+      s += -liquidityDelta(t); // cash OUT to investments (net)
+    }
+    return s;
+  };
+  const avgInvestCash = (windowN: number) => {
+    const keys = Array.from({ length: windowN }, (_, i) => monthKey(i + 1, now));
+    const vals = keys.map(investCashOfMonth).filter(v => v !== 0);
+    return vals.length ? Math.max(0, avg(vals)) : 0;
+  };
+
   // STATISTICAL monthly investment flows (competenza): one-off deposits with
   // statsSpreadMonths are ripartiti sui mesi coperti (fino al mese corrente).
   // Used ONLY by the investment-specific insights — every cash figure
@@ -530,8 +555,10 @@ export function buildInsights(input: InsightInput): Insight[] {
   // ── 1. ALERT — Expenses outpacing income this month ───────────────────────
   // Only meaningful past mid-month: early on, a single expense before income
   // is logged would falsely look like "overspending".
-  const saved = monthlyIncome - monthlyExpenses - monthlyInvestments;
-  if (monthlyIncome > 0 && saved < 0 && prog > 0.5) {
+  // UNIFIED FLOW: same figure as the dashboard's "Flusso netto" — apporti
+  // esterni (depositi senza conto) contano come entrate, TFR escluso.
+  const saved = monthFlow.netFlow;
+  if (monthFlow.cashIn > 0 && saved < 0 && prog > 0.5) {
     push({
       icon: '⚠️', category: 'alert', urgent: true,
       title: `Sforamento di ${formatCurrency(-saved)}`,
@@ -539,10 +566,10 @@ export function buildInsights(input: InsightInput): Insight[] {
       accent: ACCENT.warn,
       tone: 'caution',
       explain: {
-        what: 'Questo mese stai spendendo e investendo più di quanto incassi.',
-        how: 'Entrate − Uscite − Investimenti del mese corrente. Se è negativo, stai intaccando i risparmi.',
-        basis: 'Solo transazioni del mese in corso.',
-        chart: { labels: ['Entrate', 'Uscite', 'Investito'], values: [Math.round(monthlyIncome), Math.round(monthlyExpenses), Math.round(monthlyInvestments)], format: 'currency', highlightIndex: 1 },
+        what: 'Questo mese le uscite reali superano le entrate del flusso.',
+        how: 'Entrate (incluse le entrate ordinarie, gli apporti esterni come i versamenti senza conto e il capitale rientrato dai disinvestimenti) − Uscite (spese + investimenti pagati dai conti). Il TFR resta escluso dal flusso. Se è negativo, stai intaccando i risparmi.',
+        basis: 'Solo transazioni del mese in corso — stessi numeri delle card Entrate/Uscite.',
+        chart: { labels: ['Entrate', 'Uscite'], values: [Math.round(monthFlow.cashIn), Math.round(monthFlow.cashOut)], format: 'currency', highlightIndex: 1 },
       },
     }, 'medium');
   }
@@ -564,8 +591,15 @@ export function buildInsights(input: InsightInput): Insight[] {
       + upcomingPlannedThisMonth(allTx, today, monthEnd);
     const upcomingIncome = upcomingRecurringThisMonth(allTx, today, monthEnd, 'income')
       + upcomingPlannedThisMonth(allTx, today, monthEnd, 'income');
-    const upcomingInvest = upcomingRecurringThisMonth(allTx, today, monthEnd, 'investment')
-      + upcomingPlannedThisMonth(allTx, today, monthEnd, 'investment');
+    // CASH view of upcoming investments: a source-less deposit (TFR / datore)
+    // never drains liquidity → amount 0; account-funded deposits count their
+    // non-TFR share only. The cash forecast must never "spend" money that
+    // never leaves any account.
+    const investCashView = allTx.map(t => t.type === 'investment'
+      ? { ...t, amount: t.direction === 'out' || !t.account ? 0 : Math.max(0, t.amount - tfrPortion(t)) }
+      : t);
+    const upcomingInvest = upcomingRecurringThisMonth(investCashView, today, monthEnd, 'investment')
+      + upcomingPlannedThisMonth(investCashView, today, monthEnd, 'investment');
 
     // Variable (non-recurring) spending already recorded this month. Planned
     // future-dated one-offs are excluded here — they're in upcomingRecurring.
@@ -578,20 +612,27 @@ export function buildInsights(input: InsightInput): Insight[] {
       variableSpent += ownShare(t);
     }
 
+    // Cash-coherent inputs: entrate già incassate = cashIn del flusso (apporti
+    // esterni e capitale rientrato inclusi); investimenti = SOLO la quota che
+    // esce davvero dai conti (TFR e depositi senza conto esclusi), sia sul
+    // realizzato del mese sia sulla media storica.
+    const monthCashIn = monthFlow.cashIn;
+    const monthCashInvest = monthFlow.investedFromAccounts;
+    const avgInvCash = avgInvestCash(3);
     const f = input.forecastExpenseCategories
       ? forecastSavingsV4({
           transactions: allTx,
           expenseCategories: input.forecastExpenseCategories,
-          monthlyIncome, monthlyInvestments,
-          avgIncome: h.avgIncome, avgInvest: h.avgInvest,
+          monthlyIncome: monthCashIn, monthlyInvestments: monthCashInvest,
+          avgIncome: h.avgIncome, avgInvest: avgInvCash,
           upcomingIncome, upcomingInvest, now,
         })
       : forecastSavings({
-          monthlyIncome, monthlyExpenses, monthlyInvestments,
+          monthlyIncome: monthCashIn, monthlyExpenses, monthlyInvestments: monthCashInvest,
           variableSpent,
           recentVariableAvg: h.avgVariableExpense,
           seasonalVariableAvg: seasonalVar.avg, seasonalYears: seasonalVar.years,
-          avgIncome: h.avgIncome, avgInvest: h.avgInvest,
+          avgIncome: h.avgIncome, avgInvest: avgInvCash,
           upcomingRecurring, upcomingIncome, upcomingInvest, now,
         });
     const projExp = f.projectedExpenses, expInc = f.expectedIncome, expInv = f.expectedInvest;
@@ -604,8 +645,8 @@ export function buildInsights(input: InsightInput): Insight[] {
       ? `Parto da quanto hai già speso questo mese (${formatCurrency(monthlyExpenses)}) e stimo i giorni che restano (${100 - pctMonth}% del mese) combinando la tua media di spesa variabile${seasonalVar.avg > 0 ? ` (${formatCurrency(avgVar)}/mese) con la storica di questo stesso mese negli anni precedenti (${formatCurrency(Math.round(seasonalVar.avg))})` : ` (${formatCurrency(avgVar)}/mese)`} con il ritmo effettivo di questo mese${upcomingRecurring > 0 ? `, poi aggiungo le spese ricorrenti ancora in arrivo (${formatCurrency(Math.round(upcomingRecurring))})` : ''}. Uscite stimate: ${formatCurrency(projExp)}.`
       : `Riproietto quanto hai già speso (${formatCurrency(monthlyExpenses)}) sul resto del mese in base ai giorni passati (sei circa al ${pctMonth}%)${upcomingRecurring > 0 ? `, più le ricorrenti ancora in arrivo (${formatCurrency(Math.round(upcomingRecurring))})` : ''}, arrivando a circa ${formatCurrency(projExp)}.`;
     const howInc = h.avgIncome > 0
-      ? ` Per le entrate uso la cifra più alta tra quanto hai già incassato (${formatCurrency(monthlyIncome)}) e quanto incassi di solito (${formatCurrency(h.avgIncome)}), perché lo stipendio di solito arriva tutto insieme.`
-      : ` Per le entrate considero quanto hai già incassato (${formatCurrency(monthlyIncome)}).`;
+      ? ` Per le entrate uso la cifra più alta tra quanto è già entrato nel flusso (${formatCurrency(monthCashIn)}, apporti esterni inclusi) e quanto incassi di solito (${formatCurrency(h.avgIncome)}), perché lo stipendio di solito arriva tutto insieme.`
+      : ` Per le entrate considero quanto è già entrato nel flusso (${formatCurrency(monthCashIn)}, apporti esterni inclusi).`;
     const forecastBasis = [
       h.months > 0 ? `media ultimi ${h.months} mesi` : null,
       seasonalVar.avg > 0 ? 'storico stesso mese anni precedenti' : null,
@@ -615,32 +656,32 @@ export function buildInsights(input: InsightInput): Insight[] {
       ? { icon: '🔮', category: 'forecast', title: `Fine mese stimato: +${formatCurrency(forecast)}`, detail: `Risparmio proiettato su ${basis}`, accent: ACCENT.good, tone: 'positive', _family: 'eom-projection',
           explain: {
             what: 'Stima di quanto ti resterà a fine mese se mantieni questo ritmo.',
-            how: `${howExp}${howInc} Il risparmio stimato è quello che resta: entrate previste, meno le uscite previste, meno gli investimenti.`,
+            how: `${howExp}${howInc} Il risparmio stimato è quello che resta: entrate previste, meno le uscite previste, meno gli investimenti pagati dai conti (TFR e versamenti senza conto non toccano la liquidità).`,
             basis: forecastBasis,
-            chart: { labels: ['Entrate', 'Uscite stim.', 'Investito'], values: [Math.round(expInc), projExp, Math.round(expInv)], format: 'currency', highlightIndex: 0 },
+            chart: { labels: ['Entrate', 'Uscite stim.', 'Investito (conti)'], values: [Math.round(expInc), projExp, Math.round(expInv)], format: 'currency', highlightIndex: 0 },
           } }
       : { icon: '🔮', category: 'forecast', title: `Fine mese stimato: −${formatCurrency(-forecast)}`, detail: `Le uscite supererebbero le entrate su ${basis}`, accent: ACCENT.warn, tone: 'caution', _family: 'eom-projection',
           explain: {
             what: 'A questo ritmo chiuderesti il mese in negativo.',
-            how: `${howExp}${howInc} Mettendo insieme entrate previste, uscite previste e investimenti, il conto finale risulta negativo.`,
+            how: `${howExp}${howInc} Mettendo insieme entrate previste, uscite previste e investimenti pagati dai conti (TFR e versamenti senza conto esclusi), il conto finale risulta negativo.`,
             basis: forecastBasis,
-            chart: { labels: ['Entrate', 'Uscite stim.', 'Investito'], values: [Math.round(expInc), projExp, Math.round(expInv)], format: 'currency', highlightIndex: 1 },
+            chart: { labels: ['Entrate', 'Uscite stim.', 'Investito (conti)'], values: [Math.round(expInc), projExp, Math.round(expInv)], format: 'currency', highlightIndex: 1 },
           } }, 'medium');
   }
 
-  // ── 3. FORECAST — Savings so far ─────────────────────────────────────────
-  if (monthlyIncome > 0 && saved >= 0) {
+  // ── 3. FORECAST — Savings so far (unified flow) ──────────────────────────
+  if (monthFlow.cashIn > 0 && saved >= 0) {
     push({
       icon: '✨', category: 'forecast',
       title: `Risparmiato finora: ${formatCurrency(saved)}`,
-      detail: `${pct(saved, monthlyIncome)}% delle entrate di questo mese`,
+      detail: `${pct(saved, monthFlow.cashIn)}% delle entrate di questo mese`,
       accent: ACCENT.good,
       tone: 'positive',
       explain: {
-        what: 'Quanto hai messo da parte finora questo mese.',
-        how: 'Entrate − Uscite − Investimenti, calcolato sui movimenti già registrati nel mese.',
-        basis: 'Solo mese corrente.',
-        chart: { labels: ['Entrate', 'Uscite', 'Investito', 'Risparmio'], values: [Math.round(monthlyIncome), Math.round(monthlyExpenses), Math.round(monthlyInvestments), Math.round(saved)], format: 'currency', highlightIndex: 3 },
+        what: 'Quanto hai messo da parte finora questo mese (flusso netto).',
+        how: 'Entrate (entrate ordinarie + apporti esterni + capitale rientrato) − Uscite (spese + investimenti pagati dai conti), sui movimenti già registrati. Il TFR resta escluso dal flusso.',
+        basis: 'Solo mese corrente — stessi numeri delle card Entrate/Uscite.',
+        chart: { labels: ['Entrate', 'Uscite', 'Flusso netto'], values: [Math.round(monthFlow.cashIn), Math.round(monthFlow.cashOut), Math.round(saved)], format: 'currency', highlightIndex: 2 },
       },
     }, 'medium');
   }

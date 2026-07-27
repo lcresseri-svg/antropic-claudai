@@ -242,12 +242,15 @@ function MonthStatCard({ label, value, colorClass, info }: {
   colorClass: string;
   info?: React.ReactNode;
 }) {
+  // Label in sentence case (no label-caps): "Flusso netto" must fit on one
+  // line in a third-width card on mobile, and the ⓘ popover must not inherit
+  // an uppercase transform.
   return (
-    <div className="glass-card rounded-2xl px-3.5 py-4">
-      <p className="label-caps text-secondary mb-2.5 flex items-center gap-1">
-        {label}{info}
+    <div className="glass-card rounded-2xl px-3.5 py-3.5">
+      <p className="text-[12px] font-medium text-secondary mb-2 flex items-center gap-1 whitespace-nowrap min-w-0">
+        <span className="truncate">{label}</span>{info}
       </p>
-      <p className={`text-[15px] font-semibold balance-num truncate ${colorClass}`}>
+      <p className={`text-[16px] font-semibold balance-num truncate ${colorClass}`}>
         {formatCurrency(value)}
       </p>
     </div>
