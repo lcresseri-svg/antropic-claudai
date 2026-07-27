@@ -455,3 +455,59 @@ describe('buildInsights — FASE 4 admin insights', () => {
     });
   });
 });
+
+describe('buildInsights — flusso unificato negli insight del mese', () => {
+  // Oltre metà mese: lo sforamento richiede prog > 0.5, al 15 è esattamente 0.5.
+  const LATE = new Date('2026-06-20T12:00:00Z');
+
+  it('un versamento senza conto conta come ENTRATA: nessuno sforamento, risparmio positivo', () => {
+    // Entrate ordinarie 1000, spese 900, deposito 500 SENZA conto (apporto
+    // esterno). Vecchia formula: 1000-900-500 = -400 -> falso sforamento.
+    // Flusso unificato: cashIn 1500, cashOut 900 -> +600.
+    const txs = [
+      tx({ type: 'income', amount: 1000, date: '2026-06-02' }),
+      tx({ type: 'expense', amount: 900, date: '2026-06-05' }),
+      tx({ type: 'investment', direction: 'in', amount: 500, account: '', category: 'etf', date: '2026-06-06' }),
+    ];
+    const res = buildInsights({
+      transactions: txs, monthlyIncome: 1000, monthlyExpenses: 900, monthlyInvestments: 500,
+      getCat: cat, now: LATE,
+    });
+    expect(res.some(i => i.title.startsWith('Sforamento'))).toBe(false);
+    const savedInsight = res.find(i => i.title.startsWith('Risparmiato finora'));
+    expect(savedInsight).toBeDefined();
+    expect(savedInsight!.title).toContain('600');
+  });
+
+  it('il TFR di un deposito con conto resta escluso dallo sforamento', () => {
+    // Entrate 1000, spese 800, deposito 300 dal conto di cui 200 TFR:
+    // cashOut = 800 + 100 = 900 -> flusso +100, nessuno sforamento.
+    // Vecchia formula: 1000-800-300 = -100 -> falso sforamento.
+    const txs = [
+      tx({ type: 'income', amount: 1000, date: '2026-06-02' }),
+      tx({ type: 'expense', amount: 800, date: '2026-06-05' }),
+      tx({ type: 'investment', direction: 'in', amount: 300, tfr: 200, category: 'etf', date: '2026-06-06' }),
+    ];
+    const res = buildInsights({
+      transactions: txs, monthlyIncome: 1000, monthlyExpenses: 800, monthlyInvestments: 300,
+      getCat: cat, now: LATE,
+    });
+    expect(res.some(i => i.title.startsWith('Sforamento'))).toBe(false);
+    const savedInsight = res.find(i => i.title.startsWith('Risparmiato finora'));
+    expect(savedInsight!.title).toContain('100');
+  });
+
+  it('lo sforamento reale (spese > flusso in entrata) continua a scattare', () => {
+    const txs = [
+      tx({ type: 'income', amount: 1000, date: '2026-06-02' }),
+      tx({ type: 'expense', amount: 1400, date: '2026-06-05' }),
+    ];
+    const res = buildInsights({
+      transactions: txs, monthlyIncome: 1000, monthlyExpenses: 1400, monthlyInvestments: 0,
+      getCat: cat, now: LATE,
+    });
+    const alert = res.find(i => i.title.startsWith('Sforamento'));
+    expect(alert).toBeDefined();
+    expect(alert!.title).toContain('400');
+  });
+});

@@ -1,4 +1,4 @@
-export const APP_VERSION = '1.15.3';
+export const APP_VERSION = '1.15.4';
 
 /**
  * Release channel. While in 'beta' the app is still under active development
@@ -19,6 +19,14 @@ export interface VersionEntry {
 
 /** Registro versioni mostrato in Impostazioni → Registro versioni. */
 export const VERSIONS: VersionEntry[] = [
+  {
+    version: '1.15.4', date: '2026-07-27', title: 'Card del mese ripulite e insight sul flusso unificato',
+    changes: [
+      'Le card Entrate / Uscite / Flusso netto non urlano più in maiuscolo: etichette in minuscolo, "Flusso netto" sta su una riga e il dettaglio ⓘ si legge normalmente.',
+      'Gli insight del mese (sforamento, risparmiato finora, fine mese stimato) ora usano il flusso unificato: i versamenti senza conto contano come entrate, il TFR resta escluso — stessi numeri delle card.',
+      'La previsione di fine mese non tratta più TFR e versamenti senza conto come soldi in uscita dai conti.',
+    ],
+  },
   {
     version: '1.15.3', date: '2026-07-17', title: 'Eliminazione movimenti più affidabile offline',
     changes: [
