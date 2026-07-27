@@ -44,7 +44,7 @@ export function OutflowInfo({ lines, ariaLabel = 'Dettaglio', className = '' }: 
         <>
           <div className="fixed inset-0 z-40" onClick={e => { stop(e); setOpen(false); }} />
           <div onClick={stop}
-            className="absolute z-50 top-full right-0 mt-1.5 w-52 bg-elevated rounded-xl shadow-float p-3 space-y-2 text-left">
+            className="absolute z-50 top-full left-0 mt-1.5 w-52 max-w-[calc(100vw-2rem)] bg-elevated rounded-xl shadow-float p-3 space-y-2 text-left">
             {lines.map(l => (
               <div key={l.label} className="flex items-center justify-between gap-3">
                 <span className="text-xs text-secondary">{l.label}</span>
