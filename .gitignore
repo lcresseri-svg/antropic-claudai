@@ -1,0 +1,5 @@
+# Firebase emulator debug logs (regenerated locally, never committed)
+firestore-debug.log
+firebase-debug.log
+ui-debug.log
+firestore-debug.*.log

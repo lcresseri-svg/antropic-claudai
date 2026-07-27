@@ -1,4 +1,4 @@
-export const APP_VERSION = '1.15.1';
+export const APP_VERSION = '1.15.3';
 
 /**
  * Release channel. While in 'beta' the app is still under active development
@@ -19,6 +19,19 @@ export interface VersionEntry {
 
 /** Registro versioni mostrato in Impostazioni → Registro versioni. */
 export const VERSIONS: VersionEntry[] = [
+  {
+    version: '1.15.3', date: '2026-07-17', title: 'Eliminazione movimenti più affidabile offline',
+    changes: [
+      'Eliminare un movimento normale (spesa, entrata, trasferimento) funziona di nuovo anche con connessione assente o instabile: la modifica viene applicata subito e sincronizzata al ritorno della rete.',
+      'Gli investimenti restano invece a scrittura atomica: se la sincronizzazione non riesce, il movimento non viene toccato e puoi riprovare, senza mai lasciare il controvalore incoerente.',
+    ],
+  },
+  {
+    version: '1.15.2', date: '2026-07-17', title: 'Dettaglio Entrate/Uscite più leggibile',
+    changes: [
+      'Il riquadro ⓘ con il dettaglio di Entrate e Uscite si apre ora verso destra, senza uscire dallo schermo su telefono e computer.',
+    ],
+  },
   {
     version: '1.15.1', date: '2026-07-17', title: 'Media annua semplice nel dettaglio investimento',
     changes: [

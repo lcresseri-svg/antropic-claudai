@@ -85,10 +85,18 @@ export function useTransactions(user: User | null, accounts: AccountDef[] = [], 
     await createTransactionsSynced(user.uid, txs.map(withCreatedAt), opts);
   }, [user]);
 
+  // An investment on either side (deleted or created) forces the atomic path;
+  // otherwise the offline-safe batch handles it (no controvalore to touch).
+  const idsTouchInvestment = (ids: string[]): boolean => {
+    const set = new Set(ids);
+    return rawTransactions.some(t => set.has(t.id) && t.type === 'investment');
+  };
+
   const replaceGroup = useCallback(async (deleteIds: string[], create: Omit<Transaction, 'id'>[]) => {
     if (!user) return;
-    await replaceGroupSynced(user.uid, deleteIds, create.map(withCreatedAt));
-  }, [user]);
+    const mustSync = create.some(t => t.type === 'investment') || idsTouchInvestment(deleteIds);
+    await replaceGroupSynced(user.uid, deleteIds, create.map(withCreatedAt), { mustSync });
+  }, [user, rawTransactions]);
 
   // Edit a SINGLE document in place: overwrite the SAME doc id (no delete), so
   // an already-inserted transaction is never removed by an edit — only its
@@ -143,19 +151,21 @@ export function useTransactions(user: User | null, accounts: AccountDef[] = [], 
 
   const deleteTransaction = useCallback(async (id: string) => {
     if (!user) return;
-    await deleteTransactionsSynced(user.uid, [id]);
-  }, [user]);
+    await deleteTransactionsSynced(user.uid, [id], { mustSync: idsTouchInvestment([id]) });
+  }, [user, rawTransactions]);
 
   const deleteTransactions = useCallback(async (ids: string[]) => {
     if (!user) return;
-    await deleteTransactionsSynced(user.uid, ids);
-  }, [user]);
+    await deleteTransactionsSynced(user.uid, ids, { mustSync: idsTouchInvestment(ids) });
+  }, [user, rawTransactions]);
 
   const deleteAll = useCallback(async () => {
     if (!user) return;
     // Use the RAW set so a manual "delete everything" also clears expired
-    // templates (which are hidden from `transactions`).
-    await deleteTransactionsSynced(user.uid, rawTransactions.map(t => t.id));
+    // templates (which are hidden from `transactions`). Atomic only if any
+    // investment is in the set (its controvalore effect must be reverted).
+    const mustSync = rawTransactions.some(t => t.type === 'investment');
+    await deleteTransactionsSynced(user.uid, rawTransactions.map(t => t.id), { mustSync });
   }, [user, rawTransactions]);
 
   // ── Derived ────────────────────────────────────────────────────────────────
