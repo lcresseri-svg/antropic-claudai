@@ -144,6 +144,26 @@ run('investmentValueSync — delete a source-less investment (emulator + rules)'
     expect(s2.data()!.countInvestmentsInExpenses).toBe(true);
   });
 
+  it('MODAL path: replaceGroupSynced deletes a source-less investment (mustSync:true)', async () => {
+    // Exactly what the modal produces for an investment delete:
+    // handleSave → tx.replaceGroup([id], []) → replaceGroupSynced(uid, [id], [], {mustSync:true}).
+    await sync.createTransactionsSynced(UID, [{
+      type: 'investment', direction: 'in', description: 'Senza conto', amount: 150,
+      date: '2026-07-05', category: 'fondo', account: '',
+    }]);
+    const col = collection(db, 'users', UID, 'transactions');
+    const dep = (await getDocs(col)).docs.find(d => d.data().description === 'Senza conto')!;
+    const before = await getDoc(doc(db, 'users', UID, 'meta', 'settings'));
+    const cvBefore = (before.data()!.categories as { id: string; currentValue?: number }[]).find(c => c.id === 'fondo')!.currentValue ?? 0;
+
+    await sync.replaceGroupSynced(UID, [dep.id], [], { mustSync: true });
+
+    expect((await getDocs(col)).docs.some(d => d.id === dep.id)).toBe(false);
+    const after = await getDoc(doc(db, 'users', UID, 'meta', 'settings'));
+    const cvAfter = (after.data()!.categories as { id: string; currentValue?: number }[]).find(c => c.id === 'fondo')!.currentValue ?? 0;
+    expect(cvAfter).toBe(cvBefore - 150);
+  });
+
   it('non-investment delete uses the offline-safe batch path (mustSync:false)', async () => {
     await sync.createTransactionsSynced(UID, [{
       type: 'expense', description: 'Spesa', amount: 20, date: '2026-07-04', category: 'casa', account: 'cc',
