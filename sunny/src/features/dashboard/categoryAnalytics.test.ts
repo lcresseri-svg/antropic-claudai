@@ -4,6 +4,7 @@ import {
   aggregateCategorySpending, buildComposition, aggregateCategoryTrend,
   getCategoryMovements, historicalMonthlyAverage, localISO,
   aggregateIncomeByCategory, aggregateIncomeStats, aggregateIncomeTrend, capitalReturnedIn,
+  REALIZED_GAIN_CATEGORY,
 } from './categoryAnalytics';
 import { Transaction } from '../../types';
 
@@ -199,6 +200,35 @@ describe('analisi entrate', () => {
     expect(st.topSourceShare).toBeCloseTo(88, 0);
     expect(st.recurringShare).toBeCloseTo(80, 0);      // 2000 su 2500 da serie
     expect(st.monthsWithIncome).toBe(1);
+  });
+
+  it('entrate nette: escludono il capitale rientrato, tengono dentro le plusvalenze', () => {
+    const txs: Transaction[] = [
+      ...INCOME,
+      // plusvalenza realizzata: è reddito vero → resta nelle entrate nette
+      tx({ type: 'income', category: REALIZED_GAIN_CATEGORY, amount: 120, date: '2026-06-09' }),
+      // capitale rientrato da un disinvestimento: NON è reddito → fuori dalle nette
+      tx({ type: 'investment', category: 'etf', amount: 1000, date: '2026-06-09', direction: 'out', account: 'conto' }),
+    ];
+    const agg = aggregateIncomeByCategory(txs, range, prevRange);
+    const returned = capitalReturnedIn(txs, range);
+    const st = aggregateIncomeStats(txs, range, agg);
+
+    expect(returned).toBe(1000);
+    expect(agg.total + returned).toBe(3620);      // entrate LORDE della card dashboard
+    expect(st.netIncome).toBe(2620);              // 3620 − 1000 di capitale rientrato
+    expect(st.realizedGains).toBe(120);
+    expect(st.ordinaryIncome).toBe(2500);
+    expect(st.netIncome).toBe(st.realizedGains + st.ordinaryIncome);
+  });
+
+  it('entrate nette: senza disinvestimenti coincidono col totale', () => {
+    const agg = aggregateIncomeByCategory(INCOME, range, prevRange);
+    const st = aggregateIncomeStats(INCOME, range, agg);
+    expect(capitalReturnedIn(INCOME, range)).toBe(0);
+    expect(st.netIncome).toBe(agg.total);
+    expect(st.realizedGains).toBe(0);
+    expect(st.ordinaryIncome).toBe(agg.total);
   });
 
   it('trend mensile: una voce per mese, dal più vecchio', () => {

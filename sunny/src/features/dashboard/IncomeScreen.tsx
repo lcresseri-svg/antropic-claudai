@@ -6,6 +6,10 @@
 //   entrate ordinarie (type income) + capitale rientrato dai disinvestimenti.
 // I versamenti senza conto e il TFR NON sono entrate (non toccano i conti):
 // vivono nella card Investimenti.
+//
+// Accanto al totale c'è la statistica ENTRATE NETTE: il totale meno il capitale
+// rientrato dai disinvestimenti (denaro già tuo che torna indietro, non reddito).
+// Le plusvalenze realizzate restano dentro perché sono guadagno effettivo.
 
 import { useState, useMemo, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
@@ -48,6 +52,8 @@ export function IncomeScreen({ transactions }: Props) {
 
   // Totale della card "Entrate": ordinarie + capitale rientrato.
   const cashIn = agg.total + returned;
+  // Peso delle plusvalenze realizzate sulle entrate nette.
+  const gainShare = stats.netIncome > 0 ? (stats.realizedGains / stats.netIncome) * 100 : 0;
   const showDelta = insightDepth !== 'minimal';
 
   useEffect(() => { window.scrollTo({ top: 0 }); }, [period, offset]);
@@ -125,7 +131,7 @@ export function IncomeScreen({ transactions }: Props) {
         </div>
       ) : (
         <>
-          {/* Totale periodo */}
+          {/* Totale periodo + ENTRATE NETTE */}
           <div className="glass-card rounded-2xl p-5 mb-3">
             <p className="label-caps text-secondary mb-1.5">Totale entrate periodo</p>
             <p className="text-[34px] leading-none font-bold text-green balance-num">{formatCurrency(cashIn)}</p>
@@ -135,17 +141,44 @@ export function IncomeScreen({ transactions }: Props) {
                 <span className="text-secondary"> rispetto al periodo precedente</span>
               </p>
             )}
-            {returned > 0 && (
-              <p className="text-[12px] text-secondary mt-2 leading-snug">
-                Include <span className="text-gold balance-num">{formatCurrency(returned)}</span> di capitale
-                rientrato dai disinvestimenti.
+
+            <div className="mt-4 pt-4 border-t border-divider">
+              <div className="flex items-baseline justify-between gap-3">
+                <p className="text-[14px] font-semibold text-primary">Entrate nette</p>
+                <p className="text-[24px] leading-none font-bold text-green balance-num flex-shrink-0">
+                  {formatCurrency(stats.netIncome)}
+                </p>
+              </div>
+              <p className="text-[12px] text-secondary leading-snug mt-1.5">
+                {returned > 0
+                  ? 'Quanto hai davvero guadagnato: fuori il capitale rientrato dai disinvestimenti, che non è reddito ma denaro già tuo che torna indietro. Le plusvalenze realizzate restano dentro, quelle sono guadagno vero.'
+                  : 'In questo periodo non è rientrato capitale da disinvestimenti: le entrate sono già tutte reddito vero.'}
               </p>
-            )}
+
+              {returned > 0 && (
+                <ul className="mt-3.5 space-y-2">
+                  <FlowRow label="Entrate lorde del periodo" value={cashIn} />
+                  <FlowRow label="Capitale rientrato dai disinvestimenti" value={-returned} sign />
+                  <FlowRow label="Entrate nette" value={stats.netIncome} strong />
+                </ul>
+              )}
+
+              {stats.realizedGains > 0 && (
+                <div className="mt-3.5 rounded-xl px-3.5 py-3 flex items-start gap-2.5" style={{ backgroundColor: 'rgba(138,146,112,0.14)' }}>
+                  <span className="text-base flex-shrink-0">📈</span>
+                  <p className="text-[12px] text-secondary leading-snug">
+                    Di cui <span className="font-semibold text-green balance-num">{formatCurrency(stats.realizedGains)}</span> di
+                    plusvalenze realizzate ({Math.round(gainShare)}% delle entrate nette)
+                    e <span className="font-medium text-primary balance-num">{formatCurrency(stats.ordinaryIncome)}</span> di entrate ordinarie.
+                  </p>
+                </div>
+              )}
+            </div>
           </div>
 
           {/* KPI */}
           <div className="grid grid-cols-2 md:grid-cols-4 gap-2 mb-3">
-            <Kpi label="Media al mese" value={formatCurrency(stats.monthlyAverage)} />
+            <Kpi label="Media netta al mese" value={formatCurrency(stats.monthlyAverage)} />
             <Kpi label="Fonti attive" value={String(stats.activeSources)} />
             <Kpi label="Entrata più alta" value={formatCurrency(stats.topAmount)} />
             <Kpi label="Movimento medio" value={formatCurrency(stats.avgAmount)} />
@@ -254,6 +287,19 @@ export function IncomeScreen({ transactions }: Props) {
         </>
       )}
     </div>
+  );
+}
+
+/** Riga della derivazione lorde → nette. `sign` mostra sempre il segno,
+ *  `strong` evidenzia il risultato finale. */
+function FlowRow({ label, value, sign, strong }: { label: string; value: number; sign?: boolean; strong?: boolean }) {
+  return (
+    <li className="flex items-baseline justify-between gap-3">
+      <span className={`text-[12px] leading-snug ${strong ? 'font-semibold text-primary' : 'text-secondary'}`}>{label}</span>
+      <span className={`balance-num flex-shrink-0 ${strong ? 'text-[14px] font-semibold text-primary' : 'text-[13px] text-secondary'}`}>
+        {sign && value < 0 ? `−${formatCurrency(Math.abs(value))}` : formatCurrency(value)}
+      </span>
+    </li>
   );
 }
 

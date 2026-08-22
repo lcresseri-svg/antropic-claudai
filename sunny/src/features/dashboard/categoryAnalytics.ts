@@ -263,7 +263,18 @@ export function aggregateIncomeTrend(
   return out;
 }
 
+/** Categoria di sistema delle plusvalenze realizzate (vedi defaults.ts). */
+export const REALIZED_GAIN_CATEGORY = '__plusvalenza__';
+
 export interface IncomeStats {
+  /** ENTRATE NETTE: al netto del capitale rientrato dai disinvestimenti, che
+   *  non è reddito ma denaro già tuo che torna indietro. Le plusvalenze
+   *  realizzate restano dentro: sono guadagno vero. */
+  netIncome: number;
+  /** Quota di entrate nette che arriva da plusvalenze realizzate. */
+  realizedGains: number;
+  /** Entrate nette al netto anche delle plusvalenze (stipendio, extra, …). */
+  ordinaryIncome: number;
   /** Media per mese del periodo (totale / mesi). */
   monthlyAverage: number;
   /** Numero di categorie di entrata attive nel periodo. */
@@ -290,17 +301,23 @@ export function aggregateIncomeStats(
   agg: CategoryAggregation,
 ): IncomeStats {
   const startISO = localISO(range.start), endISO = localISO(range.end);
-  let count = 0, topAmount = 0, recurringAmount = 0;
+  let count = 0, topAmount = 0, recurringAmount = 0, realizedGains = 0;
   const months = new Set<string>();
   for (const t of transactions) {
     if (!isIncomeIn(t, startISO, endISO) || t.amount <= 0) continue;
     count++;
     if (t.amount > topAmount) topAmount = t.amount;
     if (t.seriesId) recurringAmount += t.amount;
+    if (t.category === REALIZED_GAIN_CATEGORY) realizedGains += t.amount;
     months.add(t.date.slice(0, 7));
   }
+  // agg.total somma le sole `income`: il capitale rientrato dai disinvestimenti
+  // è un movimento `investment` e non vi rientra → è già la cifra NETTA.
   const total = agg.total;
   return {
+    netIncome: total,
+    realizedGains,
+    ordinaryIncome: total - realizedGains,
     monthlyAverage: range.months > 0 ? total / range.months : 0,
     activeSources: agg.categories.length,
     topSourceShare: total > 0 ? (agg.categories[0]?.amount ?? 0) / total * 100 : 0,
