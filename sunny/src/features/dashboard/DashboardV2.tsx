@@ -158,13 +158,16 @@ export function DashboardV2(p: Props) {
         <p className="label-caps text-secondary mb-3 px-0.5">Questo mese</p>
         <div className="grid grid-cols-2 md:grid-cols-4 gap-2">
           <MonthStatCard label="Entrate" value={flow.cashIn} colorClass="text-green"
+            onOpen={() => navigate('/income')} openLabel="Analizza le entrate"
             info={<OutflowInfo ariaLabel="Dettaglio entrate" lines={[
               { label: 'Entrate ordinarie', value: flow.ordinaryIncome },
               ...(flow.capitalReturned > 0 ? [{ label: 'Rientri da disinvestimenti', value: flow.capitalReturned, valueClass: 'text-gold' }] : []),
             ]} />} />
           {/* Solo spese effettive: gli investimenti hanno la loro card. */}
-          <MonthStatCard label="Uscite" value={flow.expenses} colorClass="text-secondary" />
+          <MonthStatCard label="Uscite" value={flow.expenses} colorClass="text-secondary"
+            onOpen={p.onSeeCategories ?? (() => navigate('/category-spending'))} openLabel="Analizza le spese" />
           <MonthStatCard label="Investimenti" value={investedTotal} colorClass="text-gold"
+            onOpen={p.onSeeInvestments} openLabel="Analizza gli investimenti"
             info={<OutflowInfo ariaLabel="Dettaglio investimenti" lines={[
               { label: 'Dai tuoi conti', value: flow.investedFromAccounts, valueClass: 'text-gold' },
               ...(flow.externalContributions > 0 ? [{ label: 'Senza conto', value: flow.externalContributions, valueClass: 'text-gold' }] : []),
@@ -251,23 +254,46 @@ export function DashboardV2(p: Props) {
   );
 }
 
-function MonthStatCard({ label, value, colorClass, info }: {
+function MonthStatCard({ label, value, colorClass, info, onOpen, openLabel }: {
   label: string;
   value: number;
   colorClass: string;
   info?: React.ReactNode;
+  /** When set, the card links to its analysis screen: chevron top-right. */
+  onOpen?: () => void;
+  openLabel?: string;
 }) {
   // Label in sentence case (no label-caps): "Flusso netto" must fit on one
-  // line in a third-width card on mobile, and the ⓘ popover must not inherit
-  // an uppercase transform.
-  return (
-    <div className="glass-card rounded-2xl px-3.5 py-3.5">
+  // line in a quarter-width card, and the ⓘ popover must not inherit an
+  // uppercase transform.
+  const body = (
+    <>
       <p className="text-[12px] font-medium text-secondary mb-2 flex items-center gap-1 whitespace-nowrap min-w-0">
-        <span className="truncate">{label}</span>{info}
+        <span className="truncate">{label}</span>
+        {info}
+        {onOpen && (
+          <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5"
+            strokeLinecap="round" strokeLinejoin="round"
+            className="ml-auto flex-shrink-0 text-secondary group-hover:text-gold transition-colors">
+            <path d="m9 18 6-6-6-6" />
+          </svg>
+        )}
       </p>
       <p className={`text-[16px] font-semibold balance-num truncate ${colorClass}`}>
         {formatCurrency(value)}
       </p>
+    </>
+  );
+
+  // The ⓘ popover lives INSIDE the label: keep it out of the <button> so its
+  // clicks never trigger the navigation (OutflowInfo already stops propagation,
+  // but nested interactive elements would be invalid markup anyway).
+  if (!onOpen) return <div className="glass-card rounded-2xl px-3.5 py-3.5">{body}</div>;
+  return (
+    <div className="glass-card rounded-2xl px-3.5 py-3.5 relative group">
+      <button type="button" onClick={onOpen} aria-label={openLabel ?? `Apri ${label}`}
+        className="absolute inset-0 rounded-2xl z-0" />
+      <div className="relative z-10 pointer-events-none [&_button]:pointer-events-auto">{body}</div>
     </div>
   );
 }

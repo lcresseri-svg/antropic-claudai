@@ -85,6 +85,11 @@ function median(values: number[]): number {
 const isExpenseIn = (t: Transaction, startISO: string, endISO: string) =>
   t.type === 'expense' && !t.projected && t.date >= startISO && t.date <= endISO;
 
+/** Entrate reali del periodo: `income` non projected e senza il template di una
+ *  serie (che è un puntatore, non un movimento). */
+const isIncomeIn = (t: Transaction, startISO: string, endISO: string) =>
+  t.type === 'income' && !t.projected && !t.recurring && t.date >= startISO && t.date <= endISO;
+
 export interface CategorySpendingSummary {
   categoryId: string;
   amount: number;
@@ -164,6 +169,147 @@ export function aggregateCategorySpending(
 
   const deltaPercentage = previousTotal > 0 ? ((total - previousTotal) / previousTotal) * 100 : null;
   return { total, previousTotal, deltaPercentage, categories };
+}
+
+/**
+ * Aggregazione per categoria delle ENTRATE del periodo — stessa forma di
+ * aggregateCategorySpending (riusa `CategorySpendingSummary`, quindi la UI e i
+ * componenti di composizione sono condivisi, nessun sistema parallelo).
+ *
+ * Conta le sole `income` reali (niente righe projected): le plusvalenze
+ * realizzate sono income e quindi rientrano, mentre il capitale rientrato dai
+ * disinvestimenti è un movimento `investment` e viene sommato a parte dal
+ * chiamante (vedi la card Entrate, che mostra cashIn = ordinarie + rientri).
+ * Nessun budget: sulle entrate non ha significato.
+ */
+export function aggregateIncomeByCategory(
+  transactions: Transaction[],
+  range: PeriodRange,
+  prevRange: PeriodRange,
+): CategoryAggregation {
+  const startISO = localISO(range.start), endISO = localISO(range.end);
+  const prevStartISO = localISO(prevRange.start), prevEndISO = localISO(prevRange.end);
+
+  const lists: Record<string, number[]> = {};
+  let total = 0;
+  const prev: Record<string, number> = {};
+  let previousTotal = 0;
+
+  for (const t of transactions) {
+    if (isIncomeIn(t, startISO, endISO)) {
+      if (t.amount > 0) { (lists[t.category] ??= []).push(t.amount); total += t.amount; }
+    } else if (isIncomeIn(t, prevStartISO, prevEndISO)) {
+      if (t.amount > 0) { prev[t.category] = (prev[t.category] ?? 0) + t.amount; previousTotal += t.amount; }
+    }
+  }
+
+  const categories: CategorySpendingSummary[] = Object.entries(lists).map(([categoryId, list]) => {
+    const amount = list.reduce((s, v) => s + v, 0);
+    const transactionCount = list.length;
+    const previousAmount = prev[categoryId] ?? 0;
+    const deltaAmount = amount - previousAmount;
+    return {
+      categoryId,
+      amount,
+      percentageOfTotal: total > 0 ? (amount / total) * 100 : 0,
+      transactionCount,
+      avgTransactionAmount: transactionCount > 0 ? amount / transactionCount : 0,
+      medianTransactionAmount: median(list),
+      previousAmount,
+      deltaAmount,
+      deltaPercentage: previousAmount > 0 ? (deltaAmount / previousAmount) * 100 : null,
+    };
+  }).sort((a, b) => b.amount - a.amount);
+
+  const deltaPercentage = previousTotal > 0 ? ((total - previousTotal) / previousTotal) * 100 : null;
+  return { total, previousTotal, deltaPercentage, categories };
+}
+
+/** Capitale rientrato dai disinvestimenti nel periodo (gambe 'out'): fa parte
+ *  delle Entrate del flusso ma non è una categoria di entrata. */
+export function capitalReturnedIn(transactions: Transaction[], range: PeriodRange): number {
+  const startISO = localISO(range.start), endISO = localISO(range.end);
+  let total = 0;
+  for (const t of transactions) {
+    if (t.projected || t.recurring) continue;
+    if (t.type !== 'investment' || t.direction !== 'out') continue;
+    if (t.date < startISO || t.date > endISO) continue;
+    total += t.amount;
+  }
+  return total;
+}
+
+/** Serie mensile delle entrate (ultimi `months` mesi, dal più vecchio). */
+export function aggregateIncomeTrend(
+  transactions: Transaction[],
+  months: number,
+  now: Date = new Date(),
+): { label: string; value: number }[] {
+  const out: { label: string; value: number }[] = [];
+  for (let i = months - 1; i >= 0; i--) {
+    const d = new Date(now.getFullYear(), now.getMonth() - i, 1);
+    const key = `${d.getFullYear()}-${pad(d.getMonth() + 1)}`;
+    let sum = 0;
+    for (const t of transactions) {
+      if (t.projected || t.type !== 'income') continue;
+      if (t.date.slice(0, 7) !== key) continue;
+      sum += t.amount;
+    }
+    out.push({
+      label: d.toLocaleString('it-IT', { month: 'short' }).replace('.', '').replace(/^./, c => c.toUpperCase()),
+      value: sum,
+    });
+  }
+  return out;
+}
+
+export interface IncomeStats {
+  /** Media per mese del periodo (totale / mesi). */
+  monthlyAverage: number;
+  /** Numero di categorie di entrata attive nel periodo. */
+  activeSources: number;
+  /** Quota della fonte principale sul totale (0..100); 0 senza entrate. */
+  topSourceShare: number;
+  /** Entrata singola più alta del periodo. */
+  topAmount: number;
+  /** Numero di movimenti di entrata. */
+  count: number;
+  /** Importo medio per movimento. */
+  avgAmount: number;
+  /** Quota di entrate che arriva da serie ricorrenti (0..100) — la parte
+   *  "prevedibile" del reddito. */
+  recurringShare: number;
+  /** Mesi (del periodo) in cui è arrivata almeno un'entrata. */
+  monthsWithIncome: number;
+}
+
+/** Statistiche di sintesi delle entrate del periodo (pure, testabili). */
+export function aggregateIncomeStats(
+  transactions: Transaction[],
+  range: PeriodRange,
+  agg: CategoryAggregation,
+): IncomeStats {
+  const startISO = localISO(range.start), endISO = localISO(range.end);
+  let count = 0, topAmount = 0, recurringAmount = 0;
+  const months = new Set<string>();
+  for (const t of transactions) {
+    if (!isIncomeIn(t, startISO, endISO) || t.amount <= 0) continue;
+    count++;
+    if (t.amount > topAmount) topAmount = t.amount;
+    if (t.seriesId) recurringAmount += t.amount;
+    months.add(t.date.slice(0, 7));
+  }
+  const total = agg.total;
+  return {
+    monthlyAverage: range.months > 0 ? total / range.months : 0,
+    activeSources: agg.categories.length,
+    topSourceShare: total > 0 ? (agg.categories[0]?.amount ?? 0) / total * 100 : 0,
+    topAmount,
+    count,
+    avgAmount: count > 0 ? total / count : 0,
+    recurringShare: total > 0 ? (recurringAmount / total) * 100 : 0,
+    monthsWithIncome: months.size,
+  };
 }
 
 export interface CompositionSegment {
