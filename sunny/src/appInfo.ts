@@ -1,4 +1,4 @@
-export const APP_VERSION = '1.17.2';
+export const APP_VERSION = '1.17.3';
 
 /**
  * Release channel. While in 'beta' the app is still under active development
@@ -19,6 +19,14 @@ export interface VersionEntry {
 
 /** Registro versioni mostrato in Impostazioni → Registro versioni. */
 export const VERSIONS: VersionEntry[] = [
+  {
+    version: '1.17.3', date: '2026-08-22', title: 'Dettagli ⓘ finalmente a posto',
+    changes: [
+      'Il riquadro ⓘ si chiude di nuovo toccando fuori: prima restava aperto finché non ripremevi sull\'icona, e potevano restarne aperti due insieme.',
+      'Il riquadro non viene più coperto dalla card accanto: prima quello di "Entrate" sembrava trasparente perché ci finiva sopra la card "Uscite".',
+      'Quando l\'icona ⓘ è vicino al bordo destro (come nei subtotali dei Movimenti) il riquadro si apre verso sinistra, restando tutto dentro lo schermo.',
+    ],
+  },
   {
     version: '1.17.2', date: '2026-08-22', title: 'Icona ⓘ delle card sempre raggiungibile',
     changes: [
