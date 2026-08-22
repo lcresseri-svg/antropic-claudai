@@ -74,9 +74,13 @@ export function DashboardV2(p: Props) {
     return { currentMonthCategoryTotals: categoryTotals, currentMonthExpenseByAccount: expenseByAccount, currentMonthInvestByAccount: investByAccount };
   }, [p.transactions]);
 
-  // Unified cash flow: the three cards always reconcile (netFlow = cashIn − cashOut),
-  // TFR excluded, source-less contributions counted as inflows.
+  // Unified cash flow. The four cards reconcile by construction:
+  //   Flusso netto = Entrate − Uscite − Investimenti (quota dai conti).
   const flow = p.monthlyFlow;
+  // TOTALE investito nel mese (versamenti, disinvestimenti esclusi): quota dai
+  // conti + apporti esterni + TFR. Solo la prima pesa sul flusso — le altre due
+  // aumentano il capitale investito senza toccare la liquidità.
+  const investedTotal = flow.investedFromAccounts + flow.externalContributions + flow.tfrExcluded;
 
   const insights = useMemo(() =>
     buildInsights({
@@ -140,22 +144,31 @@ export function DashboardV2(p: Props) {
         </div>
       </div>
 
-      {/* ── 2. Questo mese — flusso unificato ── */}
+      {/* ── 2. Questo mese — flusso unificato, 4 card ──
+          Quadratura garantita: Entrate − Uscite − Investimenti = Flusso netto.
+          "Uscite" sono SOLO le spese effettive; gli investimenti hanno la loro
+          card. Il valore mostrato in "Investimenti" è la quota che pesa davvero
+          sul flusso (pagata dai conti): TFR e apporti esterni aumentano il
+          capitale investito senza togliere liquidità, quindi vivono nel ⓘ
+          insieme al TOTALE investito del mese. */}
       <section className="mt-6">
         <p className="label-caps text-secondary mb-3 px-0.5">Questo mese</p>
-        <div className="grid grid-cols-3 gap-2">
+        <div className="grid grid-cols-2 md:grid-cols-4 gap-2">
           <MonthStatCard label="Entrate" value={flow.cashIn} colorClass="text-green"
             info={<OutflowInfo ariaLabel="Dettaglio entrate" lines={[
               { label: 'Entrate ordinarie', value: flow.ordinaryIncome },
               ...(flow.externalContributions > 0 ? [{ label: 'Apporti esterni', value: flow.externalContributions, valueClass: 'text-gold' }] : []),
               ...(flow.capitalReturned > 0 ? [{ label: 'Rientri da disinvestimenti', value: flow.capitalReturned, valueClass: 'text-gold' }] : []),
-              ...(flow.tfrExcluded > 0 ? [{ label: 'TFR escluso', value: flow.tfrExcluded, valueClass: 'text-secondary' }] : []),
             ]} />} />
-          <MonthStatCard label="Uscite" value={flow.cashOut} colorClass="text-secondary"
-            info={<OutflowInfo ariaLabel="Dettaglio uscite" lines={[
-              { label: 'Spese', value: flow.expenses },
-              ...(flow.investedFromAccounts > 0 ? [{ label: 'Investimenti dai conti', value: flow.investedFromAccounts, valueClass: 'text-gold' }] : []),
-              ...(flow.tfrExcluded > 0 ? [{ label: 'TFR escluso', value: flow.tfrExcluded, valueClass: 'text-secondary' }] : []),
+          {/* Solo spese effettive: gli investimenti hanno la loro card. */}
+          <MonthStatCard label="Uscite" value={flow.expenses} colorClass="text-secondary" />
+          <MonthStatCard label="Investimenti" value={flow.investedFromAccounts} colorClass="text-gold"
+            info={<OutflowInfo ariaLabel="Dettaglio investimenti" lines={[
+              { label: 'Dai tuoi conti', value: flow.investedFromAccounts, valueClass: 'text-gold' },
+              ...(flow.externalContributions > 0 ? [{ label: 'Apporti esterni', value: flow.externalContributions, valueClass: 'text-gold' }] : []),
+              ...(flow.tfrExcluded > 0 ? [{ label: 'TFR', value: flow.tfrExcluded, valueClass: 'text-gold' }] : []),
+              { label: 'Totale investito', value: investedTotal },
+              ...(flow.capitalReturned > 0 ? [{ label: 'Disinvestito (in Entrate)', value: flow.capitalReturned, valueClass: 'text-secondary' }] : []),
             ]} />} />
           <MonthStatCard
             label="Flusso netto"
