@@ -1,4 +1,4 @@
-export const APP_VERSION = '1.15.4';
+export const APP_VERSION = '1.16.0';
 
 /**
  * Release channel. While in 'beta' the app is still under active development
@@ -19,6 +19,16 @@ export interface VersionEntry {
 
 /** Registro versioni mostrato in Impostazioni → Registro versioni. */
 export const VERSIONS: VersionEntry[] = [
+  {
+    version: '1.16.0', date: '2026-08-22', title: 'Quattro card: Entrate, Uscite, Investimenti, Flusso netto',
+    changes: [
+      'Le "Uscite" ora contengono solo le spese effettive: gli investimenti hanno la loro card dedicata.',
+      'Nuova card "Investimenti": quanto hai investito nel mese — dai tuoi conti, senza conto e TFR — con il ⓘ che lo scompone. I disinvestimenti restano nelle Entrate, perché riportano soldi sui conti.',
+      'I versamenti senza conto non contano più come entrate: non passano dai tuoi conti, quindi ora stanno negli investimenti. Il flusso netto è la variazione reale della liquidità.',
+      'Su computer le quattro card stanno affiancate, su telefono si dispongono in griglia 2×2.',
+      'Anche nel dettaglio di ogni conto la distinzione è sempre visibile: Entrate, Uscite (solo spese) e Investimenti usciti da quel conto.',
+    ],
+  },
   {
     version: '1.15.4', date: '2026-07-27', title: 'Card del mese ripulite e insight sul flusso unificato',
     changes: [

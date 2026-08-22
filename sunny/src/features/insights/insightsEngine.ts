@@ -167,8 +167,9 @@ export interface MonthStats {
   expense: number;
   /** Net REAL invested in the month (full amounts, direction-aware). */
   invest: number;
-  /** Flusso netto unificato (cashIn − cashOut): TFR escluso, apporti esterni e
-   *  capitale rientrato inclusi — same figure as the dashboard's "Flusso netto". */
+  /** Flusso netto unificato (cashIn − cashOut) = variazione reale della
+   *  liquidità: TFR e versamenti senza conto esclusi (non toccano i conti),
+   *  capitale rientrato incluso — same figure as the dashboard's "Flusso netto". */
   savings: number;
   savingsRate: number;
   txCount: number;
@@ -368,8 +369,8 @@ export function buildInsights(input: InsightInput): Insight[] {
   const spanLbl = span.map(m => shortMonth(m.key));
 
   // Unified cash flow of the current month — SAME numbers as the dashboard
-  // cards: gli apporti esterni (depositi senza conto) contano come ENTRATE, il
-  // TFR resta escluso, il capitale rientrato dai disinvestimenti è un'entrata.
+  // cards: nel flusso entra solo ciò che tocca i conti — versamenti senza conto
+  // e TFR restano fuori, il capitale rientrato dai disinvestimenti è un'entrata.
   // Every month-flow insight below (sforamento, risparmiato finora, forecast)
   // reads from here, never from the raw entrate−uscite−investimenti formula.
   const monthFlow = aggregateFlow(transactions.filter(t => t.date.startsWith(curMon)));
@@ -567,7 +568,7 @@ export function buildInsights(input: InsightInput): Insight[] {
       tone: 'caution',
       explain: {
         what: 'Questo mese le uscite reali superano le entrate del flusso.',
-        how: 'Entrate (incluse le entrate ordinarie, gli apporti esterni come i versamenti senza conto e il capitale rientrato dai disinvestimenti) − Uscite (spese + investimenti pagati dai conti). Il TFR resta escluso dal flusso. Se è negativo, stai intaccando i risparmi.',
+        how: 'Entrate (entrate ordinarie + capitale rientrato dai disinvestimenti) − Uscite (spese + investimenti pagati dai conti). I versamenti senza conto e il TFR restano fuori dal flusso: aumentano il capitale investito senza toccare la liquidità. Se è negativo, stai intaccando i risparmi.',
         basis: 'Solo transazioni del mese in corso — stessi numeri delle card Entrate/Uscite.',
         chart: { labels: ['Entrate', 'Uscite'], values: [Math.round(monthFlow.cashIn), Math.round(monthFlow.cashOut)], format: 'currency', highlightIndex: 1 },
       },
@@ -645,8 +646,8 @@ export function buildInsights(input: InsightInput): Insight[] {
       ? `Parto da quanto hai già speso questo mese (${formatCurrency(monthlyExpenses)}) e stimo i giorni che restano (${100 - pctMonth}% del mese) combinando la tua media di spesa variabile${seasonalVar.avg > 0 ? ` (${formatCurrency(avgVar)}/mese) con la storica di questo stesso mese negli anni precedenti (${formatCurrency(Math.round(seasonalVar.avg))})` : ` (${formatCurrency(avgVar)}/mese)`} con il ritmo effettivo di questo mese${upcomingRecurring > 0 ? `, poi aggiungo le spese ricorrenti ancora in arrivo (${formatCurrency(Math.round(upcomingRecurring))})` : ''}. Uscite stimate: ${formatCurrency(projExp)}.`
       : `Riproietto quanto hai già speso (${formatCurrency(monthlyExpenses)}) sul resto del mese in base ai giorni passati (sei circa al ${pctMonth}%)${upcomingRecurring > 0 ? `, più le ricorrenti ancora in arrivo (${formatCurrency(Math.round(upcomingRecurring))})` : ''}, arrivando a circa ${formatCurrency(projExp)}.`;
     const howInc = h.avgIncome > 0
-      ? ` Per le entrate uso la cifra più alta tra quanto è già entrato nel flusso (${formatCurrency(monthCashIn)}, apporti esterni inclusi) e quanto incassi di solito (${formatCurrency(h.avgIncome)}), perché lo stipendio di solito arriva tutto insieme.`
-      : ` Per le entrate considero quanto è già entrato nel flusso (${formatCurrency(monthCashIn)}, apporti esterni inclusi).`;
+      ? ` Per le entrate uso la cifra più alta tra quanto è già entrato sui conti (${formatCurrency(monthCashIn)}) e quanto incassi di solito (${formatCurrency(h.avgIncome)}), perché lo stipendio di solito arriva tutto insieme.`
+      : ` Per le entrate considero quanto è già entrato sui conti (${formatCurrency(monthCashIn)}).`;
     const forecastBasis = [
       h.months > 0 ? `media ultimi ${h.months} mesi` : null,
       seasonalVar.avg > 0 ? 'storico stesso mese anni precedenti' : null,
@@ -679,7 +680,7 @@ export function buildInsights(input: InsightInput): Insight[] {
       tone: 'positive',
       explain: {
         what: 'Quanto hai messo da parte finora questo mese (flusso netto).',
-        how: 'Entrate (entrate ordinarie + apporti esterni + capitale rientrato) − Uscite (spese + investimenti pagati dai conti), sui movimenti già registrati. Il TFR resta escluso dal flusso.',
+        how: 'Entrate (entrate ordinarie + capitale rientrato) − Uscite (spese + investimenti pagati dai conti), sui movimenti già registrati. I versamenti senza conto e il TFR non toccano la liquidità e restano fuori dal flusso.',
         basis: 'Solo mese corrente — stessi numeri delle card Entrate/Uscite.',
         chart: { labels: ['Entrate', 'Uscite', 'Flusso netto'], values: [Math.round(monthFlow.cashIn), Math.round(monthFlow.cashOut), Math.round(saved)], format: 'currency', highlightIndex: 2 },
       },

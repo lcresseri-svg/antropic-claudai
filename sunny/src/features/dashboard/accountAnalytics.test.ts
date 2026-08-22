@@ -113,4 +113,21 @@ describe('accountAnalytics', () => {
     expect(movements).toHaveLength(1);
     expect(movements[0].amount).toBe(50);
   });
+
+  it('10. distinzione nel dettaglio conto: Uscite = solo spese, Investimenti = solo cash uscito da QUI', () => {
+    const txs = [
+      tx({ date: '2026-06-03', type: 'income', amount: 2000, account: 'a' }),
+      tx({ date: '2026-06-04', type: 'expense', amount: 500, account: 'a' }),
+      // deposito 300 dal conto A di cui 200 TFR -> solo 100 esce davvero
+      tx({ date: '2026-06-05', type: 'investment', amount: 300, tfr: 200, account: 'a', direction: 'in' }),
+      // versamento SENZA conto: non tocca nessun conto -> invisibile qui
+      tx({ date: '2026-06-06', type: 'investment', amount: 400, account: '', direction: 'in' }),
+    ];
+    const f = aggregateAccountFlow(txs, ACC_A, range, { now: NOW });
+    expect(f.income).toBe(2000);
+    expect(f.expense).toBe(500);        // solo spese, niente investimenti dentro
+    expect(f.investment).toBe(100);     // solo la quota non-TFR uscita da questo conto
+    // Quadratura del conto: apertura + entrate − uscite − investimenti + trasferimenti
+    expect(f.closingBalance).toBe(f.openingBalance + 2000 - 500 - 100 + f.transferNet);
+  });
 });

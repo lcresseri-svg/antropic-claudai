@@ -81,9 +81,10 @@ export const sendMonthlySummary = onSchedule(
         .where('date', '<=', `${ym}-31`)
         .get();
 
-      // Mirror the client's unified flow (shared/financialFlow.ts): TFR is
-      // never cash, source-less deposits are external inflows, the withdrawal
-      // leg returns capital. "Messi da parte" = flusso netto (cashIn − cashOut).
+      // Mirror the client's unified flow (shared/financialFlow.ts): only what
+      // really touches an account is cash — TFR and source-less deposits stay
+      // OUT of the flow, the withdrawal leg returns capital.
+      // "Flusso netto" = cashIn − cashOut = variazione della liquidità.
       let income = 0, cashIn = 0, cashOut = 0, any = false;
       snap.forEach(d => {
         const t = d.data() as { type?: string; amount?: number; shared?: number; direction?: string; account?: string; tfr?: number; recurring?: unknown };
@@ -95,9 +96,9 @@ export const sendMonthlySummary = onSchedule(
         else if (t.type === 'expense') cashOut += amount - (Number(t.shared) || 0);
         else if (t.type === 'investment') {
           if (t.direction === 'out') { cashIn += amount; return; }
+          if (!t.account) return; // senza conto: non tocca la liquidità
           const tfr = Math.min(Math.max(Number(t.tfr) || 0, 0), amount);
-          const nonTfr = amount - tfr;
-          if (t.account) cashOut += nonTfr; else cashIn += nonTfr;
+          cashOut += amount - tfr;
         }
       });
       if (!any) continue;

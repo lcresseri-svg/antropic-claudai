@@ -15,7 +15,10 @@
  *   investment deposit          → TFR = clamp(tfr ?? 0, 0, amount)
  *     (direction absent/'in')     quota non-TFR = amount − TFR
  *     · con conto               → cashOut += quota non-TFR      (uscita reale)
- *     · senza conto             → cashIn  += quota non-TFR      (apporto esterno)
+ *     · senza conto             → FUORI dal flusso (apporto esterno): non tocca
+ *                                 nessun conto, quindi non è né entrata né
+ *                                 uscita di cassa — resta un componente a sé,
+ *                                 mostrato nella card "Investimenti"
  *     · TFR                     → SEMPRE escluso dal flusso (resta nel capitale
  *                                 investito / controvalore / patrimonio)
  *   investment withdrawal        → cashIn += amount              (capitale
@@ -23,9 +26,13 @@
  *                                 nella sua transazione income/expense collegata)
  *   transfer                    → escluso (movimento interno)
  *
- *   cashIn  = entrate ordinarie + apporti esterni non-TFR + capitale rientrato
+ *   cashIn  = entrate ordinarie + capitale rientrato dai disinvestimenti
  *   cashOut = spese effettive + depositi non-TFR finanziati dai conti
- *   netFlow = cashIn − cashOut
+ *   netFlow = cashIn − cashOut          (= variazione reale della liquidità)
+ *
+ * Nel flusso entra SOLO ciò che tocca davvero i conti: apporti esterni e TFR
+ * aumentano il capitale investito e il patrimonio senza spostare liquidità,
+ * quindi restano fuori da cashIn/cashOut (li si legge nei loro componenti).
  *
  * Filtering (projected rows, pending/future dates, period) is the CALLER's
  * responsibility, mirroring the other pure aggregators.
@@ -90,7 +97,8 @@ export function liquidityDelta(t: Transaction): number {
 export interface FlowBreakdown {
   /** Entrate ordinarie (type income, incl. plusvalenze realizzate). */
   ordinaryIncome: number;
-  /** Apporti esterni: quota non-TFR dei depositi SENZA conto. */
+  /** Apporti esterni: quota non-TFR dei depositi SENZA conto. FUORI dal flusso
+   *  (non tocca i conti): confluisce negli investimenti, non nelle entrate. */
   externalContributions: number;
   /** Capitale rientrato dai disinvestimenti (gamba 'out'). */
   capitalReturned: number;
@@ -100,9 +108,9 @@ export interface FlowBreakdown {
   investedFromAccounts: number;
   /** Quota TFR esclusa dal flusso (informativa). */
   tfrExcluded: number;
-  cashIn: number;   // ordinaryIncome + externalContributions + capitalReturned
+  cashIn: number;   // ordinaryIncome + capitalReturned
   cashOut: number;  // expenses + investedFromAccounts
-  netFlow: number;  // cashIn − cashOut
+  netFlow: number;  // cashIn − cashOut (variazione della liquidità)
 }
 
 export const EMPTY_FLOW: FlowBreakdown = Object.freeze({
@@ -138,7 +146,7 @@ export function flowParts(t: Transaction): Pick<FlowBreakdown,
  *  Used for list subtotals so they always reconcile with the flow cards. */
 export function netFlowDelta(t: Transaction): number {
   const p = flowParts(t);
-  return (p.ordinaryIncome + p.externalContributions + p.capitalReturned)
+  return (p.ordinaryIncome + p.capitalReturned)
     - (p.expenses + p.investedFromAccounts);
 }
 
@@ -157,7 +165,7 @@ export function aggregateFlow(transactions: Iterable<Transaction>): FlowBreakdow
     acc.investedFromAccounts += p.investedFromAccounts;
     acc.tfrExcluded += p.tfrExcluded;
   }
-  const cashIn = r2(acc.ordinaryIncome + acc.externalContributions + acc.capitalReturned);
+  const cashIn = r2(acc.ordinaryIncome + acc.capitalReturned);
   const cashOut = r2(acc.expenses + acc.investedFromAccounts);
   return {
     ordinaryIncome: r2(acc.ordinaryIncome),

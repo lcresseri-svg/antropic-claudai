@@ -54,13 +54,15 @@ describe('investedDelta', () => {
 });
 
 describe('flowParts / aggregateFlow — unified flow', () => {
-  it('deposit WITHOUT account: non-TFR share is an external inflow, liquidity untouched', () => {
+  it('deposit WITHOUT account: OUT of the flow (no cash moved), tracked as a component', () => {
+    // 300 senza conto di cui 200 TFR: nessun conto cambia, quindi né entrata né
+    // uscita di cassa. Le due quote restano leggibili per la card Investimenti.
     const f = aggregateFlow([tx({ type: 'investment', amount: 300, tfr: 200, account: '' })]);
     expect(f.externalContributions).toBe(100);
     expect(f.tfrExcluded).toBe(200);
-    expect(f.cashIn).toBe(100);
+    expect(f.cashIn).toBe(0);
     expect(f.cashOut).toBe(0);
-    expect(f.netFlow).toBe(100);
+    expect(f.netFlow).toBe(0);
   });
   it('deposit WITH account: non-TFR share is a real outflow', () => {
     const f = aggregateFlow([tx({ type: 'investment', amount: 300, tfr: 200, account: 'a1' })]);
@@ -85,7 +87,7 @@ describe('flowParts / aggregateFlow — unified flow', () => {
     const f = aggregateFlow([tx({ type: 'transfer', amount: 500, account: 'a1', toAccount: 'a2' })]);
     expect(f).toMatchObject({ cashIn: 0, cashOut: 0, netFlow: 0 });
   });
-  it('full formula: cashIn/cashOut/netFlow', () => {
+  it('full formula: cashIn/cashOut/netFlow (solo ciò che tocca i conti)', () => {
     const f = aggregateFlow([
       tx({ type: 'income', amount: 2000 }),                                        // stipendio
       tx({ type: 'expense', amount: 800 }),                                        // spese
@@ -93,10 +95,25 @@ describe('flowParts / aggregateFlow — unified flow', () => {
       tx({ type: 'investment', amount: 150, account: '' }),                        // apporto esterno
       tx({ type: 'investment', amount: 120, direction: 'out', account: 'a1' }),    // rientro
     ]);
-    expect(f.cashIn).toBe(2000 + 150 + 120);
-    expect(f.cashOut).toBe(800 + 100);
+    expect(f.cashIn).toBe(2000 + 120);   // apporto esterno FUORI dal flusso
+    expect(f.cashOut).toBe(800 + 100);   // solo la quota non-TFR dal conto
     expect(f.netFlow).toBe(f.cashIn - f.cashOut);
+    expect(f.externalContributions).toBe(150);
     expect(f.tfrExcluded).toBe(200);
+    // netFlow = variazione reale della liquidità sui conti.
+    const liquidity = 2000 - 800 - 100 + 120;
+    expect(f.netFlow).toBe(liquidity);
+  });
+
+  it('il TOTALE investito si ricompone dai componenti (card Investimenti)', () => {
+    const f = aggregateFlow([
+      tx({ type: 'investment', amount: 300, tfr: 200, account: 'a1' }), // 100 dai conti + 200 TFR
+      tx({ type: 'investment', amount: 150, account: '' }),             // 150 senza conto
+      tx({ type: 'investment', amount: 120, direction: 'out', account: 'a1' }), // disinvestimento: escluso
+    ]);
+    const investedTotal = f.investedFromAccounts + f.externalContributions + f.tfrExcluded;
+    expect(investedTotal).toBe(450); // 300 + 150, il disinvestimento non conta
+    expect(f.capitalReturned).toBe(120);
   });
   it('netFlowDelta matches aggregateFlow for every type', () => {
     const txs = [
