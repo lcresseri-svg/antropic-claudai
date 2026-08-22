@@ -156,7 +156,7 @@ interface ExportTransaction {
   date: string;
   month: string;
   amount: number;
-  type: 'income' | 'expense' | 'investment' | 'transfer';
+  type: 'income' | 'expense' | 'investment' | 'transfer' | 'refund';
   categoryId: string;
   accountId?: string;
   description?: string;
@@ -483,7 +483,9 @@ export function buildForecastDiagnosticsExport(input: DiagnosticsInput): Forecas
     return {
       id: c.id,
       label: c.label,
-      type: c.kind === 'transfer' ? 'expense' : c.kind, // transfers shouldn't appear; guard for type
+      // Né i transfer né gli storni sono generi di categoria (uno storno eredita
+      // la categoria della spesa): non dovrebbero comparire, guardia sul tipo.
+      type: c.kind === 'transfer' || c.kind === 'refund' ? 'expense' : c.kind,
       icon: c.icon,
       inferredBehavior: fc?.behavior,
       behaviorConfidence: fc?.behaviorResult.confidence,

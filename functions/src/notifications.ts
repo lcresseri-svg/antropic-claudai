@@ -94,6 +94,9 @@ export const sendMonthlySummary = onSchedule(
         any = true;
         if (t.type === 'income') { income += amount; cashIn += amount; }
         else if (t.type === 'expense') cashOut += amount - (Number(t.shared) || 0);
+        // Storno: riaccredita il conto alla sua data, ma non è un'entrata
+        // (mirror di flowParts in sunny/src/shared/financialFlow.ts).
+        else if (t.type === 'refund') cashIn += amount;
         else if (t.type === 'investment') {
           if (t.direction === 'out') { cashIn += amount; return; }
           if (!t.account) return; // senza conto: non tocca la liquidità
@@ -263,6 +266,9 @@ export const remindMonthEnd = onSchedule(
         const amount = Number(t.amount) || 0;
         if (t.type === 'income') income += amount;
         else if (t.type === 'expense') expenses += amount - (Number(t.shared) || 0);
+        // Lo storno riduce le spese del mese in cui la spesa è avvenuta: qui il
+        // riepilogo è mensile, quindi si limita a scalare le spese del mese.
+        else if (t.type === 'refund') expenses -= amount;
         else if (t.type === 'investment') investments += t.direction === 'out' ? -amount : amount;
       });
       if (income === 0 && expenses === 0 && investments === 0) continue;

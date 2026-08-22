@@ -120,6 +120,22 @@ describe('transaction validation', () => {
       validTxn({ valuePending: 'yes' })));
   });
 
+  it('accepts refunds (type refund + refundOf), rejects malformed refundOf', async () => {
+    const db = dbOf(A);
+    await assertSucceeds(setDoc(doc(db, `users/${A}/transactions/rf1`),
+      validTxn({ type: 'refund', refundOf: 'expense-123', amount: 30 })));
+    // refundOf resta facoltativo a livello di regole (il legame è client-side)
+    await assertSucceeds(setDoc(doc(db, `users/${A}/transactions/rf2`),
+      validTxn({ type: 'refund', amount: 30 })));
+    await assertFails(setDoc(doc(db, `users/${A}/transactions/rfb1`),
+      validTxn({ type: 'refund', refundOf: 42 })));
+    await assertFails(setDoc(doc(db, `users/${A}/transactions/rfb2`),
+      validTxn({ type: 'refund', refundOf: 'x'.repeat(129) })));
+    // un tipo inventato resta rifiutato
+    await assertFails(setDoc(doc(db, `users/${A}/transactions/rfb3`),
+      validTxn({ type: 'storno' })));
+  });
+
   it('legacy docs stay valid: no new field is required', async () => {
     // Pre-feature documents carry none of statsSpreadMonths / valuePending /
     // valueEffect / tfr — they must keep writing (edits) without any migration.

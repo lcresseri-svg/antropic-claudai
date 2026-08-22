@@ -1,4 +1,4 @@
-export const APP_VERSION = '1.17.3';
+export const APP_VERSION = '1.18.0';
 
 /**
  * Release channel. While in 'beta' the app is still under active development
@@ -19,6 +19,16 @@ export interface VersionEntry {
 
 /** Registro versioni mostrato in Impostazioni → Registro versioni. */
 export const VERSIONS: VersionEntry[] = [
+  {
+    version: '1.18.0', date: '2026-08-22', title: 'Storni e rimborsi',
+    changes: [
+      'Ti hanno rimborsato una spesa? Ora puoi registrarlo: apri la spesa e tocca "Registra storno" (oppure dal "+" scegli la spesa da stornare).',
+      'Lo storno riporta i soldi sul conto che scegli, alla data reale dell\'accredito — ma non viene contato come un\'entrata.',
+      'Nelle statistiche riduce la spesa originale: se il rimborso arriva il mese dopo, a calare è comunque il mese in cui hai fatto la spesa.',
+      'Puoi registrare più storni sulla stessa spesa, totali o parziali, senza mai superare l\'importo speso.',
+      'Nel dettaglio della spesa vedi l\'elenco degli storni, il totale già stornato e la spesa effettiva; nei movimenti lo storno è una riga a sé, etichettata "Storno".',
+    ],
+  },
   {
     version: '1.17.3', date: '2026-08-22', title: 'Dettagli ⓘ finalmente a posto',
     changes: [

@@ -76,6 +76,7 @@ export interface MonthlyRecap {
 
 const TYPE_LABEL: Record<Transaction['type'], string> = {
   income: 'Entrata', expense: 'Uscita', investment: 'Investimento', transfer: 'Trasferimento',
+  refund: 'Storno',
 };
 
 /** "Aprile 2026" (capitalised) from a YYYY-MM key. */

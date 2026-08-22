@@ -3,6 +3,7 @@ import { collection, query, orderBy, onSnapshot, doc, updateDoc } from 'firebase
 import { User } from 'firebase/auth';
 import { AccountDef, CategoryDef, Transaction, TransactionPatch, ownShare, investSign } from '../../types';
 import { accountDelta, aggregateFlow } from '../financialFlow';
+import { applyRefunds } from '../refunds';
 import { isPending, isExpiredTemplate } from '../recurrence';
 import { db } from '../../lib/firebase';
 // Every write goes through the controvalore-sync layer: investment movements
@@ -24,8 +25,15 @@ export function useTransactions(user: User | null, accounts: AccountDef[] = [], 
   // series. But they must never appear as a row or feed totals/balances, so the
   // array the whole app consumes hides them. `allTransactions` keeps the full set
   // for series resolution (findTemplate).
+  //
+  // applyRefunds è l'UNICO punto in cui gli storni entrano nelle statistiche:
+  // annota ogni spesa stornata con `refundedTotal` (campo derivato, mai scritto
+  // su Firestore) così `ownShare` restituisce la spesa NETTA a tutti i consumer
+  // — categorie, budget, insight, forecast, recap — senza che nessuno di loro
+  // debba conoscere gli storni. La spesa originale resta intatta e la cassa usa
+  // `grossOwnShare`, quindi saldi e flusso restano sulle date reali.
   const transactions = useMemo(
-    () => rawTransactions.filter(t => !isExpiredTemplate(t)),
+    () => applyRefunds(rawTransactions.filter(t => !isExpiredTemplate(t))),
     [rawTransactions],
   );
 
@@ -149,13 +157,26 @@ export function useTransactions(user: User | null, accounts: AccountDef[] = [], 
     await patchTransactionsSynced(user.uid, ids, patch, { mustSync });
   }, [user, rawTransactions]);
 
+  // Uno storno non esiste senza la sua spesa: eliminando la spesa se ne vanno
+  // anche gli storni, altrimenti resterebbero righe orfane che accreditano un
+  // conto senza più nulla da ridurre.
+  const withLinkedRefunds = (ids: string[]): string[] => {
+    const set = new Set(ids);
+    for (const t of rawTransactions) {
+      if (t.type === 'refund' && t.refundOf && set.has(t.refundOf)) set.add(t.id);
+    }
+    return [...set];
+  };
+
   const deleteTransaction = useCallback(async (id: string) => {
     if (!user) return;
-    await deleteTransactionsSynced(user.uid, [id], { mustSync: idsTouchInvestment([id]) });
+    const ids = withLinkedRefunds([id]);
+    await deleteTransactionsSynced(user.uid, ids, { mustSync: idsTouchInvestment(ids) });
   }, [user, rawTransactions]);
 
-  const deleteTransactions = useCallback(async (ids: string[]) => {
+  const deleteTransactions = useCallback(async (rawIds: string[]) => {
     if (!user) return;
+    const ids = withLinkedRefunds(rawIds);
     await deleteTransactionsSynced(user.uid, ids, { mustSync: idsTouchInvestment(ids) });
   }, [user, rawTransactions]);
 

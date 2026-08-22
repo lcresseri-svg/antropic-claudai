@@ -5,6 +5,7 @@ import { Candidate, Recognition, RECOGNITION_THRESHOLD } from './categoryRecogni
 import { useSettings } from '../../shared/providers/settings';
 import { expandRecurringOnCreate, shouldExpandOnSave, monthlyEquivalent, nthOccurrenceDate } from '../../shared/recurrence';
 import { useEscapeKey } from '../../shared/hooks/useEscapeKey';
+import { refundsFor, summarizeRefunds } from '../../shared/refunds';
 import { useScrollLock } from '../../shared/useScrollLock';
 
 interface Props {
@@ -16,6 +17,12 @@ interface Props {
   /** Admin-only category recognizer (L1 history + L2 keywords). Absent → the
    *  non-admin path: plain `guessCategory`, behaviour unchanged. */
   recognize?: (description: string, candidates: Candidate[]) => Recognition | null;
+  /** Serve al blocco storni (elenco + totale già stornato della spesa aperta). */
+  transactions?: Transaction[];
+  /** Apre la sheet storno sulla spesa in modifica (o senza spesa, da "+"). */
+  onRegisterRefund?: (expenseId?: string) => void;
+  /** Apre uno storno esistente nella sua sheet. */
+  onEditRefund?: (refund: Transaction) => void;
   onClose: () => void;
   /** For INVESTMENT movements the modal awaits the returned promise (atomic
    *  commit movimento+controvalore): loading state, no double submit, stays
@@ -34,8 +41,8 @@ const r2 = (n: number) => Math.round(n * 100) / 100;
 const today = () => new Date().toISOString().slice(0, 10);
 const yesterday = () => { const d = new Date(); d.setDate(d.getDate() - 1); return d.toISOString().slice(0, 10); };
 
-export function TransactionModal({ open, editing, groupTransfers = [], seriesEdit = false, defaultType, recognize, onClose, onSave }: Props) {
-  const { categories, accounts, visibleCategories, visibleAccounts, enableInvestments, detailedInvestments, theme } = useSettings();
+export function TransactionModal({ open, editing, groupTransfers = [], seriesEdit = false, defaultType, recognize, transactions = [], onRegisterRefund, onEditRefund, onClose, onSave }: Props) {
+  const { categories, accounts, visibleCategories, visibleAccounts, enableInvestments, detailedInvestments, theme, getAcc } = useSettings();
   const [type, setType] = useState<TransactionType>('expense');
   const [description, setDescription] = useState('');
   const [amount, setAmount] = useState('');
@@ -71,14 +78,20 @@ export function TransactionModal({ open, editing, groupTransfers = [], seriesEdi
   // Quick mode: defaultType set + not editing → hide type selector, collapse date/account
   const quickMode = !editing && !!defaultType && defaultType !== 'transfer';
 
+  // Storni della spesa aperta: elenco, totale stornato e spesa effettiva.
+  // Solo su una spesa REALE già registrata (non su template di serie).
+  const canRefund = !!editing && editing.type === 'expense' && !editing.projected && !editing.recurring;
+  const myRefunds = canRefund ? refundsFor(transactions, editing.id) : [];
+  const refundSummary = canRefund ? summarizeRefunds(editing, myRefunds) : null;
+
   useEffect(() => {
     if (!open) return;
     if (editing) {
-      // Shared-expense reconstruction only folds the storni (transfers): an
+      // Shared-expense reconstruction only folds the settlements (transfers): an
       // investment in the group is the fee parent and must not be summed in.
-      const groupStorni = groupTransfers.filter(t => t.type === 'transfer');
-      const hasGroup = editing.type === 'expense' && !!editing.groupId && groupStorni.length > 0;
-      const transfersSum = groupStorni.reduce((s, t) => s + t.amount, 0);
+      const groupSettlements = groupTransfers.filter(t => t.type === 'transfer');
+      const hasGroup = editing.type === 'expense' && !!editing.groupId && groupSettlements.length > 0;
+      const transfersSum = groupSettlements.reduce((s, t) => s + t.amount, 0);
       setType(editing.type); setDescription(editing.description);
       setAmount(String(hasGroup ? editing.amount + transfersSum : editing.amount));
       setDate(editing.date);
@@ -87,7 +100,7 @@ export function TransactionModal({ open, editing, groupTransfers = [], seriesEdi
       setNotes(editing.notes ?? '');
       setIsShared(hasGroup || !!editing.shared);
       setReimbursements(hasGroup
-        ? groupStorni.map(t => ({ amount: String(t.amount), account: t.toAccount ?? '' }))
+        ? groupSettlements.map(t => ({ amount: String(t.amount), account: t.toAccount ?? '' }))
         : []);
       // Legacy series without seriesMeta open as plain 'recurring'.
       setSeriesKind(editing.recurring ? (editing.seriesMeta?.kind ?? 'recurring') : 'none');
@@ -271,7 +284,7 @@ export function TransactionModal({ open, editing, groupTransfers = [], seriesEdi
       : (editing?.seriesId && !editing?.recurring ? editing?.seriesMeta : undefined);
     const desc = description.trim() || defaultDesc.trim() || 'Senza nome';
     // Delete only the group members this edit reconstructs: editing an expense
-    // recreates its storni (transfers); editing a transfer/investment recreates
+    // recreates its settlements (transfers); editing a transfer/investment recreates
     // its commission (expense). An investment linked to the commission expense
     // being edited is NOT reconstructed and must survive.
     const reconstructed = editing
@@ -291,26 +304,29 @@ export function TransactionModal({ open, editing, groupTransfers = [], seriesEdi
     const finalize = (docs: Omit<Transaction, 'id'>[]) =>
       expandNow ? docs.flatMap(d => expandRecurringOnCreate(d, todayISO)) : docs;
 
-    const storni = (type === 'expense' && isShared)
+    const settlements = (type === 'expense' && isShared)
       ? reimbursements
           .map(r => ({ amount: parseFloat(r.amount.replace(',', '.')), account: r.account }))
           .filter(r => r.amount > 0 && r.account)
       : [];
-    const sum = storni.reduce((s, r) => s + r.amount, 0);
+    const sum = settlements.reduce((s, r) => s + r.amount, 0);
 
-    if (storni.length > 0) {
+    if (settlements.length > 0) {
       if (sum > value) return;
       const net = value - sum;
       const groupId = editing?.groupId ?? crypto.randomUUID();
       const create: Omit<Transaction, 'id'>[] = [];
-      for (const r of storni) {
+      for (const r of settlements) {
         create.push({
-          type: 'transfer', description: `Storno · ${desc}`, amount: r.amount, date: effDate,
+          // "Quota" (non "Storno"): è la parte ALTRUI di una spesa condivisa che
+          // rientra, un movimento interno fra conti — da non confondere con
+          // `type: 'refund'`, lo storno di una spesa (vedi shared/refunds.ts).
+          type: 'transfer', description: `Quota · ${desc}`, amount: r.amount, date: effDate,
           category: 'trasferimento', account, toAccount: r.account, groupId,
-          // A SHARED series repeats WHOLE: the storno is its own series, advancing
-          // in lockstep with the expense (same rule, same dates), so every month
-          // gets its transfer too. The shared groupId + the same-date guard at
-          // edit time link each month's expense to that month's storno.
+          // A SHARED series repeats WHOLE: each settlement is its own series,
+          // advancing in lockstep with the expense (same rule, same dates), so
+          // every month gets its transfer too. The shared groupId + the same-date
+          // guard at edit time link each month's expense to that month's quota.
           ...(recurring ? { recurring, seriesId: crypto.randomUUID() } : {}),
         });
       }
@@ -419,6 +435,73 @@ export function TransactionModal({ open, editing, groupTransfers = [], seriesEdi
                 </button>
               ))}
             </div>
+          )}
+
+          {/* Storni della spesa — elenco, totale stornato, spesa effettiva */}
+          {canRefund && refundSummary && (
+            <div className="bg-card rounded-2xl px-4 py-3.5">
+              <div className="flex items-center justify-between mb-1">
+                <p className="label-caps text-secondary">Storni</p>
+                {refundSummary.refunded > 0 && (
+                  <span className="text-[11px] font-semibold text-green balance-num">
+                    −{formatCurrency(refundSummary.refunded)}
+                  </span>
+                )}
+              </div>
+
+              {myRefunds.length === 0 ? (
+                <p className="text-[12px] text-secondary/70 leading-snug mb-3">
+                  Se ti hanno rimborsato questa spesa, registralo: il conto torna su alla data
+                  dell'accredito e la spesa scende nelle statistiche.
+                </p>
+              ) : (
+                <>
+                  <ul className="divide-y divide-divider mb-2">
+                    {myRefunds.map(r => (
+                      <li key={r.id}>
+                        <button type="button" onClick={() => onEditRefund?.(r)}
+                          className="w-full flex items-center gap-3 py-2 text-left">
+                          <div className="flex-1 min-w-0">
+                            <p className="text-[13px] text-primary truncate">
+                              {r.notes || 'Storno'}
+                            </p>
+                            <p className="text-[11px] text-secondary">
+                              {formatDate(r.date)} · {getAcc(r.account).label}
+                            </p>
+                          </div>
+                          <span className="text-[13px] font-semibold text-green balance-num flex-shrink-0">
+                            +{formatCurrency(r.amount)}
+                          </span>
+                        </button>
+                      </li>
+                    ))}
+                  </ul>
+                  <div className="flex items-baseline justify-between gap-3 pt-2 border-t border-divider mb-3">
+                    <span className="text-[12px] font-semibold text-primary">Spesa effettiva</span>
+                    <span className="text-[15px] font-bold text-primary balance-num">
+                      {formatCurrency(refundSummary.net)}
+                    </span>
+                  </div>
+                </>
+              )}
+
+              {refundSummary.fullyRefunded ? (
+                <p className="text-[11px] text-secondary/70">Spesa stornata per intero.</p>
+              ) : (
+                <button type="button" onClick={() => onRegisterRefund?.(editing!.id)}
+                  className="w-full py-2.5 rounded-xl bg-elevated text-gold text-sm font-medium">
+                  Registra storno
+                </button>
+              )}
+            </div>
+          )}
+
+          {/* Accesso secondario: "+" → Registra storno → scegli la spesa */}
+          {!editing && !quickMode && onRegisterRefund && (
+            <button type="button" onClick={() => onRegisterRefund(undefined)}
+              className="w-full py-2.5 rounded-xl bg-elevated text-gold text-sm font-medium">
+              ↩︎ Registra storno di una spesa
+            </button>
           )}
 
           {/* Amount */}
@@ -605,11 +688,12 @@ export function TransactionModal({ open, editing, groupTransfers = [], seriesEdi
 
           {showMore && (
             <>
-          {/* Shared expense — storni / rimborsi */}
+          {/* Spesa condivisa — quote rimborsate dagli altri (NON gli storni:
+              quelli sono `type: 'refund'`, legati alla spesa via refundOf). */}
           {type === 'expense' && (
             <ToggleBlock
               title="Spesa condivisa"
-              subtitle="Registra gli storni ricevuti — diventano trasferimenti, il resto resta spesa"
+              subtitle="Registra le quote che ti rimborsano — diventano trasferimenti, il resto resta spesa"
               on={isShared}
               onToggle={() => {
                 const next = !isShared;
@@ -642,13 +726,13 @@ export function TransactionModal({ open, editing, groupTransfers = [], seriesEdi
                     ))}
                     <button type="button" onClick={addReimb}
                       className="w-full py-2.5 rounded-xl bg-elevated text-gold text-sm font-medium">
-                      + Aggiungi storno
+                      + Aggiungi quota rimborsata
                     </button>
                     {reimbursements.length > 0 && (
                       <div className="space-y-1.5 pt-1">
-                        <Row label="Totale stornato" value={formatCurrency(sum)} muted />
+                        <Row label="Totale rimborsato dagli altri" value={formatCurrency(sum)} muted />
                         <Row label="La tua spesa effettiva" value={formatCurrency(net < 0 ? 0 : net)} />
-                        {over && <p className="text-xs text-red">Gli storni superano il totale</p>}
+                        {over && <p className="text-xs text-red">Le quote superano il totale</p>}
                       </div>
                     )}
                   </div>

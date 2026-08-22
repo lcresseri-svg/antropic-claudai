@@ -17,6 +17,7 @@ import { BudgetSetupBanner } from './features/budget/BudgetSetupBanner';
 import { RecapPrompt } from './features/recap/RecapPrompt';
 import { TransactionModal } from './features/transactions/TransactionModal';
 import { SeriesDetailSheet } from './features/transactions/SeriesDetailSheet';
+import { RefundSheet } from './features/transactions/RefundSheet';
 import { ImportModal } from './features/transactions/ImportModal';
 import { BottomNav } from './shared/components/BottomNav';
 import { SideNav } from './shared/components/SideNav';
@@ -283,8 +284,19 @@ function Main({ user, onLogOut, onDeleteAccount }: {
       <TransactionModal
         open={editing.modalOpen} editing={editing.editing} groupTransfers={editing.groupTransfers} seriesEdit={editing.seriesEdit}
         defaultType={editing.defaultType} recognize={editing.recognize ?? undefined}
+        transactions={tx.transactions}
         onClose={editing.closeModal}
         onSave={editing.handleSave}
+        onRegisterRefund={id => { editing.closeModal(); editing.openRefund(id); }}
+        onEditRefund={r => { editing.closeModal(); editing.openRefund(undefined, r); }}
+      />
+      <RefundSheet
+        open={editing.refundOpen}
+        transactions={tx.transactions}
+        expenseId={editing.refundExpenseId}
+        editing={editing.refundEditing}
+        onClose={editing.closeRefund}
+        onSave={editing.saveRefund}
       />
       <SeriesDetailSheet
         open={!!editing.seriesDetail}
