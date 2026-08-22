@@ -1,4 +1,4 @@
-export const APP_VERSION = '1.16.0';
+export const APP_VERSION = '1.17.0';
 
 /**
  * Release channel. While in 'beta' the app is still under active development
@@ -19,6 +19,15 @@ export interface VersionEntry {
 
 /** Registro versioni mostrato in Impostazioni → Registro versioni. */
 export const VERSIONS: VersionEntry[] = [
+  {
+    version: '1.17.0', date: '2026-08-22', title: 'Nuova schermata Entrate e scorciatoie dalle card',
+    changes: [
+      'Nuova schermata "Entrate": da dove arrivano i tuoi soldi, con media al mese, fonti attive, entrata più alta, movimento medio, andamento su 12 mesi, grafico ad anello della composizione e dettaglio per fonte.',
+      'Segnalazione quando il reddito è molto concentrato su una sola fonte.',
+      'Dalle card del mese una freccia ">" porta all\'analisi: Entrate alla nuova schermata, Uscite alle categorie di spesa, Investimenti al portafoglio.',
+      'Le card "Spese per categoria" e "Investimenti" restano dove sono in dashboard.',
+    ],
+  },
   {
     version: '1.16.0', date: '2026-08-22', title: 'Quattro card: Entrate, Uscite, Investimenti, Flusso netto',
     changes: [

@@ -3,6 +3,7 @@ import {
   getPeriodRange, getPreviousPeriodRange, periodElapsedFraction,
   aggregateCategorySpending, buildComposition, aggregateCategoryTrend,
   getCategoryMovements, historicalMonthlyAverage, localISO,
+  aggregateIncomeByCategory, aggregateIncomeStats, aggregateIncomeTrend, capitalReturnedIn,
 } from './categoryAnalytics';
 import { Transaction } from '../../types';
 
@@ -137,5 +138,74 @@ describe('getCategoryMovements', () => {
 describe('historicalMonthlyAverage', () => {
   it('averages over the last full months excluding the current one', () => {
     expect(historicalMonthlyAverage(SAMPLE, 'spesa', NOW, 6)).toBeCloseTo(200 / 6, 5);
+  });
+});
+
+describe('analisi entrate', () => {
+  const range = getPeriodRange('1m', 0, NOW);
+  const prevRange = getPreviousPeriodRange('1m', 0, NOW);
+
+  const INCOME: Transaction[] = [
+    tx({ type: 'income', category: 'stipendio', amount: 2000, date: '2026-06-02', seriesId: 's1' }),
+    tx({ type: 'income', category: 'stipendio', amount: 200, date: '2026-06-10' }),
+    tx({ type: 'income', category: 'extra', amount: 300, date: '2026-06-12' }),
+    // mese precedente (per il delta)
+    tx({ type: 'income', category: 'stipendio', amount: 2000, date: '2026-05-02' }),
+    // rumore: non sono entrate ordinarie
+    tx({ type: 'expense', category: 'spesa', amount: 500, date: '2026-06-05' }),
+    tx({ type: 'investment', category: 'etf', amount: 400, date: '2026-06-06', direction: 'in', account: '' }),
+    tx({ type: 'income', category: 'stipendio', amount: 999, date: '2026-06-20', projected: true }),
+  ];
+
+  it('aggrega le entrate per categoria, ordinate per importo', () => {
+    const agg = aggregateIncomeByCategory(INCOME, range, prevRange);
+    expect(agg.total).toBe(2500);                       // 2000 + 200 + 300
+    expect(agg.categories[0].categoryId).toBe('stipendio');
+    expect(agg.categories[0].amount).toBe(2200);
+    expect(agg.categories[1].amount).toBe(300);
+    expect(agg.categories[0].percentageOfTotal).toBeCloseTo(88, 0);
+  });
+
+  it('ignora spese, investimenti e righe projected', () => {
+    const agg = aggregateIncomeByCategory(INCOME, range, prevRange);
+    expect(agg.categories.some(c => c.categoryId === 'spesa')).toBe(false);
+    expect(agg.categories.some(c => c.categoryId === 'etf')).toBe(false);
+    expect(agg.total).toBe(2500); // il projected da 999 non entra
+  });
+
+  it('confronta col periodo precedente', () => {
+    const agg = aggregateIncomeByCategory(INCOME, range, prevRange);
+    expect(agg.previousTotal).toBe(2000);
+    expect(agg.deltaPercentage).toBeCloseTo(25, 0); // 2500 vs 2000
+  });
+
+  it('capitalReturnedIn conta solo i disinvestimenti del periodo', () => {
+    const txs = [
+      tx({ type: 'investment', category: 'etf', amount: 150, date: '2026-06-08', direction: 'out', account: 'conto' }),
+      tx({ type: 'investment', category: 'etf', amount: 400, date: '2026-06-06', direction: 'in', account: 'conto' }),
+      tx({ type: 'investment', category: 'etf', amount: 999, date: '2026-05-08', direction: 'out', account: 'conto' }),
+    ];
+    expect(capitalReturnedIn(txs, range)).toBe(150);
+  });
+
+  it('statistiche di sintesi: media, fonti, quota ricorrente, top', () => {
+    const agg = aggregateIncomeByCategory(INCOME, range, prevRange);
+    const st = aggregateIncomeStats(INCOME, range, agg);
+    expect(st.activeSources).toBe(2);
+    expect(st.count).toBe(3);
+    expect(st.topAmount).toBe(2000);
+    expect(st.avgAmount).toBeCloseTo(2500 / 3, 2);
+    expect(st.monthlyAverage).toBe(2500);              // periodo di 1 mese
+    expect(st.topSourceShare).toBeCloseTo(88, 0);
+    expect(st.recurringShare).toBeCloseTo(80, 0);      // 2000 su 2500 da serie
+    expect(st.monthsWithIncome).toBe(1);
+  });
+
+  it('trend mensile: una voce per mese, dal più vecchio', () => {
+    const trend = aggregateIncomeTrend(INCOME, 3, NOW);
+    expect(trend).toHaveLength(3);
+    expect(trend[2].value).toBe(2500);  // giugno (mese corrente)
+    expect(trend[1].value).toBe(2000);  // maggio
+    expect(trend[0].value).toBe(0);     // aprile
   });
 });

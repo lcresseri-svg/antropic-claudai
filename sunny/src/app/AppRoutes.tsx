@@ -15,6 +15,7 @@ import type { useTransactionEditing } from './useTransactionEditing';
 // rest of the bundle stays out of the critical path.
 const InvestmentsScreen = lazy(() => import('../features/dashboard/InvestmentsScreen').then(m => ({ default: m.InvestmentsScreen })));
 const CategorySpendingScreen = lazy(() => import('../features/dashboard/CategorySpendingScreen').then(m => ({ default: m.CategorySpendingScreen })));
+const IncomeScreen = lazy(() => import('../features/dashboard/IncomeScreen').then(m => ({ default: m.IncomeScreen })));
 const AccountBalanceScreen = lazy(() => import('../features/dashboard/AccountBalanceScreen').then(m => ({ default: m.AccountBalanceScreen })));
 const WealthHistoryScreen = lazy(() => import('../features/dashboard/WealthHistoryScreen').then(m => ({ default: m.WealthHistoryScreen })));
 const MonthlyRecapScreen = lazy(() => import('../features/recap/MonthlyRecapScreen').then(m => ({ default: m.MonthlyRecapScreen })));
@@ -158,6 +159,11 @@ export function AppRoutes({ user, brand, tx, budget, editing, onLogOut, onDelete
             </div>
           } />
         )}
+        <Route path="/income" element={
+          <div className="pt-4 md:pt-6">
+            <IncomeScreen transactions={tx.transactions} />
+          </div>
+        } />
         <Route path="/category-spending" element={
           <div className="pt-4 md:pt-6">
             <CategorySpendingScreen transactions={tx.transactions} categoryBudgets={budget.budget.categoryBudgets} />
