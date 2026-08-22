@@ -246,11 +246,12 @@ export function TransactionList({ transactions, projected = [], onEdit, onDelete
       ...(f.investedFromAccounts > 0 ? [{ label: 'Investimenti dai conti', value: -f.investedFromAccounts, valueClass: 'text-gold' }] : []),
       ...(f.externalContributions > 0 ? [{ label: 'Apporti esterni', value: f.externalContributions, valueClass: 'text-gold' }] : []),
       ...(f.capitalReturned > 0 ? [{ label: 'Rientri da disinvestimenti', value: f.capitalReturned, valueClass: 'text-gold' }] : []),
+      ...(f.refundsReceived > 0 ? [{ label: 'Storni di spese', value: f.refundsReceived, valueClass: 'text-[#8FB0A0]' }] : []),
       ...(f.tfrExcluded > 0 ? [{ label: 'TFR escluso', value: f.tfrExcluded, valueClass: 'text-secondary' }] : []),
     ];
   };
   const groupHasInvestment = (txs: Transaction[]) =>
-    txs.some(t => !isUpcoming(t) && t.type === 'investment');
+    txs.some(t => !isUpcoming(t) && (t.type === 'investment' || t.type === 'refund'));
 
   const toggleCollapse = (key: string) => {
     setCollapsed(prev => {

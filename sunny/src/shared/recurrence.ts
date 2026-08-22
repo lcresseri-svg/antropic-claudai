@@ -81,7 +81,7 @@ export function projectOccurrences(
   while (d <= upper && out.length < cap && --guard > 0) {
     // Strip the recurring rule: a projected row is an occurrence, not the
     // template. groupId stays (display-only): a shared series projects its
-    // expense and its lockstep storno with matching date + groupId.
+    // expense and its lockstep settlement transfer (matching date + groupId).
     const { recurring: _r, projected: _p, ...rest } = template;
     void _r; void _p;
     out.push({ ...rest, id: `${template.id}__${d}`, date: d, seriesId, projected: true });
@@ -166,8 +166,8 @@ export function expandRecurringOnCreate<T extends Omit<Transaction, 'id'>>(
   while (date <= todayISO && (!rule.until || date <= rule.until) && guard-- > 0) {
     // Realized occurrence: strip the recurring rule, keep the series link.
     // The groupId (storni / commission of a SHARED expense) is propagated ON
-    // PURPOSE: the storno is its own series advancing in lockstep (same rule,
-    // same dates), so month N's expense instance and month N's storno instance
+    // PURPOSE: each settlement transfer is its own series advancing in lockstep
+    // (same rule, same dates), so month N's expense and month N's settlement
     // share groupId + date. Edit-time grouping only matches SAME-DATE siblings
     // (see App.groupTransfers), which keeps cross-month contamination impossible.
     const { recurring: _r, ...rest } = base;
@@ -251,7 +251,7 @@ export function catchUpRecurring(
       const key = `${seriesId}|${date}`;
       if (!have.has(key)) {
         // groupId is propagated on purpose: a SHARED series repeats whole (the
-        // storno is its own lockstep series), so month N's expense and storno
+        // each settlement is its own lockstep series), so month N's expense and quota
         // instances share groupId + date. Edit-time grouping only matches
         // SAME-DATE siblings, so old/odd data can't cross-contaminate months.
         const { recurring: _r, id: _id, ...rest } = t;

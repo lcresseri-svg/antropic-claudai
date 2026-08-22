@@ -27,6 +27,9 @@ export function TransactionRow({ tx, selectable, selected, upcoming, seriesFreq,
   const isIncome = tx.type === 'income';
   const isTransfer = tx.type === 'transfer';
   const isInvestment = tx.type === 'investment';
+  // Storno: accredita il conto (segno +) ma NON è un'entrata — colore e
+  // etichetta suoi, mai il verde delle entrate.
+  const isRefundRow = tx.type === 'refund';
   const isProjected = !!upcoming || !!tx.projected;
   // A RECORDED occurrence of a series (incl. old ones — they carry seriesId even
   // though the recurring rule lives on the template). Projected rows keep 🗓️.
@@ -38,8 +41,9 @@ export function TransactionRow({ tx, selectable, selected, upcoming, seriesFreq,
   // Statistical spread badge (one-off investment deposits only).
   const spreadMonths = statsSpreadOf(tx);
 
-  const prefix = isIncome ? '+' : isTransfer ? '' : '−';
-  const amountClass = isIncome ? 'text-green' : isInvestment ? 'text-gold' : isTransfer ? 'text-[#88B0C0]' : 'text-primary';
+  const prefix = isIncome || isRefundRow ? '+' : isTransfer ? '' : '−';
+  const amountClass = isIncome ? 'text-green' : isRefundRow ? 'text-[#8FB0A0]'
+    : isInvestment ? 'text-gold' : isTransfer ? 'text-[#88B0C0]' : 'text-primary';
 
   // Small line under the amount: the recurrence equivalent (yearly → per month,
   // monthly → per year, …) or the installment progress. Recorded occurrences
@@ -85,6 +89,11 @@ export function TransactionRow({ tx, selectable, selected, upcoming, seriesFreq,
               {seriesBadge}
             </span>
           )}
+          {isRefundRow && (
+            <span className="flex-shrink-0 inline-flex items-center gap-0.5 rounded-full bg-[#8FB0A0]/15 text-[#8FB0A0] text-[10px] font-semibold px-1.5 py-0.5 leading-none">
+              ↩︎ Storno
+            </span>
+          )}
           {spreadMonths != null && (
             <span className="flex-shrink-0 inline-flex items-center gap-0.5 rounded-full bg-gold/15 text-gold text-[10px] font-semibold px-1.5 py-0.5 leading-none">
               📊 Distribuito su {spreadMonths} mesi
@@ -104,8 +113,9 @@ export function TransactionRow({ tx, selectable, selected, upcoming, seriesFreq,
         </p>
         {isProjected ? (
           <p className="text-[11px] text-secondary mt-0.5">Programmato</p>
-        ) : tx.shared ? (
+        ) : tx.shared || tx.refundedTotal ? (
           <p className="text-[11px] text-secondary mt-0.5">
+            {tx.refundedTotal ? `stornati ${formatCurrency(tx.refundedTotal)} · ` : ''}
             tua: {formatCurrency(ownShare(tx))}
           </p>
         ) : seriesSecondary ? (

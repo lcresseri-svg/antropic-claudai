@@ -30,7 +30,7 @@ service cloud.firestore {
       return d.keys().hasAll(['date', 'description', 'amount', 'type', 'category', 'account'])
         && vDate(d.date)
         && vAmount(d.amount)
-        && d.type in ['expense', 'income', 'investment', 'transfer']
+        && d.type in ['expense', 'income', 'investment', 'transfer', 'refund']
         && vStr(d.description, 500)
         && vStr(d.category, 200)
         && d.account is string && d.account.size() <= 200          // '' valid for source-less investments
@@ -44,6 +44,9 @@ service cloud.firestore {
         // Future-dated investment whose controvalore effect is deferred to the
         // idempotent reconciler. Boolean marker, cleared once applied.
         && (!('valuePending' in d) || d.valuePending is bool)
+        // Storno: id della spesa rimborsata (type 'refund'). Il legame è
+        // verificato client-side; qui basta che sia una stringa limitata.
+        && (!('refundOf' in d) || vStr(d.refundOf, 128))
         && (!('seriesId' in d) || vStr(d.seriesId, 128))
         && (!('groupId' in d) || vStr(d.groupId, 128))
         && (!('demo' in d) || d.demo is bool)

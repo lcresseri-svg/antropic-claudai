@@ -10,8 +10,15 @@
  *   income                      → cashIn  += amount            (entrata ordinaria;
  *                                 include le plusvalenze realizzate — restano
  *                                 nella loro transazione, nessun doppio conteggio)
- *   expense                     → cashOut += ownShare           (spese effettive;
- *                                 include minusvalenze e commissioni)
+ *   expense                     → cashOut += grossOwnShare      (spese effettive;
+ *                                 include minusvalenze e commissioni). LORDO
+ *                                 degli storni: il conto ha visto uscire tutto
+ *                                 alla data della spesa; lo storno rientra alla
+ *                                 SUA data come movimento a sé.
+ *   refund                      → cashIn  += amount             (storno di una
+ *                                 spesa: riaccredita il conto alla data reale,
+ *                                 ma NON è un'entrata — componente separato,
+ *                                 vedi shared/refunds.ts)
  *   investment deposit          → TFR = clamp(tfr ?? 0, 0, amount)
  *     (direction absent/'in')     quota non-TFR = amount − TFR
  *     · con conto               → cashOut += quota non-TFR      (uscita reale)
@@ -26,7 +33,7 @@
  *                                 nella sua transazione income/expense collegata)
  *   transfer                    → escluso (movimento interno)
  *
- *   cashIn  = entrate ordinarie + capitale rientrato dai disinvestimenti
+ *   cashIn  = entrate ordinarie + capitale rientrato dai disinvestimenti + storni
  *   cashOut = spese effettive + depositi non-TFR finanziati dai conti
  *   netFlow = cashIn − cashOut          (= variazione reale della liquidità)
  *
@@ -37,7 +44,7 @@
  * Filtering (projected rows, pending/future dates, period) is the CALLER's
  * responsibility, mirroring the other pure aggregators.
  */
-import { Transaction, ownShare, investSign } from '../types';
+import { Transaction, grossOwnShare, investSign } from '../types';
 
 const r2 = (n: number) => Math.round(n * 100) / 100;
 
@@ -57,7 +64,9 @@ export function accountDelta(t: Transaction, accountId: string): number {
   if (!accountId) return 0;
   switch (t.type) {
     case 'income':     return t.account === accountId ? t.amount : 0;
-    case 'expense':    return t.account === accountId ? -ownShare(t) : 0;
+    case 'expense':    return t.account === accountId ? -grossOwnShare(t) : 0;
+    // Storno: riaccredita il conto scelto alla sua data reale.
+    case 'refund':     return t.account === accountId ? t.amount : 0;
     case 'investment': {
       if (t.account !== accountId) return 0;
       // Deposit: only the non-TFR share leaves the account.
@@ -85,7 +94,8 @@ export function investedDelta(t: Transaction): number {
 export function liquidityDelta(t: Transaction): number {
   switch (t.type) {
     case 'income':  return t.amount;
-    case 'expense': return -ownShare(t);
+    case 'expense': return -grossOwnShare(t);
+    case 'refund':  return t.amount;
     case 'investment':
       if (!t.account) return 0;
       return t.direction === 'out' ? t.amount : -(t.amount - tfrPortion(t));
@@ -102,32 +112,35 @@ export interface FlowBreakdown {
   externalContributions: number;
   /** Capitale rientrato dai disinvestimenti (gamba 'out'). */
   capitalReturned: number;
-  /** Spese effettive (ownShare; incl. minusvalenze e commissioni). */
+  /** Spese effettive (LORDE di storni; incl. minusvalenze e commissioni). */
   expenses: number;
+  /** Storni incassati: riaccreditano i conti ma non sono entrate. */
+  refundsReceived: number;
   /** Depositi non-TFR finanziati dai conti. */
   investedFromAccounts: number;
   /** Quota TFR esclusa dal flusso (informativa). */
   tfrExcluded: number;
-  cashIn: number;   // ordinaryIncome + capitalReturned
+  cashIn: number;   // ordinaryIncome + capitalReturned + refundsReceived
   cashOut: number;  // expenses + investedFromAccounts
   netFlow: number;  // cashIn − cashOut (variazione della liquidità)
 }
 
 export const EMPTY_FLOW: FlowBreakdown = Object.freeze({
   ordinaryIncome: 0, externalContributions: 0, capitalReturned: 0,
-  expenses: 0, investedFromAccounts: 0, tfrExcluded: 0,
+  expenses: 0, refundsReceived: 0, investedFromAccounts: 0, tfrExcluded: 0,
   cashIn: 0, cashOut: 0, netFlow: 0,
 });
 
 /** The flow contribution of a single transaction (component-level). */
 export function flowParts(t: Transaction): Pick<FlowBreakdown,
-  'ordinaryIncome' | 'externalContributions' | 'capitalReturned' | 'expenses' | 'investedFromAccounts' | 'tfrExcluded'> {
+  'ordinaryIncome' | 'externalContributions' | 'capitalReturned' | 'expenses' | 'refundsReceived' | 'investedFromAccounts' | 'tfrExcluded'> {
   const parts = {
     ordinaryIncome: 0, externalContributions: 0, capitalReturned: 0,
-    expenses: 0, investedFromAccounts: 0, tfrExcluded: 0,
+    expenses: 0, refundsReceived: 0, investedFromAccounts: 0, tfrExcluded: 0,
   };
   if (t.type === 'income') parts.ordinaryIncome = t.amount;
-  else if (t.type === 'expense') parts.expenses = ownShare(t);
+  else if (t.type === 'expense') parts.expenses = grossOwnShare(t);
+  else if (t.type === 'refund') parts.refundsReceived = t.amount;
   else if (t.type === 'investment') {
     if (t.direction === 'out') {
       parts.capitalReturned = t.amount;
@@ -146,7 +159,7 @@ export function flowParts(t: Transaction): Pick<FlowBreakdown,
  *  Used for list subtotals so they always reconcile with the flow cards. */
 export function netFlowDelta(t: Transaction): number {
   const p = flowParts(t);
-  return (p.ordinaryIncome + p.capitalReturned)
+  return (p.ordinaryIncome + p.capitalReturned + p.refundsReceived)
     - (p.expenses + p.investedFromAccounts);
 }
 
@@ -154,7 +167,7 @@ export function netFlowDelta(t: Transaction): number {
 export function aggregateFlow(transactions: Iterable<Transaction>): FlowBreakdown {
   const acc = {
     ordinaryIncome: 0, externalContributions: 0, capitalReturned: 0,
-    expenses: 0, investedFromAccounts: 0, tfrExcluded: 0,
+    expenses: 0, refundsReceived: 0, investedFromAccounts: 0, tfrExcluded: 0,
   };
   for (const t of transactions) {
     const p = flowParts(t);
@@ -162,16 +175,18 @@ export function aggregateFlow(transactions: Iterable<Transaction>): FlowBreakdow
     acc.externalContributions += p.externalContributions;
     acc.capitalReturned += p.capitalReturned;
     acc.expenses += p.expenses;
+    acc.refundsReceived += p.refundsReceived;
     acc.investedFromAccounts += p.investedFromAccounts;
     acc.tfrExcluded += p.tfrExcluded;
   }
-  const cashIn = r2(acc.ordinaryIncome + acc.capitalReturned);
+  const cashIn = r2(acc.ordinaryIncome + acc.capitalReturned + acc.refundsReceived);
   const cashOut = r2(acc.expenses + acc.investedFromAccounts);
   return {
     ordinaryIncome: r2(acc.ordinaryIncome),
     externalContributions: r2(acc.externalContributions),
     capitalReturned: r2(acc.capitalReturned),
     expenses: r2(acc.expenses),
+    refundsReceived: r2(acc.refundsReceived),
     investedFromAccounts: r2(acc.investedFromAccounts),
     tfrExcluded: r2(acc.tfrExcluded),
     cashIn, cashOut, netFlow: r2(cashIn - cashOut),

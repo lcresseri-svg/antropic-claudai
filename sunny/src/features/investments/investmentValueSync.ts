@@ -86,6 +86,9 @@ function buildPayload(
   // Never trust inherited bookkeeping on the payload — it's recomputed here.
   delete payload.valueEffect;
   delete payload.valuePending;
+  // Campo DERIVATO dagli storni (applyRefunds), come `projected`: si ricalcola a
+  // ogni caricamento e non va mai persistito, o resterebbe congelato nel doc.
+  delete payload.refundedTotal;
   if (plan.stamp === 'set' && appliedChange) {
     payload.valueEffect = {
       category: appliedChange.category,
@@ -163,6 +166,7 @@ async function plainWrite(uid: string, ops: SyncOp[]): Promise<void> {
       const payload: Record<string, unknown> = { ...stripUndefined(op.data) };
       delete payload.valueEffect;
       delete payload.valuePending;
+      delete payload.refundedTotal;   // derivato dagli storni: mai persistito
       batch.set(op.ref, payload);
     }
   }

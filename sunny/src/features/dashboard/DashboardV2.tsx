@@ -162,6 +162,8 @@ export function DashboardV2(p: Props) {
             info={<OutflowInfo ariaLabel="Dettaglio entrate" lines={[
               { label: 'Entrate ordinarie', value: flow.ordinaryIncome },
               ...(flow.capitalReturned > 0 ? [{ label: 'Rientri da disinvestimenti', value: flow.capitalReturned, valueClass: 'text-gold' }] : []),
+              // Gli storni rientrano in cassa ma NON sono entrate: riga a sé.
+              ...(flow.refundsReceived > 0 ? [{ label: 'Storni di spese', value: flow.refundsReceived, valueClass: 'text-[#8FB0A0]' }] : []),
             ]} />} />
           {/* Solo spese effettive: gli investimenti hanno la loro card. */}
           <MonthStatCard label="Uscite" value={flow.expenses} colorClass="text-secondary"

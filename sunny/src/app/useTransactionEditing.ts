@@ -40,6 +40,12 @@ export function useTransactionEditing(user: User, tx: Tx) {
   const [seriesDetail, setSeriesDetail] = useState<Transaction | null>(null);
   const [modalOpen, setModalOpen] = useState(false);
   const [defaultType, setDefaultType] = useState<TransactionType | undefined>();
+  // Sheet "Registra storno". `expenseId` = spesa già scelta (dal suo dettaglio);
+  // assente = la sheet la fa scegliere (accesso da "+"). `refundEditing` = storno
+  // esistente in modifica.
+  const [refundOpen, setRefundOpen] = useState(false);
+  const [refundExpenseId, setRefundExpenseId] = useState<string | undefined>();
+  const [refundEditing, setRefundEditing] = useState<Transaction | undefined>();
 
   // Virtual future occurrences of every recurring template — shown ahead of time
   // as "Programmato" rows, up to `until` or a rolling 12-month horizon. These are
@@ -75,18 +81,49 @@ export function useTransactionEditing(user: User, tx: Tx) {
   // projected row) opens the SERIES DETAIL sheet — summary + actions. Plain
   // one-off movements go straight to the edit modal as before.
   const openEdit = (t: Transaction) => {
-    if (t.projected || t.recurring || t.seriesId) {
+    // Uno storno si modifica dalla SUA sheet: lì vive il vincolo sul massimo
+    // stornabile e il legame con la spesa, che la modale generica non conosce.
+    if (t.type === 'refund') {
+      openRefund(undefined, t);
+    } else if (t.projected || t.recurring || t.seriesId) {
       setSeriesDetail(t);
     } else {
       startEdit(t, false);
     }
   };
 
-  // Group siblings of the doc being edited (storni of a shared expense, or the
-  // commission of a transfer/investment). For SERIES members, only siblings on
-  // the SAME DATE count: a shared series propagates its groupId to every
-  // occurrence (the storno is its own lockstep series), so month N's expense
-  // must fold ONLY month N's storno — never another month's transfers.
+  /** Apre la sheet storno: su una spesa specifica, in modifica, o "scegli spesa". */
+  const openRefund = (expenseId?: string, editingRefund?: Transaction) => {
+    setRefundExpenseId(expenseId);
+    setRefundEditing(editingRefund);
+    setRefundOpen(true);
+  };
+
+  const closeRefund = () => {
+    setRefundOpen(false);
+    setRefundExpenseId(undefined);
+    setRefundEditing(undefined);
+  };
+
+  /** Salva/aggiorna uno storno. La modifica avviene IN PLACE (stesso doc), così
+   *  saldo e statistiche si ricalcolano da soli al prossimo snapshot. */
+  const saveRefund = async (data: Omit<Transaction, 'id'>, editingId?: string) => {
+    if (editingId) {
+      const prev = tx.transactions.find(t => t.id === editingId);
+      await tx.replaceInPlace(editingId, { ...data, createdAt: prev?.createdAt ?? Date.now() });
+    } else {
+      await tx.addTransactions([data]);
+      logEvent(user.uid, 'tx_add');
+    }
+  };
+
+  // Group siblings of the doc being edited (the SETTLEMENT transfers of a shared
+  // expense — i.e. the others' share coming back — or the commission of a
+  // transfer/investment). NB: unrelated to `type: 'refund'` (storno di una
+  // spesa), which is linked via refundOf, not groupId. For SERIES members, only
+  // siblings on the SAME DATE count: a shared series propagates its groupId to
+  // every occurrence (each settlement is its own lockstep series), so month N's
+  // expense must fold ONLY month N's settlement — never another month's.
   const groupTransfers = (editing?.groupId && (editing.type === 'expense' || editing.type === 'transfer' || editing.type === 'investment'))
     ? tx.transactions.filter(t =>
         t.groupId === editing.groupId && t.id !== editing.id &&
@@ -139,6 +176,7 @@ export function useTransactionEditing(user: User, tx: Tx) {
     editing, seriesEdit, seriesDetail, modalOpen, defaultType,
     projected, recognize, groupTransfers,
     openAdd, openAddWithType, openEdit, startEdit, findTemplate, handleSave,
+    refundOpen, refundExpenseId, refundEditing, openRefund, closeRefund, saveRefund,
     closeModal: () => setModalOpen(false),
     closeSeriesDetail: () => setSeriesDetail(null),
   };

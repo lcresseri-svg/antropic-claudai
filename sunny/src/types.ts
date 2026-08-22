@@ -1,10 +1,11 @@
-export type TransactionType = 'income' | 'expense' | 'investment' | 'transfer';
+export type TransactionType = 'income' | 'expense' | 'investment' | 'transfer' | 'refund';
 
 export const TYPE_META: Record<TransactionType, { label: string; color: string }> = {
   income:     { label: 'Entrata',      color: '#8A9270' },
   expense:    { label: 'Uscita',       color: '#F5F5F5' },
   investment: { label: 'Investimento', color: '#E6B95C' },
   transfer:   { label: 'Movimento',    color: '#88B0C0' },
+  refund:     { label: 'Storno',       color: '#8FB0A0' },
 };
 
 // The TYPE_META colours are bright accents tuned for the DARK theme; on a light
@@ -16,6 +17,7 @@ const TYPE_COLOR_LIGHT: Record<TransactionType, string> = {
   expense:    '#3A3A3A',
   investment: '#A07A37',
   transfer:   '#3A7A9A',
+  refund:     '#4A7C63',
 };
 
 /** Theme-correct display colour for a transaction type. */
@@ -28,6 +30,10 @@ export function typeOnColor(theme: 'dark' | 'light' = 'dark'): string {
   return theme === 'light' ? '#FFFFFF' : '#0D0D0D';
 }
 
+/** Types the user can pick DIRECTLY (type selector, category kinds).
+ *  'refund' is deliberately absent: uno storno nasce sempre da una spesa
+ *  esistente (sheet dedicata) ed eredita la sua categoria, quindi non è né un
+ *  tipo selezionabile a mano né un genere di categoria. */
 export const TYPE_ORDER: TransactionType[] = ['expense', 'income', 'investment', 'transfer'];
 
 /** Classification of an investment fund (detailed-investments mode). */
@@ -122,6 +128,14 @@ export interface Transaction {
    *  in trends/averages/insights. PURELY STATISTICAL — the single real movement,
    *  balances, cash flow, forecasts and currentValue are untouched. */
   statsSpreadMonths?: number;
+  /** Refunds only (type 'refund'): id of the EXPENSE being refunded. Lo storno
+   *  eredita la categoria di quella spesa e non ne ha una propria. */
+  refundOf?: string;
+  /** Expenses only — CLIENT-ONLY derived field, NEVER persisted to Firestore
+   *  (come `projected`). Totale già stornato su questa spesa, calcolato da
+   *  `applyRefunds` all'ingresso dei dati: è ciò che rende `ownShare` la spesa
+   *  NETTA ovunque, senza toccare il documento originale. */
+  refundedTotal?: number;
 }
 
 /** The currentValue change actually applied by a managed investment document. */
@@ -158,8 +172,27 @@ export interface SeriesMeta {
   };
 }
 
-/** The portion of an expense that is actually yours (excludes the shared part). */
+/**
+ * Quanto la spesa ti è EFFETTIVAMENTE costata: al netto della quota altrui
+ * (`shared`) e degli storni ricevuti (`refundedTotal`, popolato da
+ * `applyRefunds`). È la misura STATISTICA usata ovunque si sommino le spese
+ * (categorie, budget, insight, forecast, recap, trend): un rimborso riduce così
+ * la spesa nel mese in cui la spesa è avvenuta, ovunque e in un colpo solo.
+ *
+ * Per la CASSA usa `grossOwnShare`: il conto ha visto uscire l'intero importo
+ * alla data della spesa, e lo storno rientra alla SUA data come movimento a sé.
+ */
 export function ownShare(t: Transaction): number {
+  if (t.type !== 'expense') return t.amount;
+  return Math.max(0, t.amount - (t.shared ?? 0) - (t.refundedTotal ?? 0));
+}
+
+/**
+ * Quota di tua competenza AL LORDO degli storni — quanto è davvero uscito dal
+ * conto alla data della spesa. Solo per saldi e flusso di cassa: le statistiche
+ * usano `ownShare`.
+ */
+export function grossOwnShare(t: Transaction): number {
   return t.type === 'expense' ? t.amount - (t.shared ?? 0) : t.amount;
 }
 
