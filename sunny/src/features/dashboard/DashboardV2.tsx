@@ -289,11 +289,17 @@ function MonthStatCard({ label, value, colorClass, info, onOpen, openLabel }: {
   // clicks never trigger the navigation (OutflowInfo already stops propagation,
   // but nested interactive elements would be invalid markup anyway).
   if (!onOpen) return <div className="glass-card rounded-2xl px-3.5 py-3.5">{body}</div>;
+  // NB: nessun `z-*` qui dentro. Un z-index su questi wrapper creerebbe un
+  // contesto di impilamento che INTRAPPOLA il popover ⓘ dentro la card: la
+  // card successiva della griglia (anch'essa posizionata) gli finirebbe sopra,
+  // e il popover sembrerebbe "trasparente". Senza z-index l'ordine di disegno
+  // segue il DOM — il contenuto copre comunque il bottone che lo precede — e
+  // il popover (z-50) sale correttamente sopra le altre card.
   return (
     <div className="glass-card rounded-2xl px-3.5 py-3.5 relative group">
       <button type="button" onClick={onOpen} aria-label={openLabel ?? `Apri ${label}`}
-        className="absolute inset-0 rounded-2xl z-0" />
-      <div className="relative z-10 pointer-events-none [&_button]:pointer-events-auto">{body}</div>
+        className="absolute inset-0 rounded-2xl" />
+      <div className="relative pointer-events-none [&_button]:pointer-events-auto">{body}</div>
     </div>
   );
 }
