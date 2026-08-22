@@ -16,6 +16,8 @@ export interface DefDraft {
   tfrAmount?: number;
   /** Investment categories only: subscription date (never in the future). */
   subscriptionDate?: string;
+  /** Expense categories only: total amount financed (loan tracking). */
+  financedAmount?: number;
 }
 
 interface Props {
@@ -23,13 +25,14 @@ interface Props {
   draft: DefDraft | null;
   withKind: boolean;
   canDelete: boolean;
-  showFundType?: boolean; // detailed-investments mode (per-user gated)
+  showFundType?: boolean;   // detailed-investments mode (per-user gated)
+  showFinancing?: boolean;  // loan tracking on expense categories (admin-only rollout)
   onSave: (d: DefDraft) => void;
   onDelete?: (id: string) => void;
   onClose: () => void;
 }
 
-export function EditDefSheet({ open, draft, withKind, canDelete, showFundType, onSave, onDelete, onClose }: Props) {
+export function EditDefSheet({ open, draft, withKind, canDelete, showFundType, showFinancing, onSave, onDelete, onClose }: Props) {
   const { theme } = useSettings();
   const [label, setLabel] = useState('');
   const [icon, setIcon] = useState('•');
@@ -39,6 +42,7 @@ export function EditDefSheet({ open, draft, withKind, canDelete, showFundType, o
   const [fundType, setFundType] = useState<FundType | ''>('');
   const [tfrAmount, setTfrAmount] = useState('');
   const [subscriptionDate, setSubscriptionDate] = useState('');
+  const [financedAmount, setFinancedAmount] = useState('');
   const [confirmingDelete, setConfirmingDelete] = useState(false);
   const [emojiExpanded, setEmojiExpanded] = useState(false);
 
@@ -50,6 +54,7 @@ export function EditDefSheet({ open, draft, withKind, canDelete, showFundType, o
     setFundType(draft.fundType ?? '');
     setTfrAmount(draft.tfrAmount !== undefined ? String(draft.tfrAmount) : '');
     setSubscriptionDate(draft.subscriptionDate ?? '');
+    setFinancedAmount(draft.financedAmount !== undefined ? String(draft.financedAmount) : '');
     setConfirmingDelete(false);
     setEmojiExpanded(false);
   }, [open, draft]);
@@ -66,6 +71,8 @@ export function EditDefSheet({ open, draft, withKind, canDelete, showFundType, o
   const isInvestmentCategory = isCategory && kind === 'investment';
   const showBalance = (!isCategory && !draft.isInvestment) || isInvestmentCategory;
   const showFunds = isInvestmentCategory && !!showFundType;
+  const isExpenseCategory = isCategory && kind === 'expense';
+  const showFinancingField = isExpenseCategory && !!showFinancing;
 
   const noun = isCategory ? 'categoria' : 'conto';
   const sheetTitle = canDelete
@@ -83,6 +90,8 @@ export function EditDefSheet({ open, draft, withKind, canDelete, showFundType, o
     const validBalance = parsedBalance !== undefined && !isNaN(parsedBalance) ? parsedBalance : undefined;
     const parsedTfr = tfrAmount !== '' ? parseFloat(tfrAmount) : undefined;
     const validTfr = parsedTfr !== undefined && !isNaN(parsedTfr) ? parsedTfr : undefined;
+    const parsedFinanced = financedAmount !== '' ? parseFloat(financedAmount) : undefined;
+    const validFinanced = parsedFinanced !== undefined && !isNaN(parsedFinanced) ? parsedFinanced : undefined;
     onSave({
       id: draft.id, label: label.trim(), icon, color,
       kind: isCategory ? kind : undefined,
@@ -90,6 +99,7 @@ export function EditDefSheet({ open, draft, withKind, canDelete, showFundType, o
       fundType: showFunds && fundType ? fundType : undefined,
       tfrAmount: showFunds && fundType === 'pension' ? validTfr : undefined,
       subscriptionDate: isInvestmentCategory ? validSubscription : undefined,
+      financedAmount: showFinancingField ? validFinanced : undefined,
     });
   };
 
@@ -228,6 +238,29 @@ export function EditDefSheet({ open, draft, withKind, canDelete, showFundType, o
                 </p>
               </div>
             )}
+          </div>
+        )}
+
+        {showFinancingField && (
+          <div className="mb-6">
+            <p className="text-xs font-medium text-secondary mb-2 px-1">Finanziamento</p>
+            <div className="relative">
+              <span className="absolute left-3.5 top-1/2 -translate-y-1/2 text-secondary text-sm">€</span>
+              <input
+                type="number"
+                inputMode="decimal"
+                value={financedAmount}
+                onChange={e => setFinancedAmount(e.target.value)}
+                onKeyDown={e => { if (e.key === 'Enter') { e.preventDefault(); save(); } }}
+                placeholder="0"
+                className="w-full bg-elevated rounded-2xl pl-8 pr-4 py-3 text-primary placeholder:text-secondary/50 outline-none focus:ring-1 focus:ring-gold/40"
+              />
+            </div>
+            <p className="text-[11px] text-secondary/70 px-1 mt-1.5">
+              Quanto ti è stato prestato per questa spesa. Con un importo impostato, aprendo la
+              categoria vedrai quanto hai già versato (dalle spese registrate qui) e quanto manca
+              per restituire tutto. Lascia vuoto se non è un finanziamento.
+            </p>
           </div>
         )}
 

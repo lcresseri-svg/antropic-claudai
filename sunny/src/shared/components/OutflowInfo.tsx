@@ -31,8 +31,12 @@ export function OutflowInfo({ lines, ariaLabel = 'Dettaglio', className = '' }: 
         type="button"
         aria-label={ariaLabel}
         onClick={e => { stop(e); setOpen(o => !o); }}
-        className="text-secondary/60 hover:text-secondary transition-colors"
+        className="relative text-secondary/60 hover:text-secondary transition-colors"
       >
+        {/* Invisible larger tap target: the visible icon stays 13px (no layout
+            shift) but taps within this wider area still land on the ⓘ instead
+            of falling through to a card-wide "apri" button underneath it. */}
+        <span className="absolute -inset-2.5" aria-hidden="true" />
         <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round">
           <circle cx="12" cy="12" r="10" />
           <path d="M12 16v-4" />

@@ -169,6 +169,7 @@ export function SettingsScreen({ user, transactions, budgetExport, onLogOut, onD
       const prev = categories.find(c => c.id === d.id);
       const def: CategoryDef = { ...(prev ?? {}), id: d.id, label: d.label, icon: d.icon, color: d.color, kind };
       delete def.initialBalance; delete def.fundType; delete def.tfrAmount; delete def.subscriptionDate;
+      delete def.financedAmount;
       if (kind === 'investment') {
         if (d.initialBalance !== undefined) def.initialBalance = d.initialBalance;
         if (d.fundType) def.fundType = d.fundType;
@@ -177,6 +178,7 @@ export function SettingsScreen({ user, transactions, budgetExport, onLogOut, onD
       } else {
         // No longer an investment: the manual market value loses meaning.
         delete def.currentValue; delete def.lastValueUpdate;
+        if (kind === 'expense' && d.financedAmount !== undefined) def.financedAmount = d.financedAmount;
       }
       saveCategories(editing.isNew ? [...categories, def] : categories.map(c => c.id === d.id ? def : c));
     } else {
@@ -776,6 +778,7 @@ export function SettingsScreen({ user, transactions, budgetExport, onLogOut, onD
         withKind={editing?.kind === 'category' && (editing?.withKind ?? true)}
         canDelete={!editing?.isNew}
         showFundType={detailedInvestments}
+        showFinancing={isFeatureEnabled('expense_financing', user)}
         onSave={save}
         onDelete={remove}
         onClose={() => setEditing(null)}

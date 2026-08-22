@@ -27,7 +27,8 @@ export type FeatureFlag =
   | 'monthly_plan_v2'
   | 'commitments'
   | 'decision_coach'
-  | 'insight_ranking_v2';
+  | 'insight_ranking_v2'
+  | 'expense_financing';
 
 export type RolloutStage =
   | { stage: 'admin' }
@@ -47,6 +48,7 @@ export const FEATURE_ROLLOUT: Record<FeatureFlag, RolloutStage> = {
   commitments:      { stage: 'admin' },
   decision_coach:   { stage: 'admin' },
   insight_ranking_v2: { stage: 'admin' },
+  expense_financing: { stage: 'admin' },
 };
 
 /**

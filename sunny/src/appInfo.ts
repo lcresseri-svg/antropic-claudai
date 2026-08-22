@@ -1,4 +1,4 @@
-export const APP_VERSION = '1.17.1';
+export const APP_VERSION = '1.17.2';
 
 /**
  * Release channel. While in 'beta' the app is still under active development
@@ -19,6 +19,12 @@ export interface VersionEntry {
 
 /** Registro versioni mostrato in Impostazioni → Registro versioni. */
 export const VERSIONS: VersionEntry[] = [
+  {
+    version: '1.17.2', date: '2026-08-22', title: 'Icona ⓘ delle card sempre raggiungibile',
+    changes: [
+      'Nelle card "Entrate" e "Investimenti" l\'area cliccabile dell\'icona ⓘ è più ampia: un tocco leggermente impreciso ora apre comunque il dettaglio, invece di far scattare per sbaglio l\'apertura della schermata di analisi.',
+    ],
+  },
   {
     version: '1.17.1', date: '2026-08-22', title: 'Entrate nette nella schermata Entrate',
     changes: [
