@@ -57,6 +57,11 @@ export interface CategoryDef {
    *  subscribed. Anchors initialBalance in time for duration / annualized return.
    *  Absent + initialBalance=0 → the first recorded operation is the start. */
   subscriptionDate?: string;
+  /** Expense categories only: total amount financed/borrowed for this category
+   *  (e.g. a loan). When set (> 0), the category tracks a repayment plan:
+   *  expenses recorded in it count as installments paid, and the category
+   *  detail shows how much is left to repay. */
+  financedAmount?: number;
   archived?: boolean;      // soft-deleted: removed by the user but still referenced in
                            // the transaction history. Resolved by getCat for display,
                            // hidden from every picker / management / planning list.

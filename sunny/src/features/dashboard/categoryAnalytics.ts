@@ -417,6 +417,47 @@ export function getCategoryMovements(transactions: Transaction[], categoryId: st
     .sort((a, b) => b.date.localeCompare(a.date) || (b.createdAt ?? 0) - (a.createdAt ?? 0));
 }
 
+/** Stato di rimborso di una categoria di spesa marcata come finanziamento
+ *  (`CategoryDef.financedAmount`). */
+export interface LoanProgress {
+  financedAmount: number;
+  /** Totale versato da sempre (spese reali di questa categoria, mai projected). */
+  paid: number;
+  /** Quanto manca per arrivare a `financedAmount` (mai negativo). */
+  remaining: number;
+  /** 0..100, mai oltre 100 anche se si è versato più del finanziato. */
+  percentPaid: number;
+  isPaidOff: boolean;
+}
+
+/**
+ * Totale storico versato in una categoria (spese reali, mai projected, mai
+ * datate nel futuro — non ancora pagate). NON è vincolato al periodo
+ * selezionato: un finanziamento si segue dall'inizio, indipendentemente da
+ * quale finestra temporale è aperta in schermata.
+ */
+export function totalPaidAllTime(transactions: Transaction[], categoryId: string, now: Date = new Date()): number {
+  const todayISO = localISO(now);
+  let sum = 0;
+  for (const t of transactions) {
+    if (t.type !== 'expense' || t.projected || t.category !== categoryId) continue;
+    if (t.date > todayISO) continue;
+    const v = ownShare(t);
+    if (v > 0) sum += v;
+  }
+  return sum;
+}
+
+/** Costruisce lo stato di rimborso di un finanziamento a partire dallo storico. */
+export function buildLoanProgress(
+  transactions: Transaction[], categoryId: string, financedAmount: number, now: Date = new Date(),
+): LoanProgress {
+  const paid = totalPaidAllTime(transactions, categoryId, now);
+  const remaining = Math.max(0, financedAmount - paid);
+  const percentPaid = financedAmount > 0 ? Math.min(100, (paid / financedAmount) * 100) : 100;
+  return { financedAmount, paid, remaining, percentPaid, isPaidOff: remaining <= 0 };
+}
+
 /**
  * Average monthly spend of a category over the last `monthsBack` FULL months
  * (the current partial month is excluded). Used as the "media storica" baseline.

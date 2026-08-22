@@ -11,6 +11,7 @@ import { formatCurrency, formatDate, capitalize } from '../../utils';
 import {
   PeriodType, getPeriodRange, aggregateCategoryTrend, getCategoryMovements,
   historicalMonthlyAverage, periodElapsedFraction, CategorySpendingSummary,
+  buildLoanProgress,
 } from './categoryAnalytics';
 import { CategoryTrendLineChart } from './CategoryTrendLineChart';
 import { useScrollLock } from '../../shared/useScrollLock';
@@ -58,6 +59,13 @@ export function CategoryDetailSheet({
   const histAvg = useMemo(
     () => historicalMonthlyAverage(transactions, summary.categoryId, now),
     [transactions, summary.categoryId, now],
+  );
+  // Finanziamento: stato di rimborso da sempre, non legato al periodo aperto.
+  const loan = useMemo(
+    () => (cat.financedAmount !== undefined && cat.financedAmount > 0
+      ? buildLoanProgress(transactions, summary.categoryId, cat.financedAmount, now)
+      : null),
+    [transactions, summary.categoryId, cat.financedAmount, now],
   );
 
   const months = range.months;
@@ -150,6 +158,32 @@ export function CategoryDetailSheet({
 
         {/* Body */}
         <div className="flex-1 overflow-y-auto overscroll-contain px-5 py-4 space-y-5">
+          {/* Finanziamento — stato di rimborso da sempre, indipendente dal periodo */}
+          {loan && (
+            <div className="bg-card rounded-2xl px-4 py-3.5">
+              <div className="flex items-center justify-between mb-2.5">
+                <p className="label-caps text-secondary">Finanziamento</p>
+                {loan.isPaidOff && <span className="text-[11px] font-semibold text-green">Ripagato ✓</span>}
+              </div>
+              <div className="h-2 rounded-full bg-elevated overflow-hidden mb-3">
+                <div className="h-full rounded-full bg-gold transition-all" style={{ width: `${loan.percentPaid}%` }} />
+              </div>
+              <div className="flex items-baseline justify-between gap-3">
+                <span className="text-[12px] text-secondary">Versato finora</span>
+                <span className="text-[14px] font-semibold text-primary balance-num">{formatCurrency(loan.paid)}</span>
+              </div>
+              <div className="flex items-baseline justify-between gap-3 mt-1.5">
+                <span className="text-[12px] text-secondary">{loan.isPaidOff ? 'Restituito per intero' : 'Manca da restituire'}</span>
+                <span className={`text-[17px] font-bold balance-num ${loan.isPaidOff ? 'text-green' : 'text-primary'}`}>
+                  {formatCurrency(loan.remaining)}
+                </span>
+              </div>
+              <p className="text-[11px] text-secondary/70 mt-2.5">
+                Su un finanziamento di {formatCurrency(loan.financedAmount)} · {Math.round(loan.percentPaid)}% restituito
+              </p>
+            </div>
+          )}
+
           {/* Total */}
           <div>
             <p className="label-caps text-secondary mb-1">Totale periodo</p>

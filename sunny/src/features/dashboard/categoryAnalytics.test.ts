@@ -4,7 +4,7 @@ import {
   aggregateCategorySpending, buildComposition, aggregateCategoryTrend,
   getCategoryMovements, historicalMonthlyAverage, localISO,
   aggregateIncomeByCategory, aggregateIncomeStats, aggregateIncomeTrend, capitalReturnedIn,
-  REALIZED_GAIN_CATEGORY,
+  REALIZED_GAIN_CATEGORY, totalPaidAllTime, buildLoanProgress,
 } from './categoryAnalytics';
 import { Transaction } from '../../types';
 
@@ -139,6 +139,41 @@ describe('getCategoryMovements', () => {
 describe('historicalMonthlyAverage', () => {
   it('averages over the last full months excluding the current one', () => {
     expect(historicalMonthlyAverage(SAMPLE, 'spesa', NOW, 6)).toBeCloseTo(200 / 6, 5);
+  });
+});
+
+describe('totalPaidAllTime / buildLoanProgress (finanziamenti)', () => {
+  const LOAN: Transaction[] = [
+    tx({ category: 'prestito', amount: 300, date: '2026-01-10' }),
+    tx({ category: 'prestito', amount: 300, date: '2026-02-10' }),
+    tx({ category: 'prestito', amount: 300, date: '2026-06-10' }),          // fino a NOW (15 giu)
+    tx({ category: 'prestito', amount: 300, date: '2026-06-20' }),          // futura → non ancora pagata
+    tx({ category: 'prestito', amount: 300, date: '2026-06-05', projected: true }), // template → esclusa
+    tx({ category: 'altra', amount: 999, date: '2026-03-01' }),             // altra categoria
+    tx({ category: 'prestito', amount: 999, date: '2026-01-15', type: 'income' }), // non è una spesa
+  ];
+
+  it('somma solo le spese reali, non future, di quella categoria', () => {
+    expect(totalPaidAllTime(LOAN, 'prestito', NOW)).toBe(900); // 300+300+300
+  });
+
+  it('nessun movimento → 0', () => {
+    expect(totalPaidAllTime(LOAN, 'categoria-inesistente', NOW)).toBe(0);
+  });
+
+  it('progresso di rimborso: versato, residuo, percentuale', () => {
+    const p = buildLoanProgress(LOAN, 'prestito', 2000, NOW);
+    expect(p.paid).toBe(900);
+    expect(p.remaining).toBe(1100);
+    expect(p.percentPaid).toBeCloseTo(45, 5);
+    expect(p.isPaidOff).toBe(false);
+  });
+
+  it('finanziamento ripagato: residuo a 0, mai negativo, percentuale mai oltre 100', () => {
+    const p = buildLoanProgress(LOAN, 'prestito', 500, NOW); // versato 900 > finanziato 500
+    expect(p.remaining).toBe(0);
+    expect(p.percentPaid).toBe(100);
+    expect(p.isPaidOff).toBe(true);
   });
 });
 
