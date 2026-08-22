@@ -74,12 +74,14 @@ export function DashboardV2(p: Props) {
     return { currentMonthCategoryTotals: categoryTotals, currentMonthExpenseByAccount: expenseByAccount, currentMonthInvestByAccount: investByAccount };
   }, [p.transactions]);
 
-  // Unified cash flow. The four cards reconcile by construction:
-  //   Flusso netto = Entrate − Uscite − Investimenti (quota dai conti).
+  // Unified cash flow: nel flusso entra SOLO ciò che tocca i conti.
+  //   Entrate  = entrate ordinarie + capitale rientrato dai disinvestimenti
+  //   Uscite   = spese effettive
+  //   Flusso   = Entrate − Uscite − investimenti pagati dai conti
   const flow = p.monthlyFlow;
   // TOTALE investito nel mese (versamenti, disinvestimenti esclusi): quota dai
-  // conti + apporti esterni + TFR. Solo la prima pesa sul flusso — le altre due
-  // aumentano il capitale investito senza toccare la liquidità.
+  // conti + apporti esterni (senza conto) + TFR. Solo la prima toglie liquidità:
+  // le altre due aumentano il capitale investito senza passare dai conti.
   const investedTotal = flow.investedFromAccounts + flow.externalContributions + flow.tfrExcluded;
 
   const insights = useMemo(() =>
@@ -144,30 +146,30 @@ export function DashboardV2(p: Props) {
         </div>
       </div>
 
-      {/* ── 2. Questo mese — flusso unificato, 4 card ──
-          Quadratura garantita: Entrate − Uscite − Investimenti = Flusso netto.
-          "Uscite" sono SOLO le spese effettive; gli investimenti hanno la loro
-          card. Il valore mostrato in "Investimenti" è la quota che pesa davvero
-          sul flusso (pagata dai conti): TFR e apporti esterni aumentano il
-          capitale investito senza togliere liquidità, quindi vivono nel ⓘ
-          insieme al TOTALE investito del mese. */}
+      {/* ── 2. Questo mese — 4 card ──
+          Entrate = entrate ordinarie + rientri dai disinvestimenti (solo cassa
+          vera). Uscite = SOLO spese effettive. Investimenti = TUTTO ciò che è
+          finito negli investimenti (dai conti + senza conto + TFR), esclusi i
+          disinvestimenti che rientrano come cassa. Flusso netto = variazione
+          reale della liquidità: dei versamenti pesa solo la quota pagata dai
+          conti, perché apporti senza conto e TFR non toccano la liquidità (il
+          ⓘ della card Investimenti lo esplicita). */}
       <section className="mt-6">
         <p className="label-caps text-secondary mb-3 px-0.5">Questo mese</p>
         <div className="grid grid-cols-2 md:grid-cols-4 gap-2">
           <MonthStatCard label="Entrate" value={flow.cashIn} colorClass="text-green"
             info={<OutflowInfo ariaLabel="Dettaglio entrate" lines={[
               { label: 'Entrate ordinarie', value: flow.ordinaryIncome },
-              ...(flow.externalContributions > 0 ? [{ label: 'Apporti esterni', value: flow.externalContributions, valueClass: 'text-gold' }] : []),
               ...(flow.capitalReturned > 0 ? [{ label: 'Rientri da disinvestimenti', value: flow.capitalReturned, valueClass: 'text-gold' }] : []),
             ]} />} />
           {/* Solo spese effettive: gli investimenti hanno la loro card. */}
           <MonthStatCard label="Uscite" value={flow.expenses} colorClass="text-secondary" />
-          <MonthStatCard label="Investimenti" value={flow.investedFromAccounts} colorClass="text-gold"
+          <MonthStatCard label="Investimenti" value={investedTotal} colorClass="text-gold"
             info={<OutflowInfo ariaLabel="Dettaglio investimenti" lines={[
               { label: 'Dai tuoi conti', value: flow.investedFromAccounts, valueClass: 'text-gold' },
-              ...(flow.externalContributions > 0 ? [{ label: 'Apporti esterni', value: flow.externalContributions, valueClass: 'text-gold' }] : []),
+              ...(flow.externalContributions > 0 ? [{ label: 'Senza conto', value: flow.externalContributions, valueClass: 'text-gold' }] : []),
               ...(flow.tfrExcluded > 0 ? [{ label: 'TFR', value: flow.tfrExcluded, valueClass: 'text-gold' }] : []),
-              { label: 'Totale investito', value: investedTotal },
+              { label: 'Toglie liquidità', value: flow.investedFromAccounts, valueClass: 'text-secondary' },
               ...(flow.capitalReturned > 0 ? [{ label: 'Disinvestito (in Entrate)', value: flow.capitalReturned, valueClass: 'text-secondary' }] : []),
             ]} />} />
           <MonthStatCard

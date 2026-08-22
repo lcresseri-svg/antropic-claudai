@@ -52,13 +52,17 @@ export function AccountDetailSheet({
 
   const note = useMemo(() => deltaNote(flow, account.label), [flow, account.label]);
 
-  // KPI cells, by density.
+  // KPI cells. Entrate / Uscite / Investimenti sono la stessa distinzione delle
+  // card di dashboard, applicata al singolo conto — mostrate SEMPRE (sono la
+  // sostanza del dettaglio, non un extra da modalità avanzata):
+  //   Uscite       = solo spese effettive addebitate qui
+  //   Investimenti = solo il denaro uscito DA QUESTO CONTO per investimenti
+  //                  (i versamenti senza conto e la quota TFR non lo toccano,
+  //                  quindi non compaiono: vedi la nota sotto)
   const kpis: { label: string; value: string; tone?: string }[] = [];
-  if (depth !== 'minimal') {
-    kpis.push({ label: 'Entrate', value: formatCurrency(flow.income), tone: flow.income > 0 ? 'text-green' : undefined });
-    kpis.push({ label: 'Uscite', value: formatCurrency(flow.expense), tone: flow.expense > 0 ? 'text-red' : undefined });
-    kpis.push({ label: 'Investimenti', value: formatCurrency(flow.investment) });
-  }
+  kpis.push({ label: 'Entrate', value: formatCurrency(flow.income), tone: flow.income > 0 ? 'text-green' : undefined });
+  kpis.push({ label: 'Uscite', value: formatCurrency(flow.expense), tone: flow.expense > 0 ? 'text-red' : undefined });
+  kpis.push({ label: 'Investimenti', value: formatCurrency(flow.investment), tone: flow.investment > 0 ? 'text-gold' : undefined });
   if (depth === 'advanced') {
     kpis.push({ label: 'Saldo minimo', value: formatCurrency(minBal), tone: minBal < 0 ? 'text-red' : undefined });
     kpis.push({ label: 'Saldo massimo', value: formatCurrency(maxBal) });
@@ -113,6 +117,13 @@ export function AccountDetailSheet({
               ))}
             </div>
           )}
+
+          {/* Perché un versamento d'investimento può non comparire qui. */}
+          <p className="text-[11px] text-secondary/70 leading-snug -mt-2">
+            "Investimenti" conta solo il denaro uscito da questo conto: i versamenti
+            senza conto e la quota TFR aumentano il capitale investito senza passare
+            di qui.
+          </p>
 
           {/* Net transfers chip — only when there were transfers in the period. */}
           {depth !== 'minimal' && hasTransfer && (

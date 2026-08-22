@@ -460,10 +460,11 @@ describe('buildInsights — flusso unificato negli insight del mese', () => {
   // Oltre metà mese: lo sforamento richiede prog > 0.5, al 15 è esattamente 0.5.
   const LATE = new Date('2026-06-20T12:00:00Z');
 
-  it('un versamento senza conto conta come ENTRATA: nessuno sforamento, risparmio positivo', () => {
-    // Entrate ordinarie 1000, spese 900, deposito 500 SENZA conto (apporto
-    // esterno). Vecchia formula: 1000-900-500 = -400 -> falso sforamento.
-    // Flusso unificato: cashIn 1500, cashOut 900 -> +600.
+  it('un versamento senza conto sta FUORI dal flusso: nessuno sforamento, non gonfia il risparmio', () => {
+    // Entrate ordinarie 1000, spese 900, deposito 500 SENZA conto: non tocca
+    // nessun conto, quindi non è né entrata né uscita di cassa.
+    // Vecchia formula: 1000-900-500 = -400 -> falso sforamento.
+    // Flusso: cashIn 1000, cashOut 900 -> +100 (variazione reale liquidità).
     const txs = [
       tx({ type: 'income', amount: 1000, date: '2026-06-02' }),
       tx({ type: 'expense', amount: 900, date: '2026-06-05' }),
@@ -476,7 +477,7 @@ describe('buildInsights — flusso unificato negli insight del mese', () => {
     expect(res.some(i => i.title.startsWith('Sforamento'))).toBe(false);
     const savedInsight = res.find(i => i.title.startsWith('Risparmiato finora'));
     expect(savedInsight).toBeDefined();
-    expect(savedInsight!.title).toContain('600');
+    expect(savedInsight!.title).toContain('100');
   });
 
   it('il TFR di un deposito con conto resta escluso dallo sforamento', () => {
