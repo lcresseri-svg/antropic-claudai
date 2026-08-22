@@ -1,4 +1,4 @@
-export const APP_VERSION = '1.17.0';
+export const APP_VERSION = '1.17.1';
 
 /**
  * Release channel. While in 'beta' the app is still under active development
@@ -19,6 +19,15 @@ export interface VersionEntry {
 
 /** Registro versioni mostrato in Impostazioni → Registro versioni. */
 export const VERSIONS: VersionEntry[] = [
+  {
+    version: '1.17.1', date: '2026-08-22', title: 'Entrate nette nella schermata Entrate',
+    changes: [
+      'Nuova statistica "Entrate nette": il totale del periodo al netto del capitale rientrato dai disinvestimenti, che non è reddito ma denaro già tuo che torna indietro.',
+      'Le plusvalenze realizzate restano dentro le entrate nette, perché sono guadagno vero: quando ci sono, vedi quanto pesano e quanto resta di entrate ordinarie.',
+      'Quando c\'è un disinvestimento nel periodo compare il passaggio completo: entrate lorde − capitale rientrato = entrate nette.',
+      'La media mensile è calcolata sulle entrate nette (ora l\'etichetta lo dice).',
+    ],
+  },
   {
     version: '1.17.0', date: '2026-08-22', title: 'Nuova schermata Entrate e scorciatoie dalle card',
     changes: [
