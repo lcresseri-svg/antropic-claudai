@@ -9,6 +9,7 @@ import { topInsight } from './insightRankingV2';
 import { isFeatureEnabled } from '../../shared/featureRollout';
 import { InsightDetailSheet } from './InsightDetailSheet';
 import { InsightFeedback } from '../feedback/InsightFeedback';
+import { pickNextMove } from '../dashboard/NextMoveCard';
 import { logEvent } from '../../shared/analytics/metrics';
 import { formatCurrency } from '../../utils';
 
@@ -61,6 +62,8 @@ export function InsightsScreenV2(p: Props) {
   const user = p.user ?? null;
   const [detail, setDetail] = useState<Insight | null>(null);
   const [advancedOpen, setAdvancedOpen] = useState(false);
+  /** Insight archiviati in questa sessione (nessun archivio persistito). */
+  const [dismissed, setDismissed] = useState<Set<string>>(new Set());
 
   // metrics: insights_view on mount (fire-and-forget).
   useEffect(() => { if (user) logEvent(user.uid, 'insights_view'); }, [user]);
@@ -101,9 +104,18 @@ export function InsightsScreenV2(p: Props) {
   const rankingEnabled = isFeatureEnabled('insight_ranking_v2', user);
   const top = rankingEnabled ? topInsight(insights) : null;
 
+  // La cosa più importante: il ranking V2 quando è attivo, altrimenti la stessa
+  // scelta che fa la home ("prossima mossa") — una sola definizione di priorità.
+  const featured = top?.insight ?? pickNextMove(insights);
+  // Archiviare qui vale per la sessione: non esiste (ancora) un archivio
+  // persistito degli insight, e inventarne uno non è presentazione.
+  const rest = insights.filter(i => i !== featured && !dismissed.has(i.title));
+  const shown = featured && !dismissed.has(featured.title) ? featured : rest[0] ?? null;
+
   // Group insights into 4 display groups
   const grouped = new Map<DisplayGroup, Insight[]>();
   for (const ins of insights) {
+    if (ins === shown || dismissed.has(ins.title)) continue;
     const group = CATEGORY_TO_GROUP[ins.category];
     const list = grouped.get(group) ?? [];
     list.push(ins);
@@ -114,10 +126,45 @@ export function InsightsScreenV2(p: Props) {
 
   return (
     <div className="pb-32">
-      <div className="mb-5">
-        <h1 className="text-2xl font-bold text-primary tracking-[-0.03em]">Consigli</h1>
-        <p className="text-[13px] text-secondary mt-1">Le cose più importanti da sapere sui tuoi soldi.</p>
+      <div className="h-14 flex items-center">
+        <h1 className="text-[17px] md:text-xl font-semibold text-primary tracking-[-0.03em]">Consigli</h1>
       </div>
+
+      {/* Una sola priorità in evidenza. Via la card di debug del ranking
+          (priorità / impatto / dominio): erano numeri per chi ha scritto il
+          motore, non per chi legge il consiglio. */}
+      {shown && (
+        <section className="accent-card rounded-[22px] shadow-elev-1 p-[18px] mb-4 animate-rise-in"
+          aria-label="Il consiglio più importante">
+          <div className="flex items-center gap-2.5 mb-3">
+            <span className="w-[30px] h-[30px] rounded-[11px] bg-gold/[0.14] flex items-center justify-center text-sm flex-none">
+              {shown.icon}
+            </span>
+            <p className="label-caps text-gold">La cosa più importante</p>
+          </div>
+          <p className="text-[19px] font-semibold text-primary leading-[1.3]">{shown.title}</p>
+          <p className="mt-2 text-[13px] text-secondary leading-relaxed">{shown.detail}</p>
+
+          <div className="flex items-center gap-2.5 mt-4">
+            {shown.explain && (
+              <button type="button"
+                onClick={() => { setDetail(shown); if (user) logEvent(user.uid, 'insight_open'); }}
+                className="flex-1 rounded-[14px] bg-primary text-bg py-3 text-[13px] font-semibold
+                           active:scale-[0.98] transition-transform">
+                Come mai?
+              </button>
+            )}
+            <button type="button" aria-label="Archivia questo consiglio"
+              onClick={() => setDismissed(d => new Set(d).add(shown.title))}
+              className={`w-11 h-11 rounded-[14px] glass-card flex items-center justify-center text-secondary
+                          active:scale-[0.98] transition-transform ${shown.explain ? 'flex-none' : 'ml-auto'}`}>
+              ✕
+            </button>
+          </div>
+
+          <InsightFeedback insightKey={`${shown.category}:${shown.title}`} user={user} />
+        </section>
+      )}
 
       {p.monthlyIncome > 0 && (
         <div className="grid grid-cols-3 gap-2 mb-6">
@@ -127,31 +174,7 @@ export function InsightsScreenV2(p: Props) {
         </div>
       )}
 
-      {top && (
-        <section className="mb-6" aria-label="Insight prioritario">
-          <div className="flex items-center gap-2 mb-3 px-1">
-            <span className="text-sm">🎯</span>
-            <p className="label-caps text-secondary">In evidenza (V2)</p>
-          </div>
-          <div className="glass-card rounded-2xl p-4 ring-1 ring-gold/30">
-            <div className="flex items-start gap-3.5">
-              <div className="w-9 h-9 rounded-xl flex items-center justify-center text-base flex-shrink-0"
-                style={{ backgroundColor: top.insight.accent + '18' }}>
-                {top.insight.icon}
-              </div>
-              <div className="min-w-0 flex-1">
-                <p className="text-sm font-medium text-primary leading-snug">{top.insight.title}</p>
-                <p className="text-xs mt-0.5 leading-snug" style={{ color: top.insight.accent + 'cc' }}>{top.insight.detail}</p>
-                <p className="text-[10px] text-secondary mt-1.5">
-                  priorità {top.total} · impatto {top.scores.impact} · urgenza {top.scores.urgency} · dominio {top.domain.replace('_', ' ')}
-                </p>
-              </div>
-            </div>
-          </div>
-        </section>
-      )}
-
-      <div className="space-y-8">
+      <div className="space-y-6">
         {GROUP_ORDER.filter(g => grouped.has(g)).map(g => {
           const meta  = GROUP_META[g];
           const items = grouped.get(g)!;
@@ -166,35 +189,35 @@ export function InsightsScreenV2(p: Props) {
               >
                 <span className="text-sm">{meta.icon}</span>
                 <p className="label-caps text-secondary">{meta.label}</p>
-                <span className="text-[11px] text-secondary/50">· {items.length}</span>
+                <span className="text-[11px] text-secondary/50">
+                  · {items.length} {items.length === 1 ? 'consiglio' : 'consigli'}
+                </span>
                 {isAdvanced && (
                   <span className="ml-auto text-secondary/50 text-[11px]">{advancedOpen ? '▲' : '▼'}</span>
                 )}
               </button>
+              {/* Righe compatte, non card: il pollice su/giù resta solo sul
+                  consiglio in evidenza e dentro la sheet di dettaglio. */}
               {isOpen && (
-                <div className="space-y-2.5">
+                <div className="glass-card rounded-[20px] shadow-elev-1 overflow-hidden">
                   {items.map((ins, i) => (
-                    <div key={i} className={`glass-card rounded-2xl p-4 ${ins.urgent ? 'ring-1 ring-[#E08B8B]/30' : ''}`}>
-                      <div className="flex items-start gap-3.5">
-                        <div className="w-9 h-9 rounded-xl flex items-center justify-center text-base flex-shrink-0"
-                          style={{ backgroundColor: ins.accent + '18' }}>
-                          {ins.icon}
-                        </div>
-                        <div className="min-w-0 flex-1">
-                          <p className="text-sm font-medium text-primary leading-snug">{ins.title}</p>
-                          <p className="text-xs mt-0.5 leading-snug" style={{ color: ins.accent + 'cc' }}>{ins.detail}</p>
-                        </div>
-                        {ins.explain && (
-                          <button onClick={() => { setDetail(ins); if (user) logEvent(user.uid, 'insight_open'); }} aria-label="Spiegazione"
-                            className="w-6 h-6 rounded-full flex items-center justify-center text-secondary hover:text-primary hover:bg-card-hover transition-colors flex-shrink-0 mt-0.5">
-                            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.75">
-                              <circle cx="12" cy="12" r="9" /><path d="M12 11v5" strokeLinecap="round" /><circle cx="12" cy="7.6" r="0.6" fill="currentColor" stroke="none" />
-                            </svg>
-                          </button>
-                        )}
-                      </div>
-                      <InsightFeedback insightKey={`${ins.category}:${ins.title}`} user={user} />
-                    </div>
+                    <button key={i} type="button"
+                      onClick={() => { setDetail(ins); if (user) logEvent(user.uid, 'insight_open'); }}
+                      className={`w-full flex items-center gap-3 px-4 py-3.5 text-left active:bg-card-hover transition-colors ${
+                        i < items.length - 1 ? 'border-b border-divider' : ''}`}>
+                      <span className="w-[34px] h-[34px] rounded-xl flex items-center justify-center text-base flex-none"
+                        style={{ backgroundColor: ins.accent + '26' }}>
+                        {ins.icon}
+                      </span>
+                      <span className="min-w-0 flex-1">
+                        <span className="block text-[14px] text-primary truncate">{ins.title}</span>
+                        <span className="block text-[11.5px] text-tertiary truncate">{ins.detail}</span>
+                      </span>
+                      <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5"
+                        strokeLinecap="round" strokeLinejoin="round" className="text-tertiary flex-none">
+                        <path d="m9 18 6-6-6-6" />
+                      </svg>
+                    </button>
                   ))}
                 </div>
               )}
@@ -210,9 +233,9 @@ export function InsightsScreenV2(p: Props) {
 
 function SummaryPill({ label, value, color }: { label: string; value: string; color: string }) {
   return (
-    <div className="glass-card rounded-2xl px-3 py-3">
-      <p className="label-caps text-secondary mb-1.5">{label}</p>
-      <p className="text-xs font-semibold balance-num truncate" style={{ color }}>{value}</p>
+    <div className="glass-card rounded-[18px] px-3 py-3">
+      <p className="text-[12px] text-secondary mb-1">{label}</p>
+      <p className="text-[14px] font-semibold balance-num truncate" style={{ color }}>{value}</p>
     </div>
   );
 }

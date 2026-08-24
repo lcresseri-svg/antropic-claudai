@@ -1,4 +1,4 @@
-import { useState, useEffect, useRef } from 'react';
+import { useState, useEffect, useRef, Children, isValidElement, ReactNode } from 'react';
 import { useNavigate, useLocation } from 'react-router-dom';
 import { User } from 'firebase/auth';
 import { CategoryDef, AccountDef, Transaction, TransactionType, TYPE_META, TYPE_ORDER, typeColor } from '../../types';
@@ -50,6 +50,8 @@ export function SettingsScreen({ user, transactions, budgetExport, onLogOut, onD
   const [editing, setEditing] = useState<{ kind: 'category' | 'account'; draft: DefDraft; isNew: boolean; withKind?: boolean } | null>(null);
   const [confirmReset, setConfirmReset] = useState(false);
   const [feedbackOpen, setFeedbackOpen] = useState(false);
+  /** Filtro del menu impostazioni (solo la schermata elenco). */
+  const [menuQuery, setMenuQuery] = useState('');
   const [pushMsg, setPushMsg] = useState<string | null>(null);
   const [testMsg, setTestMsg] = useState<string | null>(null);
   const [testing, setTesting] = useState(false);
@@ -395,44 +397,61 @@ export function SettingsScreen({ user, transactions, budgetExport, onLogOut, onD
             <h1 className="text-2xl font-bold text-primary tracking-[-0.03em] flex-1">Impostazioni</h1>
           </div>
 
-          {/* Profile */}
-          <div className="bg-card rounded-2xl p-5 flex items-center gap-4">
+          {/* Profilo */}
+          <div className="glass-card rounded-[20px] shadow-elev-1 p-4 flex items-center gap-3.5">
             {user.photoURL
-              ? <img src={user.photoURL} alt="" className="w-12 h-12 rounded-full" />
-              : <div className="w-12 h-12 rounded-full bg-green flex items-center justify-center text-bg font-bold">{(user.displayName ?? 'U')[0]}</div>}
+              ? <img src={user.photoURL} alt="" className="w-[42px] h-[42px] rounded-full flex-none" />
+              : <div className="w-[42px] h-[42px] rounded-full bg-green flex items-center justify-center text-bg font-bold flex-none">{(user.displayName ?? 'U')[0]}</div>}
             <div className="min-w-0 flex-1">
-              <p className="font-semibold text-primary truncate">{user.displayName}</p>
-              <p className="text-xs text-secondary truncate">{user.email}</p>
+              <p className="text-[15px] font-semibold text-primary truncate">{user.displayName}</p>
+              <p className="text-[11.5px] text-tertiary truncate">{user.email}</p>
             </div>
-            <button onClick={onLogOut} className="text-xs font-medium text-secondary px-3 py-2 rounded-xl bg-elevated">Esci</button>
           </div>
 
-          {/* Main entries */}
+          {/* Ricerca: con una quarantina di voci, scorrerle tutte per trovarne
+              una era il modo più lento. */}
+          <div className="relative">
+            <svg className="absolute left-3.5 top-1/2 -translate-y-1/2 text-secondary" width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+              <circle cx="11" cy="11" r="7" /><path d="m21 21-4.35-4.35" />
+            </svg>
+            <input type="text" value={menuQuery} onChange={e => setMenuQuery(e.target.value)}
+              placeholder="Cerca nelle impostazioni"
+              aria-label="Cerca nelle impostazioni"
+              className="w-full glass-card rounded-2xl pl-9 pr-3 py-2.5 text-[13.5px] text-primary placeholder:text-secondary/60 outline-none focus:ring-1 focus:ring-gold/40" />
+          </div>
+
+          {/* Da sette gruppi a quattro. Gli interruttori più usati vivono nella
+              riga stessa: aprire un sottolivello per un sì/no era un passo di
+              troppo. Le voci che portano davvero da qualche parte tengono il
+              chevron. */}
           <div className="space-y-5">
-              <MenuSection title="Preferenze">
-                <Row icon="🎨" color="#8B8B8B" label="Aspetto" sub="Tema chiaro/scuro" onClick={() => enterSub('aspetto')} />
-              </MenuSection>
-              <MenuSection title="Il tuo Sunny">
-                <Row icon="🎯" color="#E6B95C" label="Piano e budget" sub="Obiettivi, limiti, previsioni" onClick={() => enterSub('budget')} />
+              <MenuSection title="Come si comporta l'app" query={menuQuery}>
+                <SwitchRow icon="🌙" color="#8B8B8B" label="Tema scuro" sub="Chiaro o scuro"
+                  on={theme === 'dark'} onToggle={() => saveTheme(theme === 'dark' ? 'light' : 'dark')} />
+                <SwitchRow icon="🎯" color="#E6B95C" label="Piano e budget" sub="Limiti di spesa e previsioni"
+                  on={enableBudget} onToggle={() => saveEnableBudget(!enableBudget)} />
+                <SwitchRow icon="✨" color="#8A9270" label="AI abilitata" sub="Suggerimenti e riepilogo mensile"
+                  on={aiEnabled} onToggle={() => saveAiEnabled(!aiEnabled)} />
                 <Row icon="📊" color="#6FA8DC" label="Investimenti" sub="Portafoglio e capitale" onClick={() => enterSub('investimenti')} />
-                <Row icon="✨" color="#8A9270" label="AI abilitata" sub="Suggerimenti e riepilogo mensile" onClick={() => enterSub('ai')} />
-                {push.supported && (
-                  <Row icon="🔔" color="#88B0C0" label="Notifiche" sub="Promemoria e aggiornamenti" onClick={() => enterSub('notifiche')} />
-                )}
+                <Row icon="🔍" color="#8B8B8B" label="Profondità delle analisi"
+                  sub="Quanti dettagli negli insight" value={DEPTH_LABEL[insightDepth]} onClick={() => enterSub('avanzate')} />
               </MenuSection>
-              <MenuSection title="Dati">
-                <Row icon="💾" color="#8A9270" label="Dati" sub="Importa CSV, esporta, elimina" onClick={() => enterSub('dati')} />
-              </MenuSection>
-              <MenuSection title="Personalizzazione">
+
+              <MenuSection title="I tuoi dati" query={menuQuery}>
                 <Row icon="🗂️" color="#6FA8DC" label="Conti e categorie" sub="Saldi, icone, ordine" onClick={() => enterSub('gestione')} />
+                <Row icon="💾" color="#8A9270" label="Importa, esporta, elimina" sub="CSV, backup, cancellazione" onClick={() => enterSub('dati')} />
+                <Row icon="⚡" color="#E6B95C" label="Aggiungi spese da iPhone" sub="Scorciatoia iOS" onClick={() => enterSub('shortcut')} />
               </MenuSection>
-              <MenuSection title="Supporto">
+
+              {push.supported && (
+                <MenuSection title="Notifiche" query={menuQuery}>
+                  <Row icon="🔔" color="#88B0C0" label="Promemoria e aggiornamenti" sub="Cosa ti arriva e quando" onClick={() => enterSub('notifiche')} />
+                </MenuSection>
+              )}
+
+              <MenuSection title="Sunny" query={menuQuery}>
                 <Row icon="💬" color="#E6B95C" label="Lascia un feedback" sub="Problemi, idee, suggerimenti" onClick={() => setFeedbackOpen(true)} />
                 <Row icon="ℹ️" color="#88B0C0" label="Come funziona" sub="Calcoli e formule" onClick={() => enterSub('info')} />
-                <Row icon="📋" color="#8B8B8B" label="Versioni" sub={`v${APP_VERSION}`} onClick={() => enterSub('versioni')} />
-              </MenuSection>
-              <MenuSection title="Avanzate">
-                <Row icon="🔍" color="#8B8B8B" label="Analisi e AI" sub="Profondità insight, widget coach" onClick={() => enterSub('avanzate')} />
                 {forecastV4Enabled && (
                   <Row icon="🔮" color="#E6B95C" label="Previsione V4 (admin)" sub="Motore forecast sperimentale" onClick={() => navigate('/forecast-v3')} />
                 )}
@@ -452,19 +471,23 @@ export function SettingsScreen({ user, transactions, budgetExport, onLogOut, onD
                   <Row icon="🧭" color="#8A9270" label="Forecast unificato (anteprima)" sub="Motori a confronto e backtest baseline" onClick={() => navigate('/forecast-v3')} />
                 )}
               </MenuSection>
-              <MenuSection title="Scorciatoie">
-                <Row icon="⚡" color="#E6B95C" label="Aggiungi spese da iPhone" sub="Scorciatoia iOS per registrare spese" onClick={() => enterSub('shortcut')} />
-              </MenuSection>
           </div>
 
-          <div className="text-center pt-2 space-y-1.5">
-            <p className="text-xs text-secondary/60 flex items-center justify-center gap-1.5">
-              Sunny · finanza personale · v{APP_VERSION}
+          {/* Riga piatta di chiusura: versione e uscita, senza card attorno. */}
+          <div className="flex items-center justify-between gap-3 px-1 pt-2">
+            <button type="button" onClick={() => enterSub('versioni')}
+              className="text-[12px] text-secondary text-left flex items-center gap-1.5">
+              Sunny v{APP_VERSION}
               {APP_CHANNEL === 'beta' && (
                 <span className="px-1.5 py-0.5 rounded-md bg-gold/15 text-gold text-[10px] font-semibold tracking-wide uppercase">beta</span>
               )}
-            </p>
+              <span className="text-tertiary">· registro versioni</span>
+            </button>
+            <button type="button" onClick={onLogOut} className="text-[13px] font-semibold text-red flex-none">
+              Esci
+            </button>
           </div>
+
         </>
       )}
 
@@ -880,29 +903,72 @@ function SettingsGroup({ title, children }: { title: string; children: React.Rea
   );
 }
 
-function MenuSection({ title, children }: { title: string; children: React.ReactNode }) {
+const DEPTH_LABEL: Record<string, string> = {
+  minimal: 'Essenziale', medium: 'Media', advanced: 'Avanzata',
+};
+
+/** Una voce corrisponde alla ricerca se il testo compare in etichetta o
+ *  sottotitolo. Il filtro è qui e non nel chiamante perché le voci sono JSX:
+ *  la sezione le legge dalle props dei figli e sparisce se non ne resta nessuna. */
+function matchesQuery(child: ReactNode, q: string): boolean {
+  if (!q) return true;
+  if (!isValidElement(child)) return false;
+  const p = child.props as { label?: string; sub?: string };
+  const hay = `${p.label ?? ''} ${p.sub ?? ''}`.toLowerCase();
+  return hay.includes(q.trim().toLowerCase());
+}
+
+function MenuSection({ title, query = '', children }: { title: string; query?: string; children: React.ReactNode }) {
+  const visible = Children.toArray(children).filter((c: ReactNode) => matchesQuery(c, query));
+  if (visible.length === 0) return null;
   return (
     <div>
       <p className="label-caps text-secondary mb-2 px-1">{title}</p>
-      <div className="bg-card rounded-2xl divide-y divide-divider md:bg-transparent md:divide-y-0 md:grid md:grid-cols-2 md:gap-3">
-        {children}
+      <div className="glass-card rounded-[20px] shadow-elev-1 divide-y divide-divider overflow-hidden">
+        {visible}
       </div>
     </div>
   );
 }
 
-function Row({ icon, color, label, sub, onClick }: { icon: string; color: string; label: string; sub?: string; onClick: () => void }) {
+/** Riga di menu: icona 32px, etichetta 14.5, sottotitolo 11.5. A destra il
+ *  valore corrente quando c'è ("Profondità delle analisi → Avanzata ›"). */
+function Row({ icon, color, label, sub, value, onClick }: {
+  icon: string; color: string; label: string; sub?: string; value?: string; onClick: () => void;
+}) {
   return (
     <button onClick={onClick}
-      className="w-full flex items-center gap-3.5 p-3.5 text-left transition-colors active:bg-card-hover first:rounded-t-2xl last:rounded-b-2xl
-        md:flex-col md:items-start md:gap-3 md:p-5 md:rounded-2xl md:bg-card md:border md:border-divider md:hover:bg-card-hover md:h-full">
-      <span className="w-9 h-9 md:w-11 md:h-11 rounded-full flex items-center justify-center text-base md:text-xl flex-shrink-0" style={{ backgroundColor: color + '22' }}>{icon}</span>
-      <span className="flex-1 md:flex-none">
-        <span className="block text-[15px] font-medium text-primary">{label}</span>
-        {sub && <span className="hidden md:block text-xs text-secondary mt-0.5">{sub}</span>}
+      className="w-full flex items-center gap-3 px-4 py-3 text-left transition-colors active:bg-card-hover">
+      <span className="w-8 h-8 rounded-[11px] flex items-center justify-center text-base flex-none"
+        style={{ backgroundColor: color + '26' }}>{icon}</span>
+      <span className="flex-1 min-w-0">
+        <span className="block text-[14.5px] text-primary truncate">{label}</span>
+        {sub && <span className="block text-[11.5px] text-tertiary truncate">{sub}</span>}
       </span>
-      <span className="md:hidden"><ChevronRight /></span>
+      {value && <span className="text-[12.5px] text-secondary flex-none">{value}</span>}
+      <ChevronRight />
     </button>
+  );
+}
+
+/** Riga con interruttore inline: pista 42×25, pallino 21, acceso oro. */
+function SwitchRow({ icon, color, label, sub, on, onToggle }: {
+  icon: string; color: string; label: string; sub?: string; on: boolean; onToggle: () => void;
+}) {
+  return (
+    <div className="w-full flex items-center gap-3 px-4 py-3">
+      <span className="w-8 h-8 rounded-[11px] flex items-center justify-center text-base flex-none"
+        style={{ backgroundColor: color + '26' }}>{icon}</span>
+      <span className="flex-1 min-w-0">
+        <span className="block text-[14.5px] text-primary truncate">{label}</span>
+        {sub && <span className="block text-[11.5px] text-tertiary truncate">{sub}</span>}
+      </span>
+      <button type="button" role="switch" aria-checked={on} aria-label={label} onClick={onToggle}
+        className={`w-[42px] h-[25px] rounded-full flex-none transition-colors relative ${on ? 'bg-gold' : 'progress-track'}`}>
+        <span className={`absolute top-0.5 w-[21px] h-[21px] rounded-full transition-all ${
+          on ? 'left-[19px] bg-[color:var(--accent-on)]' : 'left-0.5 bg-secondary'}`} />
+      </button>
+    </div>
   );
 }
 
