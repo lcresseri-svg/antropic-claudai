@@ -82,7 +82,7 @@
      È l'oro che tinge il fondo, non un colore nuovo — ma la direzione si
      ribalta fra i temi (scuro → più caldo verso l'alto, chiaro → crema che
      sbianca), quindi vive come token e non come gradiente nel componente. */
-  --accent-surface: linear-gradient(150deg, #15130F 0%, #0E0D0C 100%);
+  --accent-surface: linear-gradient(150deg, #1A1714 0%, #0E0D0C 100%);
 }
 
 /* ─── Light theme — warm monochrome, "native BS" ────────────────────────────── */

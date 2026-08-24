@@ -1,8 +1,10 @@
 // "Novità" popup — announces the changes of a release to ALL users, but ONLY
 // when a specific release is opted in (VersionEntry.highlight === true). The
 // admin still controls WHICH release fires the popup, by flagging its changelog
-// entry. Reuses the premium-popup style of PushPromoSheet; the title uses DM
-// Serif Display, like the wordmark.
+// entry.
+//
+// Wrapper sottile: la presentazione sta tutta in ReleaseDialog (condivisa con
+// ReleaseNotice); qui resta SOLO la logica del "già visto", che è per-versione.
 //
 // "Already seen" is tracked per-version in localStorage (per browser/device).
 // FUTURE (multi-device): move the flag to a per-user Firestore field
@@ -12,13 +14,23 @@
 
 import { useState, useEffect } from 'react';
 import { VERSIONS } from '../../appInfo';
-import { useEscapeKey } from '../hooks/useEscapeKey';
+import { ReleaseDialog } from './ReleaseDialog';
 
 const seenKey = (version: string) => `sunny_whatsnew_seen_${version}`;
 
+/** Most recent highlighted release (VERSIONS is newest-first). */
+const highlighted = () => VERSIONS.find(v => v.highlight);
+
+/** True quando il popup Novità sta per aprirsi: serve al chiamante per non
+ *  mostrare un secondo popup nella stessa sessione (mai due insieme). */
+export function isWhatsNewPending(): boolean {
+  const entry = highlighted();
+  if (!entry) return false;
+  try { return localStorage.getItem(seenKey(entry.version)) !== '1'; } catch { return false; }
+}
+
 export function WhatsNewModal() {
-  // Most recent highlighted release (VERSIONS is newest-first).
-  const entry = VERSIONS.find(v => v.highlight);
+  const entry = highlighted();
 
   const [open, setOpen] = useState(false);
 
@@ -36,55 +48,19 @@ export function WhatsNewModal() {
     setOpen(false);
   };
 
-  useEscapeKey(close, open);
-
-  if (!open || !entry) return null;
+  if (!entry) return null;
 
   return (
-    <div
-      className="fixed inset-0 z-[70] flex items-end sm:items-center justify-center p-3"
-      onClick={e => { if (e.target === e.currentTarget) close(); }}
-      role="dialog"
-      aria-modal="true"
-    >
-      <div className="absolute inset-0 bg-black/70 backdrop-blur-md animate-fade-in-fast" />
-      <div className="relative w-full max-w-md glass-elevated rounded-3xl shadow-float animate-sheet-up overflow-hidden">
-
-        <div className="px-6 pt-6 pb-1 flex items-start justify-between gap-3">
-          <div className="min-w-0">
-            <p className="label-caps text-gold mb-1">Novità · v{entry.version}</p>
-            <h3
-              className="text-[26px] leading-tight text-primary"
-              style={{ fontFamily: "'DM Serif Display', serif" }}
-            >
-              {entry.title}
-            </h3>
-            <p className="text-[11px] text-secondary mt-1 balance-num">{entry.date}</p>
-          </div>
-          <button onClick={close} aria-label="Chiudi"
-            className="w-8 h-8 rounded-full bg-elevated flex items-center justify-center text-secondary text-sm flex-shrink-0">
-            ✕
-          </button>
-        </div>
-
-        <ul className="px-6 pt-4 pb-2 space-y-3">
-          {entry.changes.map((c, i) => (
-            <li key={i} className="flex gap-3">
-              <span className="text-gold flex-shrink-0 mt-0.5">·</span>
-              <span className="text-sm text-primary leading-relaxed">{c}</span>
-            </li>
-          ))}
-        </ul>
-
-        <div className="px-6 pt-4 pb-6">
-          <button
-            onClick={close}
-            className="w-full py-3.5 rounded-2xl bg-gold text-bg text-sm font-semibold active:scale-[0.98] transition-transform"
-          >
-            Ho capito
-          </button>
-        </div>
-      </div>
-    </div>
+    <ReleaseDialog
+      open={open}
+      version={entry.version}
+      date={entry.date}
+      title={entry.title}
+      subtitle={entry.subtitle}
+      items={entry.highlights}
+      bullets={entry.changes}
+      primaryAction={entry.primaryAction}
+      onClose={close}
+    />
   );
 }
