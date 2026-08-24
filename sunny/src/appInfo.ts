@@ -1,4 +1,4 @@
-export const APP_VERSION = '2.0.0';
+export const APP_VERSION = '2.0.1';
 
 /**
  * Release channel. While in 'beta' the app is still under active development
@@ -29,6 +29,15 @@ export interface VersionEntry {
 
 /** Registro versioni mostrato in Impostazioni → Registro versioni. */
 export const VERSIONS: VersionEntry[] = [
+  {
+    version: '2.0.1', date: '2026-08-24', title: 'Deposito di sicurezza',
+    changes: [
+      'Puoi dirci quanto vuoi tenere sempre da parte: lo trovi in Impostazioni → Deposito di sicurezza.',
+      'Il deposito viene sottratto dalla liquidità libera in home, insieme alle uscite già programmate: il numero in cima diventa quello che puoi spendere davvero.',
+      'Non blocca niente e non sposta soldi: nessun conto viene toccato e il patrimonio non cambia.',
+      'Finché non lo imposti vale zero, quindi il numero in home resta quello di prima.',
+    ],
+  },
   {
     version: '2.0.0', date: '2026-08-24', title: 'Sunny ha un nuovo aspetto',
     highlight: true, // ← accende il popup "Novità" per tutti gli utenti

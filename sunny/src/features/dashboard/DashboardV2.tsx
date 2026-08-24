@@ -61,6 +61,7 @@ export function DashboardV2(p: Props) {
   const navigate = useNavigate();
   const {
     enableInvestments, getCat, insightDepth, visibleCategories, accounts, categories, includeInvestments,
+    cashReserve,
   } = useSettings();
 
   // Un solo `now` per tutto il render: hero, calendario e sparkline devono
@@ -69,14 +70,15 @@ export function DashboardV2(p: Props) {
   const now = useMemo(() => new Date(), []);
 
   // ── Liquidità libera ───────────────────────────────────────────────────────
-  // liquidità − uscite già impegnate entro fine mese, senza riserva (la riserva
-  // è un concetto della schermata "Liquidità disponibile", non della home).
+  //   liquidità − uscite già impegnate entro fine mese − deposito di sicurezza
+  // Il deposito è il cuscinetto che l'utente ha deciso di non toccare
+  // (Impostazioni → Deposito di sicurezza); vale 0 finché non lo imposta.
   // Il calcolo è puro e locale: nessun dato nuovo, nessuna chiamata in più.
   const cash = useMemo(
     () => computeAvailableCash({
-      transactions: p.transactions, liquidity: p.liquidity, horizon: 'eom', reserve: 0, now,
+      transactions: p.transactions, liquidity: p.liquidity, horizon: 'eom', reserve: cashReserve, now,
     }),
-    [p.transactions, p.liquidity, now],
+    [p.transactions, p.liquidity, cashReserve, now],
   );
 
   // Spese del mese per categoria — realizzate soltanto: i movimenti ancora
@@ -133,6 +135,7 @@ export function DashboardV2(p: Props) {
   const hero = (
     <FreeCashHero
       freeCash={cash.available} liquidity={p.liquidity} committed={cash.committed}
+      reserve={cash.reserve}
       income={flow.cashIn} expenses={flow.expenses} invested={investedTotal}
       showInvested={enableInvestments}
     />

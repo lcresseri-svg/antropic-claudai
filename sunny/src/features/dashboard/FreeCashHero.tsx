@@ -2,19 +2,22 @@
 //
 // Il numero grande NON è la liquidità, è la liquidità LIBERA: quello che resta
 // sui conti una volta messi da parte gli impegni già programmati entro fine
-// mese (ricorrenze proiettate + uscite future già registrate). L'anello dice
-// che quota della liquidità è ancora libera.
+// mese (ricorrenze proiettate + uscite future già registrate) e il deposito di
+// sicurezza che l'utente ha deciso di non toccare. L'anello dice che quota
+// della liquidità è ancora libera.
 //
 // Unica card con `shadow-elev-2` della schermata: è la regola del redesign.
 
 import { formatCurrency } from '../../utils';
 
 interface Props {
-  /** liquidità − impegni entro fine mese. */
+  /** liquidità − impegni entro fine mese − deposito di sicurezza. */
   freeCash: number;
   liquidity: number;
   /** Somma degli impegni già programmati (0 quando non ce ne sono). */
   committed: number;
+  /** Deposito di sicurezza impostato dall'utente; 0 = spento. */
+  reserve?: number;
   income: number;
   expenses: number;
   invested: number;
@@ -34,6 +37,16 @@ function splitAmount(value: number): { head: string; tail: string } {
 
 export function FreeCashHero(p: Props) {
   const { head, tail } = splitAmount(p.freeCash);
+  const reserve = p.reserve ?? 0;
+  // "Libera" ha senso solo se qualcosa è stato messo da parte: senza impegni e
+  // senza deposito il numero È la liquidità, e chiamarlo altrimenti confonde.
+  const isFree = p.committed > 0 || reserve > 0;
+  // La frase si compone dai soli pezzi che esistono: "1.980 € sono già
+  // programmati", "500 € sono il tuo deposito di sicurezza", o entrambi.
+  const setAside = [
+    p.committed > 0 && `${formatCurrency(p.committed)} sono già programmati`,
+    reserve > 0 && `${formatCurrency(reserve)} sono il tuo deposito di sicurezza`,
+  ].filter(Boolean).join(' e ');
   // Quota libera sulla liquidità. Con liquidità ≤ 0 non c'è nulla da
   // rappresentare: l'anello resta vuoto invece di mostrare una percentuale finta.
   const ratio = p.liquidity > 0 ? Math.min(1, Math.max(0, p.freeCash / p.liquidity)) : 0;
@@ -44,16 +57,15 @@ export function FreeCashHero(p: Props) {
       <div className="flex items-center gap-[18px] md:gap-7">
         <div className="flex-1 min-w-0">
           <p className="label-caps text-secondary mb-2 md:mb-2.5">
-            {p.committed > 0 ? 'Liquidità libera' : 'Liquidità'}
+            {isFree ? 'Liquidità libera' : 'Liquidità'}
           </p>
           <p className="balance-num font-bold text-primary text-[40px] leading-none md:text-[56px] md:leading-[0.95]">
             {head}
             <span className="text-[20px] md:text-[26px] font-semibold text-secondary">{tail}</span>
           </p>
-          {p.committed > 0 && (
+          {isFree && (
             <p className="mt-2.5 md:mt-3.5 text-[12px] md:text-[12.5px] text-secondary leading-relaxed">
-              Su {formatCurrency(p.liquidity)} di liquidità,{' '}
-              {formatCurrency(p.committed)} sono già programmati.
+              Su {formatCurrency(p.liquidity)} di liquidità, {setAside}.
             </p>
           )}
         </div>

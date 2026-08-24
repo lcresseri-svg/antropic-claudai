@@ -27,6 +27,35 @@ describe('computeAvailableCash', () => {
     expect(r.explanation.length).toBeGreaterThanOrEqual(4);
   });
 
+  it("il deposito di sicurezza scende dalla liquidità libera della home", () => {
+    // Forma esatta della chiamata della home: orizzonte fine mese, riserva
+    // presa dalle impostazioni. Con deposito a 0 il numero è la sola
+    // liquidità meno gli impegni — cioè il comportamento prima della feature.
+    const txs: Transaction[] = [
+      tx({ id: 'rent', date: '2026-07-28', description: 'Affitto', amount: 700, recurring: { freq: 'monthly' } }),
+    ];
+    const base = { transactions: txs, liquidity: 2000, horizon: 'eom' as const, now: NOW };
+
+    const senza = computeAvailableCash({ ...base, reserve: 0 });
+    expect(senza.committed).toBe(700);
+    expect(senza.available).toBe(1300);
+    expect(senza.reserve).toBe(0);
+
+    const con = computeAvailableCash({ ...base, reserve: 500 });
+    expect(con.committed).toBe(700);   // gli impegni non cambiano
+    expect(con.available).toBe(800);   // 2000 − 700 − 500
+    expect(con.reserve).toBe(500);
+  });
+
+  it('un deposito più grande della liquidità porta il disponibile sotto zero', () => {
+    // Non è un errore da nascondere: dice che il cuscinetto che ti sei dato è
+    // più di quello che hai, e va visto.
+    const r = computeAvailableCash({
+      transactions: [], liquidity: 300, horizon: 'eom', reserve: 1000, now: NOW,
+    });
+    expect(r.available).toBe(-700);
+  });
+
   it('never double-counts: materialized instance + template advanced past it', () => {
     const txs: Transaction[] = [
       // Occorrenza già materializzata (passata) della serie.

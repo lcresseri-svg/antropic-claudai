@@ -27,7 +27,7 @@ interface SettingsValue {
   insightDepth: InsightDepth;
   aiEnabled: boolean;
   aiCoachWidgetEnabled: boolean;
-  /** Riserva di sicurezza (€) sottratta dalla liquidità disponibile. */
+  /** Deposito di sicurezza (€) sottratto dalla liquidità libera. 0 = non impostato. */
   cashReserve: number;
   detailedInvestments: boolean; // per-user gated: fund-type classification + TFR
   settingsLoaded: boolean;      // true after first Firestore snapshot resolves
@@ -55,7 +55,11 @@ const THEME_KEY = 'sunny-theme';
 
 /** Riserva di sicurezza pre-impostata, invariata rispetto al valore che la
  *  schermata Patrimonio V2 usava quando era solo uno stato locale. */
-const DEFAULT_CASH_RESERVE = 500;
+/** Deposito di sicurezza: **zero finché non lo imposti**. Da quando entra nel
+ *  calcolo della liquidità libera in home, un default diverso da 0 toglierebbe
+ *  soldi dalla headline di chi non l'ha mai chiesto. Chi l'aveva già impostato
+ *  ha il valore su `meta/settings` e non è toccato. */
+const DEFAULT_CASH_RESERVE = 0;
 
 // Default theme follows the OS unless the user has saved an explicit preference.
 function systemTheme(): Theme {
