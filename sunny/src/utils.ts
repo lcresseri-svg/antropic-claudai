@@ -36,6 +36,14 @@ export function capitalize(s: string): string {
   return s.charAt(0).toUpperCase() + s.slice(1);
 }
 
+/** "Agosto · giorno 24 di 31" — il contesto temporale mostrato sulla home
+ *  (header mobile e sottotitolo desktop) al posto del saluto. */
+export function monthContext(now: Date = new Date()): string {
+  const month = new Intl.DateTimeFormat('it-IT', { month: 'long' }).format(now);
+  const days = new Date(now.getFullYear(), now.getMonth() + 1, 0).getDate();
+  return `${capitalize(month)} · giorno ${now.getDate()} di ${days}`;
+}
+
 export function greeting(): string {
   const h = new Date().getHours();
   if (h < 6) return 'Buonanotte';

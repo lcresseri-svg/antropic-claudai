@@ -18,7 +18,7 @@ export function BottomNav({ onAdd }: Props) {
           <button
             onClick={onAdd}
             aria-label="Aggiungi"
-            className="w-12 h-12 rounded-full glass-cta-gold flex items-center justify-center mx-0.5 shrink-0 transition-transform active:scale-90"
+            className="w-12 h-12 rounded-full cta-gold-fill flex items-center justify-center mx-0.5 shrink-0 transition-transform active:scale-90"
           >
             <svg width="18" height="18" viewBox="0 0 18 18" fill="none">
               <path d="M9 2v14M2 9h14" stroke="currentColor" strokeWidth="2" strokeLinecap="round"/>

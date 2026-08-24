@@ -3,6 +3,10 @@ import { ArcLogo } from '../shared/components/ArcLogo';
 
 interface Props {
   brand: string;
+  /** Sulla home il saluto lascia il posto al contesto del mese
+   *  ("Agosto · giorno 24 di 31"): il saluto resta, ma su desktop, dentro la
+   *  dashboard. Altrove l'header continua a mostrare il brand. */
+  monthLine?: string;
   loading: boolean;
   isSettings: boolean;
   settingsOpen: boolean;
@@ -11,7 +15,7 @@ interface Props {
 }
 
 /** Mobile-only header — in-flow (shrink-0) so it doesn't trigger iOS viewport resize. */
-export function AppHeader({ brand, loading, isSettings, settingsOpen, onToggleSettings, onImport }: Props) {
+export function AppHeader({ brand, monthLine, loading, isSettings, settingsOpen, onToggleSettings, onImport }: Props) {
   const navigate = useNavigate();
   return (
     <header className="shrink-0 z-[40] glass-header md:hidden">
@@ -19,8 +23,10 @@ export function AppHeader({ brand, loading, isSettings, settingsOpen, onToggleSe
         <div className="flex items-center gap-2.5 min-w-0">
           <button type="button" onClick={() => navigate('/')} aria-label="Vai alla dashboard"
             className="flex items-center gap-2.5 min-w-0 active:opacity-70 transition-opacity">
-            <ArcLogo size={28} />
-            <span className="font-semibold text-primary tracking-[-0.02em] truncate">{brand}</span>
+            <ArcLogo size={monthLine ? 26 : 28} />
+            {monthLine
+              ? <span className="text-[13px] text-secondary truncate">{monthLine}</span>
+              : <span className="font-semibold text-primary tracking-[-0.02em] truncate">{brand}</span>}
           </button>
           {loading && <span className="w-1.5 h-1.5 rounded-full bg-gold animate-pulse flex-shrink-0" />}
         </div>

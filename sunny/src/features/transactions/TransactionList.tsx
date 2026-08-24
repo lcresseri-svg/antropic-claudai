@@ -1,7 +1,7 @@
 import { useState, useMemo, useEffect } from 'react';
 import { useSearchParams } from 'react-router-dom';
 import { Transaction, TransactionType, TYPE_META, TYPE_ORDER, TransactionPatch, typeColor } from '../../types';
-import { formatCurrency, formatDate, formatMonthLong, capitalize } from '../../utils';
+import { formatCurrency, formatDate, formatDateFull, formatMonthLong, capitalize } from '../../utils';
 import { useSettings } from '../../shared/providers/settings';
 import { isPending } from '../../shared/recurrence';
 import { aggregateFlow, netFlowDelta } from '../../shared/financialFlow';
@@ -91,6 +91,11 @@ export function TransactionList({ transactions, projected = [], onEdit, onDelete
   // (seriesId, or its own id for legacy templates) and projected rows.
   const seriesFilter = searchParams.get('series');
   const clearSeriesFilter = () => setSearchParams(p => { p.delete('series'); return p; }, { replace: true });
+  // Optional single-day filter (?date=YYYY-MM-DD) — set by the home calendar
+  // "Ritmo del mese" when you tap a square. Matches the date exactly, così il
+  // giorno tappato mostra esattamente i movimenti che hanno riempito la cella.
+  const dateFilter = searchParams.get('date');
+  const clearDateFilter = () => setSearchParams(p => { p.delete('date'); return p; }, { replace: true });
   const [search, setSearch] = useState('');
   const [typeFilter, setTypeFilter] = useState<TransactionType | 'all'>('all');
   const [groupMode, setGroupMode] = useState<GroupMode>('month');
@@ -190,6 +195,7 @@ export function TransactionList({ transactions, projected = [], onEdit, onDelete
       .filter(t => !investFilter || t.category === investFilter)
       .filter(t => !accFilter || t.account === accFilter || t.toAccount === accFilter)
       .filter(t => !seriesFilter || t.seriesId === seriesFilter || t.id === seriesFilter)
+      .filter(t => !dateFilter || t.date === dateFilter)
       .filter(t => !cutoff || new Date(t.date) >= cutoff)
       .filter(matches)
       .sort((a, b) => {
@@ -204,7 +210,7 @@ export function TransactionList({ transactions, projected = [], onEdit, onDelete
         }
         return sortDir === 'desc' ? diff : -diff;
       });
-  }, [transactions, projected, projView, typeFilter, period, search, sortKey, sortDir, categories, accounts, catFilter, accFilter, seriesFilter, investFilter]);
+  }, [transactions, projected, projView, typeFilter, period, search, sortKey, sortDir, categories, accounts, catFilter, accFilter, seriesFilter, investFilter, dateFilter]);
 
   // Human name for the active series filter pill ("Serie: Netflix").
   const seriesFilterLabel = seriesFilter
@@ -448,6 +454,15 @@ export function TransactionList({ transactions, projected = [], onEdit, onDelete
               <button onClick={clearSeriesFilter}
                 className="inline-flex items-center gap-1.5 bg-gold/10 text-gold rounded-full pl-3 pr-2 py-1 text-xs font-medium">
                 🔁 Serie: {seriesFilterLabel}
+                <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round">
+                  <path d="M18 6 6 18M6 6l12 12" />
+                </svg>
+              </button>
+            )}
+            {dateFilter && (
+              <button onClick={clearDateFilter}
+                className="inline-flex items-center gap-1.5 bg-gold/10 text-gold rounded-full pl-3 pr-2 py-1 text-xs font-medium">
+                📅 {formatDateFull(dateFilter)}
                 <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round">
                   <path d="M18 6 6 18M6 6l12 12" />
                 </svg>

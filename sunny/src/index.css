@@ -58,6 +58,31 @@
 
   --progress-track: rgba(240, 234, 214, 0.07);
   --modal-hdr-bg:   rgb(18, 18, 18);
+
+  /* ── Elevazione (redesign) ──────────────────────────────────────────────
+     Finora le card erano piatte e la separazione veniva solo dalla hairline
+     (boxShadow.card: 'none'). Il redesign introduce due soli livelli:
+       --elev-2  la card "hero" — UNA per schermata
+       --elev-1  tutte le altre card (mai sulle righe interne)
+     Superficie hero: gradiente caldo + bordo alto oro (classe .hero-card). */
+  --elev-1: 0 10px 26px -16px rgba(0, 0, 0, 0.85);
+  --elev-2: 0 18px 40px -18px rgba(0, 0, 0, 0.9);
+  --hero-bg: linear-gradient(165deg, #181614 0%, #0F0E0D 55%, #0C0B0A 100%);
+  --hero-border-top: rgba(240, 190, 77, 0.28);
+
+  /* Calendario "Ritmo del mese": il numero dentro la cella. Le celle sono
+     tutte --accent con alpha crescente, quindi oltre una certa intensità il
+     testo deve ribaltarsi. È l'unica coppia che si INVERTE fra i due temi
+     (fondo oro chiaro → inchiostro scuro; fondo oro scuro → inchiostro
+     chiaro), perciò vive qui come token invece che come hex nel componente. */
+  --rhythm-ink:    #C9B27A;
+  --rhythm-ink-hi: #141210;
+
+  /* Superficie "calda": la card Prossima mossa e la testa del popup Novità.
+     È l'oro che tinge il fondo, non un colore nuovo — ma la direzione si
+     ribalta fra i temi (scuro → più caldo verso l'alto, chiaro → crema che
+     sbianca), quindi vive come token e non come gradiente nel componente. */
+  --accent-surface: linear-gradient(150deg, #15130F 0%, #0E0D0C 100%);
 }
 
 /* ─── Light theme — warm monochrome, "native BS" ────────────────────────────── */
@@ -97,6 +122,18 @@ html.light {
 
   --progress-track: rgba(26, 23, 20, 0.10);
   --modal-hdr-bg:   rgba(255, 255, 255, 1);
+
+  /* Elevazione in chiaro: ombre più corte e meno opache; la hero è una
+     superficie piena un filo PIÙ CHIARA del bg (non un gradiente). */
+  --elev-1: 0 8px 22px -18px rgba(26, 23, 20, 0.4);
+  --elev-2: 0 14px 34px -20px rgba(26, 23, 20, 0.35), 0 2px 6px -2px rgba(26, 23, 20, 0.06);
+  --hero-bg: #FFFDF9;
+  --hero-border-top: rgba(26, 23, 20, 0.09);
+
+  --rhythm-ink:    #5A4A22;
+  --rhythm-ink-hi: #FFFDF9;
+
+  --accent-surface: linear-gradient(150deg, #FBF3DE 0%, #FFFDF9 100%);
 }
 
 /* ─── UI v2.0.0 (admin allow-list) ───────────────────────────────────────────
@@ -183,8 +220,66 @@ html:not(.light) .ui-v2 {
     background: rgba(var(--c-gold) / 0.12);
     color: rgb(var(--c-gold));
   }
+  /* CTA principale pieno oro (FAB della bottom nav, "Aggiungi" della sidebar):
+     nel redesign l'azione primaria non è più un riempimento al 12%. */
+  .cta-gold-fill {
+    background: linear-gradient(160deg, var(--accent-hi), var(--accent));
+    color: var(--accent-on);
+    box-shadow: 0 6px 18px -6px rgba(var(--c-gold) / 0.7);
+  }
   .progress-track {
     background: var(--progress-track);
+  }
+
+  /* Superficie "hero" — una per schermata. Gradiente caldo + bordo alto oro in
+     scuro, superficie piena e bordo neutro in chiaro: tutto dai token, nessun
+     hex nel componente. L'ombra resta separata (shadow-elev-2). */
+  .hero-card {
+    background: var(--hero-bg);
+    border: 1px solid var(--border);
+    border-top: 1px solid var(--hero-border-top);
+  }
+  /* Card "calda" a bordo oro — Prossima mossa, testa del popup Novità. */
+  .accent-card {
+    background: var(--accent-surface);
+    border: 1px solid rgba(var(--c-gold) / 0.22);
+  }
+}
+
+/* ─── Animazioni del redesign ────────────────────────────────────────────────
+   Tre sole animazioni, stesso easing del resto dell'app
+   (cubic-bezier(.16,1,.3,1), già in tailwind.config.js). Dichiarate QUI e
+   applicate via classi Tailwind (animate-rise-in / animate-grow-bar) o via la
+   classe .ring-draw: mai ricalcolate a ogni render.
+   `prefers-reduced-motion` le collassa a un frame con la regola in fondo. */
+@keyframes riseIn {
+  from { opacity: 0; transform: translateY(10px); }
+  to   { opacity: 1; transform: none; }
+}
+
+@keyframes growBar {
+  from { transform: scaleX(0); }
+  to   { transform: scaleX(1); }
+}
+
+/* Anelli (liquidità libera, budget): --ring-len è la circonferenza,
+   --ring-to l'offset finale. Entrambi sono costanti — le custom property non
+   vengono interpolate, servono solo come estremi. */
+@keyframes drawRing {
+  from { stroke-dashoffset: var(--ring-len); }
+  to   { stroke-dashoffset: var(--ring-to); }
+}
+
+@layer utilities {
+  .ring-draw {
+    stroke-dasharray: var(--ring-len);
+    stroke-dashoffset: var(--ring-to);
+    animation: drawRing 1s cubic-bezier(0.16, 1, 0.3, 1) both;
+  }
+  /* Barre di allocazione/progresso: crescono da sinistra. */
+  .bar-grow {
+    transform-origin: left;
+    animation: growBar 0.8s cubic-bezier(0.16, 1, 0.3, 1) both;
   }
 }
 
@@ -232,6 +327,10 @@ html.light .text-\[\#E6B95C\]\/80 { color: rgb(var(--c-gold) / 0.9); }
     --c-divider: 225 223 218; --c-divider-strong: 211 209 205;
     --accent-green: #2C8526; --accent-gold: #C4972C; --accent-red: #C5392F; --accent-blue: #2F7396;
     --progress-track: rgba(26,23,20,0.10); --modal-hdr-bg: #fff;
+    --elev-1: none; --elev-2: none;
+    --hero-bg: #fff; --hero-border-top: rgba(26,23,20,0.12);
+    --rhythm-ink: #5A4A22; --rhythm-ink-hi: #FFFDF9;
+    --accent-surface: #fff;
   }
 
   html, body { height: auto !important; overflow: visible !important; background: #fff !important; }

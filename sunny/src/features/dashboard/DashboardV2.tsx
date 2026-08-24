@@ -1,20 +1,34 @@
-// TODO: remove the old Dashboard.tsx and promote this component to all users
-// once the admin beta is validated.
-import { useState, useMemo } from 'react';
+// Home "Oggi" — redesign 2.0.0.
+//
+// La home risponde a UNA domanda: "quanto posso spendere?". Da qui la sequenza
+// dei blocchi: liquidità libera → patrimonio → ritmo del mese → dove vanno i
+// soldi → prossima mossa. Tutto il resto è uscito:
+//
+//   TrendChart, AIDigestCard, InsightTicker, le 4 MonthStatCard → via
+//   AccountsCard, InvestmentSummaryCard, CategoryCard              → dettaglio,
+//     raggiungibile dalle due righe di navigazione della card Patrimonio
+//     (/account-balance e /investments) e dal link "Tutte" delle uscite.
+//
+// Desktop: due colonne INDIPENDENTI in altezza (come già faceva la vecchia
+// dashboard) — a sinistra hero + Ritmo|Torta, a destra 352px con patrimonio,
+// prossima mossa e ultimi movimenti.
+import { useMemo } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { Transaction, ownShare } from '../../types';
-import { FlowBreakdown, accountDelta } from '../../shared/financialFlow';
-import { formatCurrency } from '../../utils';
-import { CategoryCard } from './CategoryCard';
-import { AccountsCard } from './AccountsCard';
-import { TrendChart } from './TrendChart';
-import { InvestmentSummaryCard } from './InvestmentSummaryCard';
-import { AIDigestCard } from './AIDigestCard';
-import { InsightTicker } from '../insights/InsightTicker';
+import { monthContext } from '../../utils';
+import { FlowBreakdown } from '../../shared/financialFlow';
 import { useSettings } from '../../shared/providers/settings';
 import { buildInsights } from '../insights/insightsEngine';
 import { isPending } from '../../shared/recurrence';
-import { OutflowInfo } from '../../shared/components/OutflowInfo';
+import { computeAvailableCash } from '../wealth/availableCash';
+import { buildWealthHistory } from './wealthAnalytics';
+import { localISO } from './categoryAnalytics';
+import { FreeCashHero } from './FreeCashHero';
+import { NetWorthCard } from './NetWorthCard';
+import { MonthRhythm } from './MonthRhythm';
+import { SpendingBreakdownCard } from './SpendingBreakdownCard';
+import { NextMoveCard, pickNextMove } from './NextMoveCard';
+import { RecentMovementsCard } from './RecentMovementsCard';
 
 interface Props {
   greeting?: string;
@@ -45,44 +59,54 @@ interface Props {
 
 export function DashboardV2(p: Props) {
   const navigate = useNavigate();
-  const { enableInvestments, getCat, insightDepth, visibleCategories } = useSettings();
-  const [accMode, setAccMode] = useState<'balance' | 'spending'>('balance');
+  const {
+    enableInvestments, getCat, insightDepth, visibleCategories, accounts, categories, includeInvestments,
+  } = useSettings();
 
-  // Current-month derived values (period selector moved to CategorySpendingScreen)
-  const { currentMonthCategoryTotals, currentMonthExpenseByAccount, currentMonthInvestByAccount } = useMemo(() => {
-    const now = new Date();
-    const cm = now.getMonth(), cy = now.getFullYear();
-    const todayISO = now.toISOString().slice(0, 10);
-    const categoryTotals: Record<string, number> = {};
-    const expenseByAccount: Record<string, number> = {};
-    const investByAccount: Record<string, number> = {};
+  // Un solo `now` per tutto il render: hero, calendario e sparkline devono
+  // riferirsi allo stesso istante, altrimenti a cavallo di mezzanotte
+  // racconterebbero due giorni diversi.
+  const now = useMemo(() => new Date(), []);
+
+  // ── Liquidità libera ───────────────────────────────────────────────────────
+  // liquidità − uscite già impegnate entro fine mese, senza riserva (la riserva
+  // è un concetto della schermata "Liquidità disponibile", non della home).
+  // Il calcolo è puro e locale: nessun dato nuovo, nessuna chiamata in più.
+  const cash = useMemo(
+    () => computeAvailableCash({
+      transactions: p.transactions, liquidity: p.liquidity, horizon: 'eom', reserve: 0, now,
+    }),
+    [p.transactions, p.liquidity, now],
+  );
+
+  // Spese del mese per categoria — realizzate soltanto: i movimenti ancora
+  // `isPending` sono previsioni e vivono nel calendario come "programmato".
+  const currentMonthCategoryTotals = useMemo(() => {
+    const todayISO = localISO(now);
+    const ym = todayISO.slice(0, 7);
+    const totals: Record<string, number> = {};
     for (const t of p.transactions) {
-      // Exclude planned/future movements so the breakdowns match the realized
-      // month totals (same !isPending filter as useTransactions).
+      if (t.type !== 'expense' || t.date.slice(0, 7) !== ym) continue;
       if (isPending(t, todayISO)) continue;
-      const d = new Date(t.date);
-      if (d.getMonth() !== cm || d.getFullYear() !== cy) continue;
-      if (t.type === 'expense') {
-        categoryTotals[t.category] = (categoryTotals[t.category] ?? 0) + ownShare(t);
-        expenseByAccount[t.account] = (expenseByAccount[t.account] ?? 0) + ownShare(t);
-      } else if (t.type === 'investment' && t.account) {
-        // Cash that really left/re-entered this account (non-TFR share of
-        // deposits out, returned capital back in) — real movements only.
-        investByAccount[t.account] = (investByAccount[t.account] ?? 0) - accountDelta(t, t.account);
-      }
+      totals[t.category] = (totals[t.category] ?? 0) + ownShare(t);
     }
-    return { currentMonthCategoryTotals: categoryTotals, currentMonthExpenseByAccount: expenseByAccount, currentMonthInvestByAccount: investByAccount };
-  }, [p.transactions]);
+    return totals;
+  }, [p.transactions, now]);
 
-  // Unified cash flow: nel flusso entra SOLO ciò che tocca i conti.
-  //   Entrate  = entrate ordinarie + capitale rientrato dai disinvestimenti
-  //   Uscite   = spese effettive
-  //   Flusso   = Entrate − Uscite − investimenti pagati dai conti
-  const flow = p.monthlyFlow;
-  // TOTALE investito nel mese (versamenti, disinvestimenti esclusi): quota dai
-  // conti + apporti esterni (senza conto) + TFR. Solo la prima toglie liquidità:
-  // le altre due aumentano il capitale investito senza passare dai conti.
-  const investedTotal = flow.investedFromAccounts + flow.externalContributions + flow.tfrExcluded;
+  // ── Patrimonio: serie a 3 mesi per la sparkline + variazione ───────────────
+  // Le liste COMPLETE (archiviati inclusi) sono la stessa sorgente da cui
+  // useTransactions ricava netWorth: conti e categorie archiviati portano
+  // ancora storico.
+  const wealth = useMemo(() => {
+    const points = buildWealthHistory(p.transactions, accounts, categories, '3m', { now });
+    // `total` include SEMPRE gli investimenti; la home invece rispetta la
+    // preferenza dell'utente, quindi la serie deve seguire lo stesso numero.
+    const series = points.map(pt => (includeInvestments ? pt.total : pt.liquidity));
+    const first = series[0] ?? 0;
+    const last = series[series.length - 1] ?? 0;
+    const deltaPct = Math.abs(first) < 0.005 ? null : Math.round(((last - first) / Math.abs(first)) * 1000) / 10;
+    return { series, deltaPct };
+  }, [p.transactions, accounts, categories, includeInvestments, now]);
 
   const insights = useMemo(() =>
     buildInsights({
@@ -97,211 +121,111 @@ export function DashboardV2(p: Props) {
     }),
   [p.transactions, p.monthlyIncome, p.monthlyExpenses, p.monthlyInvestments, getCat, insightDepth, visibleCategories, p.portfolio]);
 
-  // The digest describes the DISPLAYED month flow (same numbers as the cards).
-  const digestInput = useMemo(() => ({
-    income: flow.cashIn,
-    expenses: flow.cashOut,
-    investments: p.monthlyInvestments,
-    saved: flow.netFlow,
-    topInsights: insights.slice(0, 5).map(i => i.title),
-  }), [flow, p.monthlyInvestments, insights]);
+  const nextMove = useMemo(() => pickNextMove(insights), [insights]);
+
+  const flow = p.monthlyFlow;
+  // TOTALE investito nel mese: quota dai conti + apporti esterni (senza conto)
+  // + TFR. Solo la prima toglie liquidità.
+  const investedTotal = flow.investedFromAccounts + flow.externalContributions + flow.tfrExcluded;
+
+  const openCategories = p.onSeeCategories ?? (() => navigate('/category-spending'));
+
+  const hero = (
+    <FreeCashHero
+      freeCash={cash.available} liquidity={p.liquidity} committed={cash.committed}
+      income={flow.cashIn} expenses={flow.expenses} invested={investedTotal}
+      showInvested={enableInvestments}
+    />
+  );
+
+  const netWorthCard = (
+    <NetWorthCard
+      netWorth={p.netWorth}
+      series={wealth.series}
+      deltaPct={wealth.deltaPct}
+      onOpenHistory={() => navigate('/wealth-history')}
+      rows={[
+        {
+          icon: '🏦', color: '#6FA8DC', label: 'Saldo per conto', value: p.liquidity,
+          onClick: p.onSeeAccountBalance ?? (() => navigate('/account-balance')),
+        },
+        ...(enableInvestments ? [{
+          icon: '📊', color: '#E6B95C', label: 'Investimenti per categoria',
+          value: p.investmentTotal, gold: true, onClick: p.onSeeInvestments,
+        }] : []),
+      ]}
+    />
+  );
+
+  const rhythm = (
+    <div className="animate-rise-in" style={{ animationDelay: '0.12s' }}>
+      <MonthRhythm
+        transactions={p.transactions}
+        scheduled={cash.committedItems}
+        now={now}
+        onSelectDay={iso => navigate(`/transactions?date=${iso}`)}
+      />
+    </div>
+  );
+
+  const breakdown = (
+    <SpendingBreakdownCard categoryTotals={currentMonthCategoryTotals} onSeeAll={openCategories} />
+  );
+
+  const nextMoveCard = nextMove
+    ? <NextMoveCard insight={nextMove} onSeeAll={p.onSeeInsights} />
+    : null;
 
   return (
-    <div className="pb-32">
-
-      {/* Desktop-only greeting */}
+    <div className="pb-32 md:pb-6">
+      {/* Desktop: riga di testa con saluto + scorciatoia al riepilogo.
+          Su mobile il contesto ("Agosto · giorno 24 di 31") sta nell'header. */}
       {p.greeting && (
-        <p className="hidden md:block text-lg font-semibold text-primary tracking-[-0.02em] pt-2 mb-5">{p.greeting}</p>
+        <div className="hidden md:flex items-end justify-between gap-5 mb-5">
+          <div>
+            <p className="text-xl font-semibold text-primary tracking-[-0.02em]">{p.greeting}</p>
+            <p className="mt-1 text-[13px] text-secondary">{monthContext(now)}</p>
+          </div>
+          <button type="button" onClick={() => navigate(`/recap/${previousMonthKey(now)}`)}
+            className="glass-card rounded-xl px-3.5 py-2.5 text-[12.5px] font-medium text-secondary hover:text-primary transition-colors">
+            Riepilogo di {previousMonthLabel(now)}
+          </button>
+        </div>
       )}
 
-      {/* ── 1. Patrimonio netto ── */}
-      <div className="pt-4 md:pt-0 pb-6 border-b border-white/[0.04]">
-        <button onClick={() => navigate('/wealth-history')} className="text-left group block w-full">
-          <p className="label-caps text-secondary mb-3 flex items-center gap-1">
-            Patrimonio netto
-            <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round" className="text-secondary group-hover:text-gold transition-colors">
-              <path d="m9 18 6-6-6-6"/>
-            </svg>
-          </p>
-          <p className="text-[44px] leading-none font-bold text-primary balance-num">
-            {formatCurrency(p.netWorth)}
-          </p>
-        </button>
-        <div className="flex gap-8 mt-6 pt-5 border-t border-white/[0.04]">
-          <div>
-            <p className="label-caps text-secondary mb-1.5">Liquidità</p>
-            <p className="text-sm font-semibold text-primary balance-num">{formatCurrency(p.liquidity)}</p>
+      {/* Mobile: colonna unica. Desktop: due colonne indipendenti in altezza. */}
+      <div className="flex flex-col md:flex-row gap-3.5 md:gap-4 md:items-start">
+        <div className="flex flex-col gap-3.5 md:gap-4 md:flex-1 md:min-w-0">
+          {hero}
+          {/* Su mobile patrimonio e ritmo restano nell'ordine del design. */}
+          <div className="md:hidden">{netWorthCard}</div>
+          <div className="flex flex-col lg:flex-row gap-3.5 lg:gap-4 lg:items-start">
+            <div className="lg:flex-1 lg:min-w-0">{rhythm}</div>
+            <div className="lg:flex-1 lg:min-w-0">{breakdown}</div>
           </div>
-          {enableInvestments && (
-            <button onClick={p.onSeeInvestments} className="text-left group">
-              <p className="label-caps text-secondary mb-1.5 flex items-center gap-1">
-                Investito
-                <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round" className="text-secondary group-hover:text-gold transition-colors">
-                  <path d="m9 18 6-6-6-6"/>
-                </svg>
-              </p>
-              <p className="text-sm font-semibold balance-num text-gold">{formatCurrency(p.investmentTotal)}</p>
-            </button>
-          )}
+          <div className="md:hidden">{nextMoveCard}</div>
         </div>
-      </div>
 
-      {/* ── 2. Questo mese — 4 card ──
-          Entrate = entrate ordinarie + rientri dai disinvestimenti (solo cassa
-          vera). Uscite = SOLO spese effettive. Investimenti = TUTTO ciò che è
-          finito negli investimenti (dai conti + senza conto + TFR), esclusi i
-          disinvestimenti che rientrano come cassa. Flusso netto = variazione
-          reale della liquidità: dei versamenti pesa solo la quota pagata dai
-          conti, perché apporti senza conto e TFR non toccano la liquidità (il
-          ⓘ della card Investimenti lo esplicita). */}
-      <section className="mt-6">
-        <p className="label-caps text-secondary mb-3 px-0.5">Questo mese</p>
-        <div className="grid grid-cols-2 md:grid-cols-4 gap-2">
-          <MonthStatCard label="Entrate" value={flow.cashIn} colorClass="text-green"
-            onOpen={() => navigate('/income')} openLabel="Analizza le entrate"
-            info={<OutflowInfo ariaLabel="Dettaglio entrate" lines={[
-              { label: 'Entrate ordinarie', value: flow.ordinaryIncome },
-              ...(flow.capitalReturned > 0 ? [{ label: 'Rientri da disinvestimenti', value: flow.capitalReturned, valueClass: 'text-gold' }] : []),
-              // Gli storni rientrano in cassa ma NON sono entrate: riga a sé.
-              ...(flow.refundsReceived > 0 ? [{ label: 'Storni di spese', value: flow.refundsReceived, valueClass: 'text-[#8FB0A0]' }] : []),
-            ]} />} />
-          {/* Solo spese effettive: gli investimenti hanno la loro card. */}
-          <MonthStatCard label="Uscite" value={flow.expenses} colorClass="text-secondary"
-            onOpen={p.onSeeCategories ?? (() => navigate('/category-spending'))} openLabel="Analizza le spese" />
-          <MonthStatCard label="Investimenti" value={investedTotal} colorClass="text-gold"
-            onOpen={p.onSeeInvestments} openLabel="Analizza gli investimenti"
-            info={<OutflowInfo ariaLabel="Dettaglio investimenti" lines={[
-              { label: 'Dai tuoi conti', value: flow.investedFromAccounts, valueClass: 'text-gold' },
-              ...(flow.externalContributions > 0 ? [{ label: 'Senza conto', value: flow.externalContributions, valueClass: 'text-gold' }] : []),
-              ...(flow.tfrExcluded > 0 ? [{ label: 'TFR', value: flow.tfrExcluded, valueClass: 'text-gold' }] : []),
-              { label: 'Toglie liquidità', value: flow.investedFromAccounts, valueClass: 'text-secondary' },
-              ...(flow.capitalReturned > 0 ? [{ label: 'Disinvestito (in Entrate)', value: flow.capitalReturned, valueClass: 'text-secondary' }] : []),
-            ]} />} />
-          <MonthStatCard
-            label="Flusso netto"
-            value={flow.netFlow}
-            colorClass={flow.netFlow >= 0 ? 'text-gold' : 'text-red'}
+        <div className="hidden md:flex md:flex-col md:gap-4 md:w-[352px] md:flex-none">
+          {netWorthCard}
+          {nextMoveCard}
+          <RecentMovementsCard
+            transactions={p.transactions} now={now}
+            onSeeAll={() => navigate('/transactions')}
           />
         </div>
-      </section>
-
-      {/* ── 3. Consigli (carosello, poche card) ── */}
-      <div className="mt-6">
-        <InsightTicker
-          transactions={p.transactions}
-          monthlyIncome={p.monthlyIncome}
-          monthlyExpenses={p.monthlyExpenses}
-          monthlyInvestments={p.monthlyInvestments}
-          prebuilt={insights}
-          limit={3}
-          onSeeAll={p.onSeeInsights}
-        />
       </div>
-
-      {/* AI digest — full width */}
-      <div className="mt-4">
-        <AIDigestCard input={digestInput} />
-      </div>
-
-      {/* Andamento 12 mesi — full width (benefits from horizontal space) */}
-      <div className="mt-4">
-        <TrendChart data={p.trend} />
-      </div>
-
-      {/* Analytical cards. On desktop: two INDEPENDENT columns — left = Spese +
-          Investimenti, right = Saldo — so expanding the accounts card never pushes
-          the investments card down. On mobile the inner wrappers are `contents`,
-          so the cards flow as a single column in the original order
-          (Spese → Saldo → Investimenti) via the `order-*` classes. */}
-      <div className="mt-4 flex flex-col lg:flex-row gap-4 lg:items-start">
-        {/* Left column */}
-        <div className="contents lg:flex lg:flex-col lg:gap-4 lg:flex-1 lg:min-w-0">
-          {/* 1. Spese per categoria (navigabile → /category-spending) */}
-          <div className="order-1 lg:order-none">
-            <CategoryCard
-              categoryTotals={currentMonthCategoryTotals}
-              onClick={p.onSeeCategories ?? (() => navigate('/category-spending'))}
-            />
-          </div>
-
-          {/* 3. Investimenti per categoria */}
-          {enableInvestments && (
-            <div className="order-3 lg:order-none">
-              <InvestmentSummaryCard
-                investmentByCategory={p.investmentByCategory}
-                total={p.investmentTotal}
-                onClick={p.onSeeInvestments}
-              />
-            </div>
-          )}
-        </div>
-
-        {/* Right column */}
-        <div className="contents lg:block lg:flex-1 lg:min-w-0">
-          {/* 2. Saldo per conto */}
-          <div className="order-2 lg:order-none">
-            <AccountsCard
-              accountBalances={p.accountBalances}
-              expenseByAccount={currentMonthExpenseByAccount}
-              investByAccount={currentMonthInvestByAccount}
-              mode={accMode}
-              onToggle={() => setAccMode(m => m === 'balance' ? 'spending' : 'balance')}
-              onOpenDetail={p.onSeeAccountBalance}
-            />
-          </div>
-        </div>
-      </div>
-
     </div>
   );
 }
 
-function MonthStatCard({ label, value, colorClass, info, onOpen, openLabel }: {
-  label: string;
-  value: number;
-  colorClass: string;
-  info?: React.ReactNode;
-  /** When set, the card links to its analysis screen: chevron top-right. */
-  onOpen?: () => void;
-  openLabel?: string;
-}) {
-  // Label in sentence case (no label-caps): "Flusso netto" must fit on one
-  // line in a quarter-width card, and the ⓘ popover must not inherit an
-  // uppercase transform.
-  const body = (
-    <>
-      <p className="text-[12px] font-medium text-secondary mb-2 flex items-center gap-1 whitespace-nowrap min-w-0">
-        <span className="truncate">{label}</span>
-        {info}
-        {onOpen && (
-          <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5"
-            strokeLinecap="round" strokeLinejoin="round"
-            className="ml-auto flex-shrink-0 text-secondary group-hover:text-gold transition-colors">
-            <path d="m9 18 6-6-6-6" />
-          </svg>
-        )}
-      </p>
-      <p className={`text-[16px] font-semibold balance-num truncate ${colorClass}`}>
-        {formatCurrency(value)}
-      </p>
-    </>
-  );
+const previousMonth = (now: Date) => new Date(now.getFullYear(), now.getMonth() - 1, 1);
 
-  // The ⓘ popover lives INSIDE the label: keep it out of the <button> so its
-  // clicks never trigger the navigation (OutflowInfo already stops propagation,
-  // but nested interactive elements would be invalid markup anyway).
-  if (!onOpen) return <div className="glass-card rounded-2xl px-3.5 py-3.5">{body}</div>;
-  // NB: nessun `z-*` qui dentro. Un z-index su questi wrapper creerebbe un
-  // contesto di impilamento che INTRAPPOLA il popover ⓘ dentro la card: la
-  // card successiva della griglia (anch'essa posizionata) gli finirebbe sopra,
-  // e il popover sembrerebbe "trasparente". Senza z-index l'ordine di disegno
-  // segue il DOM — il contenuto copre comunque il bottone che lo precede — e
-  // il popover (z-50) sale correttamente sopra le altre card.
-  return (
-    <div className="glass-card rounded-2xl px-3.5 py-3.5 relative group">
-      <button type="button" onClick={onOpen} aria-label={openLabel ?? `Apri ${label}`}
-        className="absolute inset-0 rounded-2xl" />
-      <div className="relative pointer-events-none [&_button]:pointer-events-auto">{body}</div>
-    </div>
-  );
+function previousMonthKey(now: Date): string {
+  const d = previousMonth(now);
+  return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}`;
+}
+
+function previousMonthLabel(now: Date): string {
+  return new Intl.DateTimeFormat('it-IT', { month: 'long' }).format(previousMonth(now));
 }

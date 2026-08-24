@@ -35,6 +35,11 @@ export default {
         float:       '0 2px 12px rgba(0,0,0,0.18)',
         glow:        'none',
         'gold-glow': 'none',
+        // Redesign: the only two elevation levels. `elev-2` is reserved for the
+        // hero card of a screen (one per screen), `elev-1` for every other card.
+        // Both resolve per theme via the tokens in index.css.
+        'elev-1':    'var(--elev-1)',
+        'elev-2':    'var(--elev-2)',
       },
       keyframes: {
         'fade-in': {
@@ -59,6 +64,10 @@ export default {
         'fade-in-fast': 'fade-in-fast 0.2s ease-out',
         'sheet-up':     'sheet-up 0.4s cubic-bezier(0.16,1,0.3,1)',
         'scale-in':     'scale-in 0.35s cubic-bezier(0.16,1,0.3,1)',
+        // Redesign — @keyframes riseIn / growBar / drawRing live in index.css
+        // (drawRing needs custom properties as endpoints, so they stay together).
+        'rise-in':      'riseIn 0.5s cubic-bezier(0.16,1,0.3,1) both',
+        'grow-bar':     'growBar 0.8s cubic-bezier(0.16,1,0.3,1) both',
       },
     },
   },

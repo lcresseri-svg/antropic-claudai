@@ -5,7 +5,7 @@ import { useAuth } from './shared/hooks/useAuth';
 import { useTransactions } from './shared/hooks/useTransactions';
 import { SettingsProvider, useSettings } from './shared/providers/settings';
 import { useBudget } from './shared/hooks/useBudget';
-import { greeting } from './utils';
+import { greeting, monthContext } from './utils';
 import { catchUpRecurring } from './shared/recurrence';
 import { reconcilePendingInvestments, romeTodayISO } from './features/investments/investmentValueSync';
 import { db } from './lib/firebase';
@@ -239,7 +239,8 @@ function Main({ user, onLogOut, onDeleteAccount }: {
       <div className="flex-1 md:ml-[220px] min-w-0 flex flex-col h-full overflow-hidden">
 
         <AppHeader
-          brand={brand} loading={tx.loading} isSettings={isSettings}
+          brand={brand} monthLine={location.pathname === '/' ? monthContext() : undefined}
+          loading={tx.loading} isSettings={isSettings}
           settingsOpen={settingsOpen} onToggleSettings={setSettingsOpen}
           onImport={() => setImportOpen(true)}
         />
