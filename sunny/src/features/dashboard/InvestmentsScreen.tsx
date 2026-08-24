@@ -10,6 +10,8 @@ import { InvestmentWithdrawSheet } from '../investments/InvestmentWithdrawSheet'
 import { SetCurrentValueSheet } from '../investments/SetCurrentValueSheet';
 import { InvestmentDetailSheet } from '../investments/InvestmentDetailSheet';
 import { monthlyInvestmentStats, statsSpreadOf, addMonths } from '../investments/investmentStatsSpread';
+import { InvestmentTrendChart, InvestmentTrendPoint } from './InvestmentTrendChart';
+import { AnalysisHeader } from './AnalysisHeader';
 
 interface Props {
   investmentByCategory: Record<string, number>;
@@ -124,70 +126,105 @@ export function InvestmentsScreen({ investmentByCategory, investmentTotal, month
   const hasFlows = last6.some(t => t.invest !== 0);
   const currentKey = last6[last6.length - 1]?.key;
 
+  // Versato cumulato mese per mese sugli ultimi 12: parte dal capitale che
+  // c'era PRIMA della finestra, così la curva non riparte da zero.
+  const trend12: InvestmentTrendPoint[] = useMemo(() => {
+    const keys = trend.map(t => t.key);
+    if (keys.length === 0) return [];
+    const byMonth = new Map<string, number>();
+    for (const t of investTx) {
+      const k = t.date.slice(0, 7);
+      byMonth.set(k, (byMonth.get(k) ?? 0) + investSign(t) * t.amount);
+    }
+    // Si parte dalla FINE: l'ultimo punto deve valere esattamente il versato
+    // mostrato nell'hero, qualunque cosa ci sia dietro (capitali iniziali,
+    // categorie archiviate, arrotondamenti per categoria). Camminare in avanti
+    // da uno zero ricostruito farebbe finire la curva altrove.
+    const out: InvestmentTrendPoint[] = new Array(keys.length);
+    let running = versatoTotale;
+    for (let i = keys.length - 1; i >= 0; i--) {
+      out[i] = { key: keys[i], versato: Math.max(0, running) };
+      running -= byMonth.get(keys[i]) ?? 0;
+    }
+    return out;
+  }, [trend, investTx, versatoTotale]);
+
+  // Un solo avviso per i controvalori fermi, invece dell'azione ripetuta su
+  // ogni riga: dice QUALI e da quanto, e porta direttamente alla prima.
+  const stalePositions = useMemo(() => positions.filter(p => p.stale || p.controvalore == null), [positions]);
+
   const hasAnything = positions.length > 0 || investTx.length > 0;
 
   const openWithdraw = (catId?: string) => { setWithdrawPreselect(catId); setWithdrawOpen(true); };
 
   return (
     <div className="pb-32 space-y-5">
-      {/* ── Header ── */}
-      <div className="flex items-center gap-2">
-        <button onClick={() => navigate('/')} aria-label="Indietro"
-          className="w-9 h-9 -ml-2 flex items-center justify-center text-secondary active:text-primary">
-          <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M15 18l-6-6 6-6" /></svg>
-        </button>
-        <h1 className="text-2xl font-bold text-primary tracking-[-0.03em] flex-1">Investimenti</h1>
-        <div className="relative">
-          <button onClick={() => setMenuOpen(o => !o)} aria-label="Menu"
-            className="w-9 h-9 flex items-center justify-center text-secondary active:text-primary tracking-widest font-bold">
-            •••
-          </button>
-          {menuOpen && (
-            <>
-              <div className="fixed inset-0 z-[35]" onClick={() => setMenuOpen(false)} />
-              <div className="absolute right-0 top-10 z-[40] rounded-2xl py-1 w-48 animate-fade-in-fast border border-divider shadow-float glass-elevated">
-                <button onClick={() => { setMenuOpen(false); navigate('/settings'); }}
-                  className="w-full px-4 py-2.5 text-sm text-primary hover:bg-card-hover transition-colors text-left rounded-2xl">
-                  Gestisci categorie
-                </button>
-              </div>
-            </>
-          )}
-        </div>
-      </div>
+      <AnalysisHeader title="Investimenti" subtitle="Quanto vale il portafoglio e come si muove"
+        backTo="/wealth"
+        action={
+          <div className="relative flex-none">
+            <button onClick={() => setMenuOpen(o => !o)} aria-label="Menu"
+              className="w-9 h-9 flex items-center justify-center text-secondary active:text-primary tracking-widest font-bold">
+              •••
+            </button>
+            {menuOpen && (
+              <>
+                <div className="fixed inset-0 z-[35]" onClick={() => setMenuOpen(false)} />
+                <div className="absolute right-0 top-10 z-[40] rounded-2xl py-1 w-48 animate-fade-in-fast border border-divider shadow-float glass-elevated">
+                  <button onClick={() => { setMenuOpen(false); navigate('/settings'); }}
+                    className="w-full px-4 py-2.5 text-sm text-primary hover:bg-card-hover transition-colors text-left rounded-2xl">
+                    Gestisci categorie
+                  </button>
+                </div>
+              </>
+            )}
+          </div>
+        }
+      />
 
       {/* ── Hero: portfolio ── */}
-      <div className="rounded-[18px] p-5"
-        style={{
-          border: '0.5px solid rgba(230,185,92,0.18)',
-          background: 'linear-gradient(180deg, rgba(230,185,92,0.08) 0%, rgba(230,185,92,0.02) 100%)',
-        }}>
+      <section className="hero-card rounded-[26px] shadow-elev-2 p-[22px] animate-rise-in">
         <p className="label-caps text-secondary mb-2">Controvalore totale</p>
-        <p className="text-[30px] leading-none font-medium balance-num text-primary">{formatCurrency(controvaloreTotale)}</p>
-        <div className="flex items-center gap-2 mt-3">
-          {versatoTotale > 0 && (
-            <span className="text-[12px] font-semibold balance-num px-2 py-0.5 rounded-full"
-              style={{
-                color: plusMinusTotale >= 0 ? GREEN : RED,
-                backgroundColor: plusMinusTotale >= 0 ? 'rgba(143,184,154,0.14)' : 'rgba(224,85,85,0.14)',
-              }}>
+        <p className="text-[38px] leading-none font-bold balance-num text-primary">{formatCurrency(controvaloreTotale)}</p>
+        {versatoTotale > 0 && (
+          <div className="flex items-center gap-2 mt-2.5 flex-wrap">
+            <span className={`text-[11.5px] font-semibold balance-num px-2 py-[3px] rounded-full ${
+              plusMinusTotale >= 0 ? 'text-green bg-green/[0.14]' : 'text-red bg-red/[0.14]'}`}>
               {plusMinusTotale >= 0 ? '+' : '−'}{formatCurrency(Math.abs(plusMinusTotale))} · {plusMinusTotale >= 0 ? '+' : '−'}{Math.abs(pmPct).toFixed(1)}%
             </span>
-          )}
-          <span className="text-[12px] text-secondary balance-num ml-auto">versato {formatCurrency(versatoTotale)}</span>
+            <span className="text-[11.5px] text-secondary balance-num">versato {formatCurrency(versatoTotale)}</span>
+          </div>
+        )}
+        {trend12.length >= 2 && (
+          <div className="mt-4">
+            <InvestmentTrendChart points={trend12}
+              controvalore={controvaloreTotale > 0 ? controvaloreTotale : null} />
+          </div>
+        )}
+      </section>
+
+      {/* ── Un solo avviso per i controvalori fermi ── */}
+      {stalePositions.length > 0 && (
+        <div className="rounded-[18px] border border-gold/30 bg-gold/10 px-4 py-3.5 flex items-start gap-3">
+          <span className="text-gold text-base flex-none">⏱️</span>
+          <p className="flex-1 text-[12.5px] text-secondary leading-relaxed">
+            {stalePositions.length === 1
+              ? <>Un controvalore non è aggiornato: <span className="text-primary font-semibold">{stalePositions[0].cat.label}</span>.</>
+              : <>{stalePositions.length} controvalori non sono aggiornati: <span className="text-primary font-semibold">{stalePositions.map(p => p.cat.label).join(', ')}</span>.</>}
+          </p>
+          <button type="button" onClick={() => setValueCat(stalePositions[0].cat)}
+            className="text-[12px] font-semibold text-gold flex-none">Aggiorna</button>
         </div>
-      </div>
+      )}
 
       {/* ── Primary actions ── */}
       <div className="flex gap-2.5">
         <button onClick={() => setDepositOpen(true)}
-          className="flex-1 py-3 rounded-2xl font-semibold text-sm transition-transform active:scale-[0.98]"
-          style={{ backgroundColor: 'var(--accent-hi)', color: 'var(--accent-on)' }}>
+          className="flex-1 py-3 rounded-2xl cta-gold-fill font-semibold text-sm transition-transform active:scale-[0.98]">
           + Versa
         </button>
         <button onClick={() => openWithdraw()}
-          className="flex-1 py-3 rounded-2xl font-semibold text-sm text-primary transition-transform active:scale-[0.98]"
-          style={{ backgroundColor: 'rgba(255,255,255,0.06)', border: '1px solid rgba(255,255,255,0.12)' }}>
+          className="flex-1 py-3 rounded-2xl font-semibold text-sm text-primary border border-divider-strong transition-transform active:scale-[0.98]">
           ↓ Disinvesti
         </button>
       </div>
@@ -212,71 +249,51 @@ export function InvestmentsScreen({ investmentByCategory, investmentTotal, month
             const pctOf = controvaloreTotale > 0 ? p.weightValue / controvaloreTotale : 0;
             const pmPctCat = p.pm != null && p.versato > 0 ? (p.pm / p.versato) * 100 : null;
             return (
-              <div key={p.cat.id} className={`glass-card rounded-2xl ${empty ? 'opacity-50' : ''}`}>
-                <button type="button" className="w-full text-left px-4 pt-3.5"
-                  aria-label={`Apri dettaglio di ${p.cat.label}`}
-                  onClick={() => setDetailCat(p.cat)}>
-                  {/* Row 1 — identity + value */}
-                  <div className="flex items-center gap-3">
-                    <span className="w-9 h-9 rounded-xl flex items-center justify-center text-base flex-shrink-0"
-                      style={{ backgroundColor: p.cat.color + '22' }}>{p.cat.icon}</span>
-                    <div className="flex-1 min-w-0">
-                      <p className="text-[14px] font-medium text-primary truncate">{p.cat.label}</p>
-                      <p className="text-[11px] text-secondary truncate">
-                        {p.count} operazioni
-                        {p.cat.fundType && ` · ${FUND_TYPE_META[p.cat.fundType].label}`}
-                        {p.tfr > 0 && (
-                          <span className="ml-1.5 px-1.5 py-px rounded-full text-[10px] font-medium"
-                            style={{ backgroundColor: 'rgba(143,176,160,0.16)', color: '#8FB0A0' }}>
-                            TFR {formatCurrency(p.tfr)}
-                          </span>
-                        )}
-                      </p>
-                    </div>
-                    <div className="text-right flex-shrink-0">
-                      <p className="text-[15px] font-medium text-primary balance-num">
-                        {p.controvalore != null ? formatCurrency(p.controvalore) : '—'}
-                      </p>
-                      {p.pm != null && (
-                        <p className="text-[11px] font-semibold balance-num" style={{ color: p.pm >= 0 ? GREEN : RED }}>
-                          {p.pm >= 0 ? '+' : '−'}{formatCurrency(Math.abs(p.pm))}
-                        </p>
+              // Nessuna azione dentro la riga: il tap apre il dettaglio, che le
+              // ha già tutte (Versa / Disinvesti / Aggiorna valore). Prima ogni
+              // card ne mostrava due o tre, ripetute per ogni posizione.
+              <button key={p.cat.id} type="button"
+                aria-label={`Apri dettaglio di ${p.cat.label}`}
+                onClick={() => setDetailCat(p.cat)}
+                className={`w-full text-left glass-card rounded-[18px] shadow-elev-1 p-4
+                            active:scale-[0.99] transition-transform ${empty ? 'opacity-50' : ''}`}>
+                <div className="flex items-center gap-3">
+                  <span className="w-9 h-9 rounded-xl flex items-center justify-center text-base flex-shrink-0"
+                    style={{ backgroundColor: p.cat.color + '26' }}>{p.cat.icon}</span>
+                  <div className="flex-1 min-w-0">
+                    <p className="text-[15px] font-semibold text-primary truncate">{p.cat.label}</p>
+                    <p className="text-[11.5px] truncate">
+                      {p.controvalore == null || p.stale ? (
+                        <span className="text-gold">valore da aggiornare</span>
+                      ) : (
+                        <span className="text-secondary">
+                          {Math.round(pctOf * 100)}% del portafoglio · {p.count} {p.count === 1 ? 'operazione' : 'operazioni'}
+                        </span>
                       )}
-                    </div>
+                      {p.tfr > 0 && (
+                        <span className="ml-1.5 px-1.5 py-px rounded-full text-[10px] font-medium"
+                          style={{ backgroundColor: 'rgba(143,176,160,0.16)', color: '#8FB0A0' }}>
+                          TFR {formatCurrency(p.tfr)}
+                        </span>
+                      )}
+                    </p>
                   </div>
-                  {/* Row 2 — allocation bar */}
-                  <div className="mt-3 h-[6px] rounded-full overflow-hidden" style={{ backgroundColor: 'rgba(255,255,255,0.05)' }}>
-                    <div className="h-full rounded-full" style={{ width: `${Math.min(100, pctOf * 100)}%`, backgroundColor: p.cat.color }} />
+                  <div className="text-right flex-shrink-0">
+                    <p className="text-[16px] font-bold text-primary balance-num">
+                      {p.controvalore != null ? formatCurrency(p.controvalore) : '—'}
+                    </p>
+                    {p.pm != null && (
+                      <p className="text-[12px] font-semibold balance-num" style={{ color: p.pm >= 0 ? GREEN : RED }}>
+                        {p.pm >= 0 ? '+' : '−'}{formatCurrency(Math.abs(p.pm))}
+                      </p>
+                    )}
                   </div>
-                </button>
-                {/* Row 3 — operational. OUTSIDE the expand button so these can
-                    be real <button> elements (no nested buttons, no span
-                    role="button"). */}
-                <div className="px-4 pb-3 mt-2.5 flex flex-wrap items-center gap-x-2 gap-y-1 text-[11px]">
-                  <span className="text-secondary balance-num">Versato {formatCurrency(p.versato)}</span>
-                  {pmPctCat != null && (
-                    <span className="font-semibold balance-num" style={{ color: pmPctCat >= 0 ? GREEN : RED }}>
-                      {pmPctCat >= 0 ? '+' : '−'}{Math.abs(pmPctCat).toFixed(1)}%
-                    </span>
-                  )}
-                  <button type="button"
-                    onClick={() => setValueCat(p.cat)}
-                    className="flex items-center gap-1 font-medium min-h-[28px]"
-                    style={{ color: (p.controvalore == null || p.stale) ? AMBER : 'rgb(var(--c-secondary))' }}>
-                    <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-                      <path d="M17 3a2.8 2.8 0 1 1 4 4L7.5 20.5 2 22l1.5-5.5z" />
-                    </svg>
-                    {p.controvalore == null ? 'imposta controvalore' : p.stale ? 'valore da aggiornare' : 'aggiorna valore'}
-                  </button>
-                  {p.versato > 0 && (
-                    <button type="button"
-                      onClick={() => openWithdraw(p.cat.id)}
-                      className="ml-auto text-secondary font-medium active:text-primary min-h-[28px]">
-                      Disinvesti ↓
-                    </button>
-                  )}
                 </div>
-              </div>
+                <div className="mt-3 h-2 rounded-full overflow-hidden progress-track">
+                  <div className="h-full rounded-full bar-grow"
+                    style={{ width: `${Math.min(100, pctOf * 100)}%`, backgroundColor: p.cat.color }} />
+                </div>
+              </button>
             );
           })}
         </div>
@@ -286,13 +303,15 @@ export function InvestmentsScreen({ investmentByCategory, investmentTotal, month
       {hasFlows && (
         <div className="glass-card rounded-2xl p-5">
           <p className="label-caps text-secondary mb-4">Andamento versamenti</p>
-          <div className="flex items-end justify-around gap-2" style={{ height: 130 }}>
+          <div className="flex items-end justify-around gap-2" style={{ height: 104 }}>
             {last6.map(t => {
               const neg = t.invest < 0;
               const h = t.invest !== 0 ? Math.max(16, (Math.abs(t.invest) / maxAbs) * 100) : 10;
               return (
                 <div key={t.key} className="flex-1 flex flex-col items-center justify-end min-w-0">
-                  {t.invest !== 0 && (
+                  {/* Solo il mese corrente porta l'etichetta: sei numeri in
+                      fila si leggevano come una tabella, non come un ritmo. */}
+                  {t.invest !== 0 && (t.key === currentKey || neg) && (
                     <span className="text-[10px] balance-num mb-1 truncate w-full text-center leading-tight"
                       style={{ color: neg ? RED : 'rgb(var(--c-secondary))' }}>
                       {neg ? '−' : ''}{formatCurrency(Math.abs(t.invest))}
@@ -366,24 +385,32 @@ export function InvestmentsScreen({ investmentByCategory, investmentTotal, month
         </div>
       )}
 
-      {/* ── Operations ── */}
+      {/* ── Operations — riga collassata: l'elenco è un dettaglio, non la
+             cosa da guardare arrivando qui ── */}
       {investTx.length > 0 && (
-        <div className="glass-card rounded-2xl p-4">
-          <p className="label-caps text-secondary mb-1 px-1">Operazioni</p>
-          <div className="divide-y divide-divider">
-            {(showAllOps ? investTx.slice(0, 50) : investTx.slice(0, 5)).map(t => (
-              <OpRow key={t.id} t={t} icon={getCat(t.category).icon} color={getCat(t.category).color}
-                label={t.description || getCat(t.category).label}
-                accLabel={t.account ? getAcc(t.account).label : 'Apporto esterno'} />
-            ))}
+        showAllOps ? (
+          <div className="glass-card rounded-[18px] p-4">
+            <div className="flex items-center justify-between mb-1 px-1">
+              <p className="label-caps text-secondary">Operazioni</p>
+              <button onClick={() => setShowAllOps(false)} className="text-[12px] font-semibold text-gold">Chiudi</button>
+            </div>
+            <div className="divide-y divide-divider">
+              {investTx.slice(0, 50).map(t => (
+                <OpRow key={t.id} t={t} icon={getCat(t.category).icon} color={getCat(t.category).color}
+                  label={t.description || getCat(t.category).label}
+                  accLabel={t.account ? getAcc(t.account).label : 'Apporto esterno'} />
+              ))}
+            </div>
           </div>
-          {investTx.length > 5 && !showAllOps && (
-            <button onClick={() => setShowAllOps(true)}
-              className="w-full mt-2 py-2.5 rounded-xl bg-elevated text-gold text-sm font-medium">
-              Mostra tutte ({investTx.length})
-            </button>
-          )}
-        </div>
+        ) : (
+          <button onClick={() => setShowAllOps(true)}
+            className="w-full glass-card rounded-[18px] px-4 py-3.5 flex items-center justify-between gap-3 text-left">
+            <span className="text-[13.5px] text-primary">
+              Operazioni<span className="text-secondary"> · {investTx.length}</span>
+            </span>
+            <span className="text-[12px] font-semibold text-gold flex-none">Apri ›</span>
+          </button>
+        )
       )}
 
       {/* ── Sheets ── */}

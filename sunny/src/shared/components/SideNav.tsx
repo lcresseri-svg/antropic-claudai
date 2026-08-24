@@ -28,9 +28,10 @@ export function SideNav({ loading, onAdd, onImport, aiEnabled = true }: Props) {
       {/* Nav links */}
       <nav className="flex-1 p-3 space-y-0.5 overflow-y-auto">
         <SideLink to="/" label="Oggi" icon={<HomeIcon />} />
-        <SideLink to="/insights" label="Consigli" icon={<InsightIcon />} />
+        <SideLink to="/wealth" label="Patrimonio" icon={<WealthIcon />} />
         <SideLink to="/budget" label="Piano" icon={<TargetIcon />} />
         <SideLink to="/transactions" label="Movimenti" icon={<ListIcon />} />
+        <SideLink to="/insights" label="Consigli" icon={<InsightIcon />} />
         {aiEnabled && <SideLink to="/ai-coach" label="AI Coach" icon={<AICoachIcon />} />}
       </nav>
 
@@ -47,7 +48,7 @@ export function SideNav({ loading, onAdd, onImport, aiEnabled = true }: Props) {
           Impostazioni
         </button>
         <button onClick={onAdd}
-          className="w-full py-2.5 rounded-xl glass-cta-gold text-sm font-semibold flex items-center justify-center gap-2">
+          className="w-full py-2.5 rounded-xl cta-gold-fill text-sm font-semibold flex items-center justify-center gap-2 active:scale-[0.98] transition-transform">
           <svg width="12" height="12" viewBox="0 0 12 12" fill="none">
             <path d="M6 1v10M1 6h10" stroke="currentColor" strokeWidth="1.75" strokeLinecap="round"/>
           </svg>
@@ -62,15 +63,23 @@ function SideLink({ to, label, icon }: { to: string; label: string; icon: React.
   return (
     <NavLink to={to} end
       className={({ isActive }) =>
-        `flex items-center gap-3 px-3.5 py-2.5 rounded-xl text-sm font-medium transition-colors ${
+        `flex items-center gap-3 px-3.5 py-2.5 rounded-[14px] text-sm font-medium transition-colors ${
           isActive
-            ? 'bg-gold/8 text-gold'
+            ? 'bg-gold/10 text-gold'
             : 'text-secondary hover:text-primary hover:bg-card-hover'
         }`
       }>
       {icon}
       {label}
     </NavLink>
+  );
+}
+
+function WealthIcon() {
+  return (
+    <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.75" strokeLinecap="round" strokeLinejoin="round">
+      <path d="M3 17l5-5 4 3 5-7"/><path d="M3 21h18"/>
+    </svg>
   );
 }
 

@@ -71,6 +71,16 @@ export function BudgetOverview({
           planned={leftover} forecast={forecastSavings} hasForecast={hasForecast} final
         />
       </div>
+
+      {/* Le due colonne non sono la stessa cosa e la differenza va detta:
+          una è la decisione, l'altra la stima. */}
+      {hasForecast && (
+        <p className="mt-4 text-[11.5px] text-secondary leading-relaxed">
+          <span className="text-primary font-medium">Programmato</span> è quello che hai deciso;{' '}
+          <span className="text-primary font-medium">{forecastColLabel ?? 'Previsto'}</span> è dove
+          {forecastColLabel === 'Consuntivo' ? ' sei arrivato davvero' : ' arriverai al ritmo di spesa attuale'}.
+        </p>
+      )}
     </div>
   );
 }

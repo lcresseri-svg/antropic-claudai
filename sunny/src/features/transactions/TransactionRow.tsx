@@ -1,8 +1,9 @@
 import { Transaction, TYPE_META, ownShare, Freq } from '../../types';
 import { formatCurrency, formatDateFull } from '../../utils';
+import { relativeDayLabel } from './listGrouping';
 import { useSettings } from '../../shared/providers/settings';
 import { statsSpreadOf } from '../investments/investmentStatsSpread';
-import { formatSeriesSecondaryAmount, installmentPaidLabel } from './seriesDisplay';
+import { formatSeriesSecondaryAmount, formatSeriesEquivalentCompact, installmentPaidLabel } from './seriesDisplay';
 
 interface Props {
   tx: Transaction;
@@ -15,11 +16,16 @@ interface Props {
   seriesFreq?: Freq;
   /** For installment instances: 1-based position of THIS rata in the plan. */
   installmentPaid?: number;
+  /** Nei gruppi per giorno la data è già nell'intestazione: la meta diventa
+   *  conto + equivalenza annuale della serie (o "fra N giorni" se previsto). */
+  hideDate?: boolean;
+  /** Oggi in ISO — serve solo con `hideDate` per la distanza dei previsti. */
+  todayISO?: string;
   onToggle?: (id: string) => void;
   onClick?: (tx: Transaction) => void;
 }
 
-export function TransactionRow({ tx, selectable, selected, upcoming, seriesFreq, installmentPaid, onToggle, onClick }: Props) {
+export function TransactionRow({ tx, selectable, selected, upcoming, seriesFreq, installmentPaid, hideDate, todayISO, onToggle, onClick }: Props) {
   const { getCat, getAcc } = useSettings();
   const cat = getCat(tx.category);
   const acc = getAcc(tx.account);
@@ -56,6 +62,12 @@ export function TransactionRow({ tx, selectable, selected, upcoming, seriesFreq,
       : formatSeriesSecondaryAmount(tx, seriesFreq))
     : null;
 
+  // Nella vista per giorno la meta porta l'equivalenza compatta; per le rate
+  // resta la posizione nel piano, che è l'informazione utile lì.
+  const seriesMeta = isSeries
+    ? (tx.seriesMeta?.kind === 'installment' ? seriesSecondary : formatSeriesEquivalentCompact(tx, seriesFreq))
+    : null;
+
   const handleClick = () => {
     if (selectable) onToggle?.(tx.id);
     else onClick?.(tx);
@@ -64,7 +76,8 @@ export function TransactionRow({ tx, selectable, selected, upcoming, seriesFreq,
   return (
     <button
       onClick={handleClick}
-      className={`w-full flex items-center gap-3.5 py-3 text-left transition-colors active:bg-card-hover rounded-xl -mx-2 px-2 ${isProjected ? 'opacity-60' : ''}`}
+      className={`w-full flex items-center gap-3 py-3 text-left transition-colors active:bg-card-hover rounded-xl -mx-2 px-2 ${
+        isProjected && !hideDate ? 'opacity-60' : ''}`}
     >
       {selectable && (
         <span className={`w-5 h-5 rounded-full border-2 flex items-center justify-center flex-shrink-0 transition-colors ${
@@ -74,14 +87,14 @@ export function TransactionRow({ tx, selectable, selected, upcoming, seriesFreq,
         </span>
       )}
 
-      <div className="w-10 h-10 rounded-xl flex items-center justify-center text-base flex-shrink-0"
-        style={{ backgroundColor: cat.color + '18' }}>
+      <div className="w-[38px] h-[38px] rounded-[13px] flex items-center justify-center text-base flex-shrink-0"
+        style={{ backgroundColor: cat.color + '26' }}>
         {cat.icon}
       </div>
 
       <div className="flex-1 min-w-0">
         <div className="flex items-center gap-1.5 min-w-0">
-          <p className="text-[15px] font-medium text-primary truncate">{tx.description}</p>
+          <p className="text-[14.5px] font-medium text-primary truncate">{tx.description}</p>
           {/* Visible chip on every recorded occurrence of a series (incl. old ones —
               they carry seriesId even though the recurring rule lives on the template). */}
           {isSeries && (
@@ -100,27 +113,33 @@ export function TransactionRow({ tx, selectable, selected, upcoming, seriesFreq,
             </span>
           )}
         </div>
-        <p className="text-xs text-secondary mt-0.5 truncate">
-          {formatDateFull(tx.date)} · {acc.label}
+        <p className="text-[11.5px] text-secondary mt-0.5 truncate">
+          {!hideDate && `${formatDateFull(tx.date)} · `}{acc.label}
           {isTransfer && tx.toAccount && ` → ${getAcc(tx.toAccount).label}`}
-          {isProjected ? ' · 🗓️' : ''}
+          {/* Nel gruppo per giorno la data è ridondante: al suo posto va
+              l'informazione che nella riga non c'è, cioè quanto pesa la serie
+              su un anno o quanto manca al movimento previsto. */}
+          {hideDate && isProjected && todayISO && ` · ${relativeDayLabel(tx.date, todayISO)}`}
+          {hideDate && !isProjected && seriesMeta && ` · ${seriesMeta}`}
+          {!hideDate && isProjected ? ' · 🗓️' : ''}
         </p>
       </div>
 
       <div className="text-right flex-shrink-0">
-        <p className={`text-[15px] font-semibold balance-num ${amountClass}`}>
+        <p className={`text-[15px] font-semibold balance-num ${
+          isProjected && hideDate ? 'text-secondary' : amountClass}`}>
           {prefix}{formatCurrency(tx.amount)}
         </p>
-        {isProjected ? (
+        {isProjected && !hideDate ? (
           <p className="text-[11px] text-secondary mt-0.5">Programmato</p>
         ) : tx.shared || tx.refundedTotal ? (
           <p className="text-[11px] text-secondary mt-0.5">
             {tx.refundedTotal ? `stornati ${formatCurrency(tx.refundedTotal)} · ` : ''}
             tua: {formatCurrency(ownShare(tx))}
           </p>
-        ) : seriesSecondary ? (
+        ) : seriesSecondary && !hideDate ? (
           <p className="text-[11px] text-secondary mt-0.5 balance-num">{seriesSecondary}</p>
-        ) : !isTransfer ? (
+        ) : !isTransfer && !hideDate ? (
           <p className="text-[11px] text-secondary mt-0.5">{TYPE_META[tx.type].label}</p>
         ) : null}
       </div>

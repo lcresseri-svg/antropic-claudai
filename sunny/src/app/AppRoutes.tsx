@@ -26,6 +26,7 @@ const SettingsScreen = lazy(() => import('../features/settings/SettingsScreen').
 const AICoachScreen = lazy(() => import('../features/aiCoach/AICoachScreen').then(m => ({ default: m.AICoachScreen })));
 const ForecastV3Screen = lazy(() => import('../features/forecast/ForecastV3Screen').then(m => ({ default: m.ForecastV3Screen })));
 const MetricsScreen = lazy(() => import('../features/metrics/MetricsScreen').then(m => ({ default: m.MetricsScreen })));
+const WealthScreen = lazy(() => import('../features/wealth/WealthScreen').then(m => ({ default: m.WealthScreen })));
 const WealthV2Screen = lazy(() => import('../features/wealth/WealthV2Screen').then(m => ({ default: m.WealthV2Screen })));
 const CommitmentsScreen = lazy(() => import('../features/wealth/CommitmentsScreen').then(m => ({ default: m.CommitmentsScreen })));
 const MonthlyPlanScreen = lazy(() => import('../features/budget/MonthlyPlanScreen').then(m => ({ default: m.MonthlyPlanScreen })));
@@ -94,6 +95,18 @@ export function AppRoutes({ user, brand, tx, budget, editing, onLogOut, onDelete
             onImportCSV={onImport}
           />
         } />
+        {/* Tab Patrimonio — raccoglie saldo per conto e investimenti per
+            categoria, che il redesign toglie dalla home. */}
+        <Route path="/wealth" element={
+          <div className="pt-4 md:pt-6">
+            <WealthScreen
+              transactions={tx.transactions}
+              netWorth={tx.netWorth} liquidity={tx.liquidity} investmentTotal={tx.investmentTotal}
+              accountBalances={tx.accountBalances}
+              investmentByCategory={tx.investmentByCategory}
+            />
+          </div>
+        } />
         <Route path="/investments" element={
           !enableInvestments ? <Navigate to="/" replace /> : (
             <div className="pt-4 md:pt-6">
@@ -133,8 +146,11 @@ export function AppRoutes({ user, brand, tx, budget, editing, onLogOut, onDelete
           </div>
         } />
         <Route path="/transactions" element={
-          <div className="pt-4 md:pt-6">
-            <h1 className="text-2xl font-bold text-primary tracking-[-0.03em] mb-6">Movimenti</h1>
+          // Colonna leggibile su desktop: una riga larga 1900px metterebbe
+          // descrizione e importo agli antipodi dello schermo.
+          <div className="pt-4 md:pt-6 md:max-w-3xl">
+            {/* Il titolo sta dentro la lista, nell'header da 56px insieme a
+                ricerca e selezione multipla. */}
             <TransactionList
               transactions={tx.transactions} projected={editing.projected}
               onEdit={editing.openEdit} onDelete={tx.deleteTransaction}

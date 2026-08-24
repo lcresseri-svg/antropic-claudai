@@ -5,7 +5,7 @@ import { useAuth } from './shared/hooks/useAuth';
 import { useTransactions } from './shared/hooks/useTransactions';
 import { SettingsProvider, useSettings } from './shared/providers/settings';
 import { useBudget } from './shared/hooks/useBudget';
-import { greeting } from './utils';
+import { greeting, monthContext } from './utils';
 import { catchUpRecurring } from './shared/recurrence';
 import { reconcilePendingInvestments, romeTodayISO } from './features/investments/investmentValueSync';
 import { db } from './lib/firebase';
@@ -25,7 +25,7 @@ import { SplashScreen } from './shared/components/SplashScreen';
 import { ArcLogo } from './shared/components/ArcLogo';
 import { AICoachWidget } from './features/aiCoach/AICoachWidget';
 import { PushPromoSheet } from './shared/components/PushPromoSheet';
-import { WhatsNewModal } from './shared/components/WhatsNewModal';
+import { WhatsNewModal, isWhatsNewPending } from './shared/components/WhatsNewModal';
 import { ReleaseNotice } from './features/notifications/ReleaseNotice';
 import { pushSupported, hasLocalToken } from './shared/push';
 import { recordActivity, logEvent } from './shared/analytics/metrics';
@@ -142,6 +142,8 @@ function Main({ user, onLogOut, onDeleteAccount }: {
   const [importOpen, setImportOpen] = useState(false);
   const [settingsOpen, setSettingsOpen] = useState(false);
   const [showPushPromo, setShowPushPromo] = useState(false);
+  // Deciso una volta sola: vedi il commento al montaggio di ReleaseNotice.
+  const [whatsNewPending] = useState(isWhatsNewPending);
 
   const isSettings = location.pathname.startsWith('/settings');
   const firstName = user.displayName?.split(' ')[0] ?? 'utente';
@@ -239,7 +241,8 @@ function Main({ user, onLogOut, onDeleteAccount }: {
       <div className="flex-1 md:ml-[220px] min-w-0 flex flex-col h-full overflow-hidden">
 
         <AppHeader
-          brand={brand} loading={tx.loading} isSettings={isSettings}
+          brand={brand} monthLine={location.pathname === '/' ? monthContext() : undefined}
+          loading={tx.loading} isSettings={isSettings}
           settingsOpen={settingsOpen} onToggleSettings={setSettingsOpen}
           onImport={() => setImportOpen(true)}
         />
@@ -325,8 +328,11 @@ function Main({ user, onLogOut, onDeleteAccount }: {
       <WhatsNewModal />
 
       {/* One-shot release notice — once per user per notice id, only after the
-          initial data load (never over the loading state). */}
-      {!tx.loading && <ReleaseNotice userId={user.uid} />}
+          initial data load (never over the loading state). Mai due popup
+          insieme: se la release in evidenza deve ancora essere vista, l'avviso
+          aspetta la prossima apertura (la decisione è presa una volta sola, al
+          mount, così chiudendo il primo non ne compare subito un secondo). */}
+      {!tx.loading && !whatsNewPending && <ReleaseNotice userId={user.uid} />}
     </div>
   );
 }

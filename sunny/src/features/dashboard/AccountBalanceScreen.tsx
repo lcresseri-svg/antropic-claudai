@@ -10,7 +10,9 @@ import { Transaction } from '../../types';
 import { useSettings } from '../../shared/providers/settings';
 import { formatCurrency, capitalize, formatDateFull } from '../../utils';
 import { PERIOD_OPTS, PeriodType, getPeriodRange, localISO } from './categoryAnalytics';
-import { aggregateAccountFlow } from './accountAnalytics';
+import { aggregateAccountFlow, aggregateAccountBalanceTrend, balanceAsOf } from './accountAnalytics';
+import { AnalysisHeader } from './AnalysisHeader';
+import { PeriodControls } from './PeriodControls';
 import { AccountDetailSheet } from './AccountDetailSheet';
 
 interface Props {
@@ -54,69 +56,29 @@ export function AccountBalanceScreen({ transactions }: Props) {
   const selected = selectedId ? cashAccounts.find(a => a.id === selectedId) ?? null : null;
   const showDelta = insightDepth !== 'minimal';
 
+  // Sparkline della liquidità: somma, bucket per bucket, delle curve dei conti
+  // (stessa funzione del dettaglio conto, quindi stessi bucket e stessa
+  // definizione di saldo — non un secondo calcolo che può divergere).
+  const liquiditySeries = useMemo(() => {
+    if (cashAccounts.length === 0) return [];
+    const curves = cashAccounts.map(a => aggregateAccountBalanceTrend(transactions, a, period, offset, now));
+    const len = Math.min(...curves.map(c => c.length));
+    // Il primo punto è il saldo di APERTURA, cioè il giorno prima che il
+    // periodo cominci. Senza, la curva partirebbe dalla fine della prima
+    // settimana — dopo lo stipendio — e scenderebbe mentre la variazione qui
+    // sopra dice "+1.026 €": due racconti opposti sullo stesso periodo.
+    const openingISO = localISO(new Date(range.start.getTime() - 86_400_000));
+    const opening = cashAccounts.reduce((s, a) => s + balanceAsOf(transactions, a, openingISO), 0);
+    return [opening, ...Array.from({ length: len }, (_, i) => curves.reduce((s, c) => s + c[i].balance, 0))];
+  }, [cashAccounts, transactions, period, offset, now, range.start]);
+
   return (
     <div className="pb-32">
-      {/* Header */}
-      <div className="flex items-center gap-3 mb-1">
-        <button
-          onClick={() => navigate(-1)}
-          aria-label="Torna indietro"
-          className="w-9 h-9 rounded-2xl bg-elevated flex items-center justify-center text-secondary active:scale-95 transition-transform flex-shrink-0"
-        >
-          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
-            <path d="m15 18-6-6 6-6" />
-          </svg>
-        </button>
-        <h1 className="text-xl font-bold text-primary tracking-[-0.03em]">Saldo per conto</h1>
-      </div>
-      <p className="text-[13px] text-secondary mb-5 ml-12">Come si muove la liquidità dei tuoi conti nel tempo.</p>
+      <AnalysisHeader title="Saldo per conto"
+        subtitle="Come si muove la liquidità dei tuoi conti" backTo="/wealth" />
 
-      {/* Sticky controls */}
-      <div className="sticky top-0 z-10 -mx-5 px-5 md:-mx-8 md:px-8 pt-1 pb-3 bg-bg border-b border-divider mb-5">
-        {/* Period selector */}
-        <div className="flex items-center gap-1.5 mb-3">
-          {PERIOD_OPTS.map(opt => (
-            <button
-              key={opt.value}
-              onClick={() => { setPeriod(opt.value); setOffset(0); }}
-              className={`px-3.5 py-1.5 rounded-full text-xs font-semibold transition-colors ${
-                period === opt.value ? 'bg-gold/10 text-gold' : 'text-secondary hover:text-primary'
-              }`}
-            >
-              {opt.label}
-            </button>
-          ))}
-        </div>
-
-        {/* Period navigator */}
-        <div className="flex items-center justify-between bg-card rounded-xl px-1.5 py-1.5">
-          <button
-            onClick={() => setOffset(o => o + 1)}
-            aria-label="Periodo precedente"
-            className="w-8 h-8 rounded-lg flex items-center justify-center text-secondary hover:text-primary hover:bg-elevated transition-colors"
-          >
-            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
-              <path d="m15 18-6-6 6-6" />
-            </svg>
-          </button>
-          <div className="flex items-center gap-2">
-            <span className="text-[13px] font-medium text-primary">{capitalize(range.label)}</span>
-            {offset > 0 && (
-              <button onClick={() => setOffset(0)} className="text-[11px] font-medium text-gold">Oggi</button>
-            )}
-          </div>
-          <button
-            onClick={() => setOffset(o => Math.max(0, o - 1))}
-            disabled={offset === 0}
-            aria-label="Periodo successivo"
-            className="w-8 h-8 rounded-lg flex items-center justify-center text-secondary hover:text-primary hover:bg-elevated transition-colors disabled:opacity-30 disabled:hover:bg-transparent"
-          >
-            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
-              <path d="m9 18 6-6-6-6" />
-            </svg>
-          </button>
-        </div>
-      </div>
+      <PeriodControls period={period} onPeriodChange={setPeriod}
+        offset={offset} onOffsetChange={setOffset} label={range.label} />
 
       {rows.length === 0 ? (
         <div className="glass-card rounded-2xl px-5 py-12 text-center">
@@ -126,55 +88,66 @@ export function AccountBalanceScreen({ transactions }: Props) {
       ) : (
         <>
           {/* Hero — total liquidity at the end of the analysed period */}
-          <div className="glass-card rounded-2xl p-5 mb-3">
-            <p className="label-caps text-secondary mb-1.5">Liquidità totale</p>
-            <p className={`text-[34px] leading-none font-bold balance-num ${liquidity < 0 ? 'text-red' : 'text-primary'}`}>
+          <div className="hero-card rounded-[26px] shadow-elev-2 p-[22px] mb-3.5 animate-rise-in">
+            <p className="label-caps text-secondary mb-2">Liquidità totale</p>
+            <p className={`text-[38px] leading-none font-bold balance-num ${liquidity < 0 ? 'text-red' : 'text-primary'}`}>
               {formatCurrency(liquidity)}
             </p>
             {showDelta && Math.abs(totalDelta) > 0.005 && (
-              <p className={`text-[12px] mt-1.5 balance-num ${tone(totalDelta)}`}>
-                {formatCurrency(totalDelta, { sign: true })}
-                <span className="text-secondary"> nel periodo</span>
-              </p>
+              <div className="flex items-center gap-1.5 mt-2.5">
+                <span className={`text-[11.5px] font-semibold balance-num px-2 py-[3px] rounded-full ${
+                  totalDelta >= 0 ? 'text-green bg-green/[0.14]' : 'text-red bg-red/[0.14]'}`}>
+                  {formatCurrency(totalDelta, { sign: true })}
+                </span>
+                <span className="text-[11.5px] text-secondary">nel periodo</span>
+              </div>
             )}
-            <p className="text-[12px] text-secondary mt-2">
+            {liquiditySeries.length >= 2 && <LiquiditySparkline values={liquiditySeries} />}
+            <p className="text-[12px] text-secondary mt-3">
               {range.isCurrent
                 ? 'Somma dei saldi dei conti, oggi.'
                 : `Somma dei saldi dei conti al ${formatDateFull(localISO(range.end))}.`}
             </p>
           </div>
 
-          {/* Account ranking */}
-          <div className="glass-card rounded-2xl overflow-hidden">
-            {rows.map((r, i) => {
+          {/* Una card per conto: la variazione del periodo va SOTTO il nome,
+              non in fila con il saldo — sono due cose diverse. */}
+          <div className="space-y-3">
+            {rows.map(r => {
               const barPct = maxAbs > 0 ? (Math.abs(r.current) / maxAbs) * 100 : 0;
               return (
                 <button
                   key={r.acc.id}
                   onClick={() => setSelectedId(r.acc.id)}
-                  className={`w-full text-left px-4 py-3.5 active:bg-card-hover transition-colors ${i === rows.length - 1 ? '' : 'border-b border-divider'}`}
+                  className="w-full text-left glass-card rounded-[18px] shadow-elev-1 p-4 active:scale-[0.99] transition-transform"
                 >
-                  <div className="flex items-center gap-3 mb-2">
-                    <span className="w-8 h-8 rounded-xl flex items-center justify-center text-sm flex-shrink-0" style={{ backgroundColor: r.acc.color + '1a' }}>
+                  <div className="flex items-center gap-3">
+                    <span className="w-8 h-8 rounded-xl flex items-center justify-center text-sm flex-shrink-0" style={{ backgroundColor: r.acc.color + '26' }}>
                       {r.acc.icon}
                     </span>
-                    <span className="text-[13px] text-primary flex-1 truncate">{r.acc.label}</span>
-                    {showDelta && Math.abs(r.delta) > 0.005 && (
-                      <span className={`text-[11px] balance-num flex-shrink-0 ${tone(r.delta)}`}>
-                        {formatCurrency(r.delta, { sign: true })}
-                      </span>
-                    )}
-                    <span className={`text-[13px] font-semibold balance-num flex-shrink-0 ${r.current < 0 ? 'text-red' : 'text-primary'}`}>
+                    <div className="flex-1 min-w-0">
+                      <p className="text-[14.5px] font-medium text-primary truncate">{r.acc.label}</p>
+                      {showDelta && Math.abs(r.delta) > 0.005 && (
+                        <p className={`text-[11.5px] balance-num ${tone(r.delta)}`}>
+                          {formatCurrency(r.delta, { sign: true })} nel periodo
+                        </p>
+                      )}
+                    </div>
+                    <span className={`text-[16px] font-bold balance-num flex-shrink-0 ${r.current < 0 ? 'text-red' : 'text-primary'}`}>
                       {formatCurrency(r.current)}
                     </span>
                   </div>
-                  <div className="h-[3px] rounded-full overflow-hidden ml-11" style={{ backgroundColor: 'var(--progress-track)' }}>
-                    <div className="h-full rounded-full transition-all duration-300" style={{ width: `${Math.max(2, barPct)}%`, backgroundColor: r.acc.color }} />
+                  <div className="mt-3 h-1.5 rounded-full overflow-hidden progress-track">
+                    <div className="h-full rounded-full bar-grow" style={{ width: `${Math.max(2, barPct)}%`, backgroundColor: r.acc.color }} />
                   </div>
                 </button>
               );
             })}
           </div>
+
+          <p className="text-[11.5px] text-tertiary mt-4 px-1">
+            I conti investimento non sono liquidità: vivono nel tab Patrimonio.
+          </p>
         </>
       )}
 
@@ -192,5 +165,24 @@ export function AccountBalanceScreen({ transactions }: Props) {
         />
       )}
     </div>
+  );
+}
+
+/** Area + linea oro della liquidità nel periodo. Come la sparkline del
+ *  patrimonio in home: il dominio segue i dati, il numero sta sopra. */
+function LiquiditySparkline({ values }: { values: number[] }) {
+  const W = 320, H = 82, TOP = 8, BOTTOM = 70;
+  const min = Math.min(...values), max = Math.max(...values);
+  const span = max - min;
+  const x = (i: number) => (i / (values.length - 1)) * W;
+  const y = (v: number) => (span === 0 ? (TOP + BOTTOM) / 2 : BOTTOM - ((v - min) / span) * (BOTTOM - TOP));
+  const line = values.map((v, i) => `${i === 0 ? 'M' : 'L'} ${x(i).toFixed(1)} ${y(v).toFixed(1)}`).join(' ');
+  const area = `${line} L ${W} ${H} L 0 ${H} Z`;
+  return (
+    <svg viewBox={`0 0 ${W} ${H}`} className="w-full mt-4" style={{ height: H }} preserveAspectRatio="none" aria-hidden>
+      <path d={area} fill="rgba(var(--c-gold) / 0.13)" />
+      <path d={line} fill="none" stroke="rgb(var(--c-gold))" strokeWidth="2"
+        vectorEffect="non-scaling-stroke" strokeLinecap="round" strokeLinejoin="round" />
+    </svg>
   );
 }

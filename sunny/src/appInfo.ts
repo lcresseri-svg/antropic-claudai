@@ -1,10 +1,12 @@
-export const APP_VERSION = '1.18.0';
+export const APP_VERSION = '2.0.0';
 
 /**
  * Release channel. While in 'beta' the app is still under active development
  * and versions are not considered official. Switch to 'stable' when ready.
+ * 2.0.0 esce dalla beta: il badge "beta" e l'avviso nel registro versioni
+ * spariscono da soli (sono già condizionati a questo valore).
  */
-export const APP_CHANNEL: 'beta' | 'stable' = 'beta';
+export const APP_CHANNEL: 'beta' | 'stable' = 'stable';
 
 export interface VersionEntry {
   version: string;
@@ -15,10 +17,54 @@ export interface VersionEntry {
    *  Setting it is the explicit, per-release control: the admin decides which
    *  release is worth a popup by flagging its changelog entry. */
   highlight?: boolean;
+  /** Una riga che spiega il senso della release, sotto il titolo del popup. */
+  subtitle?: string;
+  /** Le poche cose che meritano il popup, con icona e spiegazione. Quando
+   *  manca, il popup ricade sulla lista puntata di `changes`: le release già
+   *  pubblicate restano identiche. */
+  highlights?: { icon: string; title: string; detail: string }[];
+  /** CTA che porta dove la novità si vede. Senza, resta solo "Ho capito". */
+  primaryAction?: { label: string; to: string };
 }
 
 /** Registro versioni mostrato in Impostazioni → Registro versioni. */
 export const VERSIONS: VersionEntry[] = [
+  {
+    version: '2.0.0', date: '2026-08-24', title: 'Sunny ha un nuovo aspetto',
+    highlight: true, // ← accende il popup "Novità" per tutti gli utenti
+    subtitle: 'La home ora risponde a una domanda sola: quanto posso spendere?',
+    highlights: [
+      {
+        icon: '💰', title: 'In cima, quanto puoi spendere',
+        detail: 'Non più il patrimonio ma la liquidità libera: quello che resta sui conti, tolti gli impegni già programmati entro fine mese.',
+      },
+      {
+        icon: '📅', title: 'Il ritmo del mese',
+        detail: 'Un calendario delle spese: più il quadratino è pieno, più hai speso. Tocca un giorno per vederne i movimenti.',
+      },
+      {
+        icon: '✨', title: 'Meno blocchi, più chiarezza',
+        detail: 'Resta l\'essenziale e una sola "prossima mossa". Saldi, investimenti e grafici sono a un tocco.',
+      },
+      {
+        icon: '🎨', title: 'Card con profondità',
+        detail: 'Superfici più calde, ombre morbide e numeri più grandi, in tema chiaro e scuro.',
+      },
+      {
+        icon: '🏁', title: 'Sunny esce dalla beta',
+        detail: 'Da questa versione i numeri di versione sono ufficiali: via il badge "beta".',
+      },
+    ],
+    primaryAction: { label: 'Scopri la nuova home', to: '/' },
+    changes: [
+      'La home apre con la liquidità libera: la liquidità dei conti meno le uscite già programmate entro fine mese, con l\'anello che mostra quanta parte è ancora libera.',
+      'Nuova card "Ritmo del mese": un calendario delle spese del mese, con i giorni programmati a tratteggio e oggi evidenziato. Tocca un giorno per aprire i suoi movimenti.',
+      'Il patrimonio netto sale subito sotto, con l\'andamento degli ultimi 3 mesi e le scorciatoie a saldo per conto e investimenti.',
+      'Dalla home escono il grafico 12 mesi, il riepilogo AI, il carosello dei consigli e le quattro card del mese: al loro posto una sola "prossima mossa".',
+      'Card con profondità: superfici più calde, ombre e numeri più grandi, in tema chiaro e scuro.',
+      'Sunny esce dalla beta: da questa versione i numeri di versione sono ufficiali.',
+    ],
+  },
   {
     version: '1.18.0', date: '2026-08-22', title: 'Storni e rimborsi',
     changes: [
@@ -126,7 +172,6 @@ export const VERSIONS: VersionEntry[] = [
   },
   {
     version: '1.13.0', date: '2026-06-17', title: 'Aggiungi spese da iPhone',
-    highlight: true, // ← accende il popup "Novità" per tutti gli utenti
     changes: [
       'Nuova scorciatoia per iPhone: registra una spesa al volo dal telefono, anche senza aprire l\'app. La trovi in Impostazioni → "Spese da iPhone".',
       'Generi un token sicuro, importi la scorciatoia una volta e poi aggiungi le spese in pochi tocchi.',

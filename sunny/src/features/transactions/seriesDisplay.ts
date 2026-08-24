@@ -60,6 +60,22 @@ export function formatSeriesSecondaryAmount(tx: Transaction, freq?: Freq): strin
   return `≈ ${formatCurrency(monthly)} / mese`;
 }
 
+/**
+ * Come sopra, ma per la riga meta della lista raggruppata per giorno, dove sta
+ * accanto al nome del conto: "155,88 €/anno". Niente "≈" né spazi attorno alla
+ * barra — su 390px quei sei caratteri erano la differenza fra leggere la cifra
+ * e vedere "≈ 9.000,…".
+ */
+export function formatSeriesEquivalentCompact(tx: Transaction, freq?: Freq): string | null {
+  const kind = seriesKindOf(tx);
+  if (!kind || kind === 'installment') return null;
+  const f = resolveFreq(tx, freq);
+  if (!f) return null;
+  return f === 'monthly'
+    ? `${formatCurrency(r2(tx.amount * 12))}/anno`
+    : `${formatCurrency(r2(monthlyEquivalent(tx.amount, f)))}/mese`;
+}
+
 /** "7 / 24 rate pagate" — capped so an over-materialized plan never reads 25/24. */
 export function installmentPaidLabel(paid: number, total: number): string {
   return `${Math.min(paid, total)} / ${total} rate pagate`;

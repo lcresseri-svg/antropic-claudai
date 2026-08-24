@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useMemo } from 'react';
 import { Transaction, TransactionType, TYPE_META, TYPE_ORDER, RecurrenceRule, SeriesMeta, SeriesKind, AccountDef, typeColor, typeOnColor } from '../../types';
 import { formatCurrency, formatDate, guessCategory } from '../../utils';
 import { Candidate, Recognition, RECOGNITION_THRESHOLD } from './categoryRecognition';
@@ -30,6 +30,9 @@ interface Props {
    *  fire-and-forget behaviour. */
   onSave: (deleteIds: string[], create: Omit<Transaction, 'id'>[]) => void | Promise<void>;
 }
+
+/** Quante categorie stanno nella riga di chip prima di "altre ›". */
+const CHIP_CATS = 6;
 
 interface Reimb { amount: string; account: string }
 
@@ -72,6 +75,13 @@ export function TransactionModal({ open, editing, groupTransfers = [], seriesEdi
   const [amountError, setAmountError] = useState(false);
   const [categoryTouched, setCategoryTouched] = useState(false);
   const [showMore, setShowMore] = useState(false);
+  // Descrizione e griglia categorie partono chiuse: una spesa tipica si
+  // registra senza toccarle.
+  const [descOpen, setDescOpen] = useState(false);
+  const [catGridOpen, setCatGridOpen] = useState(false);
+  // Conto e data si aprono solo se vanno cambiati: il default è "il conto di
+  // sempre, oggi".
+  const [whenWhereOpen, setWhenWhereOpen] = useState(false);
   const [advancedOpen, setAdvancedOpen] = useState(false);
   const [confirmDelete, setConfirmDelete] = useState(false);
 
@@ -94,6 +104,7 @@ export function TransactionModal({ open, editing, groupTransfers = [], seriesEdi
       const transfersSum = groupSettlements.reduce((s, t) => s + t.amount, 0);
       setType(editing.type); setDescription(editing.description);
       setAmount(String(hasGroup ? editing.amount + transfersSum : editing.amount));
+      setDescOpen(!!editing.description);
       setDate(editing.date);
       setCategory(editing.category); setAccount(editing.account);
       setToAccount(editing.toAccount ?? visibleAccounts[1]?.id ?? '');
@@ -179,7 +190,27 @@ export function TransactionModal({ open, editing, groupTransfers = [], seriesEdi
   // Detailed-investments extras (gated per user): a source-less investment and,
   // for pension funds, the TFR portion of the contribution.
   const canNoAccount = type === 'investment' && detailedInvestments;
+  /** Tastierino: la stessa normalizzazione dell'input (cifre e una virgola). */
+  const pressKey = (k: string) => {
+    setAmountError(false);
+    setAmount(prev => {
+      if (k === 'back') return prev.slice(0, -1);
+      if (k === ',') return prev.includes(',') || prev.includes('.') ? prev : (prev || '0') + ',';
+      // Massimo due decimali, come l'importo salvato.
+      const sep = prev.search(/[.,]/);
+      if (sep >= 0 && prev.length - sep > 2) return prev;
+      return prev === '0' ? k : prev + k;
+    });
+  };
+
   const selCat = categories.find(c => c.id === category);
+  // Chip mostrate senza aprire la griglia: le prime CHIP_CATS più, se sta
+  // fuori, quella selezionata — non deve mai sparire dalla riga.
+  const chipCats = useMemo(() => {
+    const head = typeCats.slice(0, CHIP_CATS);
+    const sel = typeCats.find(c => c.id === category);
+    return sel && !head.some(c => c.id === sel.id) ? [sel, ...head] : head;
+  }, [typeCats, category]);
   const isPensionInvest = type === 'investment' && detailedInvestments && selCat?.fundType === 'pension';
 
   // An empty account is only valid for a source-less investment; otherwise snap
@@ -408,9 +439,28 @@ export function TransactionModal({ open, editing, groupTransfers = [], seriesEdi
           around an internal scrolling window (the form fields). overscroll-contain
           stops the scroll from chaining to the page when the window hits its end. */}
       <div className="relative w-full max-w-none h-full max-h-full sm:max-w-lg sm:h-auto sm:max-h-[88vh] glass-elevated rounded-3xl shadow-float overflow-hidden flex flex-col animate-sheet-up">
-        <div className="shrink-0 bg-[var(--modal-hdr-bg)] px-5 pt-5 pb-3 flex items-center justify-between">
-          <h2 className="text-base font-semibold text-primary">{seriesEdit ? 'Modifica serie' : editing ? 'Modifica' : 'Nuova transazione'}</h2>
-          <button onClick={onClose} className="w-8 h-8 rounded-full bg-elevated flex items-center justify-center text-secondary">✕</button>
+        {/* Testa: ✕ a sinistra, segmented al centro. Il titolo sparisce — con
+            il tipo selezionato davanti agli occhi non diceva nulla di nuovo. */}
+        <div className="shrink-0 bg-[var(--modal-hdr-bg)] px-5 pt-5 pb-3 flex items-center gap-3">
+          <button type="button" onClick={onClose} aria-label="Chiudi"
+            className="w-8 h-8 rounded-full bg-elevated flex items-center justify-center text-secondary flex-none">✕</button>
+          {!quickMode && availableTypes.length > 1 ? (
+            <div className="flex-1 min-w-0 grid gap-1 bg-surface rounded-xl p-1"
+              style={{ gridTemplateColumns: `repeat(${availableTypes.length}, 1fr)` }}>
+              {availableTypes.map(t => (
+                <button key={t} type="button" onClick={() => setType(t)}
+                  className={`py-1.5 rounded-lg text-[12px] font-semibold truncate transition-colors ${
+                    type === t ? 'bg-primary text-bg' : 'text-secondary'}`}>
+                  {TYPE_META[t].label}
+                </button>
+              ))}
+            </div>
+          ) : (
+            <h2 className="flex-1 text-base font-semibold text-primary text-center">
+              {seriesEdit ? 'Modifica serie' : editing ? 'Modifica' : 'Nuova transazione'}
+            </h2>
+          )}
+          <span className="w-8 flex-none" aria-hidden />
         </div>
 
         <form onSubmit={submit} className="flex-1 min-h-0 flex flex-col">
@@ -419,22 +469,6 @@ export function TransactionModal({ open, editing, groupTransfers = [], seriesEdi
             <p className="text-[11px] text-secondary bg-elevated rounded-xl px-3 py-2 leading-snug">
               🔁 Stai modificando l'intera serie. Le modifiche valgono per le occorrenze future; le voci già registrate non cambiano.
             </p>
-          )}
-
-          {/* Type segmented — hidden in quick mode (type is pre-set). "Investimento"
-              is not offered here: investments are created from the /investments
-              screen. It only appears when editing an existing investment. */}
-          {!quickMode && (
-            <div className="grid gap-1.5 bg-surface rounded-2xl p-1" style={{ gridTemplateColumns: `repeat(${availableTypes.length}, 1fr)` }}>
-              {availableTypes.map(t => (
-                <button key={t} type="button"
-                  onClick={() => setType(t)}
-                  className={`py-2 sm:py-2.5 rounded-xl text-[11px] sm:text-xs font-semibold transition-all ${type === t ? 'shadow-sm' : 'text-secondary'}`}
-                  style={type === t ? { backgroundColor: typeColor(t, theme), color: typeOnColor(theme) } : undefined}>
-                  {TYPE_META[t].label}
-                </button>
-              ))}
-            </div>
           )}
 
           {/* Storni della spesa — elenco, totale stornato, spesa effettiva */}
@@ -504,24 +538,40 @@ export function TransactionModal({ open, editing, groupTransfers = [], seriesEdi
             </button>
           )}
 
-          {/* Amount */}
-          <div className="text-center">
-            <div className="flex items-center justify-center gap-1">
-              <span className={`text-2xl font-semibold ${amountError ? 'text-red' : 'text-primary'}`}>€</span>
+          {/* Amount — su telefono lo scrive il tastierino in fondo, quindi il
+              campo è readOnly e la tastiera di sistema non copre la modale.
+              Da `sm` in su torna un input normale. */}
+          <div className="text-center pt-1">
+            <div className="flex items-baseline justify-center gap-1.5">
+              <input
+                type="text" inputMode="none" readOnly placeholder="0" value={amount}
+                aria-label="Importo"
+                className={`sm:hidden bg-transparent text-[54px] leading-none font-bold text-right outline-none balance-num placeholder:text-divider transition-colors ${amountError ? 'text-red' : 'text-primary'}`}
+                style={{ width: `${Math.max(2, amount.length || 1)}ch` }}
+              />
               <input
                 type="text" inputMode="decimal" placeholder="0" value={amount}
+                aria-label="Importo"
                 onChange={e => { setAmount(e.target.value.replace(/[^\d.,]/g, '')); setAmountError(false); }}
-                className={`bg-transparent text-4xl font-bold text-center w-40 outline-none balance-num placeholder:text-divider transition-colors ${amountError ? 'text-red' : 'text-primary'}`}
+                className={`hidden sm:block bg-transparent text-[44px] leading-none font-bold text-center w-52 outline-none balance-num placeholder:text-divider transition-colors ${amountError ? 'text-red' : 'text-primary'}`}
               />
+              <span className={`text-[30px] font-semibold ${amountError ? 'text-red' : 'text-secondary'}`}>€</span>
             </div>
             {amountError && (
-              <p className="text-xs mt-1 transition-opacity text-red">Inserisci un importo valido</p>
+              <p className="text-xs mt-2 transition-opacity text-red">Inserisci un importo valido</p>
             )}
           </div>
 
-          {/* Description */}
+          {/* Description — non è un campo sempre aperto: una spesa tipica si
+              registra senza scriverla, e il campo appare al tocco. */}
+          {!descOpen ? (
+            <button type="button" onClick={() => setDescOpen(true)}
+              className="w-full text-center py-2 text-[13px] text-secondary">
+              Tocca per scrivere la descrizione
+            </button>
+          ) : (
           <Field label="Descrizione (facoltativa)">
-            <input type="text" placeholder={defaultDesc || 'es. Supermercato'} value={description} maxLength={80}
+            <input type="text" autoFocus placeholder={defaultDesc || 'es. Supermercato'} value={description} maxLength={80}
               onChange={e => {
                 const v = e.target.value;
                 setDescription(v);
@@ -542,24 +592,59 @@ export function TransactionModal({ open, editing, groupTransfers = [], seriesEdi
               }}
               className="w-full bg-elevated rounded-2xl px-4 py-3 text-primary placeholder:text-secondary/50 outline-none focus:ring-1 focus:ring-gold/40" />
           </Field>
+          )}
 
-          {/* Category */}
+          {/* Category — riga di chip scorrevole; la griglia completa si apre da
+              "altre ›". La categoria selezionata è sempre nella riga, anche se
+              starebbe oltre le prime. */}
           {type !== 'transfer' && (
-            <Field label="Categoria">
-              <div className="grid grid-cols-3 sm:grid-cols-4 gap-2">
-                {typeCats.map(c => {
-                  const sel = category === c.id;
-                  return (
-                    <button key={c.id} type="button" onClick={() => { setCategory(c.id); setCategoryTouched(true); }}
-                      className={`w-full px-2 py-2 rounded-full text-xs font-medium transition-all flex items-center justify-center gap-1.5 truncate ${sel ? 'shadow-sm' : 'bg-surface text-secondary'}`}
-                      style={sel ? { backgroundColor: c.color, color: '#0D0D0D' } : undefined}>
-                      <span className="flex-shrink-0">{c.icon}</span>
-                      <span className="truncate">{c.label}</span>
+            <div>
+              {catGridOpen ? (
+                <Field label="Categoria">
+                  <div className="grid grid-cols-3 sm:grid-cols-4 gap-2">
+                    {typeCats.map(c => {
+                      const sel = category === c.id;
+                      return (
+                        <button key={c.id} type="button"
+                          onClick={() => { setCategory(c.id); setCategoryTouched(true); setCatGridOpen(false); }}
+                          className={`w-full px-2 py-2 rounded-full text-xs font-medium transition-all flex items-center justify-center gap-1.5 truncate ${sel ? 'shadow-sm' : 'bg-surface text-secondary'}`}
+                          style={sel ? { backgroundColor: c.color, color: '#0D0D0D' } : undefined}>
+                          <span className="flex-shrink-0">{c.icon}</span>
+                          <span className="truncate">{c.label}</span>
+                        </button>
+                      );
+                    })}
+                  </div>
+                </Field>
+              ) : (
+                <div className="flex gap-1.5 overflow-x-auto scrollbar-hide -mx-5 px-5 sm:-mx-7 sm:px-7 py-1">
+                  {chipCats.map(c => {
+                    const sel = category === c.id;
+                    return (
+                      <button key={c.id} type="button" onClick={() => { setCategory(c.id); setCategoryTouched(true); }}
+                        className={`flex items-center gap-1.5 px-3 py-2 rounded-full text-[13px] font-medium whitespace-nowrap transition-colors flex-none ${
+                          sel ? '' : 'bg-surface text-secondary'}`}
+                        style={sel ? { backgroundColor: c.color, color: '#0D0D0D' } : undefined}>
+                        <span>{c.icon}</span>{c.label}
+                      </button>
+                    );
+                  })}
+                  {typeCats.length > chipCats.length && (
+                    <button type="button" onClick={() => setCatGridOpen(true)}
+                      className="px-3 py-2 rounded-full text-[13px] font-medium whitespace-nowrap bg-surface text-secondary flex-none">
+                      altre ›
                     </button>
-                  );
-                })}
-              </div>
-            </Field>
+                  )}
+                </div>
+              )}
+              {/* La categoria l'ha indovinata la descrizione: dirlo evita il
+                  sospetto che l'app abbia scelto a caso. */}
+              {!categoryTouched && description.trim() !== '' && selCat && (
+                <p className="text-[11.5px] text-secondary mt-1.5 px-1">
+                  Suggerita da «{description.trim()}»
+                </p>
+              )}
+            </div>
           )}
 
           {/* Accounts + Date */}
@@ -602,15 +687,37 @@ export function TransactionModal({ open, editing, groupTransfers = [], seriesEdi
               )}
             </>
           ) : (
-            <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
-              <Field label="Conto">
-                <Select value={account} onChange={setAccount}
-                  options={[
-                    ...(canNoAccount ? [{ value: '', label: '🚫 Senza conto (TFR / datore)' }] : []),
-                    ...accountOptions.map(a => ({ value: a.id, label: `${a.icon} ${a.label}` })),
-                  ]} />
-              </Field>
-              <DateField date={date} td={td} yd={yd} setDate={setDate} seriesEdit={seriesEdit} />
+            /* Conto e data in UNA riga: il default è "il conto di sempre, oggi",
+               e chi non deve cambiarlo non apre nulla. */
+            <div>
+              <div className="glass-card rounded-2xl px-4 py-3 flex items-center gap-3">
+                <span className="flex items-center gap-2 min-w-0">
+                  <span className="text-base">{account ? getAcc(account).icon : '🚫'}</span>
+                  <span className="text-[13.5px] text-primary truncate">
+                    {account ? getAcc(account).label : 'Senza conto'}
+                  </span>
+                </span>
+                <span className="w-px self-stretch bg-divider flex-none" />
+                <span className="text-[13.5px] text-primary flex-1 min-w-0 truncate">
+                  {date === td ? 'Oggi' : date === yd ? 'Ieri' : formatDate(date)}
+                </span>
+                <button type="button" onClick={() => setWhenWhereOpen(o => !o)}
+                  className="text-[12px] font-semibold text-gold flex-none">
+                  {whenWhereOpen ? 'Chiudi' : 'Modifica'}
+                </button>
+              </div>
+              {whenWhereOpen && (
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 mt-3">
+                  <Field label="Conto">
+                    <Select value={account} onChange={setAccount}
+                      options={[
+                        ...(canNoAccount ? [{ value: '', label: '🚫 Senza conto (TFR / datore)' }] : []),
+                        ...accountOptions.map(a => ({ value: a.id, label: `${a.icon} ${a.label}` })),
+                      ]} />
+                  </Field>
+                  <DateField date={date} td={td} yd={yd} setDate={setDate} seriesEdit={seriesEdit} />
+                </div>
+              )}
             </div>
           )}
 
@@ -620,6 +727,24 @@ export function TransactionModal({ open, editing, groupTransfers = [], seriesEdi
             </p>
           )}
 
+          {/* Una sola riga per tutto ciò che è opzionale: serie, spesa condivisa,
+              rate, commissione, TFR, distribuzione. Prima erano sei blocchi in
+              fila, metà dei quali visibili solo per certi tipi. */}
+          <button type="button" onClick={() => setShowMore(s => !s)}
+            className="w-full glass-card rounded-2xl px-4 py-3 flex items-center justify-between gap-3 text-left">
+            <span className="text-[13px] text-secondary">Ricorrente, condivisa, a rate…</span>
+            <span className="flex items-center gap-1 text-[12px] font-semibold text-gold flex-none">
+              Opzioni
+              <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor"
+                strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round"
+                className={`transition-transform ${showMore ? 'rotate-180' : ''}`}>
+                <path d="M6 9l6 6 6-6" />
+              </svg>
+            </span>
+          </button>
+
+          {showMore && (
+            <>
           {/* TFR portion — pension-fund investments only */}
           {isPensionInvest && (
             <Field label="Di cui TFR (facoltativo)">
@@ -675,19 +800,6 @@ export function TransactionModal({ open, editing, groupTransfers = [], seriesEdi
             </Field>
           )}
 
-          {/* Vedi altro — opzioni avanzate */}
-          <button type="button" onClick={() => setShowMore(s => !s)}
-            className="w-full flex items-center justify-center gap-1.5 py-2 text-sm font-medium text-secondary">
-            {showMore ? 'Vedi meno' : 'Vedi altro'}
-            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor"
-              strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round"
-              className={`transition-transform ${showMore ? 'rotate-180' : ''}`}>
-              <path d="M6 9l6 6 6-6" />
-            </svg>
-          </button>
-
-          {showMore && (
-            <>
           {/* Spesa condivisa — quote rimborsate dagli altri (NON gli storni:
               quelli sono `type: 'refund'`, legati alla spesa via refundOf). */}
           {type === 'expense' && (
@@ -869,18 +981,55 @@ export function TransactionModal({ open, editing, groupTransfers = [], seriesEdi
                 si aggiornano insieme). Controlla la connessione e riprova.
               </p>
             )}
-            <button type="submit" disabled={saving}
-              className="w-full py-3 rounded-2xl font-semibold transition-transform active:scale-[0.98] disabled:opacity-60"
-              style={{ backgroundColor: typeColor(type, theme), color: typeOnColor(theme) }}>
-              {saving ? 'Salvataggio…' : saveError ? 'Riprova' : editing ? 'Salva modifiche' : `Aggiungi ${TYPE_META[type].label.toLowerCase()}`}
-            </button>
+            {/* Telefono: tastierino 4×4 — le cifre stanno dove sta il pollice e
+                Salva è dentro la stessa griglia, così una spesa tipica si
+                registra senza mai alzare la mano. Da `sm` in su la modale resta
+                la sheet centrata di prima e il tastierino sparisce. */}
+            <div className="sm:hidden">
+              <div className="grid grid-cols-4 grid-rows-4 gap-2">
+                {['1', '2', '3', '4', '5', '6', '7', '8', '9', ',', '0'].map(k => (
+                  <KeypadKey key={k} onClick={() => pressKey(k)}>{k}</KeypadKey>
+                ))}
+                <KeypadKey onClick={() => pressKey('back')} label="Cancella">⌫</KeypadKey>
 
-            {!editing && (
-              <button type="button" onClick={() => doSubmit(true)} disabled={saving}
-                className="w-full py-2.5 rounded-2xl text-sm font-medium text-secondary bg-elevated active:bg-card-hover transition-colors disabled:opacity-60">
-                Salva e aggiungi un'altra
+                <button type="submit" disabled={saving}
+                  className="row-span-2 col-start-4 row-start-1 rounded-2xl cta-gold-fill text-[15px] font-semibold
+                             active:scale-[0.98] transition-transform disabled:opacity-60">
+                  {saving ? '…' : saveError ? 'Riprova' : editing ? 'Salva' : 'Salva'}
+                </button>
+
+                {!editing ? (
+                  <button type="button" onClick={() => doSubmit(true)} disabled={saving}
+                    className="row-span-2 col-start-4 row-start-3 rounded-2xl bg-elevated text-primary text-[15px] font-semibold
+                               active:scale-[0.98] transition-transform disabled:opacity-60">
+                    +1
+                  </button>
+                ) : (
+                  <span className="row-span-2 col-start-4 row-start-3" aria-hidden />
+                )}
+              </div>
+              {!editing && (
+                <p className="text-[12px] text-secondary text-center mt-2">
+                  <span className="font-semibold text-primary">+1</span> salva e riapre subito la modale.
+                </p>
+              )}
+            </div>
+
+            {/* Desktop: i bottoni di sempre. */}
+            <div className="hidden sm:block space-y-2">
+              <button type="submit" disabled={saving}
+                className="w-full py-3 rounded-2xl font-semibold transition-transform active:scale-[0.98] disabled:opacity-60"
+                style={{ backgroundColor: typeColor(type, theme), color: typeOnColor(theme) }}>
+                {saving ? 'Salvataggio…' : saveError ? 'Riprova' : editing ? 'Salva modifiche' : `Aggiungi ${TYPE_META[type].label.toLowerCase()}`}
               </button>
-            )}
+
+              {!editing && (
+                <button type="button" onClick={() => doSubmit(true)} disabled={saving}
+                  className="w-full py-2.5 rounded-2xl text-sm font-medium text-secondary bg-elevated active:bg-card-hover transition-colors disabled:opacity-60">
+                  Salva e aggiungi un'altra
+                </button>
+              )}
+            </div>
           </div>
         </form>
       </div>
@@ -961,5 +1110,18 @@ function Select({ value, onChange, options }: { value: string; onChange: (v: str
       className="w-full bg-elevated rounded-2xl px-4 py-3 text-primary text-sm outline-none focus:ring-1 focus:ring-gold/40 appearance-none">
       {options.map(o => <option key={o.value} value={o.value} className="bg-elevated">{o.label}</option>)}
     </select>
+  );
+}
+
+/** Tasto del tastierino. */
+function KeypadKey({ children, onClick, label }: {
+  children: React.ReactNode; onClick: () => void; label?: string;
+}) {
+  return (
+    <button type="button" onClick={onClick} aria-label={label}
+      className="h-12 rounded-2xl bg-elevated text-primary text-[20px] font-semibold
+                 active:bg-card-hover transition-colors">
+      {children}
+    </button>
   );
 }
