@@ -26,9 +26,15 @@ export interface Commitment {
   freq?: Freq;
   monthlyEquivalent: number;  // amount normalized to a month (yearly → /12)
   nextDate: string | null;
+  /** Conto della serie (dal template, in fallback dall'ultima occorrenza).
+   *  Vuoto quando la serie non ne ha uno: apre i movimenti senza filtro conto. */
+  account: string;
   /** Installments only. */
   remainingInstallments?: number;
   remainingAmount?: number;
+  /** Installments only: posizione nel piano (rate pagate / totali). */
+  paidInstallments?: number;
+  totalInstallments?: number;
   /** Expected last occurrence: `until` for recurring, computed for installments. */
   expectedEnd?: string;
 }
@@ -64,11 +70,16 @@ function toCommitment(s: SeriesSummary): Commitment {
     freq: s.freq,
     monthlyEquivalent: r2(monthly),
     nextDate: s.nextDate,
+    account: s.template?.account ?? s.occurrences[s.occurrences.length - 1]?.account ?? '',
     expectedEnd: s.until,
   };
   if (s.installment) {
     c.remainingInstallments = s.installment.remainingInstallments;
     c.remainingAmount = r2(s.installment.remainingAmount);
+    // Rate già pagate: derivate dal piano (totali − residue), nessun campo nuovo
+    // nel modello dati.
+    c.totalInstallments = s.installment.totalInstallments;
+    c.paidInstallments = Math.max(0, s.installment.totalInstallments - s.installment.remainingInstallments);
     // Expected conclusion: next due date + (remaining − 1) monthly periods.
     if (s.nextDate && s.installment.remainingInstallments > 0 && s.freq === 'monthly') {
       c.expectedEnd = addMonthsClamped(s.nextDate, s.installment.remainingInstallments - 1);

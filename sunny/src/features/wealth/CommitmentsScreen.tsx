@@ -17,33 +17,41 @@ const FREQ_LABEL: Record<string, string> = {
   daily: 'giornaliero', weekly: 'settimanale', monthly: 'mensile', yearly: 'annuale',
 };
 
-function Row({ c }: { c: Commitment }) {
+function Row({ c, onOpen }: { c: Commitment; onOpen: (c: Commitment) => void }) {
+  // Riga intera cliccabile (bottone: tap grande, focus e tastiera gratis).
   return (
-    <li className="flex items-start justify-between gap-3 py-2.5 border-b border-divider last:border-b-0">
-      <div className="min-w-0">
-        <p className="text-sm text-primary truncate">{c.description}</p>
-        <p className="text-[11px] text-secondary">
-          {formatCurrency(c.amount)}{c.freq ? ` · ${FREQ_LABEL[c.freq]}` : ''}
-          {c.nextDate ? ` · prossima: ${formatDate(c.nextDate)}` : ''}
-        </p>
-        {c.remainingInstallments != null && (
+    <li className="border-b border-divider last:border-b-0">
+      <button type="button" onClick={() => onOpen(c)}
+        aria-label={`Vedi i movimenti di ${c.description}`}
+        className="w-full min-h-[44px] flex items-start justify-between gap-3 py-2.5 text-left rounded-xl hover:bg-elevated transition-colors">
+        <div className="min-w-0">
+          <p className="text-sm text-primary truncate">{c.description}</p>
           <p className="text-[11px] text-secondary">
-            {c.remainingInstallments} rate residue · {formatCurrency(c.remainingAmount ?? 0)} da pagare
-            {c.expectedEnd ? ` · fine prevista ${formatDate(c.expectedEnd)}` : ''}
+            {formatCurrency(c.amount)}{c.freq ? ` · ${FREQ_LABEL[c.freq]}` : ''}
+            {c.nextDate ? ` · prossima: ${formatDate(c.nextDate)}` : ''}
           </p>
-        )}
-        {c.kind !== 'installment' && c.expectedEnd && (
-          <p className="text-[11px] text-secondary">fino al {formatDate(c.expectedEnd)}</p>
-        )}
-      </div>
-      <p className="text-sm font-semibold text-primary whitespace-nowrap">
-        {formatCurrency(c.monthlyEquivalent)}<span className="text-[11px] text-secondary font-normal">/mese</span>
-      </p>
+          {c.remainingInstallments != null && (
+            <p className="text-[11px] text-secondary">
+              {c.paidInstallments != null && c.totalInstallments != null
+                ? `rata ${Math.min(c.paidInstallments + 1, c.totalInstallments)} di ${c.totalInstallments} · ` : ''}
+              {c.remainingInstallments} rate residue · {formatCurrency(c.remainingAmount ?? 0)} da pagare
+              {c.expectedEnd ? ` · fine prevista ${formatDate(c.expectedEnd)}` : ''}
+            </p>
+          )}
+          {c.kind !== 'installment' && c.expectedEnd && (
+            <p className="text-[11px] text-secondary">fino al {formatDate(c.expectedEnd)}</p>
+          )}
+        </div>
+        <p className="text-sm font-semibold text-primary whitespace-nowrap">
+          {formatCurrency(c.monthlyEquivalent)}<span className="text-[11px] text-secondary font-normal">/mese</span>
+        </p>
+      </button>
     </li>
   );
 }
 
-function Group({ title, items, empty }: { title: string; items: Commitment[]; empty: string }) {
+function Group({ title, items, empty, onOpen }:
+  { title: string; items: Commitment[]; empty: string; onOpen: (c: Commitment) => void }) {
   return (
     <section className="bg-card rounded-2xl p-5">
       <div className="flex items-baseline justify-between mb-1">
@@ -54,7 +62,7 @@ function Group({ title, items, empty }: { title: string; items: Commitment[]; em
       </div>
       {items.length === 0
         ? <p className="text-xs text-secondary py-2">{empty}</p>
-        : <ul>{items.map(c => <Row key={c.seriesId} c={c} />)}</ul>}
+        : <ul>{items.map(c => <Row key={c.seriesId} c={c} onOpen={onOpen} />)}</ul>}
     </section>
   );
 }
@@ -63,6 +71,15 @@ export function CommitmentsScreen({ transactions }: Props) {
   const navigate = useNavigate();
   const todayISO = useMemo(() => new Date().toISOString().slice(0, 10), []);
   const c = useMemo(() => buildCommitments(transactions, todayISO), [transactions, todayISO]);
+
+  // Riga → movimenti della serie sul suo conto. Entrambi i filtri sono già
+  // supportati da TransactionList (?account=, ?series=) e si combinano in AND.
+  const openMovements = (commitment: Commitment) => {
+    const params = new URLSearchParams();
+    if (commitment.account) params.set('account', commitment.account);
+    params.set('series', commitment.seriesId);
+    navigate(`/transactions?${params.toString()}`);
+  };
 
   return (
     <div className="pb-32 space-y-5">
@@ -96,9 +113,9 @@ export function CommitmentsScreen({ transactions }: Props) {
         </section>
       )}
 
-      <Group title="Abbonamenti" items={c.subscriptions} empty="Nessun abbonamento attivo." />
-      <Group title="Rate" items={c.installments} empty="Nessun piano a rate attivo." />
-      <Group title="Ricorrenti" items={c.recurring} empty="Nessuna spesa ricorrente attiva." />
+      <Group title="Abbonamenti" items={c.subscriptions} empty="Nessun abbonamento attivo." onOpen={openMovements} />
+      <Group title="Rate" items={c.installments} empty="Nessun piano a rate attivo." onOpen={openMovements} />
+      <Group title="Ricorrenti" items={c.recurring} empty="Nessuna spesa ricorrente attiva." onOpen={openMovements} />
     </div>
   );
 }
