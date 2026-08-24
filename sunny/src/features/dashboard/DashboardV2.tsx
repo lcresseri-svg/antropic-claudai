@@ -12,7 +12,7 @@
 // Desktop: due colonne INDIPENDENTI in altezza (come già faceva la vecchia
 // dashboard) — a sinistra hero + Ritmo|Torta, a destra 352px con patrimonio,
 // prossima mossa e ultimi movimenti.
-import { useMemo } from 'react';
+import { useMemo, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { Transaction, ownShare } from '../../types';
 import { monthContext } from '../../utils';
@@ -29,6 +29,8 @@ import { MonthRhythm } from './MonthRhythm';
 import { SpendingBreakdownCard } from './SpendingBreakdownCard';
 import { NextMoveCard, pickNextMove } from './NextMoveCard';
 import { RecentMovementsCard } from './RecentMovementsCard';
+import { ReorderHomeSheet } from './ReorderHomeSheet';
+import { HomeBlockId, resolveHomeOrder } from './homeOrder';
 
 interface Props {
   greeting?: string;
@@ -61,8 +63,13 @@ export function DashboardV2(p: Props) {
   const navigate = useNavigate();
   const {
     enableInvestments, getCat, insightDepth, visibleCategories, accounts, categories, includeInvestments,
-    cashReserve,
+    cashReserve, homeOrder, saveHomeOrder,
   } = useSettings();
+
+  const [reorderOpen, setReorderOpen] = useState(false);
+  // L'ordine salvato viene riconciliato con i blocchi che esistono davvero:
+  // una preferenza vecchia non può far sparire un blocco nuovo.
+  const order = useMemo(() => resolveHomeOrder(homeOrder), [homeOrder]);
 
   // Un solo `now` per tutto il render: hero, calendario e sparkline devono
   // riferirsi allo stesso istante, altrimenti a cavallo di mezzanotte
@@ -138,6 +145,9 @@ export function DashboardV2(p: Props) {
       reserve={cash.reserve}
       income={flow.cashIn} expenses={flow.expenses} invested={investedTotal}
       showInvested={enableInvestments}
+      onOpenIncome={() => navigate('/income')}
+      onOpenExpenses={openCategories}
+      onOpenInvested={enableInvestments ? p.onSeeInvestments : undefined}
     />
   );
 
@@ -181,6 +191,13 @@ export function DashboardV2(p: Props) {
     ? <NextMoveCard insight={nextMove} onSeeAll={p.onSeeInsights} />
     : null;
 
+  const blocks: Record<HomeBlockId, React.ReactNode> = {
+    patrimonio: netWorthCard,
+    ritmo: rhythm,
+    uscite: breakdown,
+    mossa: nextMoveCard,
+  };
+
   return (
     <div className="pb-32 md:pb-6">
       {/* Desktop: riga di testa con saluto + scorciatoia al riepilogo.
@@ -198,17 +215,23 @@ export function DashboardV2(p: Props) {
         </div>
       )}
 
-      {/* Mobile: colonna unica. Desktop: due colonne indipendenti in altezza. */}
+      {/* Mobile: colonna unica, nell'ordine scelto dall'utente. Desktop: due
+          colonne indipendenti in altezza, ordine fisso — lì i blocchi stanno
+          già affiancati e riordinarli non risolverebbe niente. */}
       <div className="flex flex-col md:flex-row gap-3.5 md:gap-4 md:items-start">
         <div className="flex flex-col gap-3.5 md:gap-4 md:flex-1 md:min-w-0">
           {hero}
-          {/* Su mobile patrimonio e ritmo restano nell'ordine del design. */}
-          <div className="md:hidden">{netWorthCard}</div>
-          <div className="flex flex-col lg:flex-row gap-3.5 lg:gap-4 lg:items-start">
+
+          {/* Telefono: i blocchi nell'ordine preferito. */}
+          <div className="contents md:hidden">
+            {order.map(id => <div key={id} className="md:hidden">{blocks[id]}</div>)}
+          </div>
+
+          {/* Desktop: ritmo e torta affiancati, come da design. */}
+          <div className="hidden md:flex flex-col lg:flex-row gap-3.5 lg:gap-4 lg:items-start">
             <div className="lg:flex-1 lg:min-w-0">{rhythm}</div>
             <div className="lg:flex-1 lg:min-w-0">{breakdown}</div>
           </div>
-          <div className="md:hidden">{nextMoveCard}</div>
         </div>
 
         <div className="hidden md:flex md:flex-col md:gap-4 md:w-[352px] md:flex-none">
@@ -220,6 +243,21 @@ export function DashboardV2(p: Props) {
           />
         </div>
       </div>
+
+      {/* Solo telefono: su desktop l'ordine è fisso, quindi il pulsante non c'è. */}
+      <div className="md:hidden flex justify-center pt-5">
+        <button type="button" onClick={() => setReorderOpen(true)}
+          className="flex items-center gap-1.5 glass-card rounded-full px-3.5 py-2 text-[12px] font-medium text-secondary active:scale-[0.97] transition-transform">
+          <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"
+            strokeLinecap="round" strokeLinejoin="round">
+            <path d="M8 6h13M8 12h13M8 18h13M3 6l1.5 1.5L3 9M3 15l1.5 1.5L3 18" />
+          </svg>
+          Riordina
+        </button>
+      </div>
+
+      <ReorderHomeSheet open={reorderOpen} order={order}
+        onSave={next => saveHomeOrder(next)} onClose={() => setReorderOpen(false)} />
     </div>
   );
 }

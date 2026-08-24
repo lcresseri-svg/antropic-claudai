@@ -127,7 +127,7 @@ export function ImportModal({ open, onClose, onImport }: Props) {
     <div className="fixed inset-0 z-50 flex items-end sm:items-center justify-center p-3"
       onClick={e => { if (e.target === e.currentTarget) close(); }}>
       <div className="absolute inset-0 bg-black/60 backdrop-blur-sm animate-fade-in-fast" />
-      <div className="relative w-full max-w-xl glass-elevated rounded-3xl shadow-float max-h-[90vh] flex flex-col animate-sheet-up">
+      <div className="relative w-full max-w-xl glass-elevated rounded-3xl shadow-float max-h-[90dvh] flex flex-col animate-sheet-up">
         <div className="flex items-center justify-between p-6 pb-4">
           <div>
             <h2 className="text-lg font-semibold text-primary">Importa</h2>

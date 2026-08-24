@@ -30,12 +30,15 @@ export interface VersionEntry {
 /** Registro versioni mostrato in Impostazioni → Registro versioni. */
 export const VERSIONS: VersionEntry[] = [
   {
-    version: '2.0.1', date: '2026-08-24', title: 'Deposito di sicurezza',
+    version: '2.0.1', date: '2026-08-24', title: 'Deposito, riordino e rifiniture',
     changes: [
-      'Puoi dirci quanto vuoi tenere sempre da parte: lo trovi in Impostazioni → Deposito di sicurezza.',
-      'Il deposito viene sottratto dalla liquidità libera in home, insieme alle uscite già programmate: il numero in cima diventa quello che puoi spendere davvero.',
-      'Non blocca niente e non sposta soldi: nessun conto viene toccato e il patrimonio non cambia.',
-      'Finché non lo imposti vale zero, quindi il numero in home resta quello di prima.',
+      'Deposito di sicurezza: dì quanto vuoi tenere sempre da parte (Impostazioni → Deposito di sicurezza) e viene sottratto dalla liquidità libera, insieme alle uscite già programmate. Non blocca niente e non sposta soldi: cambia solo quanto ti diciamo che puoi spendere. Finché non lo imposti vale zero.',
+      'Riordina la home: dal pulsante in fondo alla dashboard scegli tu l\'ordine dei blocchi. Vale solo su telefono; la liquidità libera resta sempre in cima.',
+      'Sunny fotografa il patrimonio una volta a settimana, così l\'andamento si costruisce nel tempo. Dove non c\'è un controvalore aggiornato usa il capitale versato, senza mai inventare un valore di mercato.',
+      'Dalle tre voci del mese in home (entrate, uscite, investito) si torna alle rispettive analisi: la schermata Entrate era diventata irraggiungibile.',
+      'L\'archivio dei riepiloghi mensili si apre di nuovo per intero, invece di saltare all\'ultimo mese.',
+      'La ✕ delle finestre ora chiude davvero, anche con la tastiera aperta: erano dimensionate su un\'altezza che il telefono non rispetta, e la loro testa finiva fuori schermo.',
+      'In alto, nelle schermate interne, c\'è il mese invece del saluto; i movimenti hanno lo stesso aspetto con qualsiasi raggruppamento; e le card sono un po\' più larghe sul telefono.',
     ],
   },
   {

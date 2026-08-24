@@ -29,7 +29,7 @@ export function SyncStatusBanner({ error }: Props) {
   if (!offline && !error) return null;
   const isOfflineMsg = offline;
   return (
-    <div className="max-w-2xl mx-auto md:max-w-none px-5 md:px-8 pt-2" role="status" aria-live="polite">
+    <div className="max-w-2xl mx-auto md:max-w-none px-4 md:px-8 pt-2" role="status" aria-live="polite">
       <div className={`rounded-xl px-3.5 py-2.5 flex items-center gap-2.5 border ${
         isOfflineMsg
           ? 'bg-[#E6B95C]/10 border-[#E6B95C]/25'

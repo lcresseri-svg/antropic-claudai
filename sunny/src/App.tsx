@@ -34,6 +34,7 @@ import { SyncStatusBanner } from './app/SyncStatusBanner';
 import { AppHeader } from './app/AppHeader';
 import { AppRoutes } from './app/AppRoutes';
 import { useTransactionEditing } from './app/useTransactionEditing';
+import { useWealthSnapshot } from './features/wealth/useWealthSnapshot';
 
 function Loader({ phase }: { phase: string }) {
   const [secs, setSecs] = useState(0);
@@ -139,6 +140,13 @@ function Main({ user, onLogOut, onDeleteAccount }: {
   const budget = useBudget(user);
   const editing = useTransactionEditing(user, tx);
 
+  // Fotografia settimanale del patrimonio: costruisce lo storico che i dati
+  // non hanno (il controvalore esiste solo come "valore di adesso").
+  useWealthSnapshot({
+    user, transactions: tx.transactions, accounts, categories,
+    synced: tx.synced, settingsLoaded,
+  });
+
   const [importOpen, setImportOpen] = useState(false);
   const [settingsOpen, setSettingsOpen] = useState(false);
   const [showPushPromo, setShowPushPromo] = useState(false);
@@ -241,7 +249,7 @@ function Main({ user, onLogOut, onDeleteAccount }: {
       <div className="flex-1 md:ml-[220px] min-w-0 flex flex-col h-full overflow-hidden">
 
         <AppHeader
-          brand={brand} monthLine={location.pathname === '/' ? monthContext() : undefined}
+          brand={brand} monthLine={monthContext()}
           loading={tx.loading} isSettings={isSettings}
           settingsOpen={settingsOpen} onToggleSettings={setSettingsOpen}
           onImport={() => setImportOpen(true)}
@@ -258,7 +266,7 @@ function Main({ user, onLogOut, onDeleteAccount }: {
 
         {/* Budget month-setup prompt — shown until the current month is confirmed */}
         {enableBudget && budget.showBudgetPrompt && !isSettings && (
-          <div className="max-w-2xl mx-auto md:max-w-none px-5 md:px-8 pt-3">
+          <div className="max-w-2xl mx-auto md:max-w-none px-4 md:px-8 pt-3">
             <BudgetSetupBanner
               month={budget.currentMonth}
               copiedFromPrevious={budget.monthlySource === 'copied_from_previous_month'}
@@ -268,7 +276,7 @@ function Main({ user, onLogOut, onDeleteAccount }: {
           </div>
         )}
 
-        <main className="max-w-2xl mx-auto md:max-w-none px-5 md:px-8 pt-4 md:pt-2 pb-24 md:pb-2">
+        <main className="max-w-2xl mx-auto md:max-w-none px-4 md:px-8 pt-4 md:pt-2 pb-24 md:pb-2">
           <AppRoutes
             user={user} brand={brand} tx={tx} budget={budget} editing={editing}
             onLogOut={onLogOut} onDeleteAccount={onDeleteAccount}

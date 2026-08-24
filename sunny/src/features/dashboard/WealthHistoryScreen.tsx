@@ -72,7 +72,7 @@ export function WealthHistoryScreen({ transactions }: Props) {
       <p className="text-[13px] text-secondary mb-5 ml-12">Liquidità e investimenti insieme, nel tempo.</p>
 
       {/* Sticky period selector */}
-      <div className="sticky top-0 z-10 -mx-5 px-5 md:-mx-8 md:px-8 pt-1 pb-3 bg-bg border-b border-divider mb-5">
+      <div className="sticky top-0 z-10 -mx-4 px-4 md:-mx-8 md:px-8 pt-1 pb-3 bg-bg border-b border-divider mb-5">
         <div className="flex items-center gap-1.5">
           {WEALTH_PERIOD_OPTS.map(opt => (
             <button

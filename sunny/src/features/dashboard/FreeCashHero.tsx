@@ -23,6 +23,12 @@ interface Props {
   invested: number;
   /** Nasconde la colonna "Investito" quando gli investimenti sono disattivati. */
   showInvested?: boolean;
+  /** Le tre voci del mese portano alle rispettive analisi. Erano l'unico
+   *  ingresso a /income, /category-spending e /investments dalla home: senza,
+   *  quelle schermate restavano esistenti ma irraggiungibili. */
+  onOpenIncome?: () => void;
+  onOpenExpenses?: () => void;
+  onOpenInvested?: () => void;
 }
 
 const RING_R = 82;
@@ -98,27 +104,50 @@ export function FreeCashHero(p: Props) {
   );
 }
 
-function MonthStats({ income, expenses, invested, showInvested = true, className, size }: {
+function MonthStats({
+  income, expenses, invested, showInvested = true, className, size,
+  onOpenIncome, onOpenExpenses, onOpenInvested,
+}: {
   income: number;
   expenses: number;
   invested: number;
   showInvested?: boolean;
   className: string;
   size: 'sm' | 'lg';
+  onOpenIncome?: () => void;
+  onOpenExpenses?: () => void;
+  onOpenInvested?: () => void;
 }) {
   const valueCls = size === 'lg' ? 'text-[18px]' : 'text-[15px]';
   const itemCls = size === 'lg' ? '' : 'flex-1 min-w-0';
-  const item = (label: string, value: number, color: string) => (
-    <div className={itemCls}>
-      <p className={`label-caps text-secondary ${size === 'lg' ? 'mb-1.5' : 'mb-1'}`}>{label}</p>
-      <p className={`balance-num font-semibold truncate ${valueCls} ${color}`}>{formatCurrency(value)}</p>
-    </div>
-  );
+  const item = (label: string, value: number, color: string, onOpen?: () => void) => {
+    const body = (
+      <>
+        <p className={`label-caps text-secondary flex items-center gap-1 ${size === 'lg' ? 'mb-1.5' : 'mb-1'}`}>
+          {label}
+          {onOpen && (
+            <svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5"
+              strokeLinecap="round" strokeLinejoin="round" className="text-tertiary flex-none">
+              <path d="m9 18 6-6-6-6" />
+            </svg>
+          )}
+        </p>
+        <p className={`balance-num font-semibold truncate ${valueCls} ${color}`}>{formatCurrency(value)}</p>
+      </>
+    );
+    if (!onOpen) return <div key={label} className={itemCls}>{body}</div>;
+    return (
+      <button key={label} type="button" onClick={onOpen} aria-label={`Analizza ${label.toLowerCase()}`}
+        className={`text-left active:opacity-70 transition-opacity ${itemCls}`}>
+        {body}
+      </button>
+    );
+  };
   return (
     <div className={className}>
-      {item('Entrate', income, 'text-green')}
-      {item('Uscite', expenses, 'text-primary')}
-      {showInvested && item('Investito', invested, 'text-gold')}
+      {item('Entrate', income, 'text-green', onOpenIncome)}
+      {item('Uscite', expenses, 'text-primary', onOpenExpenses)}
+      {showInvested && item('Investito', invested, 'text-gold', onOpenInvested)}
     </div>
   );
 }

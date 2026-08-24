@@ -68,7 +68,7 @@ export function ReleaseDialog({
     >
       <div className="absolute inset-0 bg-black/70 backdrop-blur-md animate-fade-in-fast" />
       <div className="relative w-full max-w-md glass-elevated rounded-[26px] shadow-elev-2 animate-sheet-up
-                      overflow-hidden max-h-[88vh] overflow-y-auto scrollbar-hide"
+                      overflow-hidden max-h-[88dvh] overflow-y-auto scrollbar-hide"
         style={{ borderTop: '1px solid var(--hero-border-top)' }}>
 
         {/* Testa: superficie calda + bordo alto oro */}

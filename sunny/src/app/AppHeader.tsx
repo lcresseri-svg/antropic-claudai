@@ -3,9 +3,10 @@ import { ArcLogo } from '../shared/components/ArcLogo';
 
 interface Props {
   brand: string;
-  /** Sulla home il saluto lascia il posto al contesto del mese
-   *  ("Agosto · giorno 24 di 31"): il saluto resta, ma su desktop, dentro la
-   *  dashboard. Altrove l'header continua a mostrare il brand. */
+  /** Contesto del mese ("Agosto · giorno 24 di 31"). L'header mobile mostra
+   *  sempre questo, in ogni schermata: il saluto ("Buonasera, Luca") cambiava
+   *  a seconda dell'ora e non diceva dove sei. Il saluto resta su desktop,
+   *  dentro la dashboard. Assente → torna il brand. */
   monthLine?: string;
   loading: boolean;
   isSettings: boolean;
@@ -19,7 +20,7 @@ export function AppHeader({ brand, monthLine, loading, isSettings, settingsOpen,
   const navigate = useNavigate();
   return (
     <header className="shrink-0 z-[40] glass-header md:hidden">
-      <div className="max-w-2xl mx-auto px-5 h-14 flex items-center justify-between">
+      <div className="max-w-2xl mx-auto px-4 h-14 flex items-center justify-between">
         <div className="flex items-center gap-2.5 min-w-0">
           <button type="button" onClick={() => navigate('/')} aria-label="Vai alla dashboard"
             className="flex items-center gap-2.5 min-w-0 active:opacity-70 transition-opacity">

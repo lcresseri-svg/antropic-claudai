@@ -29,6 +29,8 @@ interface SettingsValue {
   aiCoachWidgetEnabled: boolean;
   /** Deposito di sicurezza (€) sottratto dalla liquidità libera. 0 = non impostato. */
   cashReserve: number;
+  /** Ordine scelto per i blocchi della home (solo telefono). Vuoto = default. */
+  homeOrder: string[];
   detailedInvestments: boolean; // per-user gated: fund-type classification + TFR
   settingsLoaded: boolean;      // true after first Firestore snapshot resolves
   getCat: (id: string) => CategoryDef;
@@ -43,6 +45,7 @@ interface SettingsValue {
   saveAiEnabled: (v: boolean) => void;
   saveAiCoachWidgetEnabled: (v: boolean) => void;
   saveCashReserve: (v: number) => void;
+  saveHomeOrder: (order: string[]) => void;
   /** Update an investment category's manually-entered market value (+ timestamp). */
   saveCurrentValue: (categoryId: string, value: number) => void;
 }
@@ -90,6 +93,7 @@ export function SettingsProvider({ user, children }: { user: User | null; childr
   const [aiEnabled, setAiEnabled] = useState(false);
   const [aiCoachWidgetEnabled, setAiCoachWidgetEnabled] = useState(false);
   const [cashReserve, setCashReserve] = useState(DEFAULT_CASH_RESERVE);
+  const [homeOrder, setHomeOrder] = useState<string[]>([]);
   const [settingsLoaded, setSettingsLoaded] = useState(false);
 
   // Apply theme class to <html> immediately when state changes, and cache it so
@@ -111,6 +115,7 @@ export function SettingsProvider({ user, children }: { user: User | null; childr
       setAiEnabled(false);
       setAiCoachWidgetEnabled(false);
       setCashReserve(DEFAULT_CASH_RESERVE);
+      setHomeOrder([]);
       setSettingsLoaded(false);
       return;
     }
@@ -139,6 +144,7 @@ export function SettingsProvider({ user, children }: { user: User | null; childr
       setAiEnabled(d.aiEnabled ?? false);
       setAiCoachWidgetEnabled(d.aiCoachWidgetEnabled ?? false);
       setCashReserve(typeof d.cashReserve === 'number' && d.cashReserve >= 0 ? d.cashReserve : DEFAULT_CASH_RESERVE);
+      setHomeOrder(Array.isArray(d.homeOrder) ? (d.homeOrder as unknown[]).filter((x): x is string => typeof x === 'string') : []);
       setSettingsLoaded(true);
     });
   // uid, not user object — avoids listener recreation on every token refresh.
@@ -198,6 +204,11 @@ export function SettingsProvider({ user, children }: { user: User | null; childr
 
   // Mai negativa (stessa clamp del modulo puro availableCash). Chi chiama
   // dovrebbe già farlo di suo: qui è la rete di sicurezza prima della scrittura.
+  const saveHomeOrder = useCallback((order: string[]) => {
+    setHomeOrder(order);
+    if (user) setDoc(settingsRef(), { homeOrder: order }, MERGE);
+  }, [user, settingsRef]);
+
   const saveCashReserve = useCallback((v: number) => {
     const next = Math.max(0, Number.isFinite(v) ? v : 0);
     setCashReserve(next);
@@ -236,7 +247,7 @@ export function SettingsProvider({ user, children }: { user: User | null; childr
   );
 
   return (
-    <SettingsContext.Provider value={{ categories, accounts, visibleCategories, visibleAccounts, theme, includeInvestments, enableInvestments, enableBudget, insightDepth, aiEnabled, aiCoachWidgetEnabled, cashReserve, detailedInvestments, settingsLoaded, getCat, getAcc, saveCategories, saveAccounts, saveTheme, saveIncludeInvestments, saveEnableInvestments, saveEnableBudget, saveInsightDepth, saveAiEnabled, saveAiCoachWidgetEnabled, saveCashReserve, saveCurrentValue }}>
+    <SettingsContext.Provider value={{ categories, accounts, visibleCategories, visibleAccounts, theme, includeInvestments, enableInvestments, enableBudget, insightDepth, aiEnabled, aiCoachWidgetEnabled, cashReserve, homeOrder, detailedInvestments, settingsLoaded, getCat, getAcc, saveCategories, saveAccounts, saveTheme, saveIncludeInvestments, saveEnableInvestments, saveEnableBudget, saveInsightDepth, saveAiEnabled, saveAiCoachWidgetEnabled, saveCashReserve, saveHomeOrder, saveCurrentValue }}>
       {children}
     </SettingsContext.Provider>
   );

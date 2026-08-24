@@ -81,6 +81,7 @@ export function BudgetScreenV2({
   const [editOpen, setEditOpen] = useState(false);
   const [editSection, setEditSection] = useState<EditSection>('expenses');
   const [focusCategory, setFocusCategory] = useState<string | null>(null);
+  const [recapOpen, setRecapOpen] = useState(false);
 
   const expenseCats    = useMemo(() => visibleCategories.filter(c => c.kind === 'expense'),    [visibleCategories]);
   const incomeCats     = useMemo(() => visibleCategories.filter(c => c.kind === 'income'),     [visibleCategories]);
@@ -455,16 +456,47 @@ export function BudgetScreenV2({
         />
       </div>
 
-      {/* Archivio riepiloghi: una riga sola, non dodici. */}
+      {/* Archivio riepiloghi: una riga che APRE l'elenco, non che salta
+          all'ultimo mese. Collassandola a una scorciatoia i mesi precedenti
+          erano diventati irraggiungibili. */}
       {recapMonths.length > 0 && (
-        <button onClick={() => navigate(`/recap/${recapMonths[0].ym}`)}
-          className="w-full glass-card rounded-[18px] px-4 py-3.5 flex items-center justify-between gap-3 text-left">
-          <span className="text-[13.5px] text-primary">
-            Riepiloghi mensili
-            <span className="text-secondary"> · {recapMonths.length} {recapMonths.length === 1 ? 'mese' : 'mesi'}</span>
-          </span>
-          <span className="text-[12px] font-semibold text-gold flex-none">Archivio ›</span>
-        </button>
+        <div className="glass-card rounded-[18px] overflow-hidden">
+          <button onClick={() => setRecapOpen(o => !o)} aria-expanded={recapOpen}
+            className="w-full px-4 py-3.5 flex items-center justify-between gap-3 text-left">
+            <span className="text-[13.5px] text-primary">
+              Riepiloghi mensili
+              <span className="text-secondary"> · {recapMonths.length} {recapMonths.length === 1 ? 'mese' : 'mesi'}</span>
+            </span>
+            <span className="flex items-center gap-1 text-[12px] font-semibold text-gold flex-none">
+              {recapOpen ? 'Chiudi' : 'Archivio'}
+              <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2"
+                strokeLinecap="round" strokeLinejoin="round"
+                className={`transition-transform ${recapOpen ? 'rotate-180' : ''}`}>
+                <path d="M6 9l6 6 6-6" />
+              </svg>
+            </span>
+          </button>
+          {recapOpen && (
+            <div className="border-t border-divider">
+              {recapMonths.map(r => (
+                <button key={r.ym} onClick={() => navigate(`/recap/${r.ym}`)}
+                  className="w-full flex items-center justify-between gap-3 px-4 py-3 border-b border-divider last:border-0 active:bg-card-hover transition-colors text-left">
+                  <span className="flex items-center gap-2.5 min-w-0">
+                    <span className="text-base">📄</span>
+                    <span className="text-[14px] text-primary truncate">{r.label}</span>
+                  </span>
+                  <span className="flex items-center gap-2 flex-shrink-0">
+                    <span className={`text-[13px] font-semibold balance-num ${r.saved >= 0 ? 'text-green' : 'text-red'}`}>
+                      {r.saved >= 0 ? '+' : '−'}{formatCurrency(Math.abs(r.saved))}
+                    </span>
+                    <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.4"
+                      strokeLinecap="round" strokeLinejoin="round" className="text-tertiary"><path d="m9 18 6-6-6-6" /></svg>
+                  </span>
+                </button>
+              ))}
+            </div>
+          )}
+        </div>
       )}
 
       <BudgetEditSheet
