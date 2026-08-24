@@ -144,14 +144,16 @@ export function DashboardV2(p: Props) {
       series={wealth.series}
       deltaPct={wealth.deltaPct}
       onOpenHistory={() => navigate('/wealth-history')}
+      // Entrambe portano al tab Patrimonio: è lì che i due blocchi vivono
+      // ora, uno sopra l'altro.
       rows={[
         {
           icon: '🏦', color: '#6FA8DC', label: 'Saldo per conto', value: p.liquidity,
-          onClick: p.onSeeAccountBalance ?? (() => navigate('/account-balance')),
+          onClick: () => navigate('/wealth'),
         },
         ...(enableInvestments ? [{
           icon: '📊', color: '#E6B95C', label: 'Investimenti per categoria',
-          value: p.investmentTotal, gold: true, onClick: p.onSeeInvestments,
+          value: p.investmentTotal, gold: true, onClick: () => navigate('/wealth'),
         }] : []),
       ]}
     />

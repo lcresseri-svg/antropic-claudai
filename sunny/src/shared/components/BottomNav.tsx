@@ -13,7 +13,7 @@ export function BottomNav({ onAdd }: Props) {
       <div className="max-w-md mx-auto px-3 pb-2 flex justify-center">
         <div className="pointer-events-auto w-full flex items-center justify-around glass-nav rounded-[28px] px-2 py-1.5 shadow-float">
           <NavBtn to="/" label="Oggi" icon={<HomeIcon />} />
-          <NavBtn to="/insights" label="Consigli" icon={<InsightIcon />} />
+          <NavBtn to="/wealth" label="Patrimonio" icon={<WealthIcon />} />
 
           <button
             onClick={onAdd}
@@ -47,11 +47,13 @@ function NavBtn({ to, label, icon }: { to: string; label: string; icon: React.Re
   );
 }
 
-function InsightIcon() {
+// I consigli restano raggiungibili dalla home ("prossima mossa") e dal Piano:
+// nella nav il posto va al Patrimonio, che è una domanda che ci si fa più
+// spesso di "cosa mi consigli?".
+function WealthIcon() {
   return (
     <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.75" strokeLinecap="round" strokeLinejoin="round">
-      <path d="M9 18h6"/><path d="M10 21h4"/>
-      <path d="M12 2a7 7 0 0 0-4 12.7c.6.5 1 1.3 1 2.3h6c0-1 .4-1.8 1-2.3A7 7 0 0 0 12 2z"/>
+      <path d="M3 17l5-5 4 3 5-7"/><path d="M3 21h18"/>
     </svg>
   );
 }

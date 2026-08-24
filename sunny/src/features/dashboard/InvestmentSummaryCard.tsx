@@ -31,17 +31,16 @@ export function InvestmentSummaryCard({ investmentByCategory, total, onClick }: 
         </p>
         <span className="text-[13px] font-semibold balance-num text-gold">{formatCurrency(total)}</span>
       </div>
-      <div className="flex items-center gap-5">
-        <Donut segments={segments} centerLabel="Investito" size={132} />
+      {/* Niente colonna percentuali: su 390px si mangiava il nome della
+          categoria ("A…"), e la proporzione la dice già l'arco della torta. */}
+      <div className="flex items-center gap-4">
+        <Donut segments={segments} centerLabel="Investito" size={118} />
         <ul className="flex-1 space-y-2.5 min-w-0">
           {segments.slice(0, 6).map(s => (
             <li key={s.label} className="flex items-center gap-2.5 min-w-0">
               <span className="w-2.5 h-2.5 rounded-full flex-shrink-0" style={{ backgroundColor: s.color }} />
               <span className="text-[13px] text-secondary truncate flex-1">{s.label}</span>
-              <span className="text-[12px] text-secondary balance-num flex-shrink-0">
-                {Math.round((s.value / total) * 100)}%
-              </span>
-              <span className="text-[13px] font-medium text-primary balance-num flex-shrink-0 w-16 text-right">{formatCurrency(s.value)}</span>
+              <span className="text-[13px] font-semibold text-primary balance-num flex-shrink-0">{formatCurrency(s.value)}</span>
             </li>
           ))}
         </ul>
