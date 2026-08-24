@@ -3,16 +3,16 @@
  *
  *   liquidità disponibile = liquidità − uscite future già impegnate − riserva
  *
- * "Già impegnate" nel periodo scelto (7/14/30 giorni o fine mese):
- *  - occorrenze future di serie ricorrenti (proiettate in memoria da
- *    buildProjectedOccurrences, che salta ciò che è già materializzato →
- *    nessun doppio conteggio con le spese registrate);
- *  - uscite una-tantum già registrate con data futura (pianificate).
- * I trasferimenti non sono mai spese (esclusi), le spese condivise contano per
- * la sola quota propria, e le entrate future NON compensano (prudenza).
+ * "Già impegnate" nel periodo scelto (7/14/30 giorni o fine mese): l'elenco
+ * degli eventi è quello CONDIVISO con la schermata Impegni
+ * (commitmentProjection.buildCommitmentEvents — ricorrenti proiettate senza
+ * doppioni + una-tantum future). Qui cambia solo COME si somma: ogni evento
+ * conta per la sola quota propria (`ownShare`), mentre Impegni somma l'importo
+ * pieno. I trasferimenti non sono mai spese (esclusi) e le entrate future NON
+ * compensano (prudenza).
  */
 import { Transaction, ownShare } from '../../types';
-import { buildProjectedOccurrences, isPending, isExpiredTemplate } from '../../shared/recurrence';
+import { buildCommitmentEvents, addDaysISO } from './commitmentProjection';
 
 export type CashHorizon = 7 | 14 | 30 | 'eom';
 
@@ -38,11 +38,6 @@ export interface AvailableCashResult {
 }
 
 const r2 = (n: number) => Math.round(n * 100) / 100;
-
-function addDaysISO(iso: string, days: number): string {
-  const [y, m, d] = iso.split('-').map(Number);
-  return new Date(Date.UTC(y, m - 1, d + days)).toISOString().slice(0, 10);
-}
 
 function endOfMonthISO(iso: string): string {
   const [y, m] = iso.split('-').map(Number);
@@ -82,37 +77,11 @@ export function computeAvailableCash(opts: {
   const todayISO = (opts.now ?? new Date()).toISOString().slice(0, 10);
   const horizonEndISO = horizon === 'eom' ? endOfMonthISO(todayISO) : addDaysISO(todayISO, horizon);
 
-  const items: CommittedItem[] = [];
+  // Stessa lista di eventi della schermata Impegni; la quota propria si applica
+  // QUI, in fase di somma (una spesa condivisa impegna solo la parte tua).
+  const items: CommittedItem[] = buildCommitmentEvents(transactions, todayISO, horizonEndISO)
+    .map(e => ({ date: e.date, description: e.description, amount: r2(ownShare(e.source)), kind: e.kind }));
 
-  // Next due occurrence of each ACTIVE recurring series: the template's own
-  // date (kept current by the catch-up/Cloud Function). Projections below are
-  // strictly AFTER this date, so nothing is counted twice.
-  for (const t of transactions) {
-    if (t.type !== 'expense' || !t.recurring || t.projected || isExpiredTemplate(t)) continue;
-    if (t.recurring.until && t.recurring.until < t.date) continue;
-    if (t.date <= todayISO || t.date > horizonEndISO) continue;
-    items.push({ date: t.date, description: t.description, amount: r2(ownShare(t)), kind: 'ricorrente' });
-  }
-
-  // Further future occurrences of recurring series inside the horizon. The
-  // projection engine already skips materialized occurrences and expired
-  // templates, and starts AFTER the template's own date.
-  for (const p of buildProjectedOccurrences(transactions, todayISO, horizonEndISO)) {
-    if (p.type !== 'expense') continue;
-    items.push({ date: p.date, description: p.description, amount: r2(ownShare(p)), kind: 'ricorrente' });
-  }
-
-  // One-off planned expenses already recorded with a future date. Series
-  // instances (seriesId) are excluded: their future is covered above and their
-  // past is already in the balance.
-  for (const t of transactions) {
-    if (t.type !== 'expense' || t.recurring || t.seriesId || t.projected) continue;
-    if (!isPending(t, todayISO)) continue;
-    if (t.date > horizonEndISO) continue;
-    items.push({ date: t.date, description: t.description, amount: r2(ownShare(t)), kind: 'pianificata' });
-  }
-
-  items.sort((a, b) => a.date.localeCompare(b.date));
   const committed = r2(items.reduce((s, i) => s + i.amount, 0));
   const available = r2(liquidity - committed - reserve);
 

@@ -15,6 +15,7 @@
  */
 import { Transaction, SeriesKind, Freq } from '../../types';
 import { buildSeriesSummary, monthlyEquivalent, SeriesSummary } from '../../shared/recurrence';
+import { buildCommitmentEvents, addDaysISO } from './commitmentProjection';
 
 export interface Commitment {
   seriesId: string;
@@ -105,12 +106,11 @@ export function buildCommitments(
     [...subscriptions, ...installments, ...recurring].reduce((s, c) => s + c.monthlyEquivalent, 0),
   );
 
-  // Prossime scadenze (30 giorni): direttamente dai template attivi.
-  const horizon = new Date(Date.parse(todayISO) + 30 * 86_400_000).toISOString().slice(0, 10);
-  const upcoming = active
-    .filter(s => s.nextDate && s.nextDate > todayISO && s.nextDate <= horizon)
-    .map(s => ({ date: s.nextDate as string, description: s.description, amount: r2(s.amount) }))
-    .sort((a, b) => a.date.localeCompare(b.date));
+  // Prossime scadenze (30 giorni): la lista di eventi CONDIVISA con la liquidità
+  // disponibile (commitmentProjection) — stesse occorrenze, deduplicate allo
+  // stesso modo. Qui si somma l'importo PIENO, lì la sola quota propria.
+  const upcoming = buildCommitmentEvents(allTransactions, todayISO, addDaysISO(todayISO, 30))
+    .map(e => ({ date: e.date, description: e.description, amount: e.amount }));
 
   return { subscriptions, installments, recurring, fixedMonthlyCost, upcoming };
 }
