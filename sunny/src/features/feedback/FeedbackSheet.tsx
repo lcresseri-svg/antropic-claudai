@@ -26,7 +26,7 @@ export function FeedbackSheet({ open, user, onClose }: Props) {
     <div className="fixed inset-0 z-[60] flex items-end sm:items-center justify-center p-3"
       onClick={e => { if (e.target === e.currentTarget) onClose(); }}>
       <div className="absolute inset-0 bg-black/70 backdrop-blur-md animate-fade-in-fast" />
-      <div className="relative w-full max-w-md glass-elevated rounded-3xl shadow-float animate-sheet-up max-h-[85vh] flex flex-col">
+      <div className="relative w-full max-w-md glass-elevated rounded-3xl shadow-float animate-sheet-up max-h-[85dvh] flex flex-col">
 
         {/* Header */}
         <div className="flex items-center justify-between px-6 pt-6 pb-3 shrink-0">

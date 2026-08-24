@@ -1,4 +1,4 @@
-export const APP_VERSION = '2.0.0';
+export const APP_VERSION = '2.0.1';
 
 /**
  * Release channel. While in 'beta' the app is still under active development
@@ -29,6 +29,18 @@ export interface VersionEntry {
 
 /** Registro versioni mostrato in Impostazioni → Registro versioni. */
 export const VERSIONS: VersionEntry[] = [
+  {
+    version: '2.0.1', date: '2026-08-24', title: 'Deposito, riordino e rifiniture',
+    changes: [
+      'Deposito di sicurezza: dì quanto vuoi tenere sempre da parte (Impostazioni → Deposito di sicurezza) e viene sottratto dalla liquidità libera, insieme alle uscite già programmate. Non blocca niente e non sposta soldi: cambia solo quanto ti diciamo che puoi spendere. Finché non lo imposti vale zero.',
+      'Riordina la home: dal pulsante in fondo alla dashboard scegli tu l\'ordine dei blocchi. Vale solo su telefono; la liquidità libera resta sempre in cima.',
+      'Sunny fotografa il patrimonio una volta a settimana, così l\'andamento si costruisce nel tempo. Dove non c\'è un controvalore aggiornato usa il capitale versato, senza mai inventare un valore di mercato.',
+      'Dalle tre voci del mese in home (entrate, uscite, investito) si torna alle rispettive analisi: la schermata Entrate era diventata irraggiungibile.',
+      'L\'archivio dei riepiloghi mensili si apre di nuovo per intero, invece di saltare all\'ultimo mese.',
+      'La ✕ delle finestre ora chiude davvero, anche con la tastiera aperta: erano dimensionate su un\'altezza che il telefono non rispetta, e la loro testa finiva fuori schermo.',
+      'In alto, nelle schermate interne, c\'è il mese invece del saluto; i movimenti hanno lo stesso aspetto con qualsiasi raggruppamento; e le card sono un po\' più larghe sul telefono.',
+    ],
+  },
   {
     version: '2.0.0', date: '2026-08-24', title: 'Sunny ha un nuovo aspetto',
     highlight: true, // ← accende il popup "Novità" per tutti gli utenti

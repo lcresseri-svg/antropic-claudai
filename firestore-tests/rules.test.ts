@@ -194,6 +194,14 @@ describe('meta/* specific rules', () => {
     await assertSucceeds(setDoc(doc(db, `users/${A}/meta/settings`), { cashReserve: 1500 }));
     await assertFails(setDoc(doc(db, `users/${A}/meta/settings`), { cashReserve: -1 }));
     await assertFails(setDoc(doc(db, `users/${A}/meta/settings`), { cashReserve: '500' }));
+    // Ordine dei blocchi della home: lista corta. Il contenuto lo filtra il
+    // client (gli id sconosciuti vengono scartati), qui conta solo il tipo.
+    await assertSucceeds(setDoc(doc(db, `users/${A}/meta/settings`),
+      { homeOrder: ['mossa', 'ritmo', 'uscite', 'patrimonio'] }));
+    await assertSucceeds(setDoc(doc(db, `users/${A}/meta/settings`), { homeOrder: [] }));
+    await assertFails(setDoc(doc(db, `users/${A}/meta/settings`), { homeOrder: 'mossa' }));
+    await assertFails(setDoc(doc(db, `users/${A}/meta/settings`),
+      { homeOrder: Array.from({ length: 21 }, (_, i) => `b${i}`) }));
   });
   it('budget: negative savingsTarget rejected; maps required when present', async () => {
     const db = dbOf(A);

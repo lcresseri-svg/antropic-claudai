@@ -63,20 +63,22 @@ export function BudgetEditSheet({
     <div className="fixed inset-0 z-[60] flex items-end sm:items-center justify-center p-3"
       onClick={e => { if (e.target === e.currentTarget) onClose(); }}>
       <div className="absolute inset-0 bg-black/70 backdrop-blur-md animate-fade-in-fast" />
-      <div className="relative w-full max-w-md glass-elevated rounded-3xl shadow-float animate-sheet-up max-h-[85vh] flex flex-col">
+      <div className="relative w-full max-w-md glass-elevated rounded-3xl shadow-float animate-sheet-up max-h-[85dvh] flex flex-col">
 
-        {/* Header */}
-        <div className="flex items-center justify-between px-6 pt-6 pb-3 shrink-0">
+        {/* Header — sticky: con la tastiera numerica aperta il contenuto si
+            muove, la testa no, quindi la ✕ resta dov'è.
+
+            La ✕ chiude su `click`, come ogni altro bottone. Prima chiudeva su
+            `pointerdown` per aggirare il fatto che la sheet, dimensionata in
+            `vh`, sporgeva oltre il viewport visibile e la testa finiva fuori
+            schermo: si vedeva la ✕ ma il tocco cadeva altrove, e restava solo
+            "Fine" in fondo. Sistemata la misura (`dvh`, che segue il viewport
+            dinamico), il workaround non serve — e faceva danni suoi, perché il
+            click successivo alla chiusura cadeva su quello che c'era sotto. */}
+        <div className="flex items-center justify-between px-6 pt-6 pb-3 shrink-0 sticky top-0 z-10 bg-[var(--modal-hdr-bg)] rounded-t-3xl">
           <h3 className="text-base font-semibold text-primary">Modifica budget</h3>
-          {/* Closing is finicky on iOS: with the number keyboard open, the tap
-              first dismisses it and shifts this bottom-anchored sheet, so a normal
-              click lands off the moved button. We fire on pointer-down (before the
-              shift) and preventDefault so focus isn't stolen mid-tap; a click
-              fallback covers any device that doesn't deliver pointer events. */}
-          <button type="button" aria-label="Chiudi"
-            onPointerDown={e => { e.preventDefault(); onClose(); }}
-            onClick={onClose}
-            className="w-10 h-10 -mr-1.5 rounded-full bg-elevated flex items-center justify-center text-secondary text-base active:scale-90 transition-transform">✕</button>
+          <button type="button" aria-label="Chiudi" onClick={onClose}
+            className="w-11 h-11 -mr-2 rounded-full bg-elevated flex items-center justify-center text-secondary text-base active:scale-90 transition-transform">✕</button>
         </div>
 
         {/* Tabs */}

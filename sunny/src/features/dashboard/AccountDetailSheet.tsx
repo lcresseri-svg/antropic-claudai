@@ -73,7 +73,7 @@ export function AccountDetailSheet({
     <div className="fixed inset-0 z-[60] flex items-end md:items-stretch md:justify-end" role="dialog" aria-modal="true">
       <button aria-label="Chiudi" onClick={onClose} className="absolute inset-0 bg-black/70 animate-fade-in-fast" />
 
-      <div className="relative w-full md:w-[460px] md:max-w-[92vw] md:h-full max-h-[88vh] md:max-h-none
+      <div className="relative w-full md:w-[460px] md:max-w-[92vw] md:h-full max-h-[88dvh] md:max-h-none
                       glass-elevated rounded-t-3xl md:rounded-t-none md:rounded-l-3xl shadow-float
                       flex flex-col animate-sheet-up overflow-hidden">
         {/* Header */}

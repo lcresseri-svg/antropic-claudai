@@ -115,7 +115,10 @@ service cloud.firestore {
           && (!('enableBudget' in request.resource.data) || request.resource.data.enableBudget is bool)
           && (!('aiEnabled' in request.resource.data) || request.resource.data.aiEnabled is bool)
           // Riserva di sicurezza della liquidità disponibile: numero mai negativo.
-          && (!('cashReserve' in request.resource.data) || (request.resource.data.cashReserve is number && request.resource.data.cashReserve >= 0));
+          && (!('cashReserve' in request.resource.data) || (request.resource.data.cashReserve is number && request.resource.data.cashReserve >= 0))
+          // Ordine dei blocchi della home: lista corta di id. Il client scarta
+          // comunque gli id sconosciuti, qui si limita solo la dimensione.
+          && (!('homeOrder' in request.resource.data) || (request.resource.data.homeOrder is list && request.resource.data.homeOrder.size() <= 20));
       }
 
       match /meta/budget {

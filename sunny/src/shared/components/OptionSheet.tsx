@@ -17,7 +17,7 @@ export function OptionSheet({ open, title, options, onPick, onClose, footer }: P
     <div className="fixed inset-0 z-[60] flex items-end sm:items-center justify-center p-3"
       onClick={e => { if (e.target === e.currentTarget) onClose(); }}>
       <div className="absolute inset-0 bg-black/70 backdrop-blur-md animate-fade-in-fast" />
-      <div className="relative w-full max-w-md glass-elevated rounded-3xl shadow-float animate-sheet-up max-h-[72vh] flex flex-col">
+      <div className="relative w-full max-w-md glass-elevated rounded-3xl shadow-float animate-sheet-up max-h-[72dvh] flex flex-col">
 
         <div className="flex items-center justify-between px-6 pt-6 pb-4">
           <h3 className="text-base font-semibold text-primary">{title}</h3>

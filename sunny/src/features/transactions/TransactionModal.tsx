@@ -438,7 +438,7 @@ export function TransactionModal({ open, editing, groupTransfers = [], seriesEdi
           The CARD ITSELF never scrolls: it's a fixed mask (header + footer)
           around an internal scrolling window (the form fields). overscroll-contain
           stops the scroll from chaining to the page when the window hits its end. */}
-      <div className="relative w-full max-w-none h-full max-h-full sm:max-w-lg sm:h-auto sm:max-h-[88vh] glass-elevated rounded-3xl shadow-float overflow-hidden flex flex-col animate-sheet-up">
+      <div className="relative w-full max-w-none h-full max-h-full sm:max-w-lg sm:h-auto sm:max-h-[88dvh] glass-elevated rounded-3xl shadow-float overflow-hidden flex flex-col animate-sheet-up">
         {/* Testa: ✕ a sinistra, segmented al centro. Il titolo sparisce — con
             il tipo selezionato davanti agli occhi non diceva nulla di nuovo. */}
         <div className="shrink-0 bg-[var(--modal-hdr-bg)] px-5 pt-5 pb-3 flex items-center gap-3">

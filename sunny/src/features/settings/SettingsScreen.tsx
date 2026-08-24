@@ -10,6 +10,7 @@ import { ExpenseShortcutSection } from './ExpenseShortcutSection';
 import { removeCategoryDef, removeAccountDef, visibleDefs } from './softDelete';
 import { buildExportPayload, downloadJson, downloadCsv, BudgetExportInput } from './dataExport';
 import { isForecastV4EnabledForUser } from '../forecast/forecastFeatureGate';
+import { formatCurrency } from '../../utils';
 import { isAdminUser } from '../../shared/featureFlags';
 import { isFeatureEnabled } from '../../shared/featureRollout';
 import { APP_VERSION, APP_CHANNEL, VERSIONS } from '../../appInfo';
@@ -26,7 +27,7 @@ interface Props {
 
 const newId = () => `x_${Date.now().toString(36)}`;
 type Sub = 'menu' | 'generali' | 'gestione' | 'dati' | 'accounts' | 'categories' | 'info' | 'versioni'
-  | 'aspetto' | 'budget' | 'investimenti' | 'ai' | 'notifiche' | 'avanzate' | 'shortcut';
+  | 'aspetto' | 'budget' | 'investimenti' | 'ai' | 'notifiche' | 'avanzate' | 'shortcut' | 'riserva';
 
 type DragState = {
   list: 'accounts' | TransactionType;
@@ -45,7 +46,7 @@ function reorder<T>(arr: T[], from: number, to: number): T[] {
 export function SettingsScreen({ user, transactions, budgetExport, onLogOut, onDeleteAll, onDeleteAccount }: Props) {
   const navigate = useNavigate();
   const location = useLocation();
-  const { categories, accounts, visibleCategories, visibleAccounts, theme, includeInvestments, enableInvestments, enableBudget, insightDepth, aiEnabled, aiCoachWidgetEnabled, detailedInvestments, saveCategories, saveAccounts, saveTheme, saveIncludeInvestments, saveEnableInvestments, saveEnableBudget, saveInsightDepth, saveAiEnabled, saveAiCoachWidgetEnabled } = useSettings();
+  const { categories, accounts, visibleCategories, visibleAccounts, theme, includeInvestments, enableInvestments, enableBudget, insightDepth, aiEnabled, aiCoachWidgetEnabled, detailedInvestments, cashReserve, saveCategories, saveAccounts, saveTheme, saveIncludeInvestments, saveEnableInvestments, saveEnableBudget, saveInsightDepth, saveAiEnabled, saveAiCoachWidgetEnabled, saveCashReserve } = useSettings();
   const [sub, setSub] = useState<Sub>('menu');
   const [editing, setEditing] = useState<{ kind: 'category' | 'account'; draft: DefDraft; isNew: boolean; withKind?: boolean } | null>(null);
   const [confirmReset, setConfirmReset] = useState(false);
@@ -75,7 +76,7 @@ export function SettingsScreen({ user, transactions, budgetExport, onLogOut, onD
   useEffect(() => {
     const s = new URLSearchParams(location.search).get('section');
     const valid: Sub[] = ['generali', 'gestione', 'dati', 'accounts', 'categories', 'info', 'versioni',
-      'aspetto', 'budget', 'investimenti', 'ai', 'notifiche', 'avanzate'];
+      'aspetto', 'budget', 'investimenti', 'ai', 'notifiche', 'avanzate', 'riserva'];
     if (s && (valid as string[]).includes(s)) setSub(s as Sub);
   }, [location.search]);
 
@@ -432,6 +433,10 @@ export function SettingsScreen({ user, transactions, budgetExport, onLogOut, onD
                   on={enableBudget} onToggle={() => saveEnableBudget(!enableBudget)} />
                 <SwitchRow icon="✨" color="#8A9270" label="AI abilitata" sub="Suggerimenti e riepilogo mensile"
                   on={aiEnabled} onToggle={() => saveAiEnabled(!aiEnabled)} />
+                <Row icon="🛟" color="#8FB0A0" label="Deposito di sicurezza"
+                  sub="Quanto tenere da parte"
+                  value={cashReserve > 0 ? formatCurrency(cashReserve) : 'Nessuno'}
+                  onClick={() => enterSub('riserva')} />
                 <Row icon="📊" color="#6FA8DC" label="Investimenti" sub="Portafoglio e capitale" onClick={() => enterSub('investimenti')} />
                 <Row icon="🔍" color="#8B8B8B" label="Profondità delle analisi"
                   sub="Quanti dettagli negli insight" value={DEPTH_LABEL[insightDepth]} onClick={() => enterSub('avanzate')} />
@@ -519,6 +524,15 @@ export function SettingsScreen({ user, transactions, budgetExport, onLogOut, onD
           <ManageHeader title="Piano e budget" editMode={false} onBack={exitToMenu} onToggleEdit={() => {}} hideEdit />
           <div className="space-y-5 md:max-w-xl">
             <SettingsGroup title="Piano">{rowBudget}</SettingsGroup>
+          </div>
+        </>
+      )}
+
+      {sub === 'riserva' && (
+        <>
+          <ManageHeader title="Deposito di sicurezza" editMode={false} onBack={exitToMenu} onToggleEdit={() => {}} hideEdit />
+          <div className="space-y-4 md:max-w-xl">
+            <CashReserveEditor value={cashReserve} onSave={saveCashReserve} />
           </div>
         </>
       )}
@@ -1038,5 +1052,75 @@ function GripIcon() {
       <circle cx="4" cy="13" r="1.5"/>
       <circle cx="10" cy="13" r="1.5"/>
     </svg>
+  );
+}
+
+/** Quanto aspettare prima di scrivere su Firestore mentre si digita: senza,
+ *  "1500" diventerebbe quattro scritture. Stesso valore della schermata
+ *  Liquidità disponibile, che modifica lo stesso campo. */
+const RESERVE_SAVE_DEBOUNCE_MS = 600;
+
+/** Importi proposti: coprono i casi tipici senza costringere a digitare. */
+const RESERVE_PRESETS = [0, 500, 1000, 2000];
+
+/**
+ * Editor del deposito di sicurezza.
+ *
+ * Il campo resta LOCALE mentre si digita (l'anteprima risponde subito) e salva
+ * in debounce; il valore persistito resta la fonte di verità e riallinea il
+ * campo quando cambia da fuori (primo snapshot, altro dispositivo).
+ */
+function CashReserveEditor({ value, onSave }: { value: number; onSave: (v: number) => void }) {
+  const [draft, setDraft] = useState(value);
+
+  useEffect(() => { setDraft(value); }, [value]);
+
+  useEffect(() => {
+    if (draft === value) return;
+    const t = setTimeout(() => onSave(draft), RESERVE_SAVE_DEBOUNCE_MS);
+    return () => clearTimeout(t);
+  }, [draft, value, onSave]);
+
+  return (
+    <>
+      <div className="glass-card rounded-[20px] shadow-elev-1 p-5">
+        <label htmlFor="cash-reserve" className="label-caps text-secondary block mb-3">
+          Quanto tenere sempre da parte
+        </label>
+        <div className="relative">
+          <span className="absolute left-4 top-1/2 -translate-y-1/2 text-secondary text-lg">€</span>
+          <input id="cash-reserve" type="number" inputMode="decimal" min={0} step={50} value={draft}
+            onChange={e => setDraft(Math.max(0, Number(e.target.value) || 0))}
+            className="w-full bg-elevated rounded-2xl pl-9 pr-4 py-3.5 text-[22px] font-bold text-primary
+                       balance-num outline-none focus:ring-1 focus:ring-gold/40" />
+        </div>
+
+        <div className="flex gap-2 mt-3">
+          {RESERVE_PRESETS.map(v => (
+            <button key={v} type="button" onClick={() => setDraft(v)}
+              className={`flex-1 py-2 rounded-xl text-[12.5px] font-semibold transition-colors ${
+                draft === v ? 'bg-primary text-bg' : 'bg-elevated text-secondary'}`}>
+              {v === 0 ? 'Nessuno' : `${v.toLocaleString('it-IT')} €`}
+            </button>
+          ))}
+        </div>
+      </div>
+
+      <div className="glass-card rounded-[20px] p-5">
+        <p className="text-[13.5px] text-primary leading-relaxed">
+          È il cuscinetto che non vuoi toccare. Viene <b>sottratto dalla liquidità libera</b> in
+          home, insieme alle uscite già programmate: il numero in cima diventa quello che puoi
+          spendere <i>davvero</i>, senza intaccare il deposito.
+        </p>
+        <p className="text-[12.5px] text-secondary leading-relaxed mt-3">
+          Non blocca niente e non sposta soldi: nessun conto viene toccato, e il patrimonio non
+          cambia. Cambia solo quanto Sunny ti dice che puoi spendere.
+        </p>
+        <p className="text-[12.5px] text-secondary leading-relaxed mt-3">
+          A <span className="text-primary font-medium">Nessuno</span> il deposito è spento e la
+          liquidità libera torna a essere la sola liquidità meno gli impegni del mese.
+        </p>
+      </div>
+    </>
   );
 }

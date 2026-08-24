@@ -24,7 +24,7 @@ export function PeriodControls({ period, onPeriodChange, offset, onOffsetChange,
   // stare pill e navigatore sulla stessa riga a 390px.
   const shown = label.replace(new RegExp(`\\s*${new Date().getFullYear()}$`), '');
   return (
-    <div className="sticky top-0 z-10 -mx-5 px-5 md:-mx-8 md:px-8 pt-1 pb-3 bg-bg border-b border-divider mb-4">
+    <div className="sticky top-0 z-10 -mx-4 px-4 md:-mx-8 md:px-8 pt-1 pb-3 bg-bg border-b border-divider mb-4">
       <div className="flex items-center gap-2">
         <div className="flex items-center gap-1 flex-1 min-w-0 overflow-x-auto scrollbar-hide">
           {PERIOD_OPTS.map(opt => (

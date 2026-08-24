@@ -198,7 +198,7 @@ export function InvestmentDetailSheet({
       <button aria-label="Chiudi" onClick={onClose} className="absolute inset-0 bg-black/70 animate-fade-in-fast" />
 
       <div ref={panelRef} tabIndex={-1}
-        className="relative w-full md:w-[460px] md:max-w-[92vw] md:h-full max-h-[88vh] md:max-h-none
+        className="relative w-full md:w-[460px] md:max-w-[92vw] md:h-full max-h-[88dvh] md:max-h-none
                    glass-elevated rounded-t-3xl md:rounded-t-none md:rounded-l-3xl shadow-float
                    flex flex-col animate-sheet-up overflow-hidden outline-none">
         {/* Header */}

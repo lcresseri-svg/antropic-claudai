@@ -14,7 +14,7 @@ export function SheetShell({ open, title, onClose, children }: {
       <div className="absolute inset-0 bg-black/60 backdrop-blur-sm animate-fade-in-fast" />
       {/* The card is a fixed mask (header stays put); only the content window
           scrolls, and overscroll-contain keeps the scroll from chaining out. */}
-      <div className="relative w-full max-w-sm sm:max-w-lg glass-elevated rounded-3xl shadow-float max-h-[88vh] overflow-hidden flex flex-col animate-sheet-up">
+      <div className="relative w-full max-w-sm sm:max-w-lg glass-elevated rounded-3xl shadow-float max-h-[88dvh] overflow-hidden flex flex-col animate-sheet-up">
         <div className="shrink-0 bg-[var(--modal-hdr-bg)] px-5 pt-5 pb-3 flex items-center justify-between">
           <h2 className="text-base font-semibold text-primary">{title}</h2>
           <button onClick={onClose} className="w-8 h-8 rounded-full bg-elevated flex items-center justify-center text-secondary">✕</button>

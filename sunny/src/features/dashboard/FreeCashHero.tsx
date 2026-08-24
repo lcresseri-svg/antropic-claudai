@@ -2,24 +2,33 @@
 //
 // Il numero grande NON è la liquidità, è la liquidità LIBERA: quello che resta
 // sui conti una volta messi da parte gli impegni già programmati entro fine
-// mese (ricorrenze proiettate + uscite future già registrate). L'anello dice
-// che quota della liquidità è ancora libera.
+// mese (ricorrenze proiettate + uscite future già registrate) e il deposito di
+// sicurezza che l'utente ha deciso di non toccare. L'anello dice che quota
+// della liquidità è ancora libera.
 //
 // Unica card con `shadow-elev-2` della schermata: è la regola del redesign.
 
 import { formatCurrency } from '../../utils';
 
 interface Props {
-  /** liquidità − impegni entro fine mese. */
+  /** liquidità − impegni entro fine mese − deposito di sicurezza. */
   freeCash: number;
   liquidity: number;
   /** Somma degli impegni già programmati (0 quando non ce ne sono). */
   committed: number;
+  /** Deposito di sicurezza impostato dall'utente; 0 = spento. */
+  reserve?: number;
   income: number;
   expenses: number;
   invested: number;
   /** Nasconde la colonna "Investito" quando gli investimenti sono disattivati. */
   showInvested?: boolean;
+  /** Le tre voci del mese portano alle rispettive analisi. Erano l'unico
+   *  ingresso a /income, /category-spending e /investments dalla home: senza,
+   *  quelle schermate restavano esistenti ma irraggiungibili. */
+  onOpenIncome?: () => void;
+  onOpenExpenses?: () => void;
+  onOpenInvested?: () => void;
 }
 
 const RING_R = 82;
@@ -34,6 +43,16 @@ function splitAmount(value: number): { head: string; tail: string } {
 
 export function FreeCashHero(p: Props) {
   const { head, tail } = splitAmount(p.freeCash);
+  const reserve = p.reserve ?? 0;
+  // "Libera" ha senso solo se qualcosa è stato messo da parte: senza impegni e
+  // senza deposito il numero È la liquidità, e chiamarlo altrimenti confonde.
+  const isFree = p.committed > 0 || reserve > 0;
+  // La frase si compone dai soli pezzi che esistono: "1.980 € sono già
+  // programmati", "500 € sono il tuo deposito di sicurezza", o entrambi.
+  const setAside = [
+    p.committed > 0 && `${formatCurrency(p.committed)} sono già programmati`,
+    reserve > 0 && `${formatCurrency(reserve)} sono il tuo deposito di sicurezza`,
+  ].filter(Boolean).join(' e ');
   // Quota libera sulla liquidità. Con liquidità ≤ 0 non c'è nulla da
   // rappresentare: l'anello resta vuoto invece di mostrare una percentuale finta.
   const ratio = p.liquidity > 0 ? Math.min(1, Math.max(0, p.freeCash / p.liquidity)) : 0;
@@ -44,16 +63,15 @@ export function FreeCashHero(p: Props) {
       <div className="flex items-center gap-[18px] md:gap-7">
         <div className="flex-1 min-w-0">
           <p className="label-caps text-secondary mb-2 md:mb-2.5">
-            {p.committed > 0 ? 'Liquidità libera' : 'Liquidità'}
+            {isFree ? 'Liquidità libera' : 'Liquidità'}
           </p>
           <p className="balance-num font-bold text-primary text-[40px] leading-none md:text-[56px] md:leading-[0.95]">
             {head}
             <span className="text-[20px] md:text-[26px] font-semibold text-secondary">{tail}</span>
           </p>
-          {p.committed > 0 && (
+          {isFree && (
             <p className="mt-2.5 md:mt-3.5 text-[12px] md:text-[12.5px] text-secondary leading-relaxed">
-              Su {formatCurrency(p.liquidity)} di liquidità,{' '}
-              {formatCurrency(p.committed)} sono già programmati.
+              Su {formatCurrency(p.liquidity)} di liquidità, {setAside}.
             </p>
           )}
         </div>
@@ -86,27 +104,50 @@ export function FreeCashHero(p: Props) {
   );
 }
 
-function MonthStats({ income, expenses, invested, showInvested = true, className, size }: {
+function MonthStats({
+  income, expenses, invested, showInvested = true, className, size,
+  onOpenIncome, onOpenExpenses, onOpenInvested,
+}: {
   income: number;
   expenses: number;
   invested: number;
   showInvested?: boolean;
   className: string;
   size: 'sm' | 'lg';
+  onOpenIncome?: () => void;
+  onOpenExpenses?: () => void;
+  onOpenInvested?: () => void;
 }) {
   const valueCls = size === 'lg' ? 'text-[18px]' : 'text-[15px]';
   const itemCls = size === 'lg' ? '' : 'flex-1 min-w-0';
-  const item = (label: string, value: number, color: string) => (
-    <div className={itemCls}>
-      <p className={`label-caps text-secondary ${size === 'lg' ? 'mb-1.5' : 'mb-1'}`}>{label}</p>
-      <p className={`balance-num font-semibold truncate ${valueCls} ${color}`}>{formatCurrency(value)}</p>
-    </div>
-  );
+  const item = (label: string, value: number, color: string, onOpen?: () => void) => {
+    const body = (
+      <>
+        <p className={`label-caps text-secondary flex items-center gap-1 ${size === 'lg' ? 'mb-1.5' : 'mb-1'}`}>
+          {label}
+          {onOpen && (
+            <svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5"
+              strokeLinecap="round" strokeLinejoin="round" className="text-tertiary flex-none">
+              <path d="m9 18 6-6-6-6" />
+            </svg>
+          )}
+        </p>
+        <p className={`balance-num font-semibold truncate ${valueCls} ${color}`}>{formatCurrency(value)}</p>
+      </>
+    );
+    if (!onOpen) return <div key={label} className={itemCls}>{body}</div>;
+    return (
+      <button key={label} type="button" onClick={onOpen} aria-label={`Analizza ${label.toLowerCase()}`}
+        className={`text-left active:opacity-70 transition-opacity ${itemCls}`}>
+        {body}
+      </button>
+    );
+  };
   return (
     <div className={className}>
-      {item('Entrate', income, 'text-green')}
-      {item('Uscite', expenses, 'text-primary')}
-      {showInvested && item('Investito', invested, 'text-gold')}
+      {item('Entrate', income, 'text-green', onOpenIncome)}
+      {item('Uscite', expenses, 'text-primary', onOpenExpenses)}
+      {showInvested && item('Investito', invested, 'text-gold', onOpenInvested)}
     </div>
   );
 }

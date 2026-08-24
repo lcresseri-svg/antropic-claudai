@@ -616,49 +616,56 @@ export function TransactionList({ transactions, projected = [], onEdit, onDelete
           ))}
         </div>
       ) : (
-        <div className="space-y-4 mt-3">
+        /* Gli altri raggruppamenti (mese, conto, categoria) hanno lo stesso
+           ASPETTO della vista per giorno: intestazione fuori dalla card, righe
+           dentro una card con divisori. Cambia solo cosa raggruppa — e la data
+           resta nella riga, perché lì non è nell'intestazione. */
+        <div className="space-y-3.5 mt-1">
         {groups.map(([key, txs]) => {
           const isCollapsed = collapsed.has(key);
+          const hasReal = groupHasReal(txs);
           return (
-            <div key={key} className="bg-card rounded-2xl p-4">
-              <div className="w-full flex items-center justify-between mb-1 px-1">
-                <div className="flex items-center gap-1.5 min-w-0">
-                  {selectMode && groupHasReal(txs) && (
-                    <button onClick={() => toggleGroup(txs)} aria-label="Seleziona gruppo"
-                      className={`w-5 h-5 rounded-full border-2 flex items-center justify-center flex-shrink-0 transition-colors mr-0.5 ${
-                        groupAllSelected(txs) ? 'bg-gold border-gold' : 'border-divider'
-                      }`}>
-                      {groupAllSelected(txs) && <span className="text-bg text-xs font-bold">✓</span>}
-                    </button>
-                  )}
-                  <button onClick={() => toggleCollapse(key)} className="flex items-center gap-1.5 min-w-0 group">
-                    <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"
-                      className={`text-secondary flex-shrink-0 transition-transform ${isCollapsed ? '-rotate-90' : ''}`}>
-                      <path d="m6 9 6 6 6-6"/>
-                    </svg>
-                    <h4 className="label-caps text-secondary truncate group-hover:text-primary transition-colors">{groupTitle(key)}</h4>
-                    {isCollapsed && <span className="text-[11px] text-secondary/60 flex-shrink-0">· {txs.length}</span>}
+            <div key={key}>
+              <div className="flex items-center gap-2 px-1 mb-1.5">
+                {selectMode && hasReal && (
+                  <button onClick={() => toggleGroup(txs)} aria-label="Seleziona gruppo"
+                    className={`w-5 h-5 rounded-full border-2 flex items-center justify-center flex-none transition-colors ${
+                      groupAllSelected(txs) ? 'bg-gold border-gold' : 'border-divider'
+                    }`}>
+                    {groupAllSelected(txs) && <span className="text-bg text-xs font-bold">✓</span>}
                   </button>
-                </div>
-                {groupHasReal(txs) ? (
-                  <span className="flex items-center gap-1 flex-shrink-0">
+                )}
+                <button onClick={() => toggleCollapse(key)} aria-expanded={!isCollapsed}
+                  className="flex items-center gap-1.5 min-w-0 flex-1 text-left">
+                  <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5"
+                    strokeLinecap="round" strokeLinejoin="round"
+                    className={`text-tertiary flex-none transition-transform ${isCollapsed ? '-rotate-90' : ''}`}>
+                    <path d="m6 9 6 6 6-6" />
+                  </svg>
+                  <span className="text-[12px] font-semibold text-secondary truncate">{groupTitle(key)}</span>
+                  <span className="text-[11px] text-tertiary flex-none">· {txs.length}</span>
+                </button>
+                {hasReal ? (
+                  <span className="flex items-center gap-1 flex-none">
                     {groupHasInvestment(txs) && (
                       <OutflowInfo ariaLabel="Dettaglio flusso" lines={groupFlowLines(txs)} />
                     )}
-                    <span className={`text-xs font-medium balance-num ${groupSum(txs) >= 0 ? 'text-green' : 'text-secondary'}`}>
+                    <span className={`balance-num text-[12px] font-semibold ${
+                      groupSum(txs) >= 0 ? 'text-green' : 'text-secondary'}`}>
                       {formatCurrency(groupSum(txs), { sign: true })}
                     </span>
                   </span>
                 ) : (
-                  <span className="text-xs font-medium balance-num flex-shrink-0 text-secondary/70">
-                    previsto {formatCurrency(groupProjectedSum(txs), { sign: true })}
+                  <span className="balance-num text-[12px] font-semibold text-gold flex-none">
+                    {formatCurrency(groupProjectedSum(txs), { sign: true })}
                   </span>
                 )}
               </div>
               {!isCollapsed && (
-                <div className="divide-y divide-divider">
+                <div className={`rounded-[18px] px-3.5 divide-y divide-divider ${
+                  hasReal ? 'glass-card shadow-elev-1' : 'border border-dashed border-gold/50'}`}>
                   {txs.map(tx => (
-                    <TransactionRow key={tx.id} tx={tx} upcoming={isUpcoming(tx)}
+                    <TransactionRow key={tx.id} tx={tx} upcoming={isUpcoming(tx)} todayISO={TODAY_ISO}
                       seriesFreq={tx.seriesId ? seriesFreqById.get(tx.seriesId) : undefined}
                       installmentPaid={installmentIndexById.get(tx.id)}
                       selectable={selectMode && !tx.projected} selected={selected.has(tx.id)}
