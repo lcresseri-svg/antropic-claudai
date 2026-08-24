@@ -7,6 +7,8 @@ import { isPending } from '../../shared/recurrence';
 import { aggregateFlow, netFlowDelta } from '../../shared/financialFlow';
 import { OutflowInfo, FlowInfoLine } from '../../shared/components/OutflowInfo';
 import { TransactionRow } from './TransactionRow';
+import { MonthSummaryHeader } from './MonthSummaryHeader';
+import { buildMonthSections, dayLabel, longDayLabel } from './listGrouping';
 import { OptionSheet } from '../../shared/components/OptionSheet';
 
 const TODAY_ISO = new Date().toISOString().slice(0, 10);
@@ -25,7 +27,7 @@ interface Props {
   onAdd: () => void;
 }
 
-type GroupMode = 'month' | 'account' | 'category';
+type GroupMode = 'day' | 'month' | 'account' | 'category';
 type SortKey = 'date' | 'amount';
 type SortDir = 'desc' | 'asc';
 type PeriodFilter = 'all' | '1m' | '3m' | '6m' | '1y';
@@ -97,8 +99,11 @@ export function TransactionList({ transactions, projected = [], onEdit, onDelete
   const dateFilter = searchParams.get('date');
   const clearDateFilter = () => setSearchParams(p => { p.delete('date'); return p; }, { replace: true });
   const [search, setSearch] = useState('');
+  // La ricerca non è più una barra sempre presente: è un'icona che si apre.
+  const [searchOpen, setSearchOpen] = useState(false);
   const [typeFilter, setTypeFilter] = useState<TransactionType | 'all'>('all');
-  const [groupMode, setGroupMode] = useState<GroupMode>('month');
+  // Per giorno è la vista di default: è come si guarda il mese in corso.
+  const [groupMode, setGroupMode] = useState<GroupMode>('day');
   const [sortKey, setSortKey] = useState<SortKey>('date');
   const [sortDir, setSortDir] = useState<SortDir>('desc');
   const [period, setPeriod] = useState<PeriodFilter>('all');
@@ -226,6 +231,12 @@ export function TransactionList({ transactions, projected = [], onEdit, onDelete
     return Array.from(map.entries());
   }, [filtered, groupMode]);
 
+  // Vista per giorno: due livelli (mese → giorno) sulle stesse righe filtrate.
+  const monthSections = useMemo(
+    () => (groupMode === 'day' ? buildMonthSections(filtered, isUpcoming) : []),
+    [filtered, groupMode],
+  );
+
   const groupTitle = (key: string) =>
     groupMode === 'month' ? capitalize(formatMonthLong(key))
       : groupMode === 'account' ? `${getAcc(key).icon} ${getAcc(key).label}`
@@ -313,7 +324,7 @@ export function TransactionList({ transactions, projected = [], onEdit, onDelete
     exitSelect();
   };
 
-  const filterActive = period !== 'all' || sortKey !== 'date' || sortDir !== 'desc' || projView !== PROJ_DEFAULT || groupMode !== 'month';
+  const filterActive = period !== 'all' || sortKey !== 'date' || sortDir !== 'desc' || projView !== PROJ_DEFAULT || groupMode !== 'day';
   const periodLabel = PERIOD_OPTS.find(o => o.value === period)!.label;
   const projLabel = PROJ_OPTS.find(o => o.value === projView)!.label;
   const dirLabels: [SortDir, string][] = sortKey === 'amount'
@@ -321,43 +332,76 @@ export function TransactionList({ transactions, projected = [], onEdit, onDelete
     : [['desc', 'Più recenti'], ['asc', 'Meno recenti']];
 
   return (
-    <div className="space-y-4 pb-28">
-      {/* Controls */}
-      <div className="space-y-3">
-        {/* Search + filter */}
-        <div className="flex gap-2">
+    <div className="pb-28">
+      {/* Header 56px — titolo, ricerca a icona, selezione multipla */}
+      <div className="h-14 flex items-center gap-2">
+        {searchOpen ? (
           <div className="relative flex-1">
             <svg className="absolute left-3.5 top-1/2 -translate-y-1/2 text-secondary" width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
               <circle cx="11" cy="11" r="7"/><path d="m21 21-4.35-4.35"/>
             </svg>
             <input
-              type="text" value={search} onChange={e => setSearch(e.target.value)}
+              autoFocus type="text" value={search} onChange={e => setSearch(e.target.value)}
               placeholder="Cerca per nome, importo, data, conto…"
-              className="w-full bg-card rounded-2xl pl-9 pr-9 py-2.5 text-sm text-primary placeholder:text-secondary/50 outline-none focus:ring-1 focus:ring-gold/40"
+              className="w-full bg-card rounded-2xl pl-9 pr-3 py-2.5 text-sm text-primary placeholder:text-secondary/50 outline-none focus:ring-1 focus:ring-gold/40"
             />
-            {search && (
-              <button onClick={() => setSearch('')} className="absolute right-3 top-1/2 -translate-y-1/2 text-secondary hover:text-primary transition-colors">
-                <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round">
-                  <path d="M18 6 6 18M6 6l12 12"/>
-                </svg>
-              </button>
-            )}
           </div>
-          <div className="relative">
-            <button onClick={() => setFilterOpen(o => !o)} aria-label="Filtri e ordinamento"
-              className={`relative h-full px-3 rounded-2xl flex items-center gap-1.5 text-sm transition-colors ${
-                filterActive || filterOpen ? 'bg-gold/10 text-gold' : 'bg-card text-secondary hover:text-primary'
-              }`}>
-              <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+        ) : (
+          <h1 className="flex-1 text-[17px] md:text-xl font-semibold text-primary tracking-[-0.03em]">Movimenti</h1>
+        )}
+        <div className="flex items-center gap-1 flex-none">
+          <HeaderIconBtn
+            active={searchOpen || !!search}
+            label={searchOpen ? 'Chiudi la ricerca' : 'Cerca'}
+            onClick={() => { if (searchOpen) setSearch(''); setSearchOpen(o => !o); }}>
+            {searchOpen ? (
+              <svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round">
+                <path d="M18 6 6 18M6 6l12 12"/>
+              </svg>
+            ) : (
+              <svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                <circle cx="11" cy="11" r="7"/><path d="m21 21-4.35-4.35"/>
+              </svg>
+            )}
+          </HeaderIconBtn>
+          <HeaderIconBtn active={selectMode} label={selectMode ? 'Annulla selezione' : 'Seleziona'}
+            onClick={() => (selectMode ? exitSelect() : setSelectMode(true))}>
+            <svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.75" strokeLinecap="round" strokeLinejoin="round">
+              <rect x="3" y="3" width="7" height="7" rx="1.5"/>
+              <rect x="14" y="3" width="7" height="7" rx="1.5"/>
+              <rect x="3" y="14" width="7" height="7" rx="1.5"/>
+              <path d="m14 17.5 2 2 4-4"/>
+            </svg>
+          </HeaderIconBtn>
+        </div>
+      </div>
+
+      {/* Una riga sola di filtri. Il pannello vive FUORI dallo scroller
+          orizzontale, altrimenti verrebbe tagliato dall'overflow. */}
+      <div className="relative">
+        <div className="flex gap-1.5 overflow-x-auto scrollbar-hide -mx-1 px-1 py-1">
+          <PillBtn active={typeFilter === 'all'} onClick={() => setTypeFilter('all')}>
+            Tutte · {filtered.length}
+          </PillBtn>
+          {usedTypes.map(t => (
+            <PillBtn key={t} active={typeFilter === t} dot={typeColor(t, theme)}
+              onClick={() => setTypeFilter(typeFilter === t ? 'all' : t)}>
+              {TYPE_META[t].label}
+            </PillBtn>
+          ))}
+          <PillBtn active={filterActive || filterOpen} onClick={() => setFilterOpen(o => !o)}
+            icon={
+              <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round">
                 <line x1="4" y1="6" x2="20" y2="6"/><line x1="7" y1="12" x2="17" y2="12"/><line x1="10" y1="18" x2="14" y2="18"/>
               </svg>
-              {filterActive && <span className="w-1.5 h-1.5 rounded-full bg-gold" />}
-            </button>
-
+            }>
+            Filtri
+          </PillBtn>
+        </div>
             {filterOpen && (
               <>
                 <div className="fixed inset-0 z-40" onClick={() => setFilterOpen(false)} />
-                <div className="absolute right-0 mt-2 w-56 z-50 glass-elevated rounded-2xl shadow-float p-2.5 max-h-[70dvh] overflow-y-auto overscroll-contain animate-fade-in-fast">
+                <div className="absolute right-0 top-full mt-1 w-56 z-50 glass-elevated rounded-2xl shadow-float p-2.5 max-h-[70dvh] overflow-y-auto overscroll-contain animate-fade-in-fast">
                   <p className="label-caps text-secondary mb-1.5 px-1">Ordina per</p>
                   <div className="flex gap-1 bg-card rounded-xl p-1 mb-2">
                     {([['date', 'Data'], ['amount', 'Importo']] as [SortKey, string][]).map(([key, lbl]) => (
@@ -381,7 +425,7 @@ export function TransactionList({ transactions, projected = [], onEdit, onDelete
                   </div>
                   <p className="label-caps text-secondary mb-1.5 px-1">Raggruppa per</p>
                   <div className="space-y-1 mb-2.5">
-                    {([['month', 'Per mese'], ['account', 'Per conto'], ['category', 'Per categoria']] as [GroupMode, string][]).map(([m, lbl]) => (
+                    {([['day', 'Per giorno'], ['month', 'Per mese'], ['account', 'Per conto'], ['category', 'Per categoria']] as [GroupMode, string][]).map(([m, lbl]) => (
                       <button key={m} onClick={() => { changeGroup(m); setFilterOpen(false); }}
                         className={`w-full flex items-center justify-between px-3 py-1.5 rounded-xl text-[13px] transition-colors ${
                           groupMode === m ? 'bg-gold/10 text-gold font-medium' : 'text-primary hover:bg-card'
@@ -395,6 +439,12 @@ export function TransactionList({ transactions, projected = [], onEdit, onDelete
                       </button>
                     ))}
                   </div>
+                  {groupMode !== 'day' && groups.length > 1 && (
+                    <button onClick={() => { toggleAll(); setFilterOpen(false); }}
+                      className="w-full text-left px-3 py-1.5 rounded-xl text-[13px] text-primary hover:bg-card transition-colors mb-2.5">
+                      {allCollapsed ? 'Espandi tutti i gruppi' : 'Comprimi tutti i gruppi'}
+                    </button>
+                  )}
                   <p className="label-caps text-secondary mb-1.5 px-1">Periodo</p>
                   <div className="space-y-1">
                     {PERIOD_OPTS.map(opt => (
@@ -435,10 +485,9 @@ export function TransactionList({ transactions, projected = [], onEdit, onDelete
                 </div>
               </>
             )}
-          </div>
-        </div>
+      </div>
 
-        {/* Filtri attivi — pill rimovibili */}
+      {/* Filtri attivi — pill rimovibili */}
         {(period !== 'all' || projView !== PROJ_DEFAULT || catFilter || accFilter || seriesFilter || investFilter) && (
           <div className="flex flex-wrap gap-2">
             {investFilter && (
@@ -507,49 +556,68 @@ export function TransactionList({ transactions, projected = [], onEdit, onDelete
           </div>
         )}
 
-        {/* Type filter + action buttons — one row */}
-        <div className="flex items-center gap-2">
-          <div className="flex gap-1.5 overflow-x-auto scrollbar-hide flex-1 -mx-1 px-1">
-            <PillBtn active={typeFilter === 'all'} onClick={() => setTypeFilter('all')}>Tutte</PillBtn>
-            {usedTypes.map(t => (
-              <PillBtn key={t} active={typeFilter === t} dot={typeColor(t, theme)}
-                onClick={() => setTypeFilter(typeFilter === t ? 'all' : t)}>
-                {TYPE_META[t].label}
-              </PillBtn>
-            ))}
-          </div>
-          <div className="flex items-center gap-1 flex-shrink-0">
-            {groups.length > 1 && (
-              <button onClick={toggleAll}
-                className="text-xs font-medium text-secondary px-2 py-1.5 active:bg-card-hover rounded-lg transition-colors">
-                {allCollapsed ? 'Espandi' : 'Comprimi'}
-              </button>
-            )}
-            <button onClick={() => selectMode ? exitSelect() : setSelectMode(true)}
-              aria-label={selectMode ? 'Annulla selezione' : 'Seleziona'}
-              className={`w-8 h-8 rounded-xl flex items-center justify-center transition-colors ${
-                selectMode ? 'bg-gold/10 text-gold' : 'text-secondary hover:text-primary'
-              }`}>
-              <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.75" strokeLinecap="round" strokeLinejoin="round">
-                <rect x="3" y="3" width="7" height="7" rx="1.5"/>
-                <rect x="14" y="3" width="7" height="7" rx="1.5"/>
-                <rect x="3" y="14" width="7" height="7" rx="1.5"/>
-                <path d="m14 17.5 2 2 4-4"/>
-              </svg>
-            </button>
-          </div>
-        </div>
-      </div>
-
-      {/* Groups */}
+      {/* Vista di default: mese → giorno. Gli altri raggruppamenti restano
+          disponibili dal pannello filtri e usano la lista collassabile. */}
       {filtered.length === 0 ? (
-        <div className="bg-card rounded-2xl p-10 text-center">
+        <div className="glass-card rounded-2xl p-10 text-center mt-3">
           <p className="text-3xl mb-3 opacity-60">🔍</p>
           <p className="text-sm text-secondary">{search ? `Nessun risultato per "${search}"` : 'Nessuna transazione'}</p>
           {!search && <button onClick={onAdd} className="mt-3 text-sm font-medium text-gold">+ Aggiungi</button>}
         </div>
+      ) : groupMode === 'day' ? (
+        <div className="space-y-6 mt-1">
+          {monthSections.map(sec => (
+            <section key={sec.ym}>
+              <MonthSummaryHeader
+                ym={sec.ym} realized={sec.txs.filter(t => !isUpcoming(t))}
+                realizedCount={sec.realizedCount} upcomingCount={sec.upcomingCount}
+                net={groupSum(sec.txs)}
+              />
+              <div className="mt-3.5 space-y-3.5">
+                {sec.days.map(day => {
+                  const total = day.upcoming ? groupProjectedSum(day.txs) : groupSum(day.txs);
+                  return (
+                    <div key={day.iso}>
+                      <div className="flex items-center gap-2 px-1 mb-1.5">
+                        {selectMode && groupHasReal(day.txs) && (
+                          <button onClick={() => toggleGroup(day.txs)} aria-label="Seleziona il giorno"
+                            className={`w-5 h-5 rounded-full border-2 flex items-center justify-center flex-none transition-colors ${
+                              groupAllSelected(day.txs) ? 'bg-gold border-gold' : 'border-divider'
+                            }`}>
+                            {groupAllSelected(day.txs) && <span className="text-bg text-xs font-bold">✓</span>}
+                          </button>
+                        )}
+                        <p className={`text-[12px] font-semibold flex-1 min-w-0 truncate ${
+                          day.upcoming ? 'text-gold' : 'text-secondary'}`}>
+                          {day.upcoming ? `Programmato · ${longDayLabel(day.iso)}` : dayLabel(day.iso, TODAY_ISO)}
+                        </p>
+                        <p className={`balance-num text-[12px] font-semibold flex-none ${
+                          day.upcoming ? 'text-gold' : 'text-secondary'}`}>
+                          {formatCurrency(total, { sign: true })}
+                        </p>
+                      </div>
+                      <div className={`rounded-[18px] px-3.5 divide-y divide-divider ${
+                        day.upcoming
+                          ? 'border border-dashed border-gold/50'
+                          : 'glass-card shadow-elev-1'}`}>
+                        {day.txs.map(tx => (
+                          <TransactionRow key={tx.id} tx={tx} upcoming={isUpcoming(tx)} hideDate todayISO={TODAY_ISO}
+                            seriesFreq={tx.seriesId ? seriesFreqById.get(tx.seriesId) : undefined}
+                            installmentPaid={installmentIndexById.get(tx.id)}
+                            selectable={selectMode && !tx.projected} selected={selected.has(tx.id)}
+                            onToggle={toggle} onClick={onEdit} />
+                        ))}
+                      </div>
+                    </div>
+                  );
+                })}
+              </div>
+            </section>
+          ))}
+        </div>
       ) : (
-        groups.map(([key, txs]) => {
+        <div className="space-y-4 mt-3">
+        {groups.map(([key, txs]) => {
           const isCollapsed = collapsed.has(key);
           return (
             <div key={key} className="bg-card rounded-2xl p-4">
@@ -600,7 +668,8 @@ export function TransactionList({ transactions, projected = [], onEdit, onDelete
               )}
             </div>
           );
-        })
+        })}
+        </div>
       )}
 
       {/* Bulk action bar */}
@@ -636,13 +705,31 @@ export function TransactionList({ transactions, projected = [], onEdit, onDelete
   );
 }
 
-function PillBtn({ children, active, dot, onClick }: { children: React.ReactNode; active: boolean; dot?: string; onClick: () => void }) {
+/** Chip della riga filtri: il selezionato è PIENO (non oro al 10%), così la
+ *  riga dice a colpo d'occhio dove sei anche scorrendola di lato. */
+function PillBtn({ children, active, dot, icon, onClick }: {
+  children: React.ReactNode; active: boolean; dot?: string; icon?: React.ReactNode; onClick: () => void;
+}) {
   return (
     <button onClick={onClick}
       className={`flex items-center gap-1.5 px-3.5 py-1.5 rounded-full text-xs font-semibold whitespace-nowrap transition-colors ${
-        active ? 'bg-gold/10 text-gold' : 'text-secondary hover:text-primary active:bg-card-hover'
+        active ? 'bg-primary text-bg' : 'glass-card text-secondary hover:text-primary'
       }`}>
       {dot && <span className="w-1.5 h-1.5 rounded-full flex-shrink-0" style={{ backgroundColor: dot }} />}
+      {icon}
+      {children}
+    </button>
+  );
+}
+
+function HeaderIconBtn({ children, active, label, onClick }: {
+  children: React.ReactNode; active?: boolean; label: string; onClick: () => void;
+}) {
+  return (
+    <button type="button" onClick={onClick} aria-label={label}
+      className={`w-9 h-9 rounded-xl flex items-center justify-center transition-colors ${
+        active ? 'bg-gold/10 text-gold' : 'text-secondary hover:text-primary'
+      }`}>
       {children}
     </button>
   );
