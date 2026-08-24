@@ -15,6 +15,8 @@ import { history } from '../insights/insightsEngine';
 import { SavingsGoalCard } from './SavingsGoalCard';
 import { SuggestedBudgetCard } from './SuggestedBudgetCard';
 import { CategoryBudgetList } from './CategoryBudgetList';
+import { BudgetHero } from './BudgetHero';
+import { WatchlistCategories, WatchRow } from './WatchlistCategories';
 import { BudgetOverview } from './BudgetOverview';
 import { BudgetEditSheet } from './BudgetEditSheet';
 import { formatCurrency, capitalize } from '../../utils';
@@ -34,6 +36,20 @@ interface Props {
 const EMPTY_BUDGET: BudgetState = {
   savingsTarget: 0, categoryBudgets: {}, incomeBudgets: {}, investmentBudgets: {}, suggestionAccepted: false,
 };
+
+/** Freccia del navigatore mese: badge 26px, come nel resto del redesign. */
+function MonthArrow({ dir, disabled, onClick }: { dir: 'prev' | 'next'; disabled: boolean; onClick: () => void }) {
+  return (
+    <button type="button" onClick={onClick} disabled={disabled}
+      aria-label={dir === 'prev' ? 'Mese precedente' : 'Mese successivo'}
+      className="w-[26px] h-[26px] rounded-lg glass-card flex items-center justify-center text-secondary disabled:opacity-30 hover:text-primary transition-colors">
+      <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"
+        className={dir === 'prev' ? 'rotate-180' : ''}>
+        <path d="m9 18 6-6-6-6" />
+      </svg>
+    </button>
+  );
+}
 
 /** "giugno 2026" (capitalised) for a YYYY-MM key. */
 function monthKeyLabel(key: string): string {
@@ -267,60 +283,69 @@ export function BudgetScreenV2({
     return months.size;
   }, [transactions, currentMonth]);
 
+  // Righe della watchlist: una per categoria di spesa che ha un limite o su
+  // cui si è mosso qualcosa. Stessa sorgente dei dati della lista completa.
+  const watchRows: WatchRow[] = useMemo(() => expenseCats
+    .map(c => ({
+      cat: c,
+      spent: expenseSpend[c.id] ?? 0,
+      planned: activeExpBudgets[c.id] ?? 0,
+      scheduled: scheduledByCategory[c.id] ?? 0,
+      projected: projectedSpend[c.id] ?? 0,
+    }))
+    .filter(r => r.planned > 0 || r.spent > 0 || r.scheduled > 0)
+    .sort((a, b) => (b.spent + b.scheduled) - (a.spent + a.scheduled)),
+  [expenseCats, expenseSpend, activeExpBudgets, scheduledByCategory, projectedSpend]);
+
+  // Totali dell'hero: i limiti del mese contro quello che è già uscito e
+  // quello che uscirà comunque.
+  const heroTotals = useMemo(() => ({
+    planned: plannedExpenses,
+    spent: watchRows.reduce((s, r) => s + r.spent, 0),
+    scheduled: watchRows.reduce((s, r) => s + r.scheduled, 0),
+  }), [plannedExpenses, watchRows]);
+
+  const lastDayOfMonth = useMemo(() => {
+    const [y, m] = selectedMonth.split('-').map(Number);
+    return new Date(y, m, 0).getDate();
+  }, [selectedMonth]);
+
   const openEdit = (section: EditSection = 'expenses', catId?: string) => {
     setEditSection(section);
     setFocusCategory(catId ?? null);
     setEditOpen(true);
   };
 
-  const statusMeta: Record<string, { label: string; cls: string }> = {
-    confirmed:        { label: 'Confermato',                  cls: 'text-[#8A9270] bg-[#8A9270]/15' },
-    draft:            { label: 'Da confermare',               cls: 'text-gold bg-gold/10' },
-    auto_initialized: { label: 'Copiato dal mese precedente', cls: 'text-gold bg-gold/10' },
-    missing:          { label: 'Non impostato',               cls: 'text-tertiary bg-elevated' },
-  };
-  const sm = statusMeta[monthStatus] ?? statusMeta.missing;
-
   return (
-    <div className="pb-32 space-y-5">
-      <div className="flex items-center justify-between gap-2 flex-wrap">
-        <h1 className="text-2xl font-bold text-primary tracking-[-0.03em]">Piano</h1>
-        <span className={`text-[11px] px-2 py-0.5 rounded-full font-medium ${sm.cls}`}>{sm.label}</span>
+    <div className="pb-32 space-y-4 md:max-w-3xl">
+      {/* Header 56px: titolo + navigatore mese compatto. Lo stato del mese non
+          è più una pill decorativa: è diventato l'azione dentro l'hero. */}
+      <div className="h-14 flex items-center justify-between gap-3">
+        <h1 className="text-[17px] md:text-xl font-semibold text-primary tracking-[-0.03em]">Piano</h1>
+        <div className="flex items-center gap-1.5">
+          <MonthArrow dir="prev" disabled={!canGoPrev} onClick={goPrev} />
+          <button onClick={() => setSelectedMonth(currentMonth)} disabled={isCurrentMonth}
+            className="text-[13px] font-semibold text-primary whitespace-nowrap px-1 disabled:cursor-default"
+            aria-label={isCurrentMonth ? undefined : 'Torna al mese corrente'}>
+            {monthKeyLabel(selectedMonth)}
+          </button>
+          <MonthArrow dir="next" disabled={!canGoNext} onClick={goNext} />
+        </div>
       </div>
 
-      {/* Month navigation + confirm/copy controls */}
-      <div className="glass-card rounded-2xl px-4 py-3 flex items-center justify-between gap-3 flex-wrap">
-        <div className="flex items-center gap-2 min-w-0">
-          <button onClick={goPrev} disabled={!canGoPrev} aria-label="Mese precedente"
-            className="w-8 h-8 rounded-xl bg-elevated text-secondary flex items-center justify-center disabled:opacity-30 hover:bg-card-hover transition-colors">‹</button>
-          <div className="min-w-0 text-center px-1">
-            <p className="text-[11px] text-tertiary uppercase tracking-wide">Budget di</p>
-            <p className="text-sm font-semibold text-primary whitespace-nowrap">{monthKeyLabel(selectedMonth)}</p>
-          </div>
-          <button onClick={goNext} disabled={!canGoNext} aria-label="Mese successivo"
-            className="w-8 h-8 rounded-xl bg-elevated text-secondary flex items-center justify-center disabled:opacity-30 hover:bg-card-hover transition-colors">›</button>
-          {!isCurrentMonth && (
-            <button onClick={() => setSelectedMonth(currentMonth)}
-              className="ml-1 text-[12px] px-2.5 py-1 rounded-xl bg-elevated text-secondary font-medium hover:bg-card-hover transition-colors whitespace-nowrap">
-              Oggi
-            </button>
-          )}
-        </div>
-        <div className="flex items-center gap-2">
-          {monthStatus !== 'confirmed' && hasPrevSnapshot && (
-            <button onClick={() => copyPrevInto(selectedMonth)}
-              className="text-[12px] px-3 py-1.5 rounded-xl bg-elevated text-secondary font-medium hover:bg-card-hover transition-colors">
-              Ricopia mese prec.
-            </button>
-          )}
-          {monthStatus !== 'confirmed' && (
-            <button onClick={() => confirmMonth(selectedMonth)}
-              className="text-[12px] px-3 py-1.5 rounded-xl bg-gold/15 text-gold font-medium hover:bg-gold/25 transition-colors">
-              Conferma budget
-            </button>
-          )}
-        </div>
-      </div>
+      <BudgetHero
+        planned={heroTotals.planned} spent={heroTotals.spent} scheduled={heroTotals.scheduled}
+        lastDay={lastDayOfMonth}
+        onConfirm={monthStatus !== 'confirmed' ? () => confirmMonth(selectedMonth) : undefined}
+        onEditLimits={() => openEdit('expenses')}
+      />
+
+      {monthStatus !== 'confirmed' && hasPrevSnapshot && (
+        <button onClick={() => copyPrevInto(selectedMonth)}
+          className="w-full glass-card rounded-[18px] px-4 py-3 text-[13px] text-secondary text-left">
+          Ricopia i limiti del mese precedente
+        </button>
+      )}
 
       {isLearning && (
         <div className="glass-card rounded-2xl px-4 py-3 flex items-center gap-2.5">
@@ -365,20 +390,12 @@ export function BudgetScreenV2({
         </div>
       )}
 
-      {/* Panoramica */}
-      <div className="space-y-3">
-        <BudgetOverview
-          plannedIncome={plannedIncome} plannedExpenses={plannedExpenses} plannedInvestments={plannedInvestments}
-          showInvest={enableInvestments}
-          forecastIncome={forecastObj.expectedIncome}
-          forecastExpenses={forecastObj.projectedExpenses}
-          forecastInvestments={forecastObj.expectedInvest}
-          forecastSavings={forecastObj.savings}
-          monthLabel={monthKeyLabel(selectedMonth)}
-          forecastColLabel={isPastMonth ? 'Consuntivo' : 'Previsto'}
-        />
-        <SavingsGoalCard predicted={predicted} target={monthBudget.savingsTarget} onEdit={() => openEdit('savings')} />
-      </div>
+
+
+      {/* Uscite: in evidenza solo le categorie a rischio; le altre in una riga */}
+      <WatchlistCategories rows={watchRows}
+        onOpenCategory={id => openEdit('expenses', id)}
+        onOpenAll={() => openEdit('expenses')} />
 
       {/* Entrate previste */}
       <div className="space-y-3">
@@ -399,17 +416,6 @@ export function BudgetScreenV2({
           </button>
         )}
       </div>
-
-      {/* Uscite */}
-      <CategoryBudgetList
-        categories={expenseCats}
-        spend={expenseSpend}
-        budgets={activeExpBudgets}
-        mode="expense"
-        projected={projectedSpend}
-        scheduled={scheduledByCategory}
-        onEditCategory={id => openEdit('expenses', id)}
-      />
 
       {/* Investimenti */}
       {enableInvestments && (
@@ -433,26 +439,32 @@ export function BudgetScreenV2({
         </div>
       )}
 
-      {/* Riepiloghi mensili — archivio riflessivo (apre /recap/:ym) */}
+      {/* Programmato e previsto: la tabella resta, ma scende in fondo — è il
+          dettaglio di controllo, non la prima cosa da guardare. */}
+      <div className="space-y-3 pt-1">
+        <SavingsGoalCard predicted={predicted} target={monthBudget.savingsTarget} onEdit={() => openEdit('savings')} />
+        <BudgetOverview
+          plannedIncome={plannedIncome} plannedExpenses={plannedExpenses} plannedInvestments={plannedInvestments}
+          showInvest={enableInvestments}
+          forecastIncome={forecastObj.expectedIncome}
+          forecastExpenses={forecastObj.projectedExpenses}
+          forecastInvestments={forecastObj.expectedInvest}
+          forecastSavings={forecastObj.savings}
+          monthLabel={monthKeyLabel(selectedMonth)}
+          forecastColLabel={isPastMonth ? 'Consuntivo' : 'Previsto'}
+        />
+      </div>
+
+      {/* Archivio riepiloghi: una riga sola, non dodici. */}
       {recapMonths.length > 0 && (
-        <div className="glass-card rounded-2xl p-4 space-y-1">
-          <p className="label-caps text-secondary mb-1.5 px-1">Riepiloghi mensili</p>
-          {recapMonths.slice(0, 12).map(r => (
-            <button key={r.ym} onClick={() => navigate(`/recap/${r.ym}`)}
-              className="w-full flex items-center justify-between gap-3 px-1 py-2.5 rounded-xl hover:bg-card-hover transition-colors text-left">
-              <span className="flex items-center gap-2 min-w-0">
-                <span className="text-base">📄</span>
-                <span className="text-[14px] text-primary truncate">{r.label}</span>
-              </span>
-              <span className="flex items-center gap-2 flex-shrink-0">
-                <span className={`text-[13px] font-semibold balance-num ${r.saved >= 0 ? 'text-green' : 'text-red'}`}>
-                  {r.saved >= 0 ? '+' : '−'}{formatCurrency(Math.abs(r.saved))}
-                </span>
-                <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.4" strokeLinecap="round" strokeLinejoin="round" className="text-tertiary"><path d="m9 18 6-6-6-6" /></svg>
-              </span>
-            </button>
-          ))}
-        </div>
+        <button onClick={() => navigate(`/recap/${recapMonths[0].ym}`)}
+          className="w-full glass-card rounded-[18px] px-4 py-3.5 flex items-center justify-between gap-3 text-left">
+          <span className="text-[13.5px] text-primary">
+            Riepiloghi mensili
+            <span className="text-secondary"> · {recapMonths.length} {recapMonths.length === 1 ? 'mese' : 'mesi'}</span>
+          </span>
+          <span className="text-[12px] font-semibold text-gold flex-none">Archivio ›</span>
+        </button>
       )}
 
       <BudgetEditSheet
