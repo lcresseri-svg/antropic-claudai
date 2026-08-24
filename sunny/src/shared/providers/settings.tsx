@@ -27,6 +27,8 @@ interface SettingsValue {
   insightDepth: InsightDepth;
   aiEnabled: boolean;
   aiCoachWidgetEnabled: boolean;
+  /** Riserva di sicurezza (€) sottratta dalla liquidità disponibile. */
+  cashReserve: number;
   detailedInvestments: boolean; // per-user gated: fund-type classification + TFR
   settingsLoaded: boolean;      // true after first Firestore snapshot resolves
   getCat: (id: string) => CategoryDef;
@@ -40,6 +42,7 @@ interface SettingsValue {
   saveInsightDepth: (v: InsightDepth) => void;
   saveAiEnabled: (v: boolean) => void;
   saveAiCoachWidgetEnabled: (v: boolean) => void;
+  saveCashReserve: (v: number) => void;
   /** Update an investment category's manually-entered market value (+ timestamp). */
   saveCurrentValue: (categoryId: string, value: number) => void;
 }
@@ -49,6 +52,10 @@ const SettingsContext = createContext<SettingsValue | null>(null);
 const MERGE = { merge: true } as const;
 
 const THEME_KEY = 'sunny-theme';
+
+/** Riserva di sicurezza pre-impostata, invariata rispetto al valore che la
+ *  schermata Patrimonio V2 usava quando era solo uno stato locale. */
+const DEFAULT_CASH_RESERVE = 500;
 
 // Default theme follows the OS unless the user has saved an explicit preference.
 function systemTheme(): Theme {
@@ -78,6 +85,7 @@ export function SettingsProvider({ user, children }: { user: User | null; childr
   const [insightDepth, setInsightDepth] = useState<InsightDepth>('medium');
   const [aiEnabled, setAiEnabled] = useState(false);
   const [aiCoachWidgetEnabled, setAiCoachWidgetEnabled] = useState(false);
+  const [cashReserve, setCashReserve] = useState(DEFAULT_CASH_RESERVE);
   const [settingsLoaded, setSettingsLoaded] = useState(false);
 
   // Apply theme class to <html> immediately when state changes, and cache it so
@@ -98,6 +106,7 @@ export function SettingsProvider({ user, children }: { user: User | null; childr
       setInsightDepth('medium');
       setAiEnabled(false);
       setAiCoachWidgetEnabled(false);
+      setCashReserve(DEFAULT_CASH_RESERVE);
       setSettingsLoaded(false);
       return;
     }
@@ -125,6 +134,7 @@ export function SettingsProvider({ user, children }: { user: User | null; childr
       setInsightDepth((d.insightDepth as InsightDepth) ?? 'medium');
       setAiEnabled(d.aiEnabled ?? false);
       setAiCoachWidgetEnabled(d.aiCoachWidgetEnabled ?? false);
+      setCashReserve(typeof d.cashReserve === 'number' && d.cashReserve >= 0 ? d.cashReserve : DEFAULT_CASH_RESERVE);
       setSettingsLoaded(true);
     });
   // uid, not user object — avoids listener recreation on every token refresh.
@@ -182,6 +192,14 @@ export function SettingsProvider({ user, children }: { user: User | null; childr
     if (user) setDoc(settingsRef(), { aiCoachWidgetEnabled: v }, MERGE);
   }, [user, settingsRef]);
 
+  // Mai negativa (stessa clamp del modulo puro availableCash). Chi chiama
+  // dovrebbe già farlo di suo: qui è la rete di sicurezza prima della scrittura.
+  const saveCashReserve = useCallback((v: number) => {
+    const next = Math.max(0, Number.isFinite(v) ? v : 0);
+    setCashReserve(next);
+    if (user) setDoc(settingsRef(), { cashReserve: next }, MERGE);
+  }, [user, settingsRef]);
+
   // Non-archived subsets — what pickers, management lists, budget rows, the
   // investment allocation and the forecast/insight inputs should enumerate.
   // The full `categories`/`accounts` arrays stay the source of truth (editing +
@@ -214,7 +232,7 @@ export function SettingsProvider({ user, children }: { user: User | null; childr
   );
 
   return (
-    <SettingsContext.Provider value={{ categories, accounts, visibleCategories, visibleAccounts, theme, includeInvestments, enableInvestments, enableBudget, insightDepth, aiEnabled, aiCoachWidgetEnabled, detailedInvestments, settingsLoaded, getCat, getAcc, saveCategories, saveAccounts, saveTheme, saveIncludeInvestments, saveEnableInvestments, saveEnableBudget, saveInsightDepth, saveAiEnabled, saveAiCoachWidgetEnabled, saveCurrentValue }}>
+    <SettingsContext.Provider value={{ categories, accounts, visibleCategories, visibleAccounts, theme, includeInvestments, enableInvestments, enableBudget, insightDepth, aiEnabled, aiCoachWidgetEnabled, cashReserve, detailedInvestments, settingsLoaded, getCat, getAcc, saveCategories, saveAccounts, saveTheme, saveIncludeInvestments, saveEnableInvestments, saveEnableBudget, saveInsightDepth, saveAiEnabled, saveAiCoachWidgetEnabled, saveCashReserve, saveCurrentValue }}>
       {children}
     </SettingsContext.Provider>
   );

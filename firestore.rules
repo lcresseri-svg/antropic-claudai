@@ -113,7 +113,9 @@ service cloud.firestore {
           && (!('insightDepth' in request.resource.data) || request.resource.data.insightDepth in ['minimal', 'medium', 'advanced'])
           && (!('enableInvestments' in request.resource.data) || request.resource.data.enableInvestments is bool)
           && (!('enableBudget' in request.resource.data) || request.resource.data.enableBudget is bool)
-          && (!('aiEnabled' in request.resource.data) || request.resource.data.aiEnabled is bool);
+          && (!('aiEnabled' in request.resource.data) || request.resource.data.aiEnabled is bool)
+          // Riserva di sicurezza della liquidità disponibile: numero mai negativo.
+          && (!('cashReserve' in request.resource.data) || (request.resource.data.cashReserve is number && request.resource.data.cashReserve >= 0));
       }
 
       match /meta/budget {

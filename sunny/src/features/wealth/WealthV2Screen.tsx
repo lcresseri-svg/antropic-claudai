@@ -2,7 +2,7 @@
 // composizione, freschezza controvalori, liquidità disponibile e snapshot
 // patrimoniali (genera oggi / backfill con dry-run). Tutti i calcoli sono nei
 // moduli puri wealthV2 / availableCash / wealthSnapshotCore.
-import { useMemo, useState } from 'react';
+import { useEffect, useMemo, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import type { User } from 'firebase/auth';
 import { Transaction } from '../../types';
@@ -28,6 +28,10 @@ const sign = (d: number) => `${d > EPS ? '+' : d < -EPS ? '−' : ''}${formatCur
 const fmtPct = (p: number | null) =>
   p == null ? '—' : `${p >= 0 ? '+' : '−'}${Math.abs(p).toLocaleString('it-IT', { maximumFractionDigits: 1 })}%`;
 
+// La riserva si scrive su meta/settings: senza debounce ogni tasto digitato
+// nel campo numerico sarebbe una scrittura Firestore.
+const RESERVE_SAVE_DEBOUNCE_MS = 600;
+
 const HORIZONS: { value: CashHorizon; label: string }[] = [
   { value: 7, label: '7 gg' }, { value: 14, label: '14 gg' },
   { value: 30, label: '30 gg' }, { value: 'eom', label: 'Fine mese' },
@@ -35,13 +39,24 @@ const HORIZONS: { value: CashHorizon; label: string }[] = [
 
 export function WealthV2Screen({ user, transactions, liquidity }: Props) {
   const navigate = useNavigate();
-  const { accounts, categories } = useSettings();
+  const { accounts, categories, cashReserve, saveCashReserve } = useSettings();
   const [period, setPeriod] = useState<WealthPeriod>('3m');
   const [horizon, setHorizon] = useState<CashHorizon>(30);
-  const [reserve, setReserve] = useState(500);
+  // Valore digitato: guida subito il calcolo, il salvataggio arriva dopo.
+  const [reserve, setReserve] = useState(cashReserve);
   const [snapMsg, setSnapMsg] = useState<string | null>(null);
   const [plan, setPlan] = useState<BackfillPlanEntry[] | null>(null);
   const [busy, setBusy] = useState(false);
+
+  // Il valore persistito resta la fonte di verità: riallinea il campo quando
+  // cambia da fuori (primo snapshot Firestore, altro dispositivo).
+  useEffect(() => { setReserve(cashReserve); }, [cashReserve]);
+
+  useEffect(() => {
+    if (reserve === cashReserve) return;
+    const t = setTimeout(() => saveCashReserve(reserve), RESERVE_SAVE_DEBOUNCE_MS);
+    return () => clearTimeout(t);
+  }, [reserve, cashReserve, saveCashReserve]);
 
   const now = useMemo(() => new Date(), []);
   const summary = useMemo(
