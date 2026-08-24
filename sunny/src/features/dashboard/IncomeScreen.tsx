@@ -23,6 +23,8 @@ import {
 } from './categoryAnalytics';
 import { Donut } from './Donut';
 import { AccountBalanceLineChart } from './AccountBalanceLineChart';
+import { AnalysisHeader } from './AnalysisHeader';
+import { PeriodControls } from './PeriodControls';
 
 interface Props {
   transactions: Transaction[];
@@ -64,65 +66,11 @@ export function IncomeScreen({ transactions }: Props) {
 
   return (
     <div className="pb-32">
-      {/* Header */}
-      <div className="flex items-center gap-3 mb-1">
-        <button
-          onClick={() => navigate(-1)}
-          aria-label="Torna indietro"
-          className="w-9 h-9 rounded-2xl bg-elevated flex items-center justify-center text-secondary active:scale-95 transition-transform flex-shrink-0"
-        >
-          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
-            <path d="m15 18-6-6 6-6" />
-          </svg>
-        </button>
-        <h1 className="text-xl font-bold text-primary tracking-[-0.03em]">Entrate</h1>
-      </div>
-      <p className="text-[13px] text-secondary mb-5 ml-12">Da dove arrivano i tuoi soldi e quanto è stabile il reddito.</p>
+      <AnalysisHeader title="Entrate"
+        subtitle="Da dove arrivano e quanto sono stabili" backTo="/" />
 
-      {/* Sticky controls */}
-      <div className="sticky top-0 z-10 -mx-5 px-5 md:-mx-8 md:px-8 pt-1 pb-3 bg-bg border-b border-divider mb-5">
-        <div className="flex items-center gap-1.5 mb-3">
-          {PERIOD_OPTS.map(opt => (
-            <button
-              key={opt.value}
-              onClick={() => { setPeriod(opt.value); setOffset(0); }}
-              className={`px-3.5 py-1.5 rounded-full text-xs font-semibold transition-colors ${
-                period === opt.value ? 'bg-gold/10 text-gold' : 'text-secondary hover:text-primary'
-              }`}
-            >
-              {opt.label}
-            </button>
-          ))}
-        </div>
-
-        <div className="flex items-center justify-between bg-card rounded-xl px-1.5 py-1.5">
-          <button
-            onClick={() => setOffset(o => o + 1)}
-            aria-label="Periodo precedente"
-            className="w-8 h-8 rounded-lg flex items-center justify-center text-secondary hover:text-primary hover:bg-elevated transition-colors"
-          >
-            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
-              <path d="m15 18-6-6 6-6" />
-            </svg>
-          </button>
-          <div className="flex items-center gap-2">
-            <span className="text-[13px] font-medium text-primary">{capitalize(range.label)}</span>
-            {offset > 0 && (
-              <button onClick={() => setOffset(0)} className="text-[11px] font-medium text-gold">Oggi</button>
-            )}
-          </div>
-          <button
-            onClick={() => setOffset(o => Math.max(0, o - 1))}
-            disabled={offset === 0}
-            aria-label="Periodo successivo"
-            className="w-8 h-8 rounded-lg flex items-center justify-center text-secondary hover:text-primary hover:bg-elevated transition-colors disabled:opacity-30 disabled:hover:bg-transparent"
-          >
-            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
-              <path d="m9 18 6-6-6-6" />
-            </svg>
-          </button>
-        </div>
-      </div>
+      <PeriodControls period={period} onPeriodChange={setPeriod}
+        offset={offset} onOffsetChange={setOffset} label={range.label} />
 
       {cashIn === 0 ? (
         <div className="glass-card rounded-2xl px-5 py-12 text-center">
@@ -132,17 +80,20 @@ export function IncomeScreen({ transactions }: Props) {
       ) : (
         <>
           {/* Totale periodo + ENTRATE NETTE */}
-          <div className="glass-card rounded-2xl p-5 mb-3">
-            <p className="label-caps text-secondary mb-1.5">Totale entrate periodo</p>
-            <p className="text-[34px] leading-none font-bold text-green balance-num">{formatCurrency(cashIn)}</p>
+          <div className="hero-card rounded-[26px] shadow-elev-2 p-[22px] mb-3.5 animate-rise-in">
+            <p className="label-caps text-secondary mb-2">Entrate del periodo</p>
+            <p className="text-[38px] leading-none font-bold text-green balance-num">{formatCurrency(cashIn)}</p>
             {showDelta && agg.deltaPercentage !== null && (
-              <p className={`text-[13px] mt-2 balance-num ${deltaColor(agg.total - agg.previousTotal)}`}>
-                {agg.deltaPercentage > 0 ? '+' : ''}{Math.round(agg.deltaPercentage)}%
-                <span className="text-secondary"> rispetto al periodo precedente</span>
-              </p>
+              <div className="flex items-center gap-1.5 mt-2.5">
+                <span className={`text-[11.5px] font-semibold balance-num px-2 py-[3px] rounded-full ${
+                  agg.total - agg.previousTotal >= 0 ? 'text-green bg-green/[0.14]' : 'text-red bg-red/[0.14]'}`}>
+                  {agg.deltaPercentage > 0 ? '+' : ''}{Math.round(agg.deltaPercentage)}%
+                </span>
+                <span className="text-[11.5px] text-secondary">rispetto al periodo precedente</span>
+              </div>
             )}
 
-            <div className="mt-4 pt-4 border-t border-divider">
+            <div className="mt-[18px] pt-4 border-t border-divider">
               <div className="flex items-baseline justify-between gap-3">
                 <p className="text-[14px] font-semibold text-primary">Entrate nette</p>
                 <p className="text-[24px] leading-none font-bold text-green balance-num flex-shrink-0">
