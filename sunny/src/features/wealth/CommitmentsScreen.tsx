@@ -90,7 +90,7 @@ export function CommitmentsScreen({ transactions }: Props) {
         </button>
         <div>
           <h1 className="text-2xl font-bold text-primary tracking-[-0.03em]">Impegni</h1>
-          <p className="text-xs text-secondary">Anteprima admin · una voce per serie, nessun doppione</p>
+          <p className="text-xs text-secondary">Una voce per serie, nessun doppione</p>
         </div>
       </div>
 

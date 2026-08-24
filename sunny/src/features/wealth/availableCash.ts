@@ -33,6 +33,9 @@ export interface AvailableCashResult {
   available: number;
   /** liquidity / median monthly total expenses; null without expense history. */
   monthsOfAutonomy: number | null;
+  /** Motivo BREVE per cui l'autonomia non è calcolabile; null quando lo è.
+   *  Serve accanto al "—" in UI: un trattino senza spiegazione non dice nulla. */
+  autonomyUnavailableReason: string | null;
   /** Deterministic, human-readable explanation of the computation. */
   explanation: string[];
 }
@@ -87,6 +90,11 @@ export function computeAvailableCash(opts: {
 
   const medExp = medianMonthlyExpenses(transactions, todayISO);
   const monthsOfAutonomy = medExp && medExp > 0 ? r2(liquidity / medExp) : null;
+  const autonomyUnavailableReason = monthsOfAutonomy !== null
+    ? null
+    : medExp === null
+      ? 'servono mesi completi di storico spese'
+      : 'nessuna uscita nei mesi completi di storico';
 
   const horizonLabel = horizon === 'eom' ? `fine mese (${horizonEndISO})` : `${horizon} giorni (fino al ${horizonEndISO})`;
   const explanation = [
@@ -96,12 +104,12 @@ export function computeAvailableCash(opts: {
     `Disponibile = liquidità − impegni − riserva = ${available} €.`,
     monthsOfAutonomy !== null
       ? `Autonomia: ~${monthsOfAutonomy} mesi (liquidità / mediana uscite mensili degli ultimi mesi completi).`
-      : 'Autonomia non calcolabile: servono mesi completi di storico spese.',
+      : `Autonomia non calcolabile: ${autonomyUnavailableReason}.`,
   ];
 
   return {
     horizon, horizonEndISO,
     liquidity: r2(liquidity), committed, committedItems: items,
-    reserve: r2(reserve), available, monthsOfAutonomy, explanation,
+    reserve: r2(reserve), available, monthsOfAutonomy, autonomyUnavailableReason, explanation,
   };
 }

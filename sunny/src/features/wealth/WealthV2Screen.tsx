@@ -227,11 +227,28 @@ export function WealthV2Screen({ user, transactions, liquidity }: Props) {
           </div>
           <div className="flex justify-between border-t border-divider pt-2 font-semibold">
             <dt className="text-primary">Disponibile</dt>
-            <dd className={tone(cash.available)}>{formatCurrency(cash.available)}</dd>
+            <dd className={`flex items-center gap-1.5 ${tone(cash.available)}`}>
+              {cash.available < 0 && <span aria-hidden>⚠️</span>}
+              {formatCurrency(cash.available)}
+            </dd>
           </div>
-          <div className="flex justify-between"><dt className="text-secondary">Autonomia</dt>
-            <dd className="text-primary">{cash.monthsOfAutonomy != null ? `~${cash.monthsOfAutonomy.toLocaleString('it-IT')} mesi` : '—'}</dd></div>
+          <div className="flex justify-between gap-3"><dt className="text-secondary">Autonomia</dt>
+            <dd className="text-primary text-right">
+              {cash.monthsOfAutonomy != null
+                ? `~${cash.monthsOfAutonomy.toLocaleString('it-IT')} mesi`
+                : <>— <span className="text-[11px] text-secondary">({cash.autonomyUnavailableReason})</span></>}
+            </dd></div>
         </dl>
+        {/* Scoperto: mai il solo colore rosso — icona + testo che dice cosa succede. */}
+        {cash.available < 0 && (
+          <p role="status" className="mt-3 flex items-start gap-2 rounded-xl bg-red/10 px-3 py-2 text-xs text-red">
+            <span aria-hidden>⚠️</span>
+            <span>
+              Attenzione: gli impegni entro l'orizzonte superano liquidità e riserva di {formatCurrency(Math.abs(cash.available))}.
+              Sposta una spesa più in là o abbassa la riserva.
+            </span>
+          </p>
+        )}
         {cash.committedItems.length > 0 && (
           <details className="mt-3">
             <summary className="text-xs text-gold cursor-pointer">Impegni considerati ({cash.committedItems.length})</summary>

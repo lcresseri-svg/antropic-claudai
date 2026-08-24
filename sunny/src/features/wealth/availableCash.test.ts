@@ -85,8 +85,26 @@ describe('medianMonthlyExpenses / autonomia', () => {
     expect(r.monthsOfAutonomy).toBe(3);
   });
 
-  it('returns null autonomy without history', () => {
+  it('returns null autonomy without history, with a short reason', () => {
     const r = computeAvailableCash({ transactions: [], liquidity: 3000, horizon: 7, reserve: 0, now: NOW });
     expect(r.monthsOfAutonomy).toBeNull();
+    expect(r.autonomyUnavailableReason).toBe('servono mesi completi di storico spese');
+    expect(r.explanation[r.explanation.length - 1]).toContain('servono mesi completi di storico spese');
+  });
+
+  it('distinguishes "no history" from "history with no expenses of your own"', () => {
+    // Mese completo con una sola spesa interamente a carico di altri: c'è storico,
+    // ma la mediana delle uscite proprie è 0.
+    const txs: Transaction[] = [tx({ date: '2026-06-10', amount: 100, shared: 100 })];
+    const r = computeAvailableCash({ transactions: txs, liquidity: 3000, horizon: 7, reserve: 0, now: NOW });
+    expect(r.monthsOfAutonomy).toBeNull();
+    expect(r.autonomyUnavailableReason).toBe('nessuna uscita nei mesi completi di storico');
+  });
+
+  it('reports no reason when autonomy is available', () => {
+    const txs: Transaction[] = [tx({ date: '2026-06-10', amount: 1000 })];
+    const r = computeAvailableCash({ transactions: txs, liquidity: 3000, horizon: 7, reserve: 0, now: NOW });
+    expect(r.monthsOfAutonomy).toBe(3);
+    expect(r.autonomyUnavailableReason).toBeNull();
   });
 });
