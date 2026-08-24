@@ -189,6 +189,11 @@ describe('meta/* specific rules', () => {
       { theme: 'system' })); // legacy value stays accepted
     await assertFails(setDoc(doc(db, `users/${A}/meta/settings`), { theme: 'neon' }));
     await assertFails(setDoc(doc(db, `users/${A}/meta/settings`), { enableBudget: 'yes' }));
+    // Riserva di sicurezza (liquidità disponibile): numero mai negativo.
+    await assertSucceeds(setDoc(doc(db, `users/${A}/meta/settings`), { cashReserve: 0 }));
+    await assertSucceeds(setDoc(doc(db, `users/${A}/meta/settings`), { cashReserve: 1500 }));
+    await assertFails(setDoc(doc(db, `users/${A}/meta/settings`), { cashReserve: -1 }));
+    await assertFails(setDoc(doc(db, `users/${A}/meta/settings`), { cashReserve: '500' }));
   });
   it('budget: negative savingsTarget rejected; maps required when present', async () => {
     const db = dbOf(A);

@@ -62,6 +62,16 @@ describe('buildCommitments', () => {
     expect(rate.expectedEnd).toBe('2028-05-05');
   });
 
+  it('exposes the series account and its position in the plan (existing fields only)', () => {
+    const rate = c.installments[0];
+    expect(rate.account).toBe('cc');            // conto del template → filtro movimenti
+    expect(rate.totalInstallments).toBe(24);
+    expect(rate.paidInstallments).toBe(2);      // 24 totali − 22 residue
+    // Le serie non a rate non inventano una posizione nel piano.
+    expect(c.recurring[0].totalInstallments).toBeUndefined();
+    expect(c.recurring[0].paidInstallments).toBeUndefined();
+  });
+
   it('excludes ended series and income series', () => {
     const all = [...c.subscriptions, ...c.installments, ...c.recurring];
     expect(all.some(s => s.description === 'Vecchia rata')).toBe(false);

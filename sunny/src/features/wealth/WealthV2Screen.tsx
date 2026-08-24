@@ -2,7 +2,7 @@
 // composizione, freschezza controvalori, liquidità disponibile e snapshot
 // patrimoniali (genera oggi / backfill con dry-run). Tutti i calcoli sono nei
 // moduli puri wealthV2 / availableCash / wealthSnapshotCore.
-import { useMemo, useState } from 'react';
+import { useEffect, useMemo, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import type { User } from 'firebase/auth';
 import { Transaction } from '../../types';
@@ -28,6 +28,10 @@ const sign = (d: number) => `${d > EPS ? '+' : d < -EPS ? '−' : ''}${formatCur
 const fmtPct = (p: number | null) =>
   p == null ? '—' : `${p >= 0 ? '+' : '−'}${Math.abs(p).toLocaleString('it-IT', { maximumFractionDigits: 1 })}%`;
 
+// La riserva si scrive su meta/settings: senza debounce ogni tasto digitato
+// nel campo numerico sarebbe una scrittura Firestore.
+const RESERVE_SAVE_DEBOUNCE_MS = 600;
+
 const HORIZONS: { value: CashHorizon; label: string }[] = [
   { value: 7, label: '7 gg' }, { value: 14, label: '14 gg' },
   { value: 30, label: '30 gg' }, { value: 'eom', label: 'Fine mese' },
@@ -35,13 +39,24 @@ const HORIZONS: { value: CashHorizon; label: string }[] = [
 
 export function WealthV2Screen({ user, transactions, liquidity }: Props) {
   const navigate = useNavigate();
-  const { accounts, categories } = useSettings();
+  const { accounts, categories, cashReserve, saveCashReserve } = useSettings();
   const [period, setPeriod] = useState<WealthPeriod>('3m');
   const [horizon, setHorizon] = useState<CashHorizon>(30);
-  const [reserve, setReserve] = useState(500);
+  // Valore digitato: guida subito il calcolo, il salvataggio arriva dopo.
+  const [reserve, setReserve] = useState(cashReserve);
   const [snapMsg, setSnapMsg] = useState<string | null>(null);
   const [plan, setPlan] = useState<BackfillPlanEntry[] | null>(null);
   const [busy, setBusy] = useState(false);
+
+  // Il valore persistito resta la fonte di verità: riallinea il campo quando
+  // cambia da fuori (primo snapshot Firestore, altro dispositivo).
+  useEffect(() => { setReserve(cashReserve); }, [cashReserve]);
+
+  useEffect(() => {
+    if (reserve === cashReserve) return;
+    const t = setTimeout(() => saveCashReserve(reserve), RESERVE_SAVE_DEBOUNCE_MS);
+    return () => clearTimeout(t);
+  }, [reserve, cashReserve, saveCashReserve]);
 
   const now = useMemo(() => new Date(), []);
   const summary = useMemo(
@@ -212,11 +227,28 @@ export function WealthV2Screen({ user, transactions, liquidity }: Props) {
           </div>
           <div className="flex justify-between border-t border-divider pt-2 font-semibold">
             <dt className="text-primary">Disponibile</dt>
-            <dd className={tone(cash.available)}>{formatCurrency(cash.available)}</dd>
+            <dd className={`flex items-center gap-1.5 ${tone(cash.available)}`}>
+              {cash.available < 0 && <span aria-hidden>⚠️</span>}
+              {formatCurrency(cash.available)}
+            </dd>
           </div>
-          <div className="flex justify-between"><dt className="text-secondary">Autonomia</dt>
-            <dd className="text-primary">{cash.monthsOfAutonomy != null ? `~${cash.monthsOfAutonomy.toLocaleString('it-IT')} mesi` : '—'}</dd></div>
+          <div className="flex justify-between gap-3"><dt className="text-secondary">Autonomia</dt>
+            <dd className="text-primary text-right">
+              {cash.monthsOfAutonomy != null
+                ? `~${cash.monthsOfAutonomy.toLocaleString('it-IT')} mesi`
+                : <>— <span className="text-[11px] text-secondary">({cash.autonomyUnavailableReason})</span></>}
+            </dd></div>
         </dl>
+        {/* Scoperto: mai il solo colore rosso — icona + testo che dice cosa succede. */}
+        {cash.available < 0 && (
+          <p role="status" className="mt-3 flex items-start gap-2 rounded-xl bg-red/10 px-3 py-2 text-xs text-red">
+            <span aria-hidden>⚠️</span>
+            <span>
+              Attenzione: gli impegni entro l'orizzonte superano liquidità e riserva di {formatCurrency(Math.abs(cash.available))}.
+              Sposta una spesa più in là o abbassa la riserva.
+            </span>
+          </p>
+        )}
         {cash.committedItems.length > 0 && (
           <details className="mt-3">
             <summary className="text-xs text-gold cursor-pointer">Impegni considerati ({cash.committedItems.length})</summary>

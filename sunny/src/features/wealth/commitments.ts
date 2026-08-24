@@ -15,6 +15,7 @@
  */
 import { Transaction, SeriesKind, Freq } from '../../types';
 import { buildSeriesSummary, monthlyEquivalent, SeriesSummary } from '../../shared/recurrence';
+import { buildCommitmentEvents, addDaysISO } from './commitmentProjection';
 
 export interface Commitment {
   seriesId: string;
@@ -25,9 +26,15 @@ export interface Commitment {
   freq?: Freq;
   monthlyEquivalent: number;  // amount normalized to a month (yearly → /12)
   nextDate: string | null;
+  /** Conto della serie (dal template, in fallback dall'ultima occorrenza).
+   *  Vuoto quando la serie non ne ha uno: apre i movimenti senza filtro conto. */
+  account: string;
   /** Installments only. */
   remainingInstallments?: number;
   remainingAmount?: number;
+  /** Installments only: posizione nel piano (rate pagate / totali). */
+  paidInstallments?: number;
+  totalInstallments?: number;
   /** Expected last occurrence: `until` for recurring, computed for installments. */
   expectedEnd?: string;
 }
@@ -63,11 +70,16 @@ function toCommitment(s: SeriesSummary): Commitment {
     freq: s.freq,
     monthlyEquivalent: r2(monthly),
     nextDate: s.nextDate,
+    account: s.template?.account ?? s.occurrences[s.occurrences.length - 1]?.account ?? '',
     expectedEnd: s.until,
   };
   if (s.installment) {
     c.remainingInstallments = s.installment.remainingInstallments;
     c.remainingAmount = r2(s.installment.remainingAmount);
+    // Rate già pagate: derivate dal piano (totali − residue), nessun campo nuovo
+    // nel modello dati.
+    c.totalInstallments = s.installment.totalInstallments;
+    c.paidInstallments = Math.max(0, s.installment.totalInstallments - s.installment.remainingInstallments);
     // Expected conclusion: next due date + (remaining − 1) monthly periods.
     if (s.nextDate && s.installment.remainingInstallments > 0 && s.freq === 'monthly') {
       c.expectedEnd = addMonthsClamped(s.nextDate, s.installment.remainingInstallments - 1);
@@ -105,12 +117,11 @@ export function buildCommitments(
     [...subscriptions, ...installments, ...recurring].reduce((s, c) => s + c.monthlyEquivalent, 0),
   );
 
-  // Prossime scadenze (30 giorni): direttamente dai template attivi.
-  const horizon = new Date(Date.parse(todayISO) + 30 * 86_400_000).toISOString().slice(0, 10);
-  const upcoming = active
-    .filter(s => s.nextDate && s.nextDate > todayISO && s.nextDate <= horizon)
-    .map(s => ({ date: s.nextDate as string, description: s.description, amount: r2(s.amount) }))
-    .sort((a, b) => a.date.localeCompare(b.date));
+  // Prossime scadenze (30 giorni): la lista di eventi CONDIVISA con la liquidità
+  // disponibile (commitmentProjection) — stesse occorrenze, deduplicate allo
+  // stesso modo. Qui si somma l'importo PIENO, lì la sola quota propria.
+  const upcoming = buildCommitmentEvents(allTransactions, todayISO, addDaysISO(todayISO, 30))
+    .map(e => ({ date: e.date, description: e.description, amount: e.amount }));
 
   return { subscriptions, installments, recurring, fixedMonthlyCost, upcoming };
 }

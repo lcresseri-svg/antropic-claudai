@@ -443,7 +443,7 @@ export function SettingsScreen({ user, transactions, budgetExport, onLogOut, onD
                   <Row icon="🏛️" color="#8FB0A0" label="Patrimonio V2 (anteprima)" sub="Decomposizione, snapshot, liquidità disponibile" onClick={() => navigate('/wealth-v2')} />
                 )}
                 {isFeatureEnabled('commitments', user) && (
-                  <Row icon="📌" color="#88B0C0" label="Impegni (anteprima)" sub="Abbonamenti, rate, ricorrenti e scadenze" onClick={() => navigate('/commitments')} />
+                  <Row icon="📌" color="#88B0C0" label="Impegni (admin)" sub="Abbonamenti, rate, ricorrenti e scadenze" onClick={() => navigate('/commitments')} />
                 )}
                 {isFeatureEnabled('monthly_plan_v2', user) && (
                   <Row icon="🗓️" color="#E6B95C" label="Piano mensile V2 (anteprima)" sub="Piano, consuntivo e previsione a confronto" onClick={() => navigate('/monthly-plan')} />
