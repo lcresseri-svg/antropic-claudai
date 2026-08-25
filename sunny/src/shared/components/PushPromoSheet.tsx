@@ -17,28 +17,28 @@ export function PushPromoSheet({ open, onClose, onGoToSettings }: Props) {
       onClick={e => { if (e.target === e.currentTarget) onClose(); }}
     >
       <div className="absolute inset-0 bg-black/70 backdrop-blur-md animate-fade-in-fast" />
-      <div className="relative w-full max-w-md glass-elevated rounded-3xl shadow-float animate-sheet-up">
+      <div className="relative w-full max-w-md sm:max-w-[460px] glass-elevated rounded-[26px] shadow-float animate-sheet-up sm:animate-scale-in">
 
         <div className="flex items-center justify-between px-6 pt-6 pb-1">
           <h3 className="text-base font-semibold text-primary">Attiva le notifiche</h3>
-          <button onClick={onClose}
-            className="w-8 h-8 rounded-full bg-elevated flex items-center justify-center text-secondary text-sm">✕</button>
+          <button onClick={onClose} aria-label="Chiudi"
+            className="w-[30px] h-[30px] rounded-full bg-elevated flex items-center justify-center text-secondary text-sm">✕</button>
         </div>
 
-        <p className="px-6 pb-4 text-sm text-secondary leading-relaxed">
-          Tieniti aggiornato sulla tua situazione finanziaria senza aprire l'app.
+        <p className="px-6 pb-4 text-[13.5px] text-secondary leading-relaxed">
+          Ti scrivo tre volte al mese, non tre volte al giorno.
         </p>
 
         <div className="px-6 pb-2 space-y-2">
-          <Item icon="📝" text="Promemoria spese a metà giornata e alla sera" />
-          <Item icon="🔁" text="Avviso quando una voce ricorrente viene registrata" />
-          <Item icon="📊" text="Riepilogo mensile con entrate, uscite e risparmio" />
+          <Item icon="📝" tint="#E6B95C" text="Promemoria spese a metà giornata e alla sera" />
+          <Item icon="🔁" tint="#8A9270" text="Avviso quando una voce ricorrente viene registrata" />
+          <Item icon="📊" tint="#B5A8C8" text="Riepilogo mensile con entrate, uscite e risparmio" />
         </div>
 
         <div className="px-6 pt-4 pb-6 space-y-2.5">
           <button
             onClick={onGoToSettings}
-            className="w-full py-3.5 rounded-2xl bg-gold text-bg text-sm font-semibold active:scale-[0.98] transition-transform">
+            className="w-full py-3.5 rounded-2xl cta-gold-fill text-sm font-semibold active:scale-[0.98] transition-transform">
             Apri le impostazioni
           </button>
           <button
@@ -52,11 +52,14 @@ export function PushPromoSheet({ open, onClose, onGoToSettings }: Props) {
   );
 }
 
-function Item({ icon, text }: { icon: string; text: string }) {
+function Item({ icon, text, tint }: { icon: string; text: string; tint: string }) {
   return (
     <div className="flex items-center gap-3 px-1">
-      <span className="w-8 h-8 rounded-xl bg-elevated flex items-center justify-center text-sm flex-shrink-0">{icon}</span>
-      <span className="text-sm text-primary">{text}</span>
+      {/* Tre badge identici non distinguevano le tre cose: la tinta le separa
+          senza aggiungere parole. */}
+      <span className="w-8 h-8 rounded-xl flex items-center justify-center text-sm flex-shrink-0"
+        style={{ background: `${tint}29` }}>{icon}</span>
+      <span className="text-[13.5px] text-primary">{text}</span>
     </div>
   );
 }

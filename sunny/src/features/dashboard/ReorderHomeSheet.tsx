@@ -43,7 +43,7 @@ export function ReorderHomeSheet({ open, order, onSave, onClose }: Props) {
       role="dialog" aria-modal="true" aria-label="Riordina la home"
       onClick={e => { if (e.target === e.currentTarget) close(); }}>
       <div className="absolute inset-0 bg-black/70 backdrop-blur-md animate-fade-in-fast" />
-      <div className="relative w-full max-w-md glass-elevated rounded-3xl shadow-float animate-sheet-up
+      <div className="relative w-full max-w-md sm:max-w-[460px] glass-elevated rounded-[26px] shadow-float animate-sheet-up sm:animate-scale-in
                       max-h-[85dvh] flex flex-col overflow-hidden">
 
         <div className="flex items-center justify-between px-5 pt-5 pb-3 shrink-0">
@@ -65,7 +65,7 @@ export function ReorderHomeSheet({ open, order, onSave, onClose }: Props) {
             if (!meta) return null;
             return (
               <li key={id} className="flex items-center gap-3 py-2.5 border-b border-divider last:border-0">
-                <span className="balance-num text-[12px] font-semibold text-tertiary w-4 flex-none">{i + 1}</span>
+                <span className="balance-num text-[12px] font-bold text-tertiary w-4 flex-none">{i + 1}</span>
                 <span className="min-w-0 flex-1">
                   <span className="block text-[14.5px] text-primary truncate">{meta.label}</span>
                   <span className="block text-[11.5px] text-tertiary truncate">{meta.hint}</span>
@@ -105,10 +105,11 @@ function MoveBtn({ dir, disabled, label, onClick }: {
 }) {
   return (
     <button type="button" onClick={onClick} disabled={disabled} aria-label={label}
-      className="w-9 h-9 rounded-xl bg-elevated flex items-center justify-center text-secondary
-                 disabled:opacity-30 active:scale-90 transition-transform">
+      className="w-[34px] h-[34px] rounded-xl bg-elevated flex items-center justify-center text-secondary
+                 active:scale-90 transition-transform disabled:active:scale-100">
       <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.4"
-        strokeLinecap="round" strokeLinejoin="round" className={dir === 'up' ? 'rotate-180' : ''}>
+        strokeLinecap="round" strokeLinejoin="round"
+        className={`${dir === 'up' ? 'rotate-180' : ''} ${disabled ? 'opacity-30' : ''}`}>
         <path d="M6 9l6 6 6-6" />
       </svg>
     </button>
