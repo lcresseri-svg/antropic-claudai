@@ -128,6 +128,7 @@ export function AppRoutes({ user, brand, tx, budget, editing, onLogOut, onDelete
         <Route path="/wealth" element={
           <div className={page(W.wide)}>
             <WealthScreen
+              showCommitments={isFeatureEnabled('commitments', user)}
               transactions={tx.transactions}
               netWorth={tx.netWorth} liquidity={tx.liquidity} investmentTotal={tx.investmentTotal}
               accountBalances={tx.accountBalances}

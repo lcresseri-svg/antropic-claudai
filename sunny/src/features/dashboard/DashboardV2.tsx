@@ -32,6 +32,7 @@ import { RecentMovementsCard } from './RecentMovementsCard';
 import { ReorderHomeSheet } from './ReorderHomeSheet';
 import { HomeBlockId, resolveHomeOrder } from './homeOrder';
 import { WrappedEntryCard } from '../wrapped/WrappedEntryCard';
+import { isFeatureEnabled } from '../../shared/featureRollout';
 
 interface Props {
   greeting?: string;
@@ -192,8 +193,13 @@ export function DashboardV2(p: Props) {
     <SpendingBreakdownCard categoryTotals={currentMonthCategoryTotals} onSeeAll={openCategories} />
   );
 
+  // Il link agli impegni compare solo quando l'insight in evidenza parla di
+  // un'uscita programmata: è lì che "e le altre?" è la domanda successiva.
+  const showCommitmentsLink = nextMove?.category === 'forecast'
+    && isFeatureEnabled('commitments', { uid: p.userId });
   const nextMoveCard = nextMove
-    ? <NextMoveCard insight={nextMove} onSeeAll={p.onSeeInsights} />
+    ? <NextMoveCard insight={nextMove} onSeeAll={p.onSeeInsights}
+        onSeeCommitments={showCommitmentsLink ? () => navigate('/commitments') : undefined} />
     : null;
 
   const blocks: Record<HomeBlockId, React.ReactNode> = {

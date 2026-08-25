@@ -19,6 +19,8 @@ import { localISO } from '../dashboard/categoryAnalytics';
 import { WealthLineChart } from '../dashboard/WealthLineChart';
 import { AccountsCard } from '../dashboard/AccountsCard';
 import { InvestmentSummaryCard } from '../dashboard/InvestmentSummaryCard';
+import { buildCommitments } from './commitments';
+import { CommitmentsEntryRow } from './CommitmentsEntryRow';
 
 interface Props {
   transactions: Transaction[];
@@ -27,6 +29,9 @@ interface Props {
   investmentTotal: number;
   accountBalances: Record<string, number>;
   investmentByCategory: Record<string, number>;
+  /** Il flag `commitments` è acceso per questo utente. Spento: nessuna riga,
+   *  nessun link morto verso una schermata che non si può aprire. */
+  showCommitments?: boolean;
 }
 
 export function WealthScreen(p: Props) {
@@ -65,6 +70,14 @@ export function WealthScreen(p: Props) {
     return { expenseByAccount: expense, investByAccount: invest };
   }, [p.transactions, now]);
 
+  // Quanto del mese è già promesso. Sta qui perché è la seconda metà della
+  // domanda a cui questa schermata risponde: i saldi e gli investimenti sono
+  // ciò che possiedi, gli impegni sono ciò che è già di qualcun altro.
+  const fixedMonthlyCost = useMemo(
+    () => (p.showCommitments ? buildCommitments(p.transactions, localISO(now)).fixedMonthlyCost : 0),
+    [p.showCommitments, p.transactions, now],
+  );
+
   const share = (v: number) => (p.netWorth > 0 ? Math.round((v / p.netWorth) * 100) : 0);
 
   return (
@@ -98,6 +111,12 @@ export function WealthScreen(p: Props) {
           {wealth.hasHistory && (
             <div className="mt-4 -mx-1">
               <WealthLineChart points={wealth.points} formatValue={formatCurrency} height={112} />
+            </div>
+          )}
+          {p.showCommitments && (
+            <div className="mt-4 pt-3 border-t border-divider">
+              <CommitmentsEntryRow fixedMonthlyCost={fixedMonthlyCost}
+                onClick={() => navigate('/commitments')} />
             </div>
           )}
         </section>

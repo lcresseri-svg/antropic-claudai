@@ -1,17 +1,38 @@
-import { NavLink, useNavigate } from 'react-router-dom';
+import { useMemo } from 'react';
+import { NavLink, useNavigate, useLocation } from 'react-router-dom';
+import { Transaction } from '../../types';
+import { formatCurrency, formatDate } from '../../utils';
+import { buildCommitments } from '../../features/wealth/commitments';
 
 interface Props {
   loading?: boolean;
   onAdd: () => void;
   onImport: () => void;
   aiEnabled?: boolean;
+  /** Servono alla riga di stato e alla sotto-voce Impegni. Assenti o flag
+   *  spento: la sidebar resta quella di prima, senza link morti. */
+  transactions?: Transaction[];
+  showCommitments?: boolean;
 }
 
-export function SideNav({ loading, onAdd, onImport, aiEnabled = true }: Props) {
+export function SideNav({ loading, onAdd, onImport, aiEnabled = true, transactions, showCommitments }: Props) {
   const navigate = useNavigate();
+  const { pathname } = useLocation();
+
+  // Il centro della sidebar era vuoto. Una riga sola che dice quando esce il
+  // prossimo soldo costa niente e risponde alla domanda più frequente.
+  const next = useMemo(() => {
+    if (!showCommitments || !transactions?.length) return null;
+    const todayISO = new Date().toISOString().slice(0, 10);
+    return buildCommitments(transactions, todayISO).upcoming[0] ?? null;
+  }, [showCommitments, transactions]);
+
+  // Impegni non merita una voce di primo livello — non è una destinazione
+  // quotidiana — ma quando si è dentro Patrimonio è lì che si sta guardando.
+  const wealthArea = pathname === '/wealth' || pathname === '/commitments';
 
   return (
-    <aside className="hidden md:flex flex-col fixed inset-y-0 left-0 w-[220px] z-30 glass-nav"
+    <aside className="hidden md:flex flex-col fixed inset-y-0 left-0 w-[220px] ultra:w-[248px] z-30 glass-nav"
       style={{ borderRight: '1px solid rgba(255,255,255,0.05)' }}>
 
       {/* Brand */}
@@ -29,10 +50,24 @@ export function SideNav({ loading, onAdd, onImport, aiEnabled = true }: Props) {
       <nav className="flex-1 p-3 space-y-0.5 overflow-y-auto">
         <SideLink to="/" label="Oggi" icon={<HomeIcon />} />
         <SideLink to="/wealth" label="Patrimonio" icon={<WealthIcon />} />
+        {showCommitments && wealthArea && (
+          <NavLink to="/commitments" end
+            className={({ isActive }) =>
+              `block ml-[30px] pl-3.5 pr-3.5 py-2 rounded-[12px] text-[13px] font-medium transition-colors ${
+                isActive ? 'bg-gold/10 text-gold' : 'text-secondary hover:text-primary hover:bg-card-hover'}`
+            }>
+            Impegni
+          </NavLink>
+        )}
         <SideLink to="/budget" label="Piano" icon={<TargetIcon />} />
         <SideLink to="/transactions" label="Movimenti" icon={<ListIcon />} />
         <SideLink to="/insights" label="Consigli" icon={<InsightIcon />} />
         {aiEnabled && <SideLink to="/ai-coach" label="AI Coach" icon={<AICoachIcon />} />}
+        {next && (
+          <p className="px-3.5 pt-4 text-[11.5px] text-tertiary leading-snug">
+            Prossima uscita: {formatDate(next.date)} · {formatCurrency(next.amount)}
+          </p>
+        )}
       </nav>
 
       {/* Actions */}
@@ -63,14 +98,23 @@ function SideLink({ to, label, icon }: { to: string; label: string; icon: React.
   return (
     <NavLink to={to} end
       className={({ isActive }) =>
-        `flex items-center gap-3 px-3.5 py-2.5 rounded-[14px] text-sm font-medium transition-colors ${
+        `relative flex items-center gap-3 px-3.5 py-2.5 rounded-[14px] text-sm font-medium transition-colors ${
           isActive
             ? 'bg-gold/10 text-gold'
             : 'text-secondary hover:text-primary hover:bg-card-hover'
         }`
       }>
-      {icon}
-      {label}
+      {({ isActive }) => (
+        <>
+          {/* Il colore da solo non basta: in scala di grigi l'oro e il grigio
+              secondario finiscono alla stessa luminosità. */}
+          {isActive && (
+            <span aria-hidden className="absolute left-0 top-1/2 -translate-y-1/2 w-[3px] h-[18px] rounded-full bg-gold" />
+          )}
+          {icon}
+          {label}
+        </>
+      )}
     </NavLink>
   );
 }
