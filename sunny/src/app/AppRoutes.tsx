@@ -204,7 +204,8 @@ export function AppRoutes({ user, brand, tx, budget, editing, onLogOut, onDelete
             <div className={page(W.list)}>
               <AICoachScreen user={user}
                 transactions={tx.transactions} liquidity={tx.liquidity}
-                savingsTarget={budget.budget.savingsTarget} />
+                savingsTarget={budget.budget.savingsTarget}
+                onSetSavingsTarget={enableBudget ? budget.setSavingsTarget : undefined} />
             </div>
           } />
         )}

@@ -431,7 +431,10 @@ html.light .text-\[\#E6B95C\]\/80 { color: rgb(var(--c-gold) / 0.9); }
   /* Cards print as flat bordered blocks and never split across a page break. */
   .recap-card { break-inside: avoid; page-break-inside: avoid; box-shadow: none !important; }
 
-  /* Movements table: always expanded, header repeated on every page. */
+  /* Movements table: always expanded, header repeated on every page. In app la
+     tabella è richiusa dietro una riga-azione; su carta non c'è niente da
+     aprire, quindi torna visibile comunque. */
+  .recap-movements-collapsed { display: block !important; }
   .recap-movements .overflow-x-auto { overflow: visible !important; }
   .recap-movements thead { display: table-header-group; }
   .recap-movements tr { page-break-inside: avoid; }

@@ -1,11 +1,19 @@
-// Impegni (admin-only, flag `commitments`): abbonamenti, rate e ricorrenti con
-// costo mensile equivalente, prossime scadenze, residui e fine prevista.
-// Tutti i numeri vengono dal modulo puro commitments.ts (una voce per serie —
-// niente doppioni fra template, istanze e proiezioni).
+// Impegni (flag `commitments`): abbonamenti, rate e ricorrenti con il loro
+// costo mensile equivalente, le prossime scadenze e i residui.
+//
+// La domanda a cui risponde non è "quali serie ho" ma "quanto del mese è già
+// deciso prima che io decida qualcosa": da qui l'hero, che mette il costo
+// fisso accanto alla quota di entrate che si porta via.
+//
+// Tutti i numeri vengono dal modulo puro `commitments.ts` — una voce per
+// serie, niente doppioni fra template, istanze e proiezioni.
 import { useMemo } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { Transaction } from '../../types';
-import { formatCurrency, formatDate } from '../../utils';
+import { formatCurrency, formatDate, capitalize } from '../../utils';
+import { recentMonths } from '../insights/insightsEngine';
+import { AnalysisHeader } from '../dashboard/AnalysisHeader';
+import { PageHead } from '../../shared/components/PageHead';
 import { buildCommitments, Commitment } from './commitments';
 
 interface Props {
@@ -17,60 +25,28 @@ const FREQ_LABEL: Record<string, string> = {
   daily: 'giornaliero', weekly: 'settimanale', monthly: 'mensile', yearly: 'annuale',
 };
 
-function Row({ c, onOpen }: { c: Commitment; onOpen: (c: Commitment) => void }) {
-  // Riga intera cliccabile (bottone: tap grande, focus e tastiera gratis).
-  return (
-    <li className="border-b border-divider last:border-b-0">
-      <button type="button" onClick={() => onOpen(c)}
-        aria-label={`Vedi i movimenti di ${c.description}`}
-        className="w-full min-h-[44px] flex items-start justify-between gap-3 py-2.5 text-left rounded-xl hover:bg-elevated transition-colors">
-        <div className="min-w-0">
-          <p className="text-sm text-primary truncate">{c.description}</p>
-          <p className="text-[11px] text-secondary">
-            {formatCurrency(c.amount)}{c.freq ? ` · ${FREQ_LABEL[c.freq]}` : ''}
-            {c.nextDate ? ` · prossima: ${formatDate(c.nextDate)}` : ''}
-          </p>
-          {c.remainingInstallments != null && (
-            <p className="text-[11px] text-secondary">
-              {c.paidInstallments != null && c.totalInstallments != null
-                ? `rata ${Math.min(c.paidInstallments + 1, c.totalInstallments)} di ${c.totalInstallments} · ` : ''}
-              {c.remainingInstallments} rate residue · {formatCurrency(c.remainingAmount ?? 0)} da pagare
-              {c.expectedEnd ? ` · fine prevista ${formatDate(c.expectedEnd)}` : ''}
-            </p>
-          )}
-          {c.kind !== 'installment' && c.expectedEnd && (
-            <p className="text-[11px] text-secondary">fino al {formatDate(c.expectedEnd)}</p>
-          )}
-        </div>
-        <p className="text-sm font-semibold text-primary whitespace-nowrap">
-          {formatCurrency(c.monthlyEquivalent)}<span className="text-[11px] text-secondary font-normal">/mese</span>
-        </p>
-      </button>
-    </li>
-  );
-}
-
-function Group({ title, items, empty, onOpen }:
-  { title: string; items: Commitment[]; empty: string; onOpen: (c: Commitment) => void }) {
-  return (
-    <section className="bg-card rounded-2xl p-5">
-      <div className="flex items-baseline justify-between mb-1">
-        <h2 className="text-sm font-semibold text-primary">{title}</h2>
-        <p className="text-xs text-secondary">
-          {formatCurrency(items.reduce((s, c) => s + c.monthlyEquivalent, 0))}/mese
-        </p>
-      </div>
-      {items.length === 0
-        ? <p className="text-xs text-secondary py-2">{empty}</p>
-        : <ul>{items.map(c => <Row key={c.seriesId} c={c} onOpen={onOpen} />)}</ul>}
-    </section>
-  );
-}
+/** Entro quanti giorni una scadenza è "vicina" e va in oro. */
+const SOON_DAYS = 7;
+const DAY_MS = 86_400_000;
 
 export function CommitmentsScreen({ transactions }: Props) {
   const navigate = useNavigate();
   const todayISO = useMemo(() => new Date().toISOString().slice(0, 10), []);
   const c = useMemo(() => buildCommitments(transactions, todayISO), [transactions, todayISO]);
+
+  // Quota di entrate assorbita dagli impegni: il costo fisso da solo non dice
+  // se è tanto o poco, e "tanto o poco" è l'unica cosa che interessa.
+  const incomeShare = useMemo(() => {
+    const months = recentMonths(transactions, 3, new Date());
+    const avg = months.reduce((s, m) => s + m.income, 0) / Math.max(1, months.length);
+    return avg > 0 ? c.fixedMonthlyCost / avg : null;
+  }, [transactions, c.fixedMonthlyCost]);
+
+  const subsTotal = total(c.subscriptions);
+  const instTotal = total(c.installments);
+  const recTotal = total(c.recurring);
+  const bar = (v: number) => (c.fixedMonthlyCost > 0 ? (v / c.fixedMonthlyCost) * 100 : 0);
+  const upcomingTotal = c.upcoming.reduce((s, u) => s + u.amount, 0);
 
   // Riga → movimenti della serie sul suo conto. Entrambi i filtri sono già
   // supportati da TransactionList (?account=, ?series=) e si combinano in AND.
@@ -82,40 +58,170 @@ export function CommitmentsScreen({ transactions }: Props) {
   };
 
   return (
-    <div className="pb-32 space-y-5">
-      <div className="flex items-center gap-3">
-        <button type="button" onClick={() => navigate(-1)} aria-label="Indietro"
-          className="w-11 h-11 -ml-2 flex items-center justify-center text-secondary hover:text-primary rounded-full">
-          <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M15 18l-6-6 6-6"/></svg>
-        </button>
-        <div>
-          <h1 className="text-2xl font-bold text-primary tracking-[-0.03em]">Impegni</h1>
-          <p className="text-xs text-secondary">Una voce per serie, nessun doppione</p>
+    <div className="pb-32 md:pb-6">
+      <AnalysisHeader title="Impegni" subtitle="Quanto del mese è già deciso" backTo="/wealth" />
+      <PageHead title="Impegni" subtitle="Quanto del mese è già deciso, prima che tu decida qualcosa" />
+
+      <div className="flex flex-col wide:flex-row gap-3.5 md:gap-4 wide:items-start">
+        <div className="flex flex-col gap-3.5 md:gap-4 wide:flex-1 wide:min-w-0">
+
+          {/* Hero: il costo fisso e cosa si porta via */}
+          <section className="hero-card rounded-[26px] shadow-elev-2 p-[22px] animate-rise-in">
+            <p className="label-caps text-secondary mb-2">Costo fisso mensile</p>
+            <p className="balance-num text-[36px] md:text-[56px] md:leading-[0.95] leading-none font-bold text-primary">
+              {formatCurrency(c.fixedMonthlyCost)}
+              <span className="text-[17px] font-semibold text-secondary ml-1">/mese</span>
+            </p>
+            {incomeShare !== null && c.fixedMonthlyCost > 0 && (
+              <p className="text-[12.5px] text-secondary leading-relaxed mt-2.5">
+                Il <span className="font-semibold text-primary">{Math.round(incomeShare * 100)}%</span> delle
+                tue entrate esce prima che tu decida qualcosa.
+              </p>
+            )}
+
+            {c.fixedMonthlyCost > 0 && (
+              <>
+                <div className="flex gap-[2px] h-2 mt-4 rounded-full overflow-hidden"
+                  style={{ background: 'rgba(var(--c-primary) / 0.08)' }}>
+                  <span style={{ width: `${bar(recTotal)}%`, background: 'rgb(var(--c-gold))' }} />
+                  <span style={{ width: `${bar(instTotal)}%`, background: 'rgb(var(--c-red))' }} />
+                  <span style={{ width: `${bar(subsTotal)}%`, background: 'rgb(var(--c-green))' }} />
+                </div>
+                <div className="flex flex-wrap gap-x-4 gap-y-1 mt-2.5">
+                  <Legend color="rgb(var(--c-gold))" label="Ricorrenti" value={recTotal} />
+                  <Legend color="rgb(var(--c-red))" label="Rate" value={instTotal} />
+                  <Legend color="rgb(var(--c-green))" label="Abbonamenti" value={subsTotal} />
+                </div>
+              </>
+            )}
+          </section>
+
+          {/* Prossimi 30 giorni: una timeline, non un elenco di righe uguali */}
+          {c.upcoming.length > 0 && (
+            <section className="glass-card rounded-[20px] shadow-elev-1 p-[18px] animate-rise-in"
+              style={{ animationDelay: '0.06s' }}>
+              <div className="flex items-baseline justify-between gap-3 mb-3">
+                <p className="label-caps text-secondary">Prossimi 30 giorni</p>
+                <p className="text-[13px] font-semibold text-primary balance-num">{formatCurrency(upcomingTotal)}</p>
+              </div>
+              <ul>
+                {c.upcoming.map((u, i) => {
+                  const days = Math.round(
+                    (Date.parse(`${u.date}T00:00:00Z`) - Date.parse(`${todayISO}T00:00:00Z`)) / DAY_MS,
+                  );
+                  const soon = days <= SOON_DAYS;
+                  return (
+                    <li key={i} className="flex items-stretch gap-3">
+                      <span className={`w-[38px] flex-none text-[11.5px] font-semibold balance-num pt-2.5 ${
+                        soon ? 'text-gold' : 'text-secondary'}`}>
+                        {formatDate(u.date)}
+                      </span>
+                      <span className="w-px flex-none" style={{ background: 'var(--border)' }} />
+                      <span className="flex-1 min-w-0 flex items-center justify-between gap-3 py-2.5">
+                        <span className="text-[13.5px] text-primary truncate">{u.description}</span>
+                        <span className="text-[13.5px] font-semibold text-primary balance-num flex-none">
+                          {formatCurrency(u.amount)}
+                        </span>
+                      </span>
+                    </li>
+                  );
+                })}
+              </ul>
+            </section>
+          )}
+        </div>
+
+        <div className="flex flex-col gap-3.5 md:gap-4 wide:w-[352px] ultra:w-[384px] wide:flex-none">
+          <Group title="Rate" items={c.installments} total={instTotal}
+            empty="Nessun piano a rate attivo." onOpen={openMovements} />
+          <Group title="Abbonamenti" items={c.subscriptions} total={subsTotal}
+            empty="Nessun abbonamento attivo." onOpen={openMovements} />
+          <Group title="Ricorrenti" items={c.recurring} total={recTotal}
+            empty="Nessuna spesa ricorrente attiva." onOpen={openMovements} />
         </div>
       </div>
-
-      <section className="bg-card rounded-2xl p-5">
-        <p className="text-xs text-secondary">Costi fissi mensili (abbonamenti + rate + ricorrenti, quote annuali incluse)</p>
-        <p className="text-3xl font-bold text-primary tracking-[-0.03em]">{formatCurrency(c.fixedMonthlyCost)}<span className="text-sm text-secondary font-normal">/mese</span></p>
-      </section>
-
-      {c.upcoming.length > 0 && (
-        <section className="bg-card rounded-2xl p-5">
-          <h2 className="text-sm font-semibold text-primary mb-2">Prossime scadenze (30 giorni)</h2>
-          <ul className="space-y-1.5">
-            {c.upcoming.map((u, i) => (
-              <li key={i} className="flex justify-between text-sm">
-                <span className="text-secondary">{formatDate(u.date)} · {u.description}</span>
-                <span className="text-primary">{formatCurrency(u.amount)}</span>
-              </li>
-            ))}
-          </ul>
-        </section>
-      )}
-
-      <Group title="Abbonamenti" items={c.subscriptions} empty="Nessun abbonamento attivo." onOpen={openMovements} />
-      <Group title="Rate" items={c.installments} empty="Nessun piano a rate attivo." onOpen={openMovements} />
-      <Group title="Ricorrenti" items={c.recurring} empty="Nessuna spesa ricorrente attiva." onOpen={openMovements} />
     </div>
   );
+}
+
+const total = (items: Commitment[]) => items.reduce((s, c) => s + c.monthlyEquivalent, 0);
+
+function Legend({ color, label, value }: { color: string; label: string; value: number }) {
+  if (value <= 0) return null;
+  return (
+    <span className="flex items-center gap-1.5 text-[11.5px] text-secondary">
+      <span className="w-2 h-2 rounded-full flex-none" style={{ background: color }} />
+      {label} <span className="font-semibold text-primary balance-num">{formatCurrency(value)}</span>
+    </span>
+  );
+}
+
+function Group({ title, items, total: sum, empty, onOpen }: {
+  title: string; items: Commitment[]; total: number; empty: string;
+  onOpen: (c: Commitment) => void;
+}) {
+  return (
+    <section className="glass-card rounded-[20px] shadow-elev-1 p-[18px]">
+      <div className="flex items-baseline justify-between gap-3 mb-2">
+        <p className="label-caps text-secondary">{title}</p>
+        {items.length > 0 && (
+          <p className="text-[12.5px] text-secondary balance-num">
+            <span className="font-semibold text-primary">{formatCurrency(sum)}</span>/mese
+          </p>
+        )}
+      </div>
+      {items.length === 0
+        ? <p className="text-[12px] text-tertiary py-1">{empty}</p>
+        : <ul>{items.map(c => <Row key={c.seriesId} c={c} onOpen={onOpen} />)}</ul>}
+    </section>
+  );
+}
+
+function Row({ c, onOpen }: { c: Commitment; onOpen: (c: Commitment) => void }) {
+  const isPlan = c.kind === 'installment' && c.totalInstallments != null;
+  const paid = Math.min(c.paidInstallments ?? 0, c.totalInstallments ?? 0);
+  const progress = isPlan && c.totalInstallments ? paid / c.totalInstallments : 0;
+
+  // Su una voce annuale il numero grande è la quota mensile: senza dirlo
+  // sembra un errore accanto a un abbonamento da 890 € l'anno.
+  const sub = c.freq === 'yearly'
+    ? `annuale ${formatCurrency(c.amount)} · quota mensile`
+    : `${c.freq ? FREQ_LABEL[c.freq] : 'ricorrente'}${c.nextDate ? ` · prossima ${formatDate(c.nextDate)}` : ''}`;
+
+  return (
+    <li className="border-b border-divider last:border-b-0">
+      <button type="button" onClick={() => onOpen(c)}
+        aria-label={`Vedi i movimenti di ${c.description}`}
+        className="row-tap w-full flex flex-col gap-1.5 py-2.5 text-left rounded-xl transition-colors">
+        <span className="w-full flex items-start justify-between gap-3">
+          <span className="min-w-0">
+            <span className="block text-[13.5px] text-primary truncate">{c.description}</span>
+            <span className="block text-[11px] text-tertiary truncate">{sub}</span>
+          </span>
+          <span className="text-[13.5px] font-semibold text-primary whitespace-nowrap balance-num flex-none">
+            {formatCurrency(c.monthlyEquivalent)}<span className="text-[11px] text-secondary font-normal">/mese</span>
+          </span>
+        </span>
+
+        {/* Un piano a rate ha un inizio e una fine: la barra li dice in un
+            colpo, il paragrafo di 11px che c'era prima no. */}
+        {isPlan && (
+          <span className="w-full">
+            <span className="block h-1 rounded-full overflow-hidden" style={{ background: 'rgba(var(--c-primary) / 0.08)' }}>
+              <span className="block h-full rounded-full bg-gold" style={{ width: `${progress * 100}%` }} />
+            </span>
+            <span className="block text-[11px] text-secondary mt-1">
+              {paid}/{c.totalInstallments} · {formatCurrency(c.remainingAmount ?? 0)} residui
+              {c.expectedEnd && ` · fine ${capitalize(monthYear(c.expectedEnd))}`}
+            </span>
+          </span>
+        )}
+      </button>
+    </li>
+  );
+}
+
+/** "febbraio 2027" — per la fine di un piano il giorno non serve. */
+function monthYear(iso: string): string {
+  return new Date(`${iso}T00:00:00`).toLocaleDateString('it-IT', { month: 'long', year: 'numeric' });
 }

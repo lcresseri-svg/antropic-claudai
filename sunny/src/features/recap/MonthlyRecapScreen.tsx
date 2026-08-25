@@ -1,8 +1,9 @@
-import { useMemo } from 'react';
+import { useMemo, useState } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import { Transaction } from '../../types';
 import { useSettings } from '../../shared/providers/settings';
-import { formatCurrency, formatDateFull } from '../../utils';
+import { formatCurrency } from '../../utils';
+import { PageHead } from '../../shared/components/PageHead';
 import { buildMonthlyRecap, MonthlyRecap, RecapDelta, RecapKpi } from './monthlyRecap';
 
 const KPI_LABEL: Record<RecapKpi['key'], string> = {
@@ -22,6 +23,11 @@ export function MonthlyRecapScreen({ transactions }: { transactions: Transaction
     [transactions, getCat, getAcc, ym],
   );
 
+  const saved = recap.kpis.find(k => k.key === 'saved')?.value ?? null;
+  // La tabella completa non è più in pagina: apre chi la vuole. In stampa
+  // resta sempre aperta (regola `.recap-movements-collapsed` in index.css).
+  const [movementsOpen, setMovementsOpen] = useState(false);
+
   if (recap.totals.txCount === 0) {
     return (
       <div className="pb-24">
@@ -40,16 +46,27 @@ export function MonthlyRecapScreen({ transactions }: { transactions: Transaction
       {/* Header */}
       <header className="recap-card">
         <p className="label-caps text-secondary">Riepilogo mensile</p>
-        <h1 className="text-3xl font-bold text-primary tracking-[-0.03em] mt-1">{recap.label}</h1>
-        <p className="text-xs text-secondary mt-1.5">
-          Generato il {formatDateFull(recap.generatedAt)}
-          {recap.isPartial && <span className="ml-2 text-gold">· mese in corso (dati parziali)</span>}
+        <h1 className="text-[29px] font-bold text-primary tracking-[-0.03em] mt-1 leading-none">{recap.label}</h1>
+        <p className="text-[11.5px] text-tertiary mt-2">
+          {recap.isPartial ? 'Mese in corso · dati parziali' : 'Mese chiuso'}
+          {' · '}{recap.movements.length} movimenti
         </p>
       </header>
 
-      {/* Verdict */}
-      <div className="glass-card rounded-2xl p-5 recap-card border border-gold/15">
-        <p className="text-[15px] leading-snug text-primary font-medium">{recap.verdict}</p>
+      {/* Verdict — la frase e, sotto, l'unico numero che si ricorda */}
+      <div className="accent-card rounded-[22px] p-5 recap-card">
+        <p className="text-[18px] leading-[1.35] text-primary font-semibold"
+          style={{ textWrap: 'pretty' } as React.CSSProperties}>{recap.verdict}</p>
+        {saved != null && (
+          <div className="mt-4 pt-4 border-t border-divider">
+            <p className={`balance-num text-[34px] leading-none font-bold ${saved >= 0 ? 'text-primary' : 'text-red'}`}>
+              {formatCurrency(saved)}
+            </p>
+            <p className="text-[12px] text-secondary mt-1.5">
+              {saved >= 0 ? 'risparmiati' : 'in meno sui conti'}
+            </p>
+          </div>
+        )}
       </div>
 
       {/* KPI double-delta */}
@@ -57,11 +74,9 @@ export function MonthlyRecapScreen({ transactions }: { transactions: Transaction
         {recap.kpis.map(k => (
           <div key={k.key} className="glass-card rounded-2xl p-4">
             <p className="label-caps text-secondary">{KPI_LABEL[k.key]}</p>
-            <p className="text-[19px] font-semibold text-primary balance-num mt-1">{formatCurrency(k.value)}</p>
-            <div className="mt-2 space-y-1">
-              <DeltaRow label="vs mese prec." d={k.vsPrev} />
-              <DeltaRow label="vs il solito" d={k.vsUsual} />
-            </div>
+            <p className="text-[19px] font-bold text-primary balance-num mt-1">{formatCurrency(k.value)}</p>
+            <Comparison d={k.vsUsual?.outOfUsual ? k.vsUsual : (k.vsPrev ?? k.vsUsual)}
+              vsUsual={!!k.vsUsual?.outOfUsual} />
           </div>
         ))}
       </div>
@@ -100,8 +115,21 @@ export function MonthlyRecapScreen({ transactions }: { transactions: Transaction
 
       {/* Movements */}
       <div className="glass-card rounded-2xl p-5 recap-card recap-movements">
-        <p className="label-caps text-secondary mb-3">Movimenti di {recap.label} · {recap.movements.length}</p>
-        <div className="overflow-x-auto">
+        <button type="button" onClick={() => setMovementsOpen(o => !o)} aria-expanded={movementsOpen}
+          className="w-full flex items-center justify-between gap-3 text-left no-print">
+          <span className="text-[13.5px] text-primary">
+            Tutti i {recap.movements.length} movimenti di {recap.label.toLowerCase()}
+          </span>
+          <span className="flex items-center gap-1 text-[12px] font-semibold text-gold flex-none">
+            {movementsOpen ? 'Chiudi' : 'Apri'}
+            <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2"
+              strokeLinecap="round" strokeLinejoin="round"
+              className={`transition-transform ${movementsOpen ? 'rotate-180' : ''}`}>
+              <path d="M6 9l6 6 6-6" />
+            </svg>
+          </span>
+        </button>
+        <div className={`overflow-x-auto ${movementsOpen ? 'mt-3' : 'hidden recap-movements-collapsed'}`}>
           <table className="w-full text-[12px] border-collapse">
             <thead>
               <tr className="text-secondary text-left">
@@ -140,24 +168,27 @@ function BackBar({ onBack, onPrint, canPrint }: { onBack: () => void; onPrint: (
         Piano
       </button>
       {canPrint && (
-        <button onClick={onPrint}
-          className="text-[13px] font-medium px-3.5 py-2 rounded-xl bg-gold/15 text-gold hover:bg-gold/25 transition-colors">
-          Esporta / Stampa
+        <button onClick={onPrint} className="text-[12.5px] font-medium text-gold">
+          Esporta
         </button>
       )}
     </div>
   );
 }
 
-function DeltaRow({ label, d }: { label: string; d: RecapDelta | null }) {
-  if (!d) return <p className="text-[11px] text-tertiary">{label}: —</p>;
-  const sign = d.abs > 0 ? '+' : d.abs < 0 ? '−' : '';
-  const pct = d.pct != null ? ` (${d.abs >= 0 ? '+' : '−'}${Math.abs(Math.round(d.pct * 100))}%)` : '';
+/** Soglia sotto la quale uno scostamento è rumore e non merita un colore. */
+const SIGNIFICANT_PCT = 0.05;
+
+function Comparison({ d, vsUsual }: { d: RecapDelta | null | undefined; vsUsual: boolean }) {
+  if (!d) return <p className="text-[11.5px] text-tertiary mt-1.5">—</p>;
+  const ref = vsUsual ? 'vs solito' : 'vs mese scorso';
+  const significant = d.pct == null || Math.abs(d.pct) >= SIGNIFICANT_PCT;
+  if (!significant) {
+    return <p className="text-[11.5px] text-secondary mt-1.5">{vsUsual ? 'in linea col solito' : 'come il mese scorso'}</p>;
+  }
   return (
-    <p className="text-[11px] text-secondary flex items-center gap-1">
-      <span className="text-tertiary">{label}:</span>
-      <span className={`font-medium balance-num ${goodClass(d.good)}`}>{sign}{formatCurrency(Math.abs(d.abs))}{pct}</span>
-      {d.outOfUsual && <span className="text-gold" title="Fuori dal solito">•</span>}
+    <p className={`text-[11.5px] mt-1.5 balance-num ${goodClass(d.good)}`}>
+      {d.abs >= 0 ? '+' : '−'}{formatCurrency(Math.abs(d.abs))} <span className="text-secondary">{ref}</span>
     </p>
   );
 }
