@@ -11,7 +11,7 @@ import { Transaction } from '../../types';
 import { useSettings } from '../../shared/providers/settings';
 import { formatCurrency, formatDate, capitalize } from '../../utils';
 import { refundsFor, summarizeRefunds, refundableExpenses } from '../../shared/refunds';
-import { SheetShell, Field, EuroInput, Select, parseNum } from '../investments/SheetShell';
+import { SheetShell, Field, Select, AmountBlock, OptionList, OptionRow, parseNum } from '../investments/SheetShell';
 
 interface Props {
   open: boolean;
@@ -130,20 +130,25 @@ export function RefundSheet({ open, transactions, expenseId, editing, onSave, on
             )}
           </Field>
 
-          <Field label="Importo rimborsato">
-            <EuroInput value={amount} onChange={setAmount} autoFocus />
-            {summary && (
-              <p className="text-[11px] text-secondary/70 px-1 mt-1.5">
-                Massimo stornabile: {formatCurrency(summary.remaining)}
-                {summary.refunded > 0 && ` · già stornati ${formatCurrency(summary.refunded)}`}
-              </p>
-            )}
-            {overLimit && (
-              <p className="text-[11px] px-1 mt-1.5" style={{ color: '#E08B8B' }}>
-                Lo storno non può superare {formatCurrency(summary?.remaining ?? 0)}.
-              </p>
-            )}
-          </Field>
+          <AmountBlock label="Importo rimborsato" value={amount} onChange={setAmount} autoFocus
+            hint={summary && (
+              <>
+                <span className="block h-[5px] rounded-full overflow-hidden mb-2"
+                  style={{ background: 'rgba(var(--c-primary) / 0.08)' }}>
+                  <span className="block h-full rounded-full bg-green"
+                    style={{ width: `${Math.min(100, ((summary.refunded + Math.max(0, amountN)) / Math.max(1, summary.gross)) * 100)}%` }} />
+                </span>
+                Massimo stornabile {formatCurrency(summary.remaining)}
+                {summary.refunded > 0
+                  ? ` · già stornati ${formatCurrency(summary.refunded)}`
+                  : ' · nessuno storno precedente'}
+                {overLimit && (
+                  <span className="block text-red mt-1">
+                    Lo storno non può superare {formatCurrency(summary.remaining)}.
+                  </span>
+                )}
+              </>
+            )} />
 
           <Field label="Data di accredito">
             <input type="date" value={date} onChange={e => setDate(e.target.value)}
@@ -160,11 +165,13 @@ export function RefundSheet({ open, transactions, expenseId, editing, onSave, on
               options={visibleAccounts.map(a => ({ value: a.id, label: `${a.icon} ${a.label}` }))} />
           </Field>
 
-          <Field label="Nota (facoltativa)">
-            <input type="text" value={notes} onChange={e => setNotes(e.target.value)}
-              placeholder="Es. reso online, rimborso parziale…" maxLength={200}
-              className="w-full bg-elevated rounded-2xl px-4 py-3 text-primary text-sm placeholder:text-secondary/50 outline-none focus:ring-1 focus:ring-gold/40" />
-          </Field>
+          <OptionList>
+            <OptionRow label="Nota" value={notes.trim() ? 'presente' : 'nessuna'}>
+              <input type="text" value={notes} onChange={e => setNotes(e.target.value)}
+                placeholder="Es. reso online, rimborso parziale…" maxLength={200}
+                className="w-full bg-elevated rounded-xl px-3.5 py-2.5 text-primary text-sm placeholder:text-secondary/50 outline-none focus:ring-1 focus:ring-gold/40" />
+            </OptionRow>
+          </OptionList>
 
           {/* Preview: com'è la spesa dopo lo storno */}
           {summary && amountN > 0 && !overLimit && (
@@ -177,7 +184,7 @@ export function RefundSheet({ open, transactions, expenseId, editing, onSave, on
               <PreviewRow label="Questo storno" value={`−${formatCurrency(amountN)}`} tone="text-green" />
               <div className="flex items-baseline justify-between gap-3 pt-2 border-t border-divider">
                 <span className="text-[13px] font-semibold text-primary">Spesa effettiva</span>
-                <span className="text-[17px] font-bold text-primary balance-num">{formatCurrency(afterRefund)}</span>
+                <span className="text-[21px] font-bold text-primary balance-num">{formatCurrency(afterRefund)}</span>
               </div>
               <p className="text-[11px] text-secondary/70 leading-snug pt-1">
                 {formatCurrency(amountN)} tornano su {getAcc(account).label} il {formatDate(date)}.
@@ -193,7 +200,7 @@ export function RefundSheet({ open, transactions, expenseId, editing, onSave, on
           )}
 
           <button onClick={save} disabled={!valid || saving}
-            className="w-full py-3.5 rounded-2xl font-semibold bg-gold text-bg disabled:opacity-40 transition-opacity">
+            className="w-full py-3.5 rounded-2xl cta-gold-fill text-[14px] font-semibold disabled:opacity-40 transition-opacity">
             {saving ? 'Salvataggio…' : saveError ? 'Riprova' : editing ? 'Salva modifiche' : 'Registra storno'}
           </button>
         </>

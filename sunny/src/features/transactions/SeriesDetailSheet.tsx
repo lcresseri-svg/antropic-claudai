@@ -68,14 +68,14 @@ export function SeriesDetailSheet({ open, anchor, allTransactions, onClose, onEd
         <div className="flex-1 min-h-0 overflow-y-auto overscroll-contain scrollbar-hide px-6 pb-4 space-y-4">
 
           {/* Importo / frequenza */}
-          <div className="bg-card rounded-2xl px-4 py-3 flex items-baseline justify-between">
-            <span className="text-[13px] text-secondary">
+          <div className="glass-card rounded-[18px] px-4 py-3.5">
+            <p className="label-caps text-secondary mb-1">
               {s.kind === 'installment' ? 'Importo rata' : 'Importo'}
-            </span>
-            <span className="text-[17px] font-semibold text-primary balance-num">
+            </p>
+            <p className="text-[26px] font-bold text-primary balance-num leading-none">
               {formatCurrency(s.amount)}
-              {s.freq && <span className="text-[12px] font-normal text-secondary"> {FREQ_LABEL[s.freq]}</span>}
-            </span>
+              {s.freq && <span className="text-[13px] font-medium text-secondary ml-1.5">{FREQ_LABEL[s.freq]}</span>}
+            </p>
           </div>
 
           {/* Equivalenti — subscriptions and plain recurring, never installments
@@ -100,21 +100,30 @@ export function SeriesDetailSheet({ open, anchor, allTransactions, onClose, onEd
           )}
 
           {s.kind === 'installment' && s.installment && (
-            <div className="bg-card rounded-2xl px-4 py-3 space-y-2.5">
-              <div>
-                <div className="flex items-center justify-between mb-1.5">
-                  <span className="text-[13px] text-secondary">Rate pagate</span>
-                  <span className="text-[13px] font-semibold text-primary balance-num">
+            <>
+              <div className="glass-card rounded-[18px] px-4 py-3.5">
+                <div className="flex items-baseline justify-between mb-2">
+                  <span className="label-caps text-secondary">Avanzamento</span>
+                  <span className="text-[15px] font-bold text-primary balance-num">
                     {Math.min(s.paidCount, s.installment.totalInstallments)} / {s.installment.totalInstallments}
                   </span>
                 </div>
                 <ProgressBar value={s.installment.progress} max={1} />
+                <div className="flex items-baseline justify-between gap-3 mt-3">
+                  <span className="text-[12.5px] text-secondary">
+                    <span className="font-semibold text-primary balance-num">{formatCurrency(s.paidAmount)}</span> pagati
+                  </span>
+                  <span className="text-[12.5px] text-secondary text-right">
+                    <span className="font-semibold text-primary balance-num">{formatCurrency(s.installment.remainingAmount)}</span> residui
+                  </span>
+                </div>
               </div>
-              <Line label="Totale piano" value={formatCurrency(s.installment.totalAmount)} />
-              <Line label="Totale pagato" value={formatCurrency(s.paidAmount)} />
-              <Line label="Residuo" value={formatCurrency(s.installment.remainingAmount)} />
-              <Line label="Prossima rata" value={s.nextDate ? formatDateFull(s.nextDate) : '—'} />
-            </div>
+              <div className="bg-card rounded-2xl px-4 py-3 space-y-2">
+                <Line label="Prossima rata" value={s.nextDate ? formatDateFull(s.nextDate) : '—'} />
+                <Line label="Totale piano" value={formatCurrency(s.installment.totalAmount)} />
+                {s.until && <Line label="Fine prevista" value={formatDateFull(s.until)} />}
+              </div>
+            </>
           )}
 
           {s.kind === 'recurring' && (
@@ -144,8 +153,10 @@ export function SeriesDetailSheet({ open, anchor, allTransactions, onClose, onEd
         {/* CTA */}
         <div className="shrink-0 px-6 pt-3 pb-6 bg-[var(--modal-hdr-bg)] space-y-2">
           <button onClick={() => onViewMovements(s.seriesId)}
-            className="w-full py-3 rounded-2xl glass-cta-gold text-sm font-semibold">
-            Vedi movimenti della serie
+            className="w-full py-3.5 rounded-2xl cta-gold-fill text-[14px] font-semibold active:scale-[0.98] transition-transform">
+            {s.paidCount > 0
+              ? `Vedi i ${s.paidCount} movimenti della serie`
+              : 'Vedi i movimenti della serie'}
           </button>
           <div className="flex gap-2">
             <button onClick={() => onEditSeries(anchor)}
