@@ -17,6 +17,7 @@ import { useSettings } from '../../shared/providers/settings';
 import { buildWealthHistory } from '../dashboard/wealthAnalytics';
 import { localISO } from '../dashboard/categoryAnalytics';
 import { WealthLineChart } from '../dashboard/WealthLineChart';
+import { useIsDesktop } from '../../shared/hooks/useMediaQuery';
 import { AccountsCard } from '../dashboard/AccountsCard';
 import { InvestmentSummaryCard } from '../dashboard/InvestmentSummaryCard';
 import { buildCommitments } from './commitments';
@@ -38,6 +39,9 @@ export function WealthScreen(p: Props) {
   const navigate = useNavigate();
   const { accounts, categories, enableInvestments, includeInvestments } = useSettings();
   const [accMode, setAccMode] = useState<'balance' | 'spending'>('balance');
+  // Su desktop il grafico cresce: l'altezza è un numero che entra nell'SVG,
+  // quindi non si può esprimere con una variante Tailwind.
+  const isDesktop = useIsDesktop();
 
   const now = useMemo(() => new Date(), []);
 
@@ -110,7 +114,7 @@ export function WealthScreen(p: Props) {
           )}
           {wealth.hasHistory && (
             <div className="mt-4 -mx-1">
-              <WealthLineChart points={wealth.points} formatValue={formatCurrency} height={112} />
+              <WealthLineChart points={wealth.points} formatValue={formatCurrency} height={isDesktop ? 140 : 112} />
             </div>
           )}
           {p.showCommitments && (

@@ -125,7 +125,14 @@ export function TransactionRow({ tx, selectable, selected, upcoming, seriesFreq,
         </p>
       </div>
 
-      <div className="text-right flex-shrink-0">
+      {/* Colonna categoria, solo desktop: su telefono resta nel sottotitolo
+          perché lì lo spazio non c'è. */}
+      <div className="hidden md:flex items-center gap-1.5 w-[140px] flex-none min-w-0">
+        <span className="text-[13px] flex-none">{cat.icon}</span>
+        <span className="text-[12.5px] text-secondary truncate">{cat.label}</span>
+      </div>
+
+      <div className="text-right flex-shrink-0 md:w-[110px]">
         <p className={`text-[15px] font-semibold balance-num ${
           isProjected && hideDate ? 'text-secondary' : amountClass}`}>
           {prefix}{formatCurrency(tx.amount)}
