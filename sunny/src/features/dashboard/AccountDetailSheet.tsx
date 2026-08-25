@@ -13,6 +13,7 @@ import {
 } from './accountAnalytics';
 import { AccountBalanceLineChart } from './AccountBalanceLineChart';
 import { useScrollLock } from '../../shared/useScrollLock';
+import { useEscapeKey } from '../../shared/hooks/useEscapeKey';
 
 interface Props {
   account: AccountDef;
@@ -32,6 +33,8 @@ export function AccountDetailSheet({
   account, transactions, period, offset, periodLabel, now, depth, onClose, onSeeAll,
 }: Props) {
   useScrollLock();
+  // Esc chiude ogni modale dell'app: qui mancava.
+  useEscapeKey(onClose);
   useEffect(() => {
     const onKey = (e: KeyboardEvent) => { if (e.key === 'Escape') onClose(); };
     window.addEventListener('keydown', onKey);

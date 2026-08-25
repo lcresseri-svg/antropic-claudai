@@ -107,19 +107,23 @@ export function ForecastV4Panel({
       </div>
 
       {/* Total + V3 comparison */}
-      <div className="grid grid-cols-3 gap-3 text-center">
-        <Kpi label="V4" value={fmt(v4.totalForecast)} highlight />
-        <Kpi label="V3" value={fmt(comparison.v3Total)} />
-        <Kpi
-          label="Differenza"
-          value={`${comparison.delta >= 0 ? '+' : ''}${fmt(comparison.delta)}`}
-          sub={`${comparison.deltaPct >= 0 ? '+' : ''}${comparison.deltaPct}%`}
-        />
+      <div className="flex items-end justify-between gap-4">
+        <div className="min-w-0">
+          <p className="label-caps text-tertiary mb-1">Previsione V4</p>
+          <p className="balance-num text-[30px] leading-none font-bold text-gold">{fmt(v4.totalForecast)}</p>
+        </div>
+        <div className="text-right flex-none">
+          <p className="balance-num text-[16px] font-semibold text-primary">{fmt(comparison.v3Total)}</p>
+          <p className="text-[11.5px] text-tertiary">
+            V3 · {comparison.delta >= 0 ? '+' : ''}{fmt(comparison.delta)}
+            {' '}({comparison.deltaPct >= 0 ? '+' : ''}{comparison.deltaPct}%)
+          </p>
+        </div>
       </div>
 
       {/* Component decomposition */}
       <div>
-        <p className="text-[10px] text-tertiary uppercase tracking-wide mb-1.5">Composizione</p>
+        <p className="label-caps text-tertiary mb-1.5">Composizione</p>
         <div className="space-y-1">
           <CompRow label="Speso finora" value={c.spentToDate} weight={weights.spentToDate} />
           <CompRow label="Pianificato manuale" value={c.plannedManualRemaining} weight={weights.plannedManualRemaining} />
@@ -202,16 +206,6 @@ export function ForecastV4Panel({
       >
         Esporta diagnostica V4 (JSON)
       </button>
-    </div>
-  );
-}
-
-function Kpi({ label, value, sub, highlight }: { label: string; value: string; sub?: string; highlight?: boolean }) {
-  return (
-    <div>
-      <p className="text-[10px] text-tertiary mb-0.5">{label}</p>
-      <p className={`text-sm font-semibold ${highlight ? 'text-gold' : 'text-primary'}`}>{value}</p>
-      {sub && <p className="text-[10px] text-tertiary">{sub}</p>}
     </div>
   );
 }

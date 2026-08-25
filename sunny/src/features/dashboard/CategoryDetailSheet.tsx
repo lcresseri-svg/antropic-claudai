@@ -15,6 +15,7 @@ import {
 } from './categoryAnalytics';
 import { CategoryTrendLineChart } from './CategoryTrendLineChart';
 import { useScrollLock } from '../../shared/useScrollLock';
+import { useEscapeKey } from '../../shared/hooks/useEscapeKey';
 
 interface Props {
   summary: CategorySpendingSummary;
@@ -41,6 +42,8 @@ export function CategoryDetailSheet({
 
   // Lock background scroll + close on Esc while open.
   useScrollLock();
+  // Esc chiude ogni modale dell'app: qui mancava.
+  useEscapeKey(onClose);
   useEffect(() => {
     const onKey = (e: KeyboardEvent) => { if (e.key === 'Escape') onClose(); };
     window.addEventListener('keydown', onKey);
