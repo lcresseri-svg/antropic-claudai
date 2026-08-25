@@ -45,16 +45,22 @@ const WrappedScreen = lazy(() => import('../features/wrapped/WrappedScreen').the
  * impostazioni sono la più stretta di tutte perché sono righe di testo.
  */
 const W = {
-  home:     'md:max-w-[1360px]',
-  wide:     'md:max-w-[1200px]',   // Patrimonio, Piano, Investimenti
-  list:     'md:max-w-[1100px]',   // Movimenti, Consigli, analisi, AI Coach
-  reading:  'md:max-w-[1040px]',   // Riepilogo mensile, Impegni
-  admin:    'md:max-w-[1180px]',   // Previsione V4, Metriche
-  settings: 'md:max-w-[900px]',
+  home:     'wide:max-w-[1360px]',
+  wide:     'wide:max-w-[1200px]',   // Patrimonio, Piano, Investimenti
+  list:     'wide:max-w-[1100px]',   // Movimenti, Consigli, analisi, AI Coach
+  reading:  'wide:max-w-[1040px]',   // Riepilogo mensile, Impegni
+  admin:    'wide:max-w-[1180px]',   // Previsione V4, Metriche
+  settings: 'wide:max-w-[900px]',
 } as const;
 
-/** Contenitore di una rotta: spaziatura di sempre + tetto e centratura. */
-const page = (w: string) => `pt-4 md:pt-6 md:mx-auto ${w}`;
+/**
+ * Contenitore di una rotta.
+ *
+ * Da `md` il contenuto è una colonna sola larga al massimo 720px — più larga
+ * di così una riga di testo non si legge — e da `wide` si apre fino al tetto
+ * della schermata, dove c'è spazio per due colonne.
+ */
+const page = (w: string) => `pt-4 md:pt-6 md:mx-auto md:max-w-[720px] ${w}`;
 
 /** In-flow loading placeholder — no layout shift, no white screen. */
 function RouteFallback() {
@@ -100,7 +106,7 @@ export function AppRoutes({ user, brand, tx, budget, editing, onLogOut, onDelete
     <Suspense fallback={<RouteFallback />}>
       <Routes>
         <Route path="/" element={
-          <div className={`md:mx-auto ${W.home}`}>
+          <div className={`md:mx-auto md:max-w-[720px] ${W.home}`}>
           <DashboardV2
             greeting={brand}
             netWorth={tx.netWorth} liquidity={tx.liquidity} investmentTotal={tx.investmentTotal}

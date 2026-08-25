@@ -330,7 +330,7 @@ export function BudgetScreenV2({
   };
 
   return (
-    <div className="pb-32 space-y-4 md:max-w-3xl">
+    <div className="pb-32 space-y-4">
       {/* Header 56px: titolo + navigatore mese compatto. Lo stato del mese non
           è più una pill decorativa: è diventato l'azione dentro l'hero. */}
       <div className="h-14 flex items-center justify-between gap-3">

@@ -429,7 +429,7 @@ export function SettingsScreen({ user, transactions, budgetExport, onLogOut, onD
               riga stessa: aprire un sottolivello per un sì/no era un passo di
               troppo. Le voci che portano davvero da qualche parte tengono il
               chevron. */}
-          <div className="space-y-5">
+          <div className="space-y-5 wide:grid wide:grid-cols-2 wide:gap-5 wide:space-y-0 wide:items-start">
               <MenuSection title="Come si comporta l'app" query={menuQuery}>
                 <SwitchRow icon="🌙" color="#8B8B8B" label="Tema scuro" sub="Chiaro o scuro"
                   on={theme === 'dark'} onToggle={() => saveTheme(theme === 'dark' ? 'light' : 'dark')} />
@@ -743,7 +743,7 @@ export function SettingsScreen({ user, transactions, budgetExport, onLogOut, onD
       {sub === 'info' && (
         <>
           <ManageHeader title="Come funziona" editMode={false} onBack={exitToMenu} onToggleEdit={() => {}} hideEdit />
-          <div className="space-y-3 md:max-w-2xl">
+          <div className="space-y-3">
             <p className="text-[13px] text-secondary px-1 leading-relaxed">
               Sunny non indovina nulla: ogni numero nasce dai tuoi movimenti. Ecco, in parole semplici, come vengono calcolate le cose principali.
             </p>
@@ -781,7 +781,7 @@ export function SettingsScreen({ user, transactions, budgetExport, onLogOut, onD
       {sub === 'versioni' && (
         <>
           <ManageHeader title="Registro versioni" editMode={false} onBack={exitToMenu} onToggleEdit={() => {}} hideEdit />
-          <div className="space-y-3 md:max-w-2xl">
+          <div className="space-y-3">
             {APP_CHANNEL === 'beta' && (
               <div className="glass-card rounded-2xl px-4 py-3 flex items-start gap-2.5 border border-gold/15">
                 <span className="text-gold">🧪</span>

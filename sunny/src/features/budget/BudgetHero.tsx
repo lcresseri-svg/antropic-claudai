@@ -42,7 +42,7 @@ export function BudgetHero({ planned, spent, scheduled, lastDay, onConfirm, onEd
       <div className="flex items-center gap-[18px]">
         <div className="flex-1 min-w-0">
           <p className="label-caps text-secondary mb-2">Resta nel budget</p>
-          <p className={`balance-num text-[38px] leading-none font-bold ${left >= 0 ? 'text-primary' : 'text-red'}`}>
+          <p className={`balance-num text-[38px] md:text-[56px] md:leading-[0.95] leading-none font-bold ${left >= 0 ? 'text-primary' : 'text-red'}`}>
             {formatCurrency(left)}
           </p>
           <p className="mt-2.5 text-[12px] text-secondary leading-relaxed">

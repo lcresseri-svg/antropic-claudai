@@ -91,8 +91,8 @@ export function WealthScreen(p: Props) {
       </div>
 
       {/* Desktop: due colonne indipendenti in altezza, come la home. */}
-      <div className="flex flex-col md:flex-row gap-3.5 md:gap-4 md:items-start">
-        <div className="flex flex-col gap-3.5 md:gap-4 md:flex-1 md:min-w-0">
+      <div className="flex flex-col wide:flex-row gap-3.5 md:gap-4 ultra:gap-6 wide:items-start">
+        <div className="flex flex-col gap-3.5 md:gap-4 wide:flex-1 wide:min-w-0">
         {/* Hero: il patrimonio e come si è mosso */}
         <section className="hero-card rounded-[26px] shadow-elev-2 p-[22px] animate-rise-in">
           <p className="label-caps text-secondary mb-2">Patrimonio netto</p>
@@ -143,7 +143,7 @@ export function WealthScreen(p: Props) {
         </div>
 
         {enableInvestments && (
-          <div className="md:w-[352px] md:flex-none">
+          <div className="wide:w-[352px] ultra:w-[384px] wide:flex-none">
             <InvestmentSummaryCard
               investmentByCategory={p.investmentByCategory}
               total={p.investmentTotal}
