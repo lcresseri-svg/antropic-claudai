@@ -3,6 +3,14 @@ export default {
   content: ['./index.html', './src/**/*.{js,ts,jsx,tsx}'],
   theme: {
     extend: {
+      // Due breakpoint oltre quelli di default, per il sistema desktop
+      // (README parte 2, B1): sotto `wide` il contenuto è una colonna sola,
+      // da `wide` in su si sdoppia in principale + laterale, e da `ultra` la
+      // laterale si allarga e il contenuto si centra.
+      screens: {
+        wide:  '1100px',
+        ultra: '1440px',
+      },
       colors: {
         // All tokens resolve via CSS custom properties so dark/light just swaps the vars.
         // The `<alpha-value>` placeholder lets Tailwind's opacity modifiers work (e.g. bg-gold/20).
