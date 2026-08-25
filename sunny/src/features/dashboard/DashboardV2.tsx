@@ -31,6 +31,7 @@ import { NextMoveCard, pickNextMove } from './NextMoveCard';
 import { RecentMovementsCard } from './RecentMovementsCard';
 import { ReorderHomeSheet } from './ReorderHomeSheet';
 import { HomeBlockId, resolveHomeOrder } from './homeOrder';
+import { WrappedEntryCard } from '../wrapped/WrappedEntryCard';
 
 interface Props {
   greeting?: string;
@@ -46,6 +47,10 @@ interface Props {
   accountBalances: Record<string, number>;
   trend: { key: string; income: number; expense: number; invest: number }[];
   transactions: Transaction[];
+  /** Occorrenze proiettate — servono al Wrapped per contare anche il programmato. */
+  projected?: Transaction[];
+  /** Uid: la card del Wrapped ricorda "più tardi" per utente, non per device. */
+  userId?: string;
   portfolio?: { controvalore: number; versato: number };
   // The following props are kept for backward compat with the App.tsx call site
   // but are not used in this layout.
@@ -220,6 +225,11 @@ export function DashboardV2(p: Props) {
           già affiancati e riordinarli non risolverebbe niente. */}
       <div className="flex flex-col md:flex-row gap-3.5 md:gap-4 md:items-start">
         <div className="flex flex-col gap-3.5 md:gap-4 md:flex-1 md:min-w-0">
+          {p.userId && (
+            <WrappedEntryCard
+              transactions={p.transactions} projected={p.projected ?? []}
+              userId={p.userId} onOpen={y => navigate(`/wrapped/${y}`)} />
+          )}
           {hero}
 
           {/* Telefono: i blocchi nell'ordine preferito. */}

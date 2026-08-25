@@ -310,6 +310,69 @@ html.light .text-\[\#E6B95C\]\/80 { color: rgb(var(--c-gold) / 0.9); }
    (regardless of the on-screen theme), hides the app chrome, and lets the recap
    flow across A4 pages. Gold is kept as the accent. Known limitation:
    window.print() is unreliable on iOS standalone PWAs (Safari); desktop/Android ok. */
+/* ─── Sunny Wrapped — la sala buia ───────────────────────────────────────────
+   Il Wrapped è disegnato su fondo nero e oro: numeri enormi in --accent su
+   --bg scuro. In tema chiaro quegli stessi token darebbero oro scuro su crema,
+   che non è la stessa schermata. Invece di forzare il tema globale (che
+   lascerebbe l'app nello stato sbagliato se si esce di colpo), i token del
+   tema scuro vengono RIDICHIARATI solo dentro il contenitore: nessun'altra
+   schermata cambia e uscendo il tema dell'utente torna da solo, senza fare
+   nulla. Stessa tecnica del blocco @media print qui sotto.
+   I valori sono copiati dal :root scuro — non sono colori nuovi. */
+.wrapped-shell {
+  --bg:            #090909;
+  --surface-1:     #0C0C0C;
+  --surface-2:     #121212;
+  --border:        rgba(240, 234, 214, 0.08);
+  --border-strong: rgba(240, 234, 214, 0.14);
+  --text-1:        #F2ECD8;
+  --text-2:        #A8A296;
+  --text-3:        #6E6959;
+  --accent:        #F0BE4D;
+  --accent-hi:     #F7CB45;
+  --accent-on:     #090909;
+  --c-bg:         9 9 9;
+  --c-surface:    12 12 12;
+  --c-card:       12 12 12;
+  --c-card-hover: 18 18 18;
+  --c-elevated:   18 18 18;
+  --c-primary:    242 236 216;
+  --c-secondary:  170 164 152;
+  --c-tertiary:   110 105 89;
+  --c-gold:       240 190 77;
+  --c-green:      116 184 92;
+  --c-red:        221 91 79;
+  --c-divider:    27 26 25;
+  --c-divider-strong: 41 40 38;
+  --progress-track: rgba(240, 234, 214, 0.07);
+  --elev-1: 0 10px 26px -16px rgba(0, 0, 0, 0.85);
+  --elev-2: 0 18px 40px -18px rgba(0, 0, 0, 0.9);
+  --accent-surface: linear-gradient(150deg, #1A1714 0%, #0E0D0C 100%);
+  /* Estremo caldo di --accent-surface, usato come centro degli aloni. */
+  --wrapped-glow:  #1A1714;
+  /* Durata di una storia. Vive qui perché la barra di avanzamento la legge
+     come animation-duration e il timer JS come numero: un solo valore. */
+  --wrapped-ms: 15000ms;
+
+  background: rgb(var(--c-bg));
+  color: rgb(var(--c-primary));
+}
+
+/* Alone caldo: la copertina lo ancora in alto, le storie "risultato" in basso. */
+.wrapped-glow-top {
+  background: radial-gradient(120% 80% at 50% 0%, var(--wrapped-glow) 0%, rgb(var(--c-bg)) 55%);
+}
+.wrapped-glow-bottom {
+  background: radial-gradient(120% 80% at 50% 100%, var(--wrapped-glow) 0%, rgb(var(--c-bg)) 55%);
+}
+
+/* Riempimento della barra di avanzamento: è il TIMER della storia, non una
+   decorazione — riusa il keyframe growBar con la durata della storia. */
+.wrapped-bar-fill {
+  transform-origin: left;
+  animation: growBar var(--wrapped-ms) linear forwards;
+}
+
 @media print {
   @page { size: A4; margin: 14mm; }
 
@@ -364,4 +427,12 @@ html.light .text-\[\#E6B95C\]\/80 { color: rgb(var(--c-gold) / 0.9); }
     transition-duration: 0.01ms !important;
     scroll-behavior: auto !important;
   }
+}
+
+/* Eccezione: la barra del Wrapped NON è un'animazione decorativa, è il conto
+   alla rovescia della storia. Collassarla a un frame la mostrerebbe piena
+   subito, cioè mentirebbe su quanto tempo resta. L'avanzamento automatico
+   resta comunque interrompibile con un tocco. */
+@media (prefers-reduced-motion: reduce) {
+  .wrapped-bar-fill { animation-duration: var(--wrapped-ms) !important; }
 }

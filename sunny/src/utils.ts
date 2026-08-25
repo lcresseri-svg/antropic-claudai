@@ -6,6 +6,15 @@ export function formatCurrency(amount: number, opts?: { sign?: boolean }): strin
   return amount < 0 ? `−${s}` : s;
 }
 
+/** "63.780 €" — importo a euro interi. Per i numeri enormi del Wrapped e per
+ *  gli obiettivi, dove il centesimo è rumore e la cifra deve stare su una riga
+ *  sola: "63.780,00 €" a 56px esce dallo schermo di un telefono. */
+export function formatEuroRound(amount: number): string {
+  return new Intl.NumberFormat('it-IT', {
+    style: 'currency', currency: 'EUR', minimumFractionDigits: 0, maximumFractionDigits: 0,
+  }).format(amount);
+}
+
 export function formatCompact(amount: number): string {
   return new Intl.NumberFormat('it-IT', {
     style: 'currency', currency: 'EUR', notation: 'compact', maximumFractionDigits: 1,

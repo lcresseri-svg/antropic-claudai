@@ -30,6 +30,7 @@ const WealthScreen = lazy(() => import('../features/wealth/WealthScreen').then(m
 const WealthV2Screen = lazy(() => import('../features/wealth/WealthV2Screen').then(m => ({ default: m.WealthV2Screen })));
 const CommitmentsScreen = lazy(() => import('../features/wealth/CommitmentsScreen').then(m => ({ default: m.CommitmentsScreen })));
 const MonthlyPlanScreen = lazy(() => import('../features/budget/MonthlyPlanScreen').then(m => ({ default: m.MonthlyPlanScreen })));
+const WrappedScreen = lazy(() => import('../features/wrapped/WrappedScreen').then(m => ({ default: m.WrappedScreen })));
 
 /** In-flow loading placeholder — no layout shift, no white screen. */
 function RouteFallback() {
@@ -84,6 +85,7 @@ export function AppRoutes({ user, brand, tx, budget, editing, onLogOut, onDelete
             investmentByCategory={tx.investmentByCategory}
             accountBalances={tx.accountBalances}
             trend={tx.trend} transactions={tx.transactions}
+            projected={editing.projected} userId={user.uid}
             portfolio={portfolio}
             savingsTarget={budget.budget.savingsTarget}
             onSeeInsights={() => navigate('/insights')}
@@ -194,6 +196,15 @@ export function AppRoutes({ user, brand, tx, budget, editing, onLogOut, onDelete
           <div className="pt-4 md:pt-6">
             <WealthHistoryScreen transactions={tx.transactions} />
           </div>
+        } />
+        {/* Sunny Wrapped — overlay a schermo intero, quindi senza il padding
+            delle altre rotte. La guardia della finestra (e l'eccezione admin)
+            vive dentro la schermata, che rimanda alla home quando non è
+            stagione: così anche un deep link vecchio finisce nel posto giusto. */}
+        <Route path="/wrapped/:year" element={
+          <WrappedScreen
+            transactions={tx.transactions} projected={editing.projected}
+            user={user} onSetSavingsTarget={budget.setSavingsTarget} />
         } />
         <Route path="/recap/:ym" element={
           <div className="pt-4 md:pt-6">
