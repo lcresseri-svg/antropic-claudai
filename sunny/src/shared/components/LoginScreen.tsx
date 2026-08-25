@@ -1,38 +1,58 @@
-import { ArcLogo } from './ArcLogo';
-
+// Primo avvio.
+//
+// Le rassicurazioni stanno SOPRA il CTA, non sotto: erano una microscritta in
+// fondo alla schermata, cioè dopo la decisione. Dicono le stesse cose, ma nel
+// momento in cui servono — prima di premere "Continua con Google".
+//
+// Il marchio ha perso il glow: il filtro gaussiano sporcava il bordo dell'arco
+// sui display non-retina, e non aggiungeva niente.
 interface Props {
   onSignIn: () => void;
   error: string | null;
 }
 
+const PROMISES = [
+  'Nessun collegamento bancario richiesto',
+  'Dati sincronizzati e protetti',
+  'Puoi partire da dati demo',
+];
+
 export function LoginScreen({ onSignIn, error }: Props) {
   return (
     <div className="min-h-screen bg-bg flex flex-col items-center justify-center px-8 animate-fade-in">
-
-      {/* Hero */}
-      <div className="flex-1 flex flex-col items-center justify-center text-center">
+      <div className="w-full max-w-[420px] flex-1 flex flex-col items-center justify-center text-center">
         <ArcMark />
-        <h1 className="text-[40px] font-bold text-primary tracking-[-0.04em] mt-10 leading-none">
-          Sunny
-        </h1>
-        <p className="text-secondary mt-4 text-[15px] max-w-[200px] leading-relaxed">
-          Finanza personale,{' '}senza compromessi.
+        <h1 className="font-serif text-[42px] md:text-[46px] text-primary mt-8 leading-none">Sunny</h1>
+        <p className="text-secondary mt-3.5 text-[15.5px] max-w-[250px] leading-relaxed">
+          Finanza personale, senza compromessi.
         </p>
       </div>
 
-      {/* CTA */}
-      <div className="w-full max-w-[300px] pb-14 space-y-3">
+      <div className="w-full max-w-[360px] pb-14 space-y-4">
+        <ul className="space-y-2">
+          {PROMISES.map(t => (
+            <li key={t} className="flex items-center gap-2.5 text-[12.5px] text-secondary">
+              <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="rgb(var(--c-gold))"
+                strokeWidth="2.6" strokeLinecap="round" strokeLinejoin="round" className="flex-none">
+                <path d="M20 6 9 17l-5-5" />
+              </svg>
+              {t}
+            </li>
+          ))}
+        </ul>
+
         <button onClick={onSignIn}
-          className="w-full bg-primary text-bg py-4 rounded-2xl font-semibold flex items-center justify-center gap-3 transition-all active:scale-[0.98] active:opacity-90">
+          className="w-full bg-primary text-bg py-4 rounded-[18px] font-semibold flex items-center justify-center gap-3
+                     transition-all active:scale-[0.98] active:opacity-90"
+          style={{ boxShadow: '0 12px 28px -14px rgba(26,23,20,.7)' }}>
           <GoogleIcon />
           Continua con Google
         </button>
-        {error && (
-          <p className="text-xs text-[#C0605A] text-center leading-relaxed">{error}</p>
-        )}
-        <p className="text-center pt-1 text-secondary/50 leading-relaxed"
-          style={{ fontSize: '10px', letterSpacing: '0.08em', textTransform: 'uppercase' }}>
-          Dati sincronizzati e protetti
+
+        {error && <p className="text-xs text-red text-center leading-relaxed">{error}</p>}
+
+        <p className="text-center text-[11.5px] text-tertiary leading-relaxed">
+          Serve solo per sincronizzare i tuoi dati fra i dispositivi.
         </p>
       </div>
     </div>
@@ -40,24 +60,19 @@ export function LoginScreen({ onSignIn, error }: Props) {
 }
 
 function ArcMark() {
-  // 270° arc, gap at bottom — r=28, circ≈175.93 | 270°=131.95 | 90°gap=43.98
+  // Arco a 270°, apertura in basso — r=28, circ≈175.93 | 270°=131.95 | 90°=43.98
   return (
-    <svg width="200" height="200" viewBox="0 0 80 80" fill="none" aria-hidden className="animate-scale-in">
+    <svg width="132" height="132" viewBox="0 0 80 80" fill="none" aria-hidden className="animate-scale-in md:w-40 md:h-40">
       <defs>
         <linearGradient id="amg" x1="40" y1="10" x2="40" y2="70" gradientUnits="userSpaceOnUse">
-          <stop offset="0%" stopColor="#F5C842" />
-          <stop offset="100%" stopColor="#B8720C" />
+          <stop offset="0%" stopColor="#E5B647" />
+          <stop offset="100%" stopColor="#9A6A12" />
         </linearGradient>
-        <filter id="amf" x="-60%" y="-60%" width="220%" height="220%">
-          <feGaussianBlur in="SourceGraphic" stdDeviation="3.5" result="b"/>
-          <feMerge><feMergeNode in="b"/><feMergeNode in="SourceGraphic"/></feMerge>
-        </filter>
       </defs>
       <circle cx="40" cy="40" r="28"
         stroke="url(#amg)" strokeWidth="10.5" strokeLinecap="round"
         strokeDasharray="131.95 43.98"
         transform="rotate(135 40 40)"
-        filter="url(#amf)"
       />
     </svg>
   );

@@ -30,6 +30,9 @@ export default {
       },
       fontFamily: {
         sans: ['Inter', '-apple-system', 'BlinkMacSystemFont', 'SF Pro Display', 'system-ui', 'sans-serif'],
+        // Solo per il marchio e i titoli dei popup Novità: due punti in tutta
+        // l'app. Ovunque altro il font resta Inter.
+        serif: ['"DM Serif Display"', 'Georgia', 'serif'],
       },
       borderRadius: {
         xl:   '0.875rem',
