@@ -91,6 +91,10 @@ export function SettingsScreen({ user, transactions, budgetExport, onLogOut, onD
   // metrics/* collection is admin-readable in firestore.rules), the one
   // legitimate use of the admin identity for UI — not feature-hiding.
   const isAdmin = isAdminUser(user);
+  // Il Wrapped si apre da solo il 20 dicembre. Questa riga serve a guardarlo
+  // fuori stagione, con i dati che ci sono in quel momento: da qui a marzo
+  // racconta gennaio-marzo, non un anno finto.
+  const currentYear = new Date().getFullYear();
 
   const handleDeleteAccount = async () => {
     setDeletingAccount(true);
@@ -462,6 +466,11 @@ export function SettingsScreen({ user, transactions, budgetExport, onLogOut, onD
                 )}
                 {isAdmin && (
                   <Row icon="📈" color="#6FA8DC" label="Metriche (admin)" sub="DAU/WAU/MAU e engagement" onClick={() => navigate('/metrics')} />
+                )}
+                {isAdmin && (
+                  <Row icon="✦" color="#E6B95C" label={`Sunny Wrapped ${currentYear} (admin)`}
+                    sub="Il racconto dell'anno, anche fuori dal 20–31 dicembre"
+                    onClick={() => navigate(`/wrapped/${currentYear}`)} />
                 )}
                 {isFeatureEnabled('wealth_v2', user) && (
                   <Row icon="🏛️" color="#8FB0A0" label="Patrimonio V2 (anteprima)" sub="Decomposizione, snapshot, liquidità disponibile" onClick={() => navigate('/wealth-v2')} />

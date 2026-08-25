@@ -348,3 +348,45 @@ export const sendEncouragingInsight = onSchedule(
     }
   }
 );
+
+// Sunny Wrapped — 20 dicembre, 9:00 Europe/Rome. Una push all'anno.
+//
+// Il racconto dell'anno si apre da solo quel giorno (WRAPPED_OPEN_DAY lato
+// client): questa è solo la spinta che dice che c'è. L'anno non è scritto qui
+// dentro — si legge dalla data del giorno in cui la funzione gira — quindi il
+// 2027 arriva senza che nessuno tocchi niente.
+//
+// Riusa la preferenza 'monthly' (i riepiloghi) invece di introdurne una nuova:
+// è la stessa famiglia di notifiche, e una preferenza in più andrebbe
+// validata nelle rules, esposta in Impostazioni e spiegata all'utente — per
+// una notifica all'anno.
+export const sendYearWrapped = onSchedule(
+  { schedule: '0 9 20 12 *', timeZone: 'Europe/Rome', region: 'europe-west1' },
+  async () => {
+    const year = Number(todayRomeISO().slice(0, 4));
+    const users = await usersWithReminder('monthly');
+    for (const userId of users) {
+      const snap = await db.collection(`users/${userId}/transactions`)
+        .where('date', '>=', `${year}-01-01`)
+        .where('date', '<=', `${year}-12-31`)
+        .get();
+
+      // Sotto una manciata di movimenti il Wrapped non si propone nemmeno in
+      // app (WRAPPED_MIN_TX in features/wrapped/yearWrapped.ts): mandare la
+      // push sarebbe un invito a una schermata che non ha niente da dire.
+      if (snap.size < 20) continue;
+
+      // "registrati" è esattamente ciò che questo conteggio misura: i documenti
+      // dell'anno. In app il totale può essere di poco più alto, perché lì
+      // entrano anche le occorrenze proiettate delle serie ricorrenti.
+      await sendToUser(
+        userId,
+        `Il tuo ${year} è pronto ✦`,
+        `${snap.size} movimenti registrati, dodici mesi e qualche decisione discutibile. Due minuti.`,
+        'monthly',
+        'wrapped',
+        `wrapped/${year}`,
+      );
+    }
+  }
+);

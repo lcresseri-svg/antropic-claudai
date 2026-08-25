@@ -24,6 +24,7 @@ export {
   remindInactivity,
   remindMonthEnd,
   sendEncouragingInsight,
+  sendYearWrapped,
 } from './notifications';
 export { generateAffordabilityAdvice, generateDigest } from './ai';
 export {
