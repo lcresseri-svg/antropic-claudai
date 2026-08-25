@@ -6,10 +6,17 @@
  * GIORNO. Leggere "Oggi · 24 agosto — 41 €" costa meno che ricostruire la
  * stessa cosa scorrendo trenta righe datate.
  *
- * L'ordine dei mesi e dei giorni segue quello delle righe che arrivano (che è
- * già l'ordinamento scelto dall'utente): qui non si riordina nulla, con una
- * sola eccezione — i giorni fatti di soli movimenti PROGRAMMATI finiscono in
- * fondo al loro mese, perché non sono ancora successi.
+ * L'ordine dei mesi e dei giorni segue ESATTAMENTE quello delle righe che
+ * arrivano, cioè l'ordinamento scelto dall'utente: qui non si riordina nulla,
+ * senza eccezioni.
+ *
+ * In particolare i giorni fatti di soli movimenti PROGRAMMATI restano al loro
+ * posto cronologico — in cima quando la lista va dal più recente al più
+ * vecchio, in fondo quando va al contrario. Prima venivano spinti in coda al
+ * mese; era sbagliato due volte: rompeva la cronologia dentro il mese (dopo il
+ * 28 previsto si tornava indietro al 24 fatto) e nascondeva in fondo proprio
+ * le uniche righe su cui si può ancora agire. Che non siano ancora successi lo
+ * dice già la loro etichetta oro "Programmato", non serve esiliarli.
  */
 import { Transaction } from '../../types';
 
@@ -51,13 +58,10 @@ export function buildMonthSections(
     const groups: DayGroup[] = [...days.entries()].map(([iso, txs]) => ({
       iso, txs, upcoming: txs.every(isUpcoming),
     }));
-    // I giorni interamente programmati chiudono il mese, nell'ordine in cui
-    // sono arrivati fra loro.
-    const ordered = [...groups.filter(g => !g.upcoming), ...groups.filter(g => g.upcoming)];
-    const txs = ordered.flatMap(g => g.txs);
+    const txs = groups.flatMap(g => g.txs);
     const upcomingCount = txs.filter(isUpcoming).length;
     return {
-      ym, txs, days: ordered,
+      ym, txs, days: groups,
       realizedCount: txs.length - upcomingCount,
       upcomingCount,
     };

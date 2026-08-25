@@ -1,8 +1,9 @@
-import { useState, useEffect, useMemo, useRef } from 'react';
+import { useState, useEffect, useMemo, useRef, useCallback } from 'react';
 import { Transaction, TransactionType, TYPE_META, TYPE_ORDER, RecurrenceRule, SeriesMeta, SeriesKind, AccountDef, typeColor, typeOnColor } from '../../types';
 import { formatCurrency, formatDate, guessCategory } from '../../utils';
 import { Candidate, Recognition, RECOGNITION_THRESHOLD } from './categoryRecognition';
 import { orderCategoriesByUsage } from './categoryOrder';
+import { applyKeypadKey, sanitizeNumericInput } from './amountKeypad';
 import { useSettings } from '../../shared/providers/settings';
 import { expandRecurringOnCreate, shouldExpandOnSave, monthlyEquivalent, nthOccurrenceDate } from '../../shared/recurrence';
 import { useEscapeKey } from '../../shared/hooks/useEscapeKey';
@@ -34,6 +35,20 @@ interface Props {
 
 /** Quante categorie stanno nella riga di chip prima di "altre ›". */
 const CHIP_CATS = 6;
+
+/** Campi INTERI fra quelli serviti dal tastierino: niente virgola. */
+const KEYPAD_INTEGER = new Set(['spread', 'instCount']);
+
+/** Come si chiama il campo in cui il tastierino sta scrivendo. Serve alla riga
+ *  sopra i tasti: su un telefono il campo può essere scrollato fuori vista, e
+ *  vedere le cifre comparire "da qualche parte" è peggio che non vederle. */
+const KEYPAD_LABELS: Record<string, string> = {
+  tfr: 'Di cui TFR',
+  fee: 'Commissione',
+  spread: 'Mesi di distribuzione',
+  instTotal: 'Totale piano',
+  instCount: 'Numero rate',
+};
 
 interface Reimb { amount: string; account: string }
 
@@ -144,6 +159,7 @@ export function TransactionModal({ open, editing, groupTransfers = [], seriesEdi
     }
     setSaving(false); setSaveError(false);
     setAmountError(false);
+    setKeypad('amount');
     setCategoryTouched(!!editing);
     setConfirmDelete(false);
     setAdvancedOpen(false);
@@ -208,18 +224,49 @@ export function TransactionModal({ open, editing, groupTransfers = [], seriesEdi
   // Detailed-investments extras (gated per user): a source-less investment and,
   // for pension funds, the TFR portion of the contribution.
   const canNoAccount = type === 'investment' && detailedInvestments;
-  /** Tastierino: la stessa normalizzazione dell'input (cifre e una virgola). */
+  // Il tastierino in fondo alla modale è UNO e serve tutti i campi numerici:
+  // importo, quote di una spesa condivisa, totale e numero delle rate,
+  // commissione, TFR, mesi di distribuzione. Qui si tiene solo QUALE campo sta
+  // ricevendo i tasti; la normalizzazione vive in `amountKeypad.ts`.
+  //
+  // Un campo che sparisce (cambio tipo, sezione richiusa, riga rimborso
+  // cancellata) libera il tastierino DA SÉ smontandosi — vedi NumberField — e
+  // i tasti tornano all'importo. È l'unico modo perché la lista dei campi non
+  // debba essere tenuta in sincrono a mano con le condizioni del JSX.
+  const [keypad, setKeypad] = useState('amount');
+
+  const focusKeypad = useCallback((id: string) => setKeypad(id), []);
+  const releaseKeypad = useCallback(
+    (id: string) => setKeypad(cur => (cur === id ? 'amount' : cur)),
+    [],
+  );
+
   const pressKey = (k: string) => {
-    setAmountError(false);
-    setAmount(prev => {
-      if (k === 'back') return prev.slice(0, -1);
-      if (k === ',') return prev.includes(',') || prev.includes('.') ? prev : (prev || '0') + ',';
-      // Massimo due decimali, come l'importo salvato.
-      const sep = prev.search(/[.,]/);
-      if (sep >= 0 && prev.length - sep > 2) return prev;
-      return prev === '0' ? k : prev + k;
-    });
+    const integer = KEYPAD_INTEGER.has(keypad);
+    const apply = (prev: string) => applyKeypadKey(prev, k, { integer });
+
+    if (keypad.startsWith('reimb:')) {
+      const i = Number(keypad.slice('reimb:'.length));
+      setReimbursements(rs => rs.map((r, j) => (j === i ? { ...r, amount: apply(r.amount) } : r)));
+      return;
+    }
+    switch (keypad) {
+      case 'tfr':       setTfr(apply); break;
+      case 'fee':       setFee(apply); break;
+      case 'spread':    setSpreadCustom(apply); break;
+      case 'instTotal': setInstTotal(apply); break;
+      case 'instCount': setInstCount(apply); break;
+      default:
+        // L'errore sull'importo si spegne solo scrivendo NELL'importo: se si
+        // sta compilando il numero di rate, l'avviso deve restare lì.
+        setAmountError(false);
+        setAmount(apply);
+    }
   };
+
+  const keypadLabel = keypad === 'amount' ? null
+    : keypad.startsWith('reimb:') ? `Quota rimborsata ${Number(keypad.slice('reimb:'.length)) + 1}`
+    : KEYPAD_LABELS[keypad] ?? null;
 
   const selCat = categories.find(c => c.id === category);
   // Chip mostrate senza aprire la griglia: le prime CHIP_CATS più, se sta
@@ -558,12 +605,14 @@ export function TransactionModal({ open, editing, groupTransfers = [], seriesEdi
 
           {/* Amount — su telefono lo scrive il tastierino in fondo, quindi il
               campo è readOnly e la tastiera di sistema non copre la modale.
-              Da `sm` in su torna un input normale. */}
+              Da `sm` in su torna un input normale. Toccarlo riporta qui il
+              tastierino, dopo che si è compilato un altro campo numerico. */}
           <div className="text-center pt-1">
             <div className="flex items-baseline justify-center gap-1.5">
               <input
                 type="text" inputMode="none" readOnly placeholder="0" value={amount}
                 aria-label="Importo"
+                onFocus={() => setKeypad('amount')} onClick={() => setKeypad('amount')}
                 className={`sm:hidden bg-transparent text-[54px] leading-none font-bold text-right outline-none balance-num placeholder:text-divider transition-colors ${amountError ? 'text-red' : 'text-primary'}`}
                 style={{ width: `${Math.max(2, amount.length || 1)}ch` }}
               />
@@ -768,9 +817,10 @@ export function TransactionModal({ open, editing, groupTransfers = [], seriesEdi
             <Field label="Di cui TFR (facoltativo)">
               <div className="relative">
                 <span className="absolute left-4 top-1/2 -translate-y-1/2 text-secondary text-sm">€</span>
-                <input type="text" inputMode="decimal" placeholder="0,00" value={tfr}
-                  onChange={e => setTfr(e.target.value.replace(/[^\d.,]/g, ''))}
-                  className="w-full bg-elevated rounded-2xl pl-8 pr-4 py-3 text-primary placeholder:text-secondary/50 outline-none focus:ring-1 focus:ring-gold/40 balance-num" />
+                <NumberField id="tfr" value={tfr} onChange={setTfr} ariaLabel="Di cui TFR"
+                  activeId={keypad} onFocus={focusKeypad} onRelease={releaseKeypad}
+                  placeholder="0,00"
+                  className="w-full rounded-2xl pl-8 pr-4 py-3" />
               </div>
               <p className="text-[11px] mt-1.5 px-1 text-secondary">
                 Quanta parte di questo versamento proviene dal TFR.
@@ -783,9 +833,10 @@ export function TransactionModal({ open, editing, groupTransfers = [], seriesEdi
             <Field label="Commissione (opzionale)">
               <div className="relative">
                 <span className="absolute left-4 top-1/2 -translate-y-1/2 text-secondary text-sm">€</span>
-                <input type="text" inputMode="decimal" placeholder="0,00" value={fee}
-                  onChange={e => setFee(e.target.value.replace(/[^\d.,]/g, ''))}
-                  className="w-full bg-elevated rounded-2xl pl-8 pr-4 py-3 text-primary placeholder:text-secondary/50 outline-none focus:ring-1 focus:ring-gold/40 balance-num" />
+                <NumberField id="fee" value={fee} onChange={setFee} ariaLabel="Commissione"
+                  activeId={keypad} onFocus={focusKeypad} onRelease={releaseKeypad}
+                  placeholder="0,00"
+                  className="w-full rounded-2xl pl-8 pr-4 py-3" />
               </div>
               <p className={`text-[11px] mt-1.5 px-1 ${parseFloat(fee.replace(',', '.')) > 0 ? 'text-secondary' : 'invisible'}`}>
                 Registrata come spesa separata in "Altro"
@@ -805,9 +856,11 @@ export function TransactionModal({ open, editing, groupTransfers = [], seriesEdi
                 ))}
               </div>
               {spreadChoice === 'custom' && (
-                <input type="text" inputMode="numeric" value={spreadCustom} placeholder="2–120 mesi"
-                  onChange={e => setSpreadCustom(e.target.value.replace(/\D/g, ''))}
-                  className="mt-2 w-full bg-elevated rounded-xl px-3 py-2.5 text-primary text-sm outline-none focus:ring-1 focus:ring-gold/40 balance-num" />
+                <NumberField id="spread" value={spreadCustom} onChange={setSpreadCustom} integer
+                  ariaLabel="Mesi di distribuzione"
+                  activeId={keypad} onFocus={focusKeypad} onRelease={releaseKeypad}
+                  placeholder="2–120 mesi"
+                  className="mt-2 w-full rounded-xl px-3 py-2.5 text-sm" />
               )}
               {spreadChoice !== 'none' && (
                 <p className="text-[11px] mt-1.5 px-1 text-secondary leading-snug">
@@ -842,9 +895,12 @@ export function TransactionModal({ open, editing, groupTransfers = [], seriesEdi
                       <div key={i} className="flex items-center gap-2">
                         <div className="relative w-24 flex-shrink-0">
                           <span className="absolute left-2.5 top-1/2 -translate-y-1/2 text-secondary text-sm">€</span>
-                          <input type="text" inputMode="decimal" placeholder="0" value={r.amount}
-                            onChange={e => updateReimb(i, { amount: e.target.value.replace(/[^\d.,]/g, '') })}
-                            className="w-full bg-elevated rounded-xl pl-6 pr-2 py-2.5 text-primary text-sm outline-none focus:ring-1 focus:ring-gold/40 balance-num" />
+                          <NumberField id={`reimb:${i}`} value={r.amount}
+                            onChange={v => updateReimb(i, { amount: v })}
+                            ariaLabel={`Quota rimborsata ${i + 1}`}
+                            activeId={keypad} onFocus={focusKeypad} onRelease={releaseKeypad}
+                            placeholder="0"
+                            className="w-full rounded-xl pl-6 pr-2 py-2.5 text-sm" />
                         </div>
                         <select value={r.account} onChange={e => updateReimb(i, { account: e.target.value })}
                           className="flex-1 min-w-0 bg-elevated rounded-xl px-3 py-2.5 text-primary text-sm outline-none focus:ring-1 focus:ring-gold/40 appearance-none">
@@ -940,17 +996,19 @@ export function TransactionModal({ open, editing, groupTransfers = [], seriesEdi
                         <div className="grid grid-cols-2 gap-3">
                           <div>
                             <label className="text-xs font-medium text-secondary mb-1.5 block">Totale piano (€)</label>
-                            <input type="text" inputMode="decimal" value={instTotal}
-                              onChange={e => setInstTotal(e.target.value.replace(/[^\d.,]/g, ''))}
+                            <NumberField id="instTotal" value={instTotal} onChange={setInstTotal}
+                              ariaLabel="Totale piano"
+                              activeId={keypad} onFocus={focusKeypad} onRelease={releaseKeypad}
                               placeholder="0,00"
-                              className="w-full bg-elevated rounded-xl px-3 py-3 text-primary text-sm outline-none focus:ring-1 focus:ring-gold/40 balance-num" />
+                              className="w-full rounded-xl px-3 py-3 text-sm" />
                           </div>
                           <div>
                             <label className="text-xs font-medium text-secondary mb-1.5 block">Numero rate</label>
-                            <input type="text" inputMode="numeric" value={instCount}
-                              onChange={e => setInstCount(e.target.value.replace(/\D/g, ''))}
+                            <NumberField id="instCount" value={instCount} onChange={setInstCount} integer
+                              ariaLabel="Numero rate"
+                              activeId={keypad} onFocus={focusKeypad} onRelease={releaseKeypad}
                               placeholder="12"
-                              className="w-full bg-elevated rounded-xl px-3 py-3 text-primary text-sm outline-none focus:ring-1 focus:ring-gold/40 balance-num" />
+                              className="w-full rounded-xl px-3 py-3 text-sm" />
                           </div>
                         </div>
                         <div>
@@ -1004,6 +1062,14 @@ export function TransactionModal({ open, editing, groupTransfers = [], seriesEdi
                 registra senza mai alzare la mano. Da `sm` in su la modale resta
                 la sheet centrata di prima e il tastierino sparisce. */}
             <div className="sm:hidden">
+              {/* Il campo può essere scrollato fuori vista: senza questa riga
+                  le cifre comparirebbero "da qualche parte". */}
+              {keypadLabel && (
+                <button type="button" onClick={() => setKeypad('amount')}
+                  className="w-full text-[11.5px] text-gold text-center pb-1.5 truncate">
+                  Stai scrivendo in «{keypadLabel}» · torna all'importo
+                </button>
+              )}
               <div className="grid grid-cols-4 grid-rows-4 gap-2">
                 {['1', '2', '3', '4', '5', '6', '7', '8', '9', ',', '0'].map(k => (
                   <KeypadKey key={k} onClick={() => pressKey(k)}>{k}</KeypadKey>
@@ -1128,6 +1194,51 @@ function Select({ value, onChange, options }: { value: string; onChange: (v: str
       className="w-full bg-elevated rounded-2xl px-4 py-3 text-primary text-sm outline-none focus:ring-1 focus:ring-gold/40 appearance-none">
       {options.map(o => <option key={o.value} value={o.value} className="bg-elevated">{o.label}</option>)}
     </select>
+  );
+}
+
+/**
+ * Campo numerico servito dal tastierino.
+ *
+ * Sul telefono è di sola lettura e `inputMode="none"`: toccarlo NON apre la
+ * tastiera di sistema — che coprirebbe metà modale, campo compreso — ma punta
+ * lì il tastierino in fondo, e la cornice oro dice dove stanno finendo i
+ * tasti. Da `sm` in su, dove il tastierino non c'è, torna un input normale con
+ * la tastiera vera.
+ *
+ * Smontandosi libera il tastierino: un campo che sparisce (cambio tipo,
+ * sezione richiusa, riga rimborso cancellata) non può restare a catturare i
+ * tasti mentre l'utente li vede finire nel nulla.
+ */
+function NumberField({
+  id, value, onChange, activeId, onFocus, onRelease, integer, placeholder, ariaLabel, className,
+}: {
+  id: string;
+  value: string;
+  onChange: (v: string) => void;
+  activeId: string;
+  onFocus: (id: string) => void;
+  onRelease: (id: string) => void;
+  integer?: boolean;
+  placeholder?: string;
+  ariaLabel: string;
+  className: string;
+}) {
+  useEffect(() => () => onRelease(id), [id, onRelease]);
+
+  const active = activeId === id;
+  const common = `${className} bg-elevated text-primary placeholder:text-secondary/50 outline-none balance-num ${
+    active ? 'ring-1 ring-gold/60' : 'focus:ring-1 focus:ring-gold/40'}`;
+
+  return (
+    <>
+      <input type="text" inputMode="none" readOnly value={value} placeholder={placeholder}
+        aria-label={ariaLabel} className={`sm:hidden ${common}`}
+        onFocus={() => onFocus(id)} onClick={() => onFocus(id)} />
+      <input type="text" inputMode={integer ? 'numeric' : 'decimal'} value={value} placeholder={placeholder}
+        aria-label={ariaLabel} className={`hidden sm:block ${common}`}
+        onChange={e => onChange(sanitizeNumericInput(e.target.value, { integer }))} />
+    </>
   );
 }
 
