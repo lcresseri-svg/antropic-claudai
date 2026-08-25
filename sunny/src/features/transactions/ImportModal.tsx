@@ -13,12 +13,20 @@ interface Props {
 
 type Step = 'upload' | 'preview' | 'importing' | 'done';
 
+/** Righe mostrate in anteprima prima di "vedi tutte". */
+const PREVIEW_ROWS = 60;
+
 export function ImportModal({ open, onClose, onImport }: Props) {
   // Imports must never resolve to an archived (soft-deleted) definition.
   const { visibleCategories, visibleAccounts, theme } = useSettings();
   const [step, setStep] = useState<Step>('upload');
   const [parsed, setParsed] = useState<Omit<Transaction, 'id'>[]>([]);
   const [errors, setErrors] = useState<string[]>([]);
+  // Quante righe mostrare in anteprima: prima si troncava a 60 senza dirlo.
+  const [previewCount, setPreviewCount] = useState(PREVIEW_ROWS);
+  // Quale file si sta guardando: nell'anteprima è più utile dei formati
+  // accettati, che a quel punto sono già stati accettati.
+  const [fileName, setFileName] = useState('');
   const [warnings, setWarnings] = useState<string[]>([]);
   const [importError, setImportError] = useState<string | null>(null);
   const [dragging, setDragging] = useState(false);
@@ -61,6 +69,7 @@ export function ImportModal({ open, onClose, onImport }: Props) {
   };
 
   const process = async (file: File) => {
+    setFileName(file.name);
     const XLSX = await import('xlsx');
     const wb = XLSX.read(await file.arrayBuffer(), { type: 'array' });
     const rows = XLSX.utils.sheet_to_json<Record<string, unknown>>(wb.Sheets[wb.SheetNames[0]], { defval: '' });
@@ -127,11 +136,15 @@ export function ImportModal({ open, onClose, onImport }: Props) {
     <div className="fixed inset-0 z-50 flex items-end sm:items-center justify-center p-3"
       onClick={e => { if (e.target === e.currentTarget) close(); }}>
       <div className="absolute inset-0 bg-black/60 backdrop-blur-sm animate-fade-in-fast" />
-      <div className="relative w-full max-w-xl glass-elevated rounded-3xl shadow-float max-h-[90dvh] flex flex-col animate-sheet-up">
+      <div className="relative w-full max-w-xl sm:max-w-[720px] glass-elevated rounded-[26px] shadow-float max-h-[90dvh] flex flex-col animate-sheet-up sm:animate-scale-in">
         <div className="flex items-center justify-between p-6 pb-4">
           <div>
             <h2 className="text-lg font-semibold text-primary">Importa</h2>
-            <p className="text-xs text-secondary mt-0.5">Excel o CSV · .xlsx .xls .csv</p>
+            <p className="text-[11.5px] text-tertiary mt-0.5 truncate max-w-[240px] sm:max-w-none">
+              {step === 'upload'
+                ? 'Excel o CSV · .xlsx .xls .csv'
+                : `${fileName || 'file'} · ${parsed.length + errors.length} righe lette`}
+            </p>
           </div>
           <button onClick={close} className="w-8 h-8 rounded-full bg-elevated flex items-center justify-center text-secondary">✕</button>
         </div>
@@ -170,30 +183,31 @@ export function ImportModal({ open, onClose, onImport }: Props) {
 
           {step === 'preview' && (
             <div className="space-y-3">
-              <p className="text-sm font-medium text-primary">
-                {parsed.length} transazioni pronte
-                {errors.length > 0 && `, ${errors.length} ignorate`}
-                {warnings.length > 0 && `, ${warnings.length} con tipo stimato`}
-              </p>
+              <div className="grid grid-cols-3 gap-2">
+                <Counter label="Pronte" value={parsed.length} />
+                <Counter label="Stimate" value={warnings.length} tone="text-gold" />
+                <Counter label="Scartate" value={errors.length} tone="text-red" />
+              </div>
               {importError && (
                 <div className="bg-[#C0605A]/10 rounded-2xl p-3">
                   <p className="text-xs text-[#C0605A]">Importazione non riuscita: {importError}. Riprova.</p>
                 </div>
               )}
               {errors.length > 0 && (
-                <div className="bg-[#C0605A]/10 rounded-2xl p-3 max-h-24 overflow-y-auto overscroll-contain space-y-1">
-                  {errors.map((e, i) => <p key={i} className="text-xs text-[#C0605A]">{e}</p>)}
-                </div>
+                <Banner tone="red"
+                  summary={`${errors.length} ${errors.length === 1 ? 'riga non leggibile' : 'righe non leggibili'} — data o importo. Il resto si importa comunque.`}>
+                  {errors.map((e, i) => <p key={i} className="text-xs text-red">{e}</p>)}
+                </Banner>
               )}
               {warnings.length > 0 && (
-                <div className="bg-[#E6B95C]/10 rounded-2xl p-3 max-h-24 overflow-y-auto overscroll-contain space-y-1">
-                  <p className="text-xs font-medium text-gold mb-1">Tipi non riconosciuti — importati come Uscita:</p>
-                  {warnings.map((w, i) => <p key={i} className="text-xs text-[#E6B95C]/80">{w}</p>)}
-                </div>
+                <Banner tone="gold"
+                  summary={`${warnings.length} ${warnings.length === 1 ? 'riga senza tipo' : 'righe senza tipo'}: importate come Uscita. Puoi correggerle dopo dai Movimenti, oppure aggiungere la colonna Tipo al file.`}>
+                  {warnings.map((w, i) => <p key={i} className="text-xs text-gold/80">{w}</p>)}
+                </Banner>
               )}
               {parsed.length > 0 && (
-                <div className="glass-card rounded-2xl divide-y divide-white/[0.06] max-h-72 overflow-y-auto overscroll-contain scrollbar-hide">
-                  {parsed.slice(0, 60).map((tx, i) => (
+                <div className="glass-card rounded-[18px] divide-y divide-divider max-h-72 md:max-h-[420px] overflow-y-auto overscroll-contain scrollbar-hide">
+                  {parsed.slice(0, previewCount).map((tx, i) => (
                     <div key={i} className="flex items-center gap-3 p-3 text-sm">
                       <span className="text-secondary text-xs w-12 flex-shrink-0">{formatDate(tx.date)}</span>
                       <span className="flex-1 truncate text-primary">{tx.description}</span>
@@ -204,6 +218,12 @@ export function ImportModal({ open, onClose, onImport }: Props) {
                       <span className="font-medium balance-num text-xs">{formatCurrency(tx.amount)}</span>
                     </div>
                   ))}
+                  {parsed.length > previewCount && (
+                    <button type="button" onClick={() => setPreviewCount(parsed.length)}
+                      className="w-full py-3 text-[12px] font-medium text-gold">
+                      Vedi tutte le {parsed.length} righe
+                    </button>
+                  )}
                 </div>
               )}
             </div>
@@ -236,8 +256,8 @@ export function ImportModal({ open, onClose, onImport }: Props) {
             <>
               <button onClick={reset} className="px-5 py-3.5 rounded-2xl bg-elevated text-secondary font-medium">Indietro</button>
               <button onClick={runImport} disabled={parsed.length === 0}
-                className="flex-1 py-3.5 rounded-2xl bg-gold text-bg font-semibold disabled:opacity-40">
-                Importa {parsed.length}
+                className="flex-1 py-3.5 rounded-2xl cta-gold-fill font-semibold disabled:opacity-40">
+                Importa {parsed.length} {parsed.length === 1 ? 'transazione' : 'transazioni'}
               </button>
             </>
           )}
@@ -249,6 +269,38 @@ export function ImportModal({ open, onClose, onImport }: Props) {
           {step === 'done' && <button onClick={close} className="flex-1 py-3.5 rounded-2xl bg-gold text-bg font-semibold">Chiudi</button>}
         </div>
       </div>
+    </div>
+  );
+}
+
+/** Contatore dell'anteprima: pronte / stimate / scartate. */
+function Counter({ label, value, tone }: { label: string; value: number; tone?: string }) {
+  return (
+    <div className="glass-card rounded-[16px] px-3 py-2.5">
+      <p className={`text-[22px] font-bold leading-none balance-num ${tone ?? 'text-primary'}`}>{value}</p>
+      <p className="label-caps text-tertiary mt-1">{label}</p>
+    </div>
+  );
+}
+
+/** Banner collassato: il riassunto sempre, l'elenco solo se lo si chiede. */
+function Banner({ tone, summary, children }: {
+  tone: 'red' | 'gold'; summary: string; children: React.ReactNode;
+}) {
+  const [open, setOpen] = useState(false);
+  return (
+    <div className="rounded-2xl overflow-hidden"
+      style={{ background: `rgba(var(--c-${tone}) / 0.1)` }}>
+      <button type="button" onClick={() => setOpen(o => !o)} aria-expanded={open}
+        className="w-full px-3.5 py-3 flex items-start justify-between gap-3 text-left">
+        <span className={`text-[12px] leading-snug ${tone === 'red' ? 'text-red' : 'text-gold'}`}>{summary}</span>
+        <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2"
+          strokeLinecap="round" strokeLinejoin="round"
+          className={`flex-none mt-0.5 transition-transform ${tone === 'red' ? 'text-red' : 'text-gold'} ${open ? 'rotate-180' : ''}`}>
+          <path d="M6 9l6 6 6-6" />
+        </svg>
+      </button>
+      {open && <div className="px-3.5 pb-3 space-y-1 max-h-40 overflow-y-auto overscroll-contain">{children}</div>}
     </div>
   );
 }
