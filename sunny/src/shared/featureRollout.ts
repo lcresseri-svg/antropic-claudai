@@ -28,7 +28,8 @@ export type FeatureFlag =
   | 'commitments'
   | 'decision_coach'
   | 'insight_ranking_v2'
-  | 'expense_financing';
+  | 'expense_financing'
+  | 'ai_coach_chat';
 
 export type RolloutStage =
   | { stage: 'admin' }
@@ -49,6 +50,11 @@ export const FEATURE_ROLLOUT: Record<FeatureFlag, RolloutStage> = {
   decision_coach:   { stage: 'admin' },
   insight_ranking_v2: { stage: 'admin' },
   expense_financing: { stage: 'admin' },
+  // Bottone chat dell'AI Coach. Prima era agganciato a
+  // `canUseDetailedInvestments` — il flag dei fondi pensione e del TFR —
+  // che con la chat non c'entra niente e oggi è acceso per tutti: il
+  // gate era arbitrario e poteva cadere da un momento all'altro.
+  ai_coach_chat:    { stage: 'admin' },
 };
 
 /**

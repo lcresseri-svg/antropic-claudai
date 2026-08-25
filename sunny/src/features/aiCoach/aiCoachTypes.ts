@@ -3,6 +3,37 @@ export interface AffordabilityRequest {
   cost: number;
   targetDate?: string;
   priority?: 'low' | 'medium' | 'high';
+  /**
+   * Quadro e piano calcolati dal client con `savingsEngine.ts`.
+   *
+   * I numeri li fa il codice, non il modello: la funzione li usa come dati di
+   * fatto e chiede al modello solo di spiegarli. Opzionale, così un client
+   * vecchio continua a funzionare con il calcolo lato server di prima.
+   */
+  plan?: CoachPlan;
+}
+
+/** Sottoinsieme serializzabile di quello che `savingsEngine` sa. */
+export interface CoachPlan {
+  /** Ritmo di risparmio su cui contare (la più bassa delle medie 3/6/12). */
+  sustainableMonthly: number;
+  monthsOfHistory: number;
+  fixedMonthlyCost: number;
+  freeLiquidity: number;
+  savingsTarget: number;
+  fitsThisMonth: boolean;
+  affordableNow: boolean;
+  monthsToAfford: number | null;
+  readyByISO: string | null;
+  requiredMonthly: number | null;
+  feasible: boolean | null;
+  gapMonthly: number;
+  monthsWithCuts: number | null;
+  cuts: { label: string; amount: number; currentMonthly: number }[];
+  /** Categorie di spesa più pesanti, con la media mensile. */
+  topCategories: { label: string; monthlyAvg: number }[];
+  /** Avvertenze già verificate: storico corto, stagionalità, rate in scadenza. */
+  notes: string[];
 }
 
 export interface CutSuggestion {

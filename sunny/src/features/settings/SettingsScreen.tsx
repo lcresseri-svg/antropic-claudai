@@ -276,10 +276,13 @@ export function SettingsScreen({ user, transactions, budgetExport, onLogOut, onD
       onToggle={() => saveAiEnabled(!aiEnabled)}
     />
   );
-  const rowAiCoach = detailedInvestments ? (
+  const aiCoachChat = isFeatureEnabled('ai_coach_chat', user);
+  const rowAiCoach = aiCoachChat ? (
     <ToggleRow
       icon="🤖" label="AI Coach (bottone chat)"
-      sub={aiCoachWidgetEnabled ? 'Bottone flottante visibile in tutte le schermate' : 'Bottone nascosto'}
+      sub={!aiEnabled
+        ? 'Serve "Suggerimenti AI" acceso'
+        : aiCoachWidgetEnabled ? 'Bottone flottante visibile in tutte le schermate' : 'Bottone nascosto'}
       on={aiCoachWidgetEnabled}
       onToggle={() => saveAiCoachWidgetEnabled(!aiCoachWidgetEnabled)}
     />
@@ -437,6 +440,14 @@ export function SettingsScreen({ user, transactions, budgetExport, onLogOut, onD
                   on={enableBudget} onToggle={() => saveEnableBudget(!enableBudget)} />
                 <SwitchRow icon="✨" color="#8A9270" label="AI abilitata" sub="Suggerimenti e riepilogo mensile"
                   on={aiEnabled} onToggle={() => saveAiEnabled(!aiEnabled)} />
+                {aiCoachChat && (
+                  <SwitchRow icon="🤖" color="#88B0C0" label="AI Coach (chat)"
+                    sub={aiEnabled
+                      ? 'Bottone flottante: chiedi se puoi permetterti una spesa'
+                      : 'Richiede "AI abilitata"'}
+                    on={aiEnabled && aiCoachWidgetEnabled}
+                    onToggle={() => { if (aiEnabled) saveAiCoachWidgetEnabled(!aiCoachWidgetEnabled); }} />
+                )}
                 <Row icon="🛟" color="#8FB0A0" label="Deposito di sicurezza"
                   sub="Quanto tenere da parte"
                   value={cashReserve > 0 ? formatCurrency(cashReserve) : 'Nessuno'}

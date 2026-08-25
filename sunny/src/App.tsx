@@ -292,7 +292,11 @@ function Main({ user, onLogOut, onDeleteAccount }: {
         {!isSettings && <BottomNav onAdd={editing.openAdd} />}
       </div>
 
-      {settingsLoaded && aiEnabled && aiCoachWidgetEnabled && <AICoachWidget />}
+      {/* Tre condizioni, non due: il flag centrale decide CHI può averlo,
+          le due preferenze decidono se lo vuole adesso. Senza il flag, una
+          preferenza rimasta accesa in Firestore lo farebbe ricomparire. */}
+      {settingsLoaded && aiEnabled && aiCoachWidgetEnabled
+        && isFeatureEnabled('ai_coach_chat', user) && <AICoachWidget />}
 
       <TransactionModal
         open={editing.modalOpen} editing={editing.editing} groupTransfers={editing.groupTransfers} seriesEdit={editing.seriesEdit}

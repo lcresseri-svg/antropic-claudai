@@ -11,6 +11,8 @@ import { AffordabilityRequest } from './aiCoachTypes';
 import { logEvent } from '../../shared/analytics/metrics';
 import { useNavigate } from 'react-router-dom';
 import { PageHead } from '../../shared/components/PageHead';
+import { buildCommitments } from '../wealth/commitments';
+import { buildCoachPlan } from './buildCoachPlan';
 
 interface Props {
   user?: User | null;
@@ -39,9 +41,30 @@ export function AICoachScreen({ user, transactions, liquidity, savingsTarget, on
     ? 'nessuna analisi rimasta oggi'
     : `${remaining} ${remaining === 1 ? 'analisi rimasta' : 'analisi rimaste'} oggi`;
 
+  // I numeri li calcola il codice PRIMA di chiamare il modello: il modello
+  // riceve un piano già fatto e deve solo spiegarlo. È l'unico modo perché
+  // quello che dice non possa contraddire la dashboard — e perché non possa
+  // inventarsi una cifra.
   const submit = (req: AffordabilityRequest) => {
     setLastReq(req);
-    return analyze(req);
+    if (!transactions) return analyze(req);
+
+    const todayISO = new Date().toISOString().slice(0, 10);
+    const commitments = buildCommitments(transactions, todayISO);
+    const plan = buildCoachPlan({
+      transactions, categories, todayISO,
+      liquidity: liquidity ?? 0,
+      savingsTarget,
+      fixedMonthlyCost: commitments.fixedMonthlyCost,
+      // Le rate che finiscono liberano soldi a una data nota: dirlo evita di
+      // consigliare tagli per un buco che si chiude da solo.
+      endingInstallments: commitments.installments
+        .filter(c => c.expectedEnd)
+        .map(c => ({ description: c.description, monthly: c.monthlyEquivalent, endsISO: c.expectedEnd! })),
+      cost: req.cost,
+      targetDateISO: req.targetDate,
+    });
+    return analyze({ ...req, plan });
   };
 
   return (
