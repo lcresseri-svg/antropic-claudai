@@ -1,7 +1,8 @@
-import { useState, useEffect, useMemo } from 'react';
+import { useState, useEffect, useMemo, useRef } from 'react';
 import { Transaction, TransactionType, TYPE_META, TYPE_ORDER, RecurrenceRule, SeriesMeta, SeriesKind, AccountDef, typeColor, typeOnColor } from '../../types';
 import { formatCurrency, formatDate, guessCategory } from '../../utils';
 import { Candidate, Recognition, RECOGNITION_THRESHOLD } from './categoryRecognition';
+import { orderCategoriesByUsage } from './categoryOrder';
 import { useSettings } from '../../shared/providers/settings';
 import { expandRecurringOnCreate, shouldExpandOnSave, monthlyEquivalent, nthOccurrenceDate } from '../../shared/recurrence';
 import { useEscapeKey } from '../../shared/hooks/useEscapeKey';
@@ -175,6 +176,23 @@ export function TransactionModal({ open, editing, groupTransfers = [], seriesEdi
     if (!typeCats.some(c => c.id === category)) setCategory(typeCats[0]?.id ?? '');
   }, [type, categories]);
 
+  // L'ordine dei CHIP lo decide l'uso reale (frequenza + quanto di recente),
+  // non il solo ordine manuale di Impostazioni — che resta il tie-break a
+  // parità di punteggio e l'ordine di partenza finché la storia è troppo corta
+  // per dire qualcosa. La storia su cui si calcola è CONGELATA all'apertura:
+  // "Salva e aggiungi un'altra" riapre il form senza smontare la modale, e
+  // senza questo fermo-immagine ogni movimento appena salvato rimescolerebbe i
+  // chip sotto le dita fra un inserimento e il successivo.
+  const frozenTxRef = useRef<Transaction[]>([]);
+  useEffect(() => { if (open) frozenTxRef.current = transactions; }, [open]);
+  // Riordina SOLO quello che si vede qui: `typeCats` resta l'ordine manuale
+  // ovunque serva alla logica (riconoscimento dalla descrizione, ripiego della
+  // categoria selezionata) e nessun'altra schermata cambia.
+  const orderedCats = useMemo(
+    () => orderCategoriesByUsage(typeCats, frozenTxRef.current, type, today()),
+    [typeCats, type],
+  );
+
   // Account options for the pickers: visible accounts, plus the account(s) the
   // edited transaction already references (so an archived account stays shown and
   // isn't dropped on edit). New picks exclude archived.
@@ -207,10 +225,10 @@ export function TransactionModal({ open, editing, groupTransfers = [], seriesEdi
   // Chip mostrate senza aprire la griglia: le prime CHIP_CATS più, se sta
   // fuori, quella selezionata — non deve mai sparire dalla riga.
   const chipCats = useMemo(() => {
-    const head = typeCats.slice(0, CHIP_CATS);
-    const sel = typeCats.find(c => c.id === category);
+    const head = orderedCats.slice(0, CHIP_CATS);
+    const sel = orderedCats.find(c => c.id === category);
     return sel && !head.some(c => c.id === sel.id) ? [sel, ...head] : head;
-  }, [typeCats, category]);
+  }, [orderedCats, category]);
   const isPensionInvest = type === 'investment' && detailedInvestments && selCat?.fundType === 'pension';
 
   // An empty account is only valid for a source-less investment; otherwise snap
@@ -602,7 +620,7 @@ export function TransactionModal({ open, editing, groupTransfers = [], seriesEdi
               {catGridOpen ? (
                 <Field label="Categoria">
                   <div className="grid grid-cols-3 sm:grid-cols-4 gap-2">
-                    {typeCats.map(c => {
+                    {orderedCats.map(c => {
                       const sel = category === c.id;
                       return (
                         <button key={c.id} type="button"
@@ -629,7 +647,7 @@ export function TransactionModal({ open, editing, groupTransfers = [], seriesEdi
                       </button>
                     );
                   })}
-                  {typeCats.length > chipCats.length && (
+                  {orderedCats.length > chipCats.length && (
                     <button type="button" onClick={() => setCatGridOpen(true)}
                       className="px-3 py-2 rounded-full text-[13px] font-medium whitespace-nowrap bg-surface text-secondary flex-none">
                       altre ›
