@@ -26,6 +26,7 @@ import { localISO } from './categoryAnalytics';
 import { FreeCashHero } from './FreeCashHero';
 import { NetWorthCard } from './NetWorthCard';
 import { MonthRhythm } from './MonthRhythm';
+import { MonthRhythmSheet } from './MonthRhythmSheet';
 import { SpendingBreakdownCard } from './SpendingBreakdownCard';
 import { NextMoveCard, pickNextMove } from './NextMoveCard';
 import { RecentMovementsCard } from './RecentMovementsCard';
@@ -73,6 +74,7 @@ export function DashboardV2(p: Props) {
   } = useSettings();
 
   const [reorderOpen, setReorderOpen] = useState(false);
+  const [rhythmHistoryOpen, setRhythmHistoryOpen] = useState(false);
   // L'ordine salvato viene riconciliato con i blocchi che esistono davvero:
   // una preferenza vecchia non può far sparire un blocco nuovo.
   const order = useMemo(() => resolveHomeOrder(homeOrder), [homeOrder]);
@@ -185,6 +187,7 @@ export function DashboardV2(p: Props) {
         scheduled={cash.committedItems}
         now={now}
         onSelectDay={iso => navigate(`/transactions?date=${iso}`)}
+        onOpenHistory={() => setRhythmHistoryOpen(true)}
       />
     </div>
   );
@@ -274,6 +277,11 @@ export function DashboardV2(p: Props) {
 
       <ReorderHomeSheet open={reorderOpen} order={order}
         onSave={next => saveHomeOrder(next)} onClose={() => setReorderOpen(false)} />
+
+      <MonthRhythmSheet open={rhythmHistoryOpen} transactions={p.transactions}
+        scheduled={cash.committedItems} now={now}
+        onClose={() => setRhythmHistoryOpen(false)}
+        onSelectDay={iso => navigate(`/transactions?date=${iso}`)} />
     </div>
   );
 }
