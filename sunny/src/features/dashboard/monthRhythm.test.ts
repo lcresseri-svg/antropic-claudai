@@ -1,6 +1,8 @@
 import { describe, it, expect } from 'vitest';
 import { Transaction } from '../../types';
-import { buildMonthRhythm, rhythmMonths, shiftMonth, compareMonths, RHYTHM_ALPHA } from './monthRhythm';
+import {
+  buildMonthRhythm, rhythmMonths, shiftMonth, compareMonths, monthRhythmStats, RHYTHM_ALPHA,
+} from './monthRhythm';
 
 // 24 agosto 2026 = lunedì. Agosto 2026 ha 31 giorni e inizia di sabato.
 const NOW = new Date(2026, 7, 24, 12, 0, 0);
@@ -209,5 +211,61 @@ describe('confronto col mese precedente', () => {
     expect(c.previous).toBe(0);
     expect(c.deltaPct).toBeNull();
     expect(c.delta).toBe(300);
+  });
+});
+
+describe('statistiche del mese', () => {
+  it('conta i giorni con e senza spesa sui soli giorni trascorsi', () => {
+    // Oggi è il 24 agosto: i giorni dal 25 al 31 non devono contare come
+    // "giorni senza spese", non sono ancora arrivati.
+    const r = buildMonthRhythm({
+      transactions: [
+        tx({ date: '2026-08-03', amount: 50 }),
+        tx({ date: '2026-08-04', amount: 30 }),
+        tx({ date: '2026-08-20', amount: 20 }),
+      ],
+      now: NOW,
+    });
+    const st = monthRhythmStats(r);
+    expect(st.daysElapsed).toBe(24);
+    expect(st.daysWithSpending).toBe(3);
+    expect(st.daysWithout).toBe(21);
+    expect(st.averageOnSpendingDays).toBeCloseTo(100 / 3, 2);
+  });
+
+  it('la serie più lunga senza spendere si misura fra le spese', () => {
+    const r = buildMonthRhythm({
+      transactions: [
+        tx({ date: '2026-08-02', amount: 10 }),
+        tx({ date: '2026-08-10', amount: 10 }),   // 7 giorni puliti in mezzo
+        tx({ date: '2026-08-24', amount: 10 }),   // 13 dopo il 10
+      ],
+      now: NOW,
+    });
+    expect(monthRhythmStats(r).longestCleanStreak).toBe(13);
+  });
+
+  it('trova il giorno della settimana su cui cade più spesa', () => {
+    // 1 e 8 agosto 2026 sono sabati.
+    const r = buildMonthRhythm({
+      transactions: [
+        tx({ date: '2026-08-01', amount: 200 }),
+        tx({ date: '2026-08-08', amount: 200 }),
+        tx({ date: '2026-08-03', amount: 50 }),   // lunedì
+      ],
+      now: NOW,
+    });
+    const st = monthRhythmStats(r);
+    expect(st.topWeekday!.label).toBe('sabato');
+    expect(st.topWeekday!.total).toBe(400);
+    expect(st.topWeekday!.average).toBe(400 / 4);   // 4 sabati trascorsi
+  });
+
+  it('un mese senza spese non inventa un giorno della settimana', () => {
+    const st = monthRhythmStats(buildMonthRhythm({ transactions: [], now: NOW }));
+    expect(st.topWeekday).toBeNull();
+    expect(st.daysWithSpending).toBe(0);
+    expect(st.longestCleanStreak).toBe(24);
+    expect(st.averageOnSpendingDays).toBe(0);
   });
 });
