@@ -11,7 +11,7 @@ import { Transaction } from '../../types';
 import { SheetShell } from '../investments/SheetShell';
 import { RhythmGrid, RhythmLegend, roundEuro } from './MonthRhythm';
 import {
-  buildMonthRhythm, rhythmMonths, shiftMonth, compareMonths, ScheduledOutflow,
+  buildMonthRhythm, rhythmMonths, shiftMonth, compareMonths, monthRhythmStats, ScheduledOutflow,
 } from './monthRhythm';
 
 interface Props {
@@ -82,6 +82,7 @@ export function MonthRhythmSheet({ open, transactions, scheduled, now, onClose, 
     [transactions, scheduled, now, monthKey],
   );
   const cmp = useMemo(() => compareMonths(rhythm, previous), [rhythm, previous]);
+  const stats = useMemo(() => monthRhythmStats(rhythm), [rhythm]);
 
   const hasPrevMonth = months.includes(shiftMonth(monthKey, -1));
 
@@ -132,6 +133,34 @@ export function MonthRhythmSheet({ open, transactions, scheduled, now, onClose, 
           hint={rhythm.peak ? `${rhythm.peak.day} ${shortMonth(rhythm.monthKey)}` : undefined} />
       </div>
 
+      {/* Il resto in righe: qui i numeri hanno bisogno di una frase, non di
+          un riquadro da 10px. Tutto sui giorni TRASCORSI. */}
+      <div className="glass-card rounded-[18px] px-3.5">
+        <DetailRow label="Giorni con spesa"
+          value={`${stats.daysWithSpending} su ${stats.daysElapsed}`} />
+        <DetailRow label="Giorni senza spendere"
+          value={String(stats.daysWithout)}
+          hint={stats.longestCleanStreak > 1 ? `${stats.longestCleanStreak} di fila` : undefined} />
+        {stats.daysWithSpending > 0 && (
+          <DetailRow label="Media nei giorni di spesa"
+            value={`${roundEuro(stats.averageOnSpendingDays)} €`} />
+        )}
+        {rhythm.peak?.topDescription && (
+          <DetailRow label="Spesa più grande" value={rhythm.peak.topDescription} />
+        )}
+        {stats.topWeekday && (
+          // "Di domenica" regge sia il maschile che il femminile: "Il tuo
+          // domenica" no, e i giorni della settimana in italiano si dividono.
+          <DetailRow label={`Di ${stats.topWeekday.label}`}
+            value={`${roundEuro(stats.topWeekday.total)} €`}
+            hint={`${roundEuro(stats.topWeekday.average)} € in media`} />
+        )}
+        {!rhythm.isClosed && rhythm.scheduledAhead > 0 && (
+          <DetailRow label="Già programmato" value={`${roundEuro(rhythm.scheduledAhead)} €`}
+            hint="da qui a fine mese" />
+        )}
+      </div>
+
       {/* Confronto onesto: a mese in corso si guardano gli stessi giorni */}
       {hasPrevMonth && (
         <div className="accent-card rounded-[18px] p-3.5">
@@ -171,6 +200,18 @@ function NavButton({ dir, disabled, onClick }: {
         <path d={dir === 'prev' ? 'M15 6l-6 6 6 6' : 'M9 6l6 6-6 6'} />
       </svg>
     </button>
+  );
+}
+
+function DetailRow({ label, value, hint }: { label: string; value: string; hint?: string }) {
+  return (
+    <div className="flex items-baseline justify-between gap-3 py-2.5 border-b border-divider last:border-0">
+      <span className="text-[12.5px] text-secondary min-w-0 truncate">{label}</span>
+      <span className="text-[12.5px] text-primary font-semibold balance-num flex-none text-right">
+        {value}
+        {hint && <span className="text-[11px] text-tertiary font-normal"> · {hint}</span>}
+      </span>
+    </div>
   );
 }
 

@@ -5,6 +5,7 @@ import { useSettings } from '../../shared/providers/settings';
 import { formatCurrency } from '../../utils';
 import { PageHead } from '../../shared/components/PageHead';
 import { buildMonthlyRecap, MonthlyRecap, RecapDelta, RecapKpi } from './monthlyRecap';
+import { RecapExportSheet } from './RecapExportSheet';
 
 const KPI_LABEL: Record<RecapKpi['key'], string> = {
   income: 'Entrate', expense: 'Uscite', invest: 'Investito', saved: 'Risparmio',
@@ -27,11 +28,12 @@ export function MonthlyRecapScreen({ transactions }: { transactions: Transaction
   // La tabella completa non è più in pagina: apre chi la vuole. In stampa
   // resta sempre aperta (regola `.recap-movements-collapsed` in index.css).
   const [movementsOpen, setMovementsOpen] = useState(false);
+  const [exportOpen, setExportOpen] = useState(false);
 
   if (recap.totals.txCount === 0) {
     return (
       <div className="pb-24">
-        <BackBar onBack={() => navigate('/budget')} onPrint={() => window.print()} canPrint={false} />
+        <BackBar onBack={() => navigate('/budget')} onExport={() => setExportOpen(true)} canExport={false} />
         <div className="glass-card rounded-2xl p-8 text-center text-secondary text-sm">
           Nessun movimento per {recap.label}.
         </div>
@@ -41,7 +43,8 @@ export function MonthlyRecapScreen({ transactions }: { transactions: Transaction
 
   return (
     <div className="pb-24 space-y-4 recap-root">
-      <BackBar onBack={() => navigate('/budget')} onPrint={() => window.print()} canPrint />
+      <BackBar onBack={() => navigate('/budget')} onExport={() => setExportOpen(true)} canExport />
+      <RecapExportSheet open={exportOpen} recap={recap} onClose={() => setExportOpen(false)} />
 
       {/* Header */}
       <header className="recap-card">
@@ -160,15 +163,15 @@ export function MonthlyRecapScreen({ transactions }: { transactions: Transaction
   );
 }
 
-function BackBar({ onBack, onPrint, canPrint }: { onBack: () => void; onPrint: () => void; canPrint: boolean }) {
+function BackBar({ onBack, onExport, canExport }: { onBack: () => void; onExport: () => void; canExport: boolean }) {
   return (
     <div className="flex items-center justify-between gap-3 no-print">
       <button onClick={onBack} className="flex items-center gap-1.5 text-sm text-secondary hover:text-primary transition-colors">
         <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round"><path d="m15 18-6-6 6-6" /></svg>
         Piano
       </button>
-      {canPrint && (
-        <button onClick={onPrint} className="text-[12.5px] font-medium text-gold">
+      {canExport && (
+        <button onClick={onExport} className="text-[12.5px] font-medium text-gold">
           Esporta
         </button>
       )}

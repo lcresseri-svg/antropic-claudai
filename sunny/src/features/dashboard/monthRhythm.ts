@@ -242,6 +242,69 @@ export function compareMonths(current: MonthRhythm, previous: MonthRhythm): Mont
   };
 }
 
+export interface RhythmStats {
+  /** Giorni del mese già trascorsi (oggi incluso). */
+  daysElapsed: number;
+  daysWithSpending: number;
+  /** Giorni trascorsi senza nessuna spesa. */
+  daysWithout: number;
+  /** La serie più lunga di giorni consecutivi senza spendere. */
+  longestCleanStreak: number;
+  /** Media sui soli giorni in cui si è speso — diversa dalla media sul mese. */
+  averageOnSpendingDays: number;
+  /** Il giorno della settimana su cui è caduta più spesa. */
+  topWeekday: { label: string; total: number; average: number } | null;
+}
+
+const WEEKDAY_LABEL = ['lunedì', 'martedì', 'mercoledì', 'giovedì', 'venerdì', 'sabato', 'domenica'];
+
+/**
+ * Le statistiche del mese, dai giorni già calcolati.
+ *
+ * Tutto si conta sui giorni TRASCORSI: includere i giorni che devono ancora
+ * arrivare farebbe sembrare virtuoso ogni mese appena cominciato ("22 giorni
+ * senza spese" il 3 del mese).
+ */
+export function monthRhythmStats(rhythm: MonthRhythm): RhythmStats {
+  const elapsed = rhythm.days.filter(d => !d.isFuture);
+  const spending = elapsed.filter(d => d.spent > 0);
+
+  let longest = 0, run = 0;
+  for (const d of elapsed) {
+    run = d.spent > 0 ? 0 : run + 1;
+    if (run > longest) longest = run;
+  }
+
+  // Somma per giorno della settimana, lunedì = 0 (come la griglia).
+  const byWeekday = new Array(7).fill(0) as number[];
+  const countByWeekday = new Array(7).fill(0) as number[];
+  for (const d of elapsed) {
+    const [y, m, day] = d.iso.split('-').map(Number);
+    const idx = (new Date(y, m - 1, day).getDay() + 6) % 7;
+    byWeekday[idx] += d.spent;
+    countByWeekday[idx] += 1;
+  }
+  let top = -1;
+  for (let i = 0; i < 7; i++) if (byWeekday[i] > 0 && (top < 0 || byWeekday[i] > byWeekday[top])) top = i;
+
+  return {
+    daysElapsed: elapsed.length,
+    daysWithSpending: spending.length,
+    daysWithout: elapsed.length - spending.length,
+    longestCleanStreak: longest,
+    averageOnSpendingDays: spending.length > 0
+      ? r2(spending.reduce((s, d) => s + d.spent, 0) / spending.length)
+      : 0,
+    topWeekday: top >= 0
+      ? {
+          label: WEEKDAY_LABEL[top],
+          total: r2(byWeekday[top]),
+          average: r2(byWeekday[top] / Math.max(1, countByWeekday[top])),
+        }
+      : null,
+  };
+}
+
 /** Mese precedente / successivo di `YYYY-MM` (`delta` in mesi). */
 export function shiftMonth(monthKey: string, delta: number): string {
   const [y, m] = monthKey.split('-').map(Number);
