@@ -11,6 +11,7 @@ const CATS: CategoryDef[] = [
   { id: 'casa', label: 'Casa', icon: '🏠', color: '#E6B95C', kind: 'expense' },
   { id: 'rist', label: 'Ristoranti', icon: '🍝', color: '#D4956A', kind: 'expense' },
   { id: 'shop', label: 'Shopping', icon: '🛍️', color: '#B5A8C8', kind: 'expense' },
+  { id: 'extra', label: 'Extra', icon: '🔧', color: '#DD5B4F', kind: 'expense' },
   { id: 'stip', label: 'Stipendio', icon: '💼', color: '#8A9270', kind: 'income' },
 ];
 
@@ -20,27 +21,42 @@ const tx = (over: Partial<Transaction> & { date: string }): Transaction => ({
   type: 'expense', category: 'casa', account: 'cc', ...over,
 });
 
-/** `count` mesi chiusi identici, all'indietro da `TODAY`. */
-function months(count: number, build: (ym: string) => Transaction[]): Transaction[] {
+/** `count` mesi chiusi all'indietro da `TODAY`; `i` è 1 = mese scorso. */
+function months(count: number, build: (ym: string, i: number) => Transaction[]): Transaction[] {
   const out: Transaction[] = [];
   const [y, m] = TODAY.split('-').map(Number);
   for (let i = 1; i <= count; i++) {
     const d = new Date(Date.UTC(y, m - 1 - i, 1));
-    out.push(...build(`${d.getUTCFullYear()}-${String(d.getUTCMonth() + 1).padStart(2, '0')}`));
+    out.push(...build(`${d.getUTCFullYear()}-${String(d.getUTCMonth() + 1).padStart(2, '0')}`, i));
   }
   return out;
+}
+
+/** `YYYY-MM` del mese chiuso numero `i` (1 = mese scorso). */
+function monthKey(i: number): string {
+  const [y, m] = TODAY.split('-').map(Number);
+  const d = new Date(Date.UTC(y, m - 1 - i, 1));
+  return `${d.getUTCFullYear()}-${String(d.getUTCMonth() + 1).padStart(2, '0')}`;
 }
 
 const build = (transactions: Transaction[], over = {}) => buildSavingsContext({
   transactions, categories: CATS, todayISO: TODAY, liquidity: 5000, ...over,
 });
 
-/** Sei mesi con 2.000 € di entrate e 1.400 € di uscite: 600 € netti al mese. */
-const steady = () => months(6, ym => [
+/**
+ * Sei mesi con 2.000 € di entrate e 1.400 € di uscite: 600 € netti al mese.
+ *
+ * Casa è identica ogni mese (900 €) — è così che si riconosce un costo fisso.
+ * Ristoranti e shopping oscillano attorno a 300 e 200 tenendo il totale del
+ * mese costante: è la forma che ha una spesa variabile vera, e senza quella
+ * oscillazione il motore le classificherebbe (giustamente) come fisse.
+ */
+const RIST = [300, 250, 350, 300, 250, 350];
+const steady = () => months(6, (ym, i) => [
   tx({ date: `${ym}-01`, type: 'income', category: 'stip', amount: 2000 }),
   tx({ date: `${ym}-10`, category: 'casa', amount: 900 }),
-  tx({ date: `${ym}-15`, category: 'rist', amount: 300 }),
-  tx({ date: `${ym}-20`, category: 'shop', amount: 200 }),
+  tx({ date: `${ym}-15`, category: 'rist', amount: RIST[i - 1] }),
+  tx({ date: `${ym}-20`, category: 'shop', amount: 500 - RIST[i - 1] }),
 ]);
 
 describe('contesto', () => {
@@ -85,14 +101,80 @@ describe('contesto', () => {
   it('ordina le categorie per peso e marca quelle su cui si può tagliare', () => {
     const ctx = build(steady());
     expect(ctx.categories.map(c => c.id)).toEqual(['casa', 'rist', 'shop']);
-    // "Casa" è affitto/mutuo/bollette: non si taglia con un consiglio.
-    expect(ctx.categories.find(c => c.id === 'casa')!.cuttable).toBe(0);
-    expect(ctx.categories.find(c => c.id === 'rist')!.cuttable).toBe(300 * MAX_CUT_SHARE);
+    // Casa è 900 € identici ogni mese: costo fisso, riconosciuto dai DATI e
+    // non dal nome della categoria.
+    const casa = ctx.categories.find(c => c.id === 'casa')!;
+    expect(casa.nature).toBe('fixed');
+    expect(casa.cuttable).toBe(0);
+    expect(casa.fixedReason).toContain('identica ogni mese');
+    // Ristoranti oscilla: è lì che un taglio è possibile.
+    const rist = ctx.categories.find(c => c.id === 'rist')!;
+    expect(rist.nature).toBe('variable');
+    expect(rist.typicalMonthly).toBe(300);          // mediana di RIST
+    expect(rist.cuttable).toBe(300 * MAX_CUT_SHARE);
   });
 
   it('una categoria troppo piccola non vale un consiglio', () => {
     const ctx = build(months(3, ym => [tx({ date: `${ym}-05`, category: 'shop', amount: MIN_CUT_EUR - 1 })]));
     expect(ctx.categories[0].cuttable).toBe(0);
+  });
+});
+
+describe('natura delle categorie, letta dai dati', () => {
+  it('una serie ricorrente è un contratto: si disdice, non si taglia', () => {
+    // Stesso importo variabile di una spesa qualunque, ma marcato come serie.
+    const ctx = build(months(6, (ym, i) => [
+      tx({ date: `${ym}-05`, category: 'shop', amount: 100 + i * 20, seriesId: 'abbonamento' }),
+    ]));
+    const c = ctx.categories[0];
+    expect(c.nature).toBe('fixed');
+    expect(c.recurringShare).toBe(1);
+    expect(c.fixedReason).toContain('disdicendo');
+    expect(c.cuttable).toBe(0);
+  });
+
+  it('una spesa in un mese solo è una tantum, non un ritmo', () => {
+    const ctx = build([
+      ...steady(),
+      tx({ date: `${monthKey(3)}-12`, category: 'extra', amount: 2400, description: 'Caldaia' }),
+    ]);
+    const extra = ctx.categories.find(c => c.id === 'extra')!;
+    expect(extra.nature).toBe('oneOff');
+    expect(extra.monthsPresent).toBe(1);
+    expect(extra.cuttable).toBe(0);
+    expect(extra.fixedReason).toContain('una tantum');
+  });
+
+  it('un picco non gonfia il ritmo: il mese tipico è la mediana', () => {
+    // Shopping normale a 200, tranne un mese da 2.000.
+    const ctx = build(months(6, (ym, i) => [
+      tx({ date: `${ym}-05`, category: 'shop', amount: i === 3 ? 2000 : 200 + i * 10 }),
+    ]));
+    const shop = ctx.categories[0];
+    // La media è gonfiata dal picco, la mediana no.
+    expect(shop.monthlyAvg).toBeGreaterThan(500);
+    expect(shop.typicalMonthly).toBeLessThan(260);
+    // E il taglio si calcola sul mese tipico, non sulla media.
+    expect(shop.cuttable).toBeLessThan(80);
+  });
+
+  it('con meno di tre mesi non si taglia: si starebbe indovinando', () => {
+    const ctx = build(months(2, ym => [
+      tx({ date: `${ym}-05`, category: 'shop', amount: 400 }),
+    ]));
+    expect(ctx.categories[0].nature).toBe('fixed');
+    expect(ctx.categories[0].fixedReason).toContain('storico troppo corto');
+    expect(ctx.categories[0].cuttable).toBe(0);
+  });
+
+  it('le una tantum vengono dichiarate al modello, non nascoste', () => {
+    const ctx = build([
+      ...steady(),
+      tx({ date: `${monthKey(3)}-12`, category: 'extra', amount: 2400 }),
+    ]);
+    const p = planPurchase(ctx, 5000, '2026-10-31');
+    expect(p.notes.some(t => t.includes('una tantum') && t.includes('Extra'))).toBe(true);
+    expect(p.cuts.map(c => c.categoryId)).not.toContain('extra');
   });
 });
 
@@ -124,7 +206,7 @@ describe('planPurchase', () => {
     expect(tight.requiredMonthly).toBe(1200);
     expect(tight.gapMonthly).toBe(600);
     expect(tight.cuts.length).toBeGreaterThan(0);
-    // Tagliabile: 30% di ristoranti (90) + 30% di shopping (60) = 150 < 600.
+    // Tagliabile: 30% del mese TIPICO di ristoranti (90) e shopping (60).
     expect(tight.cutsTotal).toBe(150);
     expect(tight.feasible).toBe(false);
   });
@@ -132,6 +214,8 @@ describe('planPurchase', () => {
   it('i tagli non toccano le categorie che non si tagliano', () => {
     const p = planPurchase(build(steady()), 10000, '2026-09-30');
     expect(p.cuts.map(c => c.categoryId)).not.toContain('casa');
+    // E lo dice al modello, che altrimenti proporrebbe di tagliare l'affitto.
+    expect(p.notes.some(t => t.startsWith('NON proporre tagli su') && t.includes('Casa'))).toBe(true);
   });
 
   it('senza risparmio il traguardo non si sposta, e lo dice', () => {

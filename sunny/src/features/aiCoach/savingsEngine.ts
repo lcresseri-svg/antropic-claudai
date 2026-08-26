@@ -39,9 +39,35 @@ export const MIN_CUT_EUR = 15;
 /** Un mese è "caro" se supera la media di questo margine. */
 export const HEAVY_MONTH_MARGIN = 0.15;
 
-/** Categorie su cui un taglio è realistico: le altre sono affitto, mutuo,
- *  bollette — si cambiano con un trasloco, non con un consiglio. */
-const NON_DISCRETIONARY = /affitto|mutuo|casa|bollett|utenz|assicur|tass|scuola|asilo|condomin/i;
+/** In quanti mesi su quelli osservati una categoria deve comparire perché sia
+ *  "sempre quella": sotto, è una spesa saltuaria, non un costo fisso. */
+export const FIXED_PRESENCE = 0.8;
+
+/** Quanto può oscillare, in proporzione alla mediana, una spesa che si
+ *  considera fissa. L'affitto è identico ogni mese; la spesa al supermercato
+ *  no, anche se la si fa tutti i mesi. */
+export const FIXED_VARIATION = 0.15;
+
+/** Un mese che supera di tanto la mediana degli altri è un evento, non il
+ *  ritmo: la caldaia nuova non è "quanto spendi di casa al mese". */
+export const SPIKE_FACTOR = 3;
+
+/** Mesi minimi di storico per poter dire qualcosa sulla natura di una spesa. */
+export const MIN_MONTHS_FOR_NATURE = 3;
+
+/**
+ * Che tipo di spesa è.
+ *
+ *   fixed     torna ogni mese quasi identica — affitto, mutuo, bollette,
+ *             abbonamenti. Non si taglia con un consiglio: si taglia con un
+ *             trasloco o con una disdetta, che sono decisioni diverse.
+ *   variable  c'è quasi sempre ma oscilla — spesa, ristoranti, benzina. È qui
+ *             che un taglio è possibile davvero.
+ *   oneOff    un evento isolato, o una cifra concentrata in un mese solo. La
+ *             sua media mensile non è un ritmo e prometterne il 30% sarebbe
+ *             promettere il taglio di una spesa che non tornerà.
+ */
+export type CategoryNature = 'fixed' | 'variable' | 'oneOff';
 
 export interface MonthlyAverage {
   months: number;
@@ -56,12 +82,26 @@ export interface CategoryLoad {
   label: string;
   icon: string;
   color: string;
-  /** Media mensile sulla finestra più lunga disponibile. */
+  /** Media aritmetica mensile sulla finestra osservata. */
   monthlyAvg: number;
+  /**
+   * Il mese TIPICO: la mediana delle mensilità, non la media.
+   *
+   * Con una caldaia da 2.400 € a marzo la media di "Casa" su sei mesi sale di
+   * 400 €/mese e il consiglio diventa "taglia 120 € di casa" — una cifra che
+   * non esiste. La mediana ignora il picco e resta il ritmo vero.
+   */
+  typicalMonthly: number;
   /** Quota sulle uscite totali, 0–1. */
   share: number;
-  /** Un taglio qui è realistico. */
-  discretionary: boolean;
+  /** Che tipo di spesa è, dedotto dai dati e non dal nome. */
+  nature: CategoryNature;
+  /** In quanti mesi osservati compare. */
+  monthsPresent: number;
+  /** Quota della spesa che arriva da serie ricorrenti (0–1). */
+  recurringShare: number;
+  /** Perché non si taglia — vuoto quando si taglia. */
+  fixedReason: string;
   /** Quanto si può togliere al mese senza chiedere l'impossibile. */
   cuttable: number;
 }
@@ -142,34 +182,104 @@ function historyDepth(txs: Transaction[], todayISO: string): number {
   return depth;
 }
 
+/** Mediana di una serie di numeri (array non vuoto). */
+function median(values: number[]): number {
+  const v = [...values].sort((a, b) => a - b);
+  const mid = v.length >> 1;
+  return v.length % 2 ? v[mid] : (v[mid - 1] + v[mid]) / 2;
+}
+
+/**
+ * Che spesa è, letta dai dati e non dal nome della categoria.
+ *
+ * Il nome non basta e non è affidabile: le categorie le crea l'utente, e
+ * "Casa" può essere l'affitto per uno e l'Ikea per un altro. Quello che si
+ * può osservare invece è come la spesa si comporta nel tempo — se torna, se
+ * torna uguale, e se arriva da una serie ricorrente che qualcuno ha firmato.
+ */
+function natureOf(
+  monthly: number[], months: number, recurringShare: number,
+): { nature: CategoryNature; reason: string } {
+  const present = monthly.filter(v => v > 0);
+  const spent = present.length;
+
+  // Con meno di tre mesi non si distingue un costo fisso da una coincidenza:
+  // meglio non tagliare che promettere un taglio su un'ipotesi.
+  if (months < MIN_MONTHS_FOR_NATURE) {
+    return { nature: 'fixed', reason: 'storico troppo corto per capire se è una spesa ricorrente' };
+  }
+
+  // Una spesa concentrata in un mese solo è un evento: la sua media mensile
+  // è un artefatto della divisione, non un ritmo che si possa tagliare.
+  if (spent <= 1) {
+    return { nature: 'oneOff', reason: 'spesa una tantum, non si ripete ogni mese' };
+  }
+  const med = median(present);
+  if (med > 0 && Math.max(...present) > med * SPIKE_FACTOR && spent < months * FIXED_PRESENCE) {
+    return { nature: 'oneOff', reason: 'quasi tutto in un mese solo: è stato un evento, non un ritmo' };
+  }
+
+  // Firmata: un contratto non si taglia con un consiglio, si disdice.
+  if (recurringShare >= 0.6) {
+    return { nature: 'fixed', reason: 'arriva da una serie ricorrente: si cambia disdicendo, non spendendo meno' };
+  }
+
+  // C'è sempre e non oscilla quasi mai: è un costo fisso anche senza serie.
+  const everyMonth = spent >= Math.ceil(months * FIXED_PRESENCE);
+  const spread = med > 0 ? (Math.max(...present) - Math.min(...present)) / med : 0;
+  if (everyMonth && spread <= FIXED_VARIATION) {
+    return { nature: 'fixed', reason: 'identica ogni mese: è un costo fisso' };
+  }
+
+  return { nature: 'variable', reason: '' };
+}
+
 function buildCategories(
   txs: Transaction[], cats: CategoryDef[], months: number, todayISO: string,
 ): CategoryLoad[] {
-  const totals = new Map<string, number>();
+  // Per categoria: quanto in ciascun mese, e quanto arriva da serie ricorrenti.
+  const byCat = new Map<string, { monthly: number[]; recurring: number }>();
   let overall = 0;
-  for (let i = 1; i <= months; i++) {
+  const span = Math.max(1, months);
+  for (let i = 1; i <= span; i++) {
     for (const t of closedMonth(txs, monthKeyBefore(todayISO, i), todayISO)) {
       if (t.type !== 'expense') continue;
       const v = ownShare(t);
-      totals.set(t.category, (totals.get(t.category) ?? 0) + v);
+      let e = byCat.get(t.category);
+      if (!e) byCat.set(t.category, (e = { monthly: new Array(span).fill(0), recurring: 0 }));
+      e.monthly[i - 1] += v;
+      if (t.recurring || t.seriesId) e.recurring += v;
       overall += v;
     }
   }
-  const span = Math.max(1, months);
-  return [...totals.entries()]
-    .map(([id, total]) => {
+
+  return [...byCat.entries()]
+    .map(([id, e]) => {
       const def = cats.find(c => c.id === id);
-      const label = def?.label ?? id;
-      const monthlyAvg = r2(total / span);
-      const discretionary = !NON_DISCRETIONARY.test(label);
+      const total = e.monthly.reduce((a, b) => a + b, 0);
+      const present = e.monthly.filter(v => v > 0);
+      const recurringShare = total > 0 ? e.recurring / total : 0;
+      const { nature, reason } = natureOf(e.monthly, span, recurringShare);
+      // Il ritmo è la mediana dei mesi in cui la spesa c'è stata: un mese a
+      // zero non abbassa il ritmo, lo rende solo meno frequente.
+      const typicalMonthly = present.length ? r2(median(present)) : 0;
       return {
-        id, label,
+        id,
+        label: def?.label ?? id,
         icon: def?.icon ?? '•',
         color: def?.color ?? '#8A9270',
-        monthlyAvg,
+        monthlyAvg: r2(total / span),
+        typicalMonthly,
         share: overall > 0 ? total / overall : 0,
-        discretionary,
-        cuttable: discretionary && monthlyAvg >= MIN_CUT_EUR ? r2(monthlyAvg * MAX_CUT_SHARE) : 0,
+        nature,
+        monthsPresent: present.length,
+        recurringShare: Math.round(recurringShare * 100) / 100,
+        fixedReason: reason,
+        // Si taglia SOLO il variabile, e solo sul mese tipico: promettere il
+        // 30% di una media gonfiata da un picco è promettere il nulla.
+        cuttable: nature === 'variable' && typicalMonthly >= MIN_CUT_EUR
+          ? r2(typicalMonthly * MAX_CUT_SHARE)
+          : 0,
       };
     })
     .filter(c => c.monthlyAvg > 0)
@@ -280,7 +390,7 @@ export function planCuts(ctx: SavingsContext, targetMonthly: number): CutPlan[] 
     if (take < 1) continue;
     out.push({
       categoryId: c.id, label: c.label, icon: c.icon, color: c.color,
-      amount: take, currentMonthly: c.monthlyAvg,
+      amount: take, currentMonthly: c.typicalMonthly,
     });
     left = r2(left - take);
   }
@@ -332,6 +442,14 @@ export function planPurchase(
   }
   if (ctx.fixedMonthlyCost > 0) {
     notes.push(`${ctx.fixedMonthlyCost.toFixed(0)} € al mese sono già impegnati in rate, abbonamenti e ricorrenti.`);
+  }
+  const untouchable = ctx.categories.filter(c => c.nature === 'fixed' && c.typicalMonthly >= MIN_CUT_EUR);
+  if (untouchable.length > 0) {
+    notes.push(`NON proporre tagli su: ${untouchable.map(c => `${c.label} (${c.typicalMonthly.toFixed(0)} €/mese, ${c.fixedReason})`).join('; ')}.`);
+  }
+  const oneOffs = ctx.categories.filter(c => c.nature === 'oneOff' && c.monthlyAvg >= MIN_CUT_EUR);
+  if (oneOffs.length > 0) {
+    notes.push(`Spese una tantum, già escluse dal ritmo mensile: ${oneOffs.map(c => c.label).join(', ')}. Non contarle come risparmio ricorrente.`);
   }
   // Se il traguardo cade in un mese storicamente caro, dirlo prima.
   const landing = targetDateISO ?? readyByISO;

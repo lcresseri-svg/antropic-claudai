@@ -22,6 +22,7 @@ import { BudgetOverview } from './BudgetOverview';
 import { BudgetEditSheet } from './BudgetEditSheet';
 import { formatCurrency, capitalize } from '../../utils';
 import { isFeatureEnabled } from '../../shared/featureRollout';
+import { CoachEntryCard } from '../aiCoach/CoachEntryCard';
 import { listRecapMonths } from '../recap/monthlyRecap';
 
 type EditSection = 'savings' | 'income' | 'expenses' | 'investments';
@@ -64,7 +65,7 @@ export function BudgetScreenV2({
   user, transactions, monthlyInvestments,
 }: Props) {
   const navigate = useNavigate();
-  const { categories, visibleCategories, enableInvestments } = useSettings();
+  const { categories, visibleCategories, enableInvestments, aiEnabled, aiCoachWidgetEnabled } = useSettings();
   const {
     budget, acceptSuggestion, currentMonth, monthlyStatus, budgetHistory,
     setSavingsTargetFor, setCategoryBudgetFor, setIncomeBudgetFor, setInvestmentBudgetFor,
@@ -77,6 +78,9 @@ export function BudgetScreenV2({
   // Quanto del mese è già promesso a impegni ricorrenti. Serve solo alla riga
   // di ingresso in fondo: senza il flag non si calcola nemmeno.
   const showCommitments = isFeatureEnabled('commitments', user);
+  // L'AI Coach chiede una chiamata a pagamento: resta dietro il flag admin e
+  // dietro la preferenza dell'utente, come prima.
+  const showCoach = isFeatureEnabled('ai_coach_chat', user) && aiEnabled && aiCoachWidgetEnabled;
   const fixedMonthlyCost = useMemo(
     () => (showCommitments
       ? buildCommitments(transactions, new Date().toISOString().slice(0, 10)).fixedMonthlyCost
@@ -404,6 +408,11 @@ export function BudgetScreenV2({
       )}
 
 
+
+      {/* L'ingresso all'AI Coach vive qui e non su un bottone flottante: è
+          questa la schermata in cui si sta già ragionando su quanto si può
+          spendere, quindi è qui che la domanda nasce. */}
+      {showCoach && <CoachEntryCard />}
 
       {/* Uscite: in evidenza solo le categorie a rischio; le altre in una riga */}
       <WatchlistCategories rows={watchRows}

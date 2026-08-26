@@ -24,7 +24,6 @@ import { BottomNav } from './shared/components/BottomNav';
 import { SideNav } from './shared/components/SideNav';
 import { SplashScreen } from './shared/components/SplashScreen';
 import { ArcLogo } from './shared/components/ArcLogo';
-import { AICoachWidget } from './features/aiCoach/AICoachWidget';
 import { PushPromoSheet } from './shared/components/PushPromoSheet';
 import { WhatsNewModal, isWhatsNewPending } from './shared/components/WhatsNewModal';
 import { ReleaseNotice } from './features/notifications/ReleaseNotice';
@@ -136,7 +135,7 @@ function Main({ user, onLogOut, onDeleteAccount }: {
 }) {
   const navigate = useNavigate();
   const location = useLocation();
-  const { accounts, categories, includeInvestments, enableInvestments, enableBudget, aiCoachWidgetEnabled, settingsLoaded, aiEnabled } = useSettings();
+  const { accounts, categories, includeInvestments, enableInvestments, enableBudget, settingsLoaded, aiEnabled } = useSettings();
   const tx = useTransactions(user, accounts, includeInvestments, categories, enableInvestments);
   const budget = useBudget(user);
   const editing = useTransactionEditing(user, tx);
@@ -291,12 +290,6 @@ function Main({ user, onLogOut, onDeleteAccount }: {
         {/* Mobile-only bottom nav */}
         {!isSettings && <BottomNav onAdd={editing.openAdd} />}
       </div>
-
-      {/* Tre condizioni, non due: il flag centrale decide CHI può averlo,
-          le due preferenze decidono se lo vuole adesso. Senza il flag, una
-          preferenza rimasta accesa in Firestore lo farebbe ricomparire. */}
-      {settingsLoaded && aiEnabled && aiCoachWidgetEnabled
-        && isFeatureEnabled('ai_coach_chat', user) && <AICoachWidget />}
 
       <TransactionModal
         open={editing.modalOpen} editing={editing.editing} groupTransfers={editing.groupTransfers} seriesEdit={editing.seriesEdit}

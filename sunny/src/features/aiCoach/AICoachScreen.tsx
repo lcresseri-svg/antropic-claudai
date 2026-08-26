@@ -1,4 +1,4 @@
-import { useEffect, useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import { User } from 'firebase/auth';
 import { Transaction } from '../../types';
 import { useSettings } from '../../shared/providers/settings';
@@ -9,7 +9,7 @@ import { AffordabilityResultCard } from './AffordabilityResultCard';
 import { DecisionCoachPanel } from './DecisionCoachPanel';
 import { AffordabilityRequest } from './aiCoachTypes';
 import { logEvent } from '../../shared/analytics/metrics';
-import { useNavigate } from 'react-router-dom';
+import { useNavigate, useSearchParams } from 'react-router-dom';
 import { PageHead } from '../../shared/components/PageHead';
 import { buildCommitments } from '../wealth/commitments';
 import { buildCoachPlan } from './buildCoachPlan';
@@ -26,6 +26,7 @@ interface Props {
 
 export function AICoachScreen({ user, transactions, liquidity, savingsTarget, onSetSavingsTarget }: Props) {
   const navigate = useNavigate();
+  const [params] = useSearchParams();
   const { categories } = useSettings();
   const { status, result, errorMsg, remaining, analyze, reset } = useAICoach();
   // Last submitted request — feeds the deterministic Decision Coach panel.
@@ -36,6 +37,20 @@ export function AICoachScreen({ user, transactions, liquidity, savingsTarget, on
 
   // metrics: aicoach_open on mount (fire-and-forget).
   useEffect(() => { if (user) logEvent(user.uid, 'aicoach_open'); }, [user]);
+
+  // La domanda può arrivare già scritta dal Piano (?item=&cost=): in quel caso
+  // l'analisi parte da sola, altrimenti si arriverebbe su un form da
+  // ricompilare con le stesse due cose appena inserite.
+  const askedRef = useRef(false);
+  useEffect(() => {
+    if (askedRef.current) return;
+    const itemName = params.get('item')?.trim();
+    const cost = Number(params.get('cost'));
+    if (!itemName || !Number.isFinite(cost) || cost <= 0) return;
+    askedRef.current = true;
+    void submitRef.current({ itemName, cost });
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [params]);
 
   const counterLabel = remaining === 0
     ? 'nessuna analisi rimasta oggi'
@@ -66,6 +81,8 @@ export function AICoachScreen({ user, transactions, liquidity, savingsTarget, on
     });
     return analyze({ ...req, plan });
   };
+  const submitRef = useRef(submit);
+  submitRef.current = submit;
 
   return (
     <div className="pb-32 md:pb-6">
