@@ -1,6 +1,6 @@
 import { describe, it, expect } from 'vitest';
 import { Transaction } from '../../types';
-import { buildMonthRhythm, RHYTHM_ALPHA } from './monthRhythm';
+import { buildMonthRhythm, rhythmMonths, shiftMonth, compareMonths, RHYTHM_ALPHA } from './monthRhythm';
 
 // 24 agosto 2026 = lunedì. Agosto 2026 ha 31 giorni e inizia di sabato.
 const NOW = new Date(2026, 7, 24, 12, 0, 0);
@@ -112,5 +112,102 @@ describe('buildMonthRhythm', () => {
     expect(r.days.filter(d => d.isFuture)).toHaveLength(7); // 25 → 31
     expect(r.peak).toBeNull();
     expect(r.dailyAverage).toBe(0);
+  });
+});
+
+describe('scorrere fra i mesi', () => {
+  it('costruisce un mese chiuso: nessun giorno futuro, nessun oggi', () => {
+    const r = buildMonthRhythm({
+      transactions: [
+        tx({ date: '2026-06-03', amount: 120 }),
+        tx({ date: '2026-06-30', amount: 80 }),
+        tx({ date: '2026-08-24', amount: 999 }),   // mese corrente: fuori
+      ],
+      now: NOW,
+      monthKey: '2026-06',
+    });
+    expect(r.monthKey).toBe('2026-06');
+    expect(r.monthLabelFull).toBe('giugno 2026');
+    expect(r.days).toHaveLength(30);
+    expect(r.isClosed).toBe(true);
+    expect(r.days.some(d => d.isFuture)).toBe(false);
+    expect(r.days.some(d => d.isToday)).toBe(false);
+    expect(r.todaySpent).toBe(0);
+    expect(r.totalSpent).toBe(200);
+    // La media di un mese chiuso è sui suoi giorni, non su quelli trascorsi
+    // del mese corrente.
+    expect(r.dailyAverage).toBeCloseTo(200 / 30, 2);
+  });
+
+  it('giugno 2026 inizia di lunedì: nessuna cella vuota in testa', () => {
+    const r = buildMonthRhythm({ transactions: [], now: NOW, monthKey: '2026-06' });
+    expect(r.leadingBlanks).toBe(0);
+  });
+
+  it('il mese corrente resta quello di default', () => {
+    const r = buildMonthRhythm({ transactions: [tx({ date: '2026-08-24', amount: 41 })], now: NOW });
+    expect(r.monthKey).toBe('2026-08');
+    expect(r.isClosed).toBe(false);
+    expect(r.todaySpent).toBe(41);
+  });
+
+  it('i mesi scorribili vanno dal primo movimento a oggi, senza buchi', () => {
+    const months = rhythmMonths([
+      tx({ date: '2026-05-10', amount: 10 }),
+      tx({ date: '2026-08-01', amount: 10 }),
+      tx({ date: '2026-12-01', amount: 10 }),                          // futuro: non allunga
+      tx({ date: '2020-01-01', amount: 10, recurring: { freq: 'monthly' } }), // template: non è storia
+    ], NOW);
+    // Giugno e luglio non hanno movimenti ma restano: un mese senza spese è
+    // un'informazione, non un buco nei dati.
+    expect(months).toEqual(['2026-05', '2026-06', '2026-07', '2026-08']);
+  });
+
+  it('senza movimenti resta il solo mese corrente', () => {
+    expect(rhythmMonths([], NOW)).toEqual(['2026-08']);
+  });
+
+  it('shiftMonth attraversa il capodanno', () => {
+    expect(shiftMonth('2026-01', -1)).toBe('2025-12');
+    expect(shiftMonth('2026-12', 1)).toBe('2027-01');
+    expect(shiftMonth('2026-08', 0)).toBe('2026-08');
+  });
+});
+
+describe('confronto col mese precedente', () => {
+  const build = (monthKey: string, txs: Transaction[]) =>
+    buildMonthRhythm({ transactions: txs, now: NOW, monthKey });
+
+  it('un mese in corso si confronta sui soli giorni trascorsi', () => {
+    // Oggi è il 24 agosto. A luglio si è speso 100 al giorno 3 e 900 al 28:
+    // contare tutto luglio direbbe "stai spendendo molto meno", ma il 28
+    // agosto non è ancora arrivato.
+    const ago = build('2026-08', [tx({ date: '2026-08-10', amount: 200 })]);
+    const lug = build('2026-07', [
+      tx({ date: '2026-07-03', amount: 100 }),
+      tx({ date: '2026-07-28', amount: 900 }),
+    ]);
+    const c = compareMonths(ago, lug);
+    expect(c.throughDay).toBe(24);
+    expect(c.previous).toBe(100);     // i 900 del 28 luglio restano fuori
+    expect(c.current).toBe(200);
+    expect(c.delta).toBe(100);
+    expect(c.deltaPct).toBe(1);
+  });
+
+  it('fra due mesi chiusi il confronto è fra totali pieni', () => {
+    const giu = build('2026-06', [tx({ date: '2026-06-15', amount: 300 })]);
+    const mag = build('2026-05', [tx({ date: '2026-05-31', amount: 200 })]);
+    const c = compareMonths(giu, mag);
+    expect(c.throughDay).toBeNull();
+    expect(c.previous).toBe(200);
+    expect(c.delta).toBe(100);
+  });
+
+  it('senza spese nel mese precedente la percentuale non si inventa', () => {
+    const c = compareMonths(build('2026-06', [tx({ date: '2026-06-15', amount: 300 })]), build('2026-05', []));
+    expect(c.previous).toBe(0);
+    expect(c.deltaPct).toBeNull();
+    expect(c.delta).toBe(300);
   });
 });
