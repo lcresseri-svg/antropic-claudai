@@ -12,14 +12,22 @@
  *   costi fissi mensili = abbonamenti + rate + ricorrenti
  *                         (+ quota mensile delle voci annuali, già inclusa
  *                          dalla normalizzazione monthlyEquivalent: yearly/12)
+ *
+ * Gli INVESTIMENTI ricorrenti (PAC, versamenti automatici) sono impegni a
+ * tutti gli effetti — partono da soli, alla stessa data, che tu ci pensi o no
+ * — ma non sono un costo: quei soldi restano tuoi. Quindi stanno in un gruppo
+ * a parte e `fixedMonthlyCost` NON li include: sommarli lì direbbe che il mese
+ * è più pesante di quanto sia, e la stessa cifra è già patrimonio altrove.
  */
-import { Transaction, SeriesKind, Freq } from '../../types';
+import { Transaction, SeriesKind, Freq, TransactionType } from '../../types';
 import { buildSeriesSummary, monthlyEquivalent, SeriesSummary } from '../../shared/recurrence';
 import { buildCommitmentEvents, addDaysISO } from './commitmentProjection';
 
 export interface Commitment {
   seriesId: string;
   kind: SeriesKind;
+  /** `expense` o `investment`: distingue un costo da un versamento. */
+  type: TransactionType;
   description: string;
   category: string;
   amount: number;             // per-occurrence amount
@@ -43,10 +51,17 @@ export interface CommitmentsSummary {
   subscriptions: Commitment[];
   installments: Commitment[];
   recurring: Commitment[];
-  /** Σ monthlyEquivalent of the three groups (expense-type only). */
+  /** Versamenti ricorrenti di tipo `investment`, di qualunque `kind`. */
+  investments: Commitment[];
+  /** Σ monthlyEquivalent of the three EXPENSE groups — investimenti esclusi. */
   fixedMonthlyCost: number;
-  /** Next 30 days of due dates across all commitments, ascending. */
-  upcoming: { date: string; description: string; amount: number }[];
+  /** Σ monthlyEquivalent degli investimenti ricorrenti. Esce dal conto ogni
+   *  mese come i costi fissi, ma è accumulo: si somma a parte, mai a quelli. */
+  investedMonthly: number;
+  /** Next 30 days of due dates across all commitments, ascending.
+   *  Include gli investimenti, marcati da `investment`: alla loro data
+   *  quei soldi lasciano il conto esattamente come una bolletta. */
+  upcoming: { date: string; description: string; amount: number; investment: boolean }[];
 }
 
 const r2 = (n: number) => Math.round(n * 100) / 100;
@@ -64,6 +79,7 @@ function toCommitment(s: SeriesSummary): Commitment {
   const c: Commitment = {
     seriesId: s.seriesId,
     kind: s.kind,
+    type: s.type,
     description: s.description,
     category: s.category,
     amount: r2(s.amount),
@@ -105,23 +121,36 @@ export function buildCommitments(
     summaries.push(buildSeriesSummary(allTransactions, t, todayISO));
   }
 
-  const active = summaries.filter(s => !s.ended && s.type === 'expense');
-  const subscriptions = active.filter(s => s.kind === 'subscription').map(toCommitment);
-  const installments = active.filter(s => s.kind === 'installment').map(toCommitment);
-  const recurring = active.filter(s => s.kind === 'recurring').map(toCommitment);
+  const active = summaries.filter(s => !s.ended);
+  const costs = active.filter(s => s.type === 'expense');
+  const subscriptions = costs.filter(s => s.kind === 'subscription').map(toCommitment);
+  const installments = costs.filter(s => s.kind === 'installment').map(toCommitment);
+  const recurring = costs.filter(s => s.kind === 'recurring').map(toCommitment);
+  // Un versamento automatico resta un versamento che sia stato registrato come
+  // ricorrente, come abbonamento o come piano: il `kind` qui non divide niente,
+  // divide il tipo.
+  const investments = active.filter(s => s.type === 'investment').map(toCommitment);
 
   const byMonthly = (a: Commitment, b: Commitment) => b.monthlyEquivalent - a.monthlyEquivalent;
   subscriptions.sort(byMonthly); installments.sort(byMonthly); recurring.sort(byMonthly);
+  investments.sort(byMonthly);
 
-  const fixedMonthlyCost = r2(
-    [...subscriptions, ...installments, ...recurring].reduce((s, c) => s + c.monthlyEquivalent, 0),
-  );
+  const sum = (items: Commitment[]) => r2(items.reduce((s, c) => s + c.monthlyEquivalent, 0));
+  const fixedMonthlyCost = sum([...subscriptions, ...installments, ...recurring]);
+  const investedMonthly = sum(investments);
 
   // Prossime scadenze (30 giorni): la lista di eventi CONDIVISA con la liquidità
   // disponibile (commitmentProjection) — stesse occorrenze, deduplicate allo
   // stesso modo. Qui si somma l'importo PIENO, lì la sola quota propria.
-  const upcoming = buildCommitmentEvents(allTransactions, todayISO, addDaysISO(todayISO, 30))
-    .map(e => ({ date: e.date, description: e.description, amount: e.amount }));
+  const upcoming = buildCommitmentEvents(allTransactions, todayISO, addDaysISO(todayISO, 30),
+    { includeInvestments: true })
+    .map(e => ({
+      date: e.date, description: e.description, amount: e.amount,
+      investment: e.type === 'investment',
+    }));
 
-  return { subscriptions, installments, recurring, fixedMonthlyCost, upcoming };
+  return {
+    subscriptions, installments, recurring, investments,
+    fixedMonthlyCost, investedMonthly, upcoming,
+  };
 }

@@ -12,7 +12,7 @@
  * Gli eventi sono deduplicati per (serie|data): un template e una proiezione
  * non possono mai descrivere la stessa occorrenza due volte.
  *
- * Tre sorgenti, tutte e sole USCITE (`type: 'expense'`):
+ * Tre sorgenti:
  *  1. la prossima occorrenza di ogni serie ricorrente ATTIVA (il template, che
  *     catch-up/Cloud Function tengono aggiornato);
  *  2. le occorrenze successive proiettate in memoria (`buildProjectedOccurrences`
@@ -20,8 +20,15 @@
  *     nessun doppio conteggio con le spese registrate);
  *  3. le uscite una-tantum già registrate con data futura (pianificate).
  * I trasferimenti non sono spese (esclusi) e le entrate future non compensano.
+ *
+ * Di norma sono tutte e sole USCITE (`type: 'expense'`); con
+ * `includeInvestments` entrano anche le serie di tipo `investment` — un PAC
+ * esce dal conto alla sua data esattamente come una bolletta, ma NON è un
+ * costo, quindi ogni evento dichiara il proprio `type` e chi somma decide.
+ * L'opzione è spenta di default: la liquidità disponibile continua a contare
+ * le sole uscite, come prima.
  */
-import { Transaction } from '../../types';
+import { Transaction, TransactionType } from '../../types';
 import { buildProjectedOccurrences, isPending, isExpiredTemplate } from '../../shared/recurrence';
 
 export interface CommitmentEvent {
@@ -31,6 +38,8 @@ export interface CommitmentEvent {
   amount: number;
   /** L'occorrenza ha una quota a carico di altri (spesa condivisa). */
   shared: boolean;
+  /** `expense` o `investment`: un investimento esce dal conto ma non è un costo. */
+  type: TransactionType;
   kind: 'ricorrente' | 'pianificata';
   /** Serie di appartenenza (assente per le una-tantum pianificate). */
   seriesId?: string;
@@ -56,7 +65,11 @@ export function buildCommitmentEvents(
   transactions: Transaction[],
   todayISO: string,
   horizonEndISO: string,
+  opts: { includeInvestments?: boolean } = {},
 ): CommitmentEvent[] {
+  const wanted = (t: Transaction) =>
+    t.type === 'expense' || (opts.includeInvestments === true && t.type === 'investment');
+
   const events: CommitmentEvent[] = [];
   const seen = new Set<string>();
 
@@ -69,6 +82,7 @@ export function buildCommitmentEvents(
       description: t.description,
       amount: r2(t.amount),
       shared: (t.shared ?? 0) > 0,
+      type: t.type,
       kind,
       seriesId,
       source: t,
@@ -77,14 +91,14 @@ export function buildCommitmentEvents(
 
   // 1. Prossima scadenza di ogni serie ATTIVA (la data del template stesso).
   for (const t of transactions) {
-    if (t.type !== 'expense' || !t.recurring || t.projected || isExpiredTemplate(t)) continue;
+    if (!wanted(t) || !t.recurring || t.projected || isExpiredTemplate(t)) continue;
     if (t.date <= todayISO || t.date > horizonEndISO) continue;
     push(t, 'ricorrente', t.seriesId ?? t.id);
   }
 
   // 2. Occorrenze successive della stessa serie dentro l'orizzonte.
   for (const p of buildProjectedOccurrences(transactions, todayISO, horizonEndISO)) {
-    if (p.type !== 'expense') continue;
+    if (!wanted(p)) continue;
     push(p, 'ricorrente', p.seriesId ?? p.id);
   }
 
@@ -92,7 +106,7 @@ export function buildCommitmentEvents(
   //    (seriesId) sono escluse: il loro futuro è coperto sopra e il loro passato
   //    è già nel saldo.
   for (const t of transactions) {
-    if (t.type !== 'expense' || t.recurring || t.seriesId || t.projected) continue;
+    if (!wanted(t) || t.recurring || t.seriesId || t.projected) continue;
     if (!isPending(t, todayISO) || t.date > horizonEndISO) continue;
     push(t, 'pianificata');
   }
