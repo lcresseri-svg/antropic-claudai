@@ -45,8 +45,10 @@ export function CommitmentsScreen({ transactions }: Props) {
   const subsTotal = total(c.subscriptions);
   const instTotal = total(c.installments);
   const recTotal = total(c.recurring);
+  const invTotal = c.investedMonthly;
   const bar = (v: number) => (c.fixedMonthlyCost > 0 ? (v / c.fixedMonthlyCost) * 100 : 0);
   const upcomingTotal = c.upcoming.reduce((s, u) => s + u.amount, 0);
+  const upcomingInvested = c.upcoming.reduce((s, u) => s + (u.investment ? u.amount : 0), 0);
 
   // Riga → movimenti della serie sul suo conto. Entrambi i filtri sono già
   // supportati da TransactionList (?account=, ?series=) e si combinano in AND.
@@ -94,6 +96,23 @@ export function CommitmentsScreen({ transactions }: Props) {
                 </div>
               </>
             )}
+
+            {/* Un PAC parte da solo come una bolletta, ma non è un costo: sta
+                fuori dalla barra e fuori dal totale, con scritto perché. */}
+            {invTotal > 0 && (
+              <div className="mt-4 pt-3.5 flex items-start justify-between gap-3"
+                style={{ borderTop: '1px solid var(--border)' }}>
+                <div className="min-w-0">
+                  <p className="text-[12.5px] text-primary font-medium">Investi ogni mese</p>
+                  <p className="text-[11.5px] text-secondary leading-relaxed mt-0.5">
+                    Esce dal conto come il resto, ma resta tuo: fuori dal costo fisso.
+                  </p>
+                </div>
+                <p className="text-[15px] font-semibold text-gold balance-num flex-none whitespace-nowrap">
+                  +{formatCurrency(invTotal)}<span className="text-[11px] text-secondary font-normal">/mese</span>
+                </p>
+              </div>
+            )}
           </section>
 
           {/* Prossimi 30 giorni: una timeline, non un elenco di righe uguali */}
@@ -102,7 +121,14 @@ export function CommitmentsScreen({ transactions }: Props) {
               style={{ animationDelay: '0.06s' }}>
               <div className="flex items-baseline justify-between gap-3 mb-3">
                 <p className="label-caps text-secondary">Prossimi 30 giorni</p>
-                <p className="text-[13px] font-semibold text-primary balance-num">{formatCurrency(upcomingTotal)}</p>
+                <div className="text-right flex-none">
+                  <p className="text-[13px] font-semibold text-primary balance-num">{formatCurrency(upcomingTotal)}</p>
+                  {upcomingInvested > 0 && (
+                    <p className="text-[11px] text-secondary balance-num">
+                      di cui {formatCurrency(upcomingInvested)} investiti
+                    </p>
+                  )}
+                </div>
               </div>
               <ul>
                 {c.upcoming.map((u, i) => {
@@ -118,8 +144,12 @@ export function CommitmentsScreen({ transactions }: Props) {
                       </span>
                       <span className="w-px flex-none" style={{ background: 'var(--border)' }} />
                       <span className="flex-1 min-w-0 flex items-center justify-between gap-3 py-2.5">
-                        <span className="text-[13.5px] text-primary truncate">{u.description}</span>
-                        <span className="text-[13.5px] font-semibold text-primary balance-num flex-none">
+                        <span className="min-w-0 flex items-center gap-1.5">
+                          <span className="text-[13.5px] text-primary truncate">{u.description}</span>
+                          {u.investment && <InvestmentTag />}
+                        </span>
+                        <span className={`text-[13.5px] font-semibold balance-num flex-none ${
+                          u.investment ? 'text-gold' : 'text-primary'}`}>
                           {formatCurrency(u.amount)}
                         </span>
                       </span>
@@ -138,6 +168,11 @@ export function CommitmentsScreen({ transactions }: Props) {
             empty="Nessun abbonamento attivo." onOpen={openMovements} />
           <Group title="Ricorrenti" items={c.recurring} total={recTotal}
             empty="Nessuna spesa ricorrente attiva." onOpen={openMovements} />
+          {c.investments.length > 0 && (
+            <Group title="Investimenti" items={c.investments} total={invTotal}
+              note="Non è un costo: esce dal conto e resta tuo."
+              empty="" onOpen={openMovements} />
+          )}
         </div>
       </div>
     </div>
@@ -156,8 +191,8 @@ function Legend({ color, label, value }: { color: string; label: string; value: 
   );
 }
 
-function Group({ title, items, total: sum, empty, onOpen }: {
-  title: string; items: Commitment[]; total: number; empty: string;
+function Group({ title, items, total: sum, empty, note, onOpen }: {
+  title: string; items: Commitment[]; total: number; empty: string; note?: string;
   onOpen: (c: Commitment) => void;
 }) {
   return (
@@ -170,6 +205,9 @@ function Group({ title, items, total: sum, empty, onOpen }: {
           </p>
         )}
       </div>
+      {note && items.length > 0 && (
+        <p className="text-[11.5px] text-secondary leading-relaxed -mt-0.5 mb-1.5">{note}</p>
+      )}
       {items.length === 0
         ? <p className="text-[12px] text-tertiary py-1">{empty}</p>
         : <ul>{items.map(c => <Row key={c.seriesId} c={c} onOpen={onOpen} />)}</ul>}
@@ -177,8 +215,25 @@ function Group({ title, items, total: sum, empty, onOpen }: {
   );
 }
 
+/** Nella timeline versamenti e bollette stanno mescolati: il tag è l'unica
+ *  cosa che li distingue. Dentro il gruppo "Investimenti" non serve — lo dice
+ *  già il titolo — e lì basta l'importo in oro. */
+function InvestmentTag() {
+  // Su schermo stretto la parola per intero mangia la descrizione: resta la
+  // freccia, che con l'importo in oro basta, e il testo torna da `sm` in su.
+  return (
+    <span title="Investimento"
+      className="flex-none inline-flex items-center gap-1 text-[9.5px] font-semibold uppercase
+                 tracking-[0.06em] text-gold px-1.5 py-[1px] rounded-full bg-gold/[0.14]">
+      <span aria-hidden>↗</span>
+      <span className="sr-only sm:not-sr-only">Investimento</span>
+    </span>
+  );
+}
+
 function Row({ c, onOpen }: { c: Commitment; onOpen: (c: Commitment) => void }) {
   const isPlan = c.kind === 'installment' && c.totalInstallments != null;
+  const isInvestment = c.type === 'investment';
   const paid = Math.min(c.paidInstallments ?? 0, c.totalInstallments ?? 0);
   const progress = isPlan && c.totalInstallments ? paid / c.totalInstallments : 0;
 
@@ -198,7 +253,8 @@ function Row({ c, onOpen }: { c: Commitment; onOpen: (c: Commitment) => void }) 
             <span className="block text-[13.5px] text-primary truncate">{c.description}</span>
             <span className="block text-[11px] text-tertiary truncate">{sub}</span>
           </span>
-          <span className="text-[13.5px] font-semibold text-primary whitespace-nowrap balance-num flex-none">
+          <span className={`text-[13.5px] font-semibold whitespace-nowrap balance-num flex-none ${
+            isInvestment ? 'text-gold' : 'text-primary'}`}>
             {formatCurrency(c.monthlyEquivalent)}<span className="text-[11px] text-secondary font-normal">/mese</span>
           </span>
         </span>
