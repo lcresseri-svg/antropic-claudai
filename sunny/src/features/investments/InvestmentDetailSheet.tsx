@@ -158,16 +158,25 @@ export function InvestmentDetailSheet({
       tone: perf.totalGain != null ? (perf.totalGain >= 0 ? 'text-green' : 'text-red') : undefined,
     },
     {
-      // Media annua SEMPLICE: (controvalore + prelevato − versato) spalmato
-      // sugli anni — importi reali, NON usa XIRR (che resta nelle statistiche).
-      label: 'Media annua semplice',
-      value: perf.simpleAnnualGain != null && perf.simpleAnnualGainPct != null
-        ? `${formatCurrency(perf.simpleAnnualGain, { sign: true })}/anno · ${fmtPct(perf.simpleAnnualGainPct)}/anno`
+      // Il guadagno totale qui sopra, diviso gli anni di sottoscrizione. Niente
+      // capitalizzazione: è la divisione che si farebbe a mente, e usa lo
+      // stesso guadagno della riga precedente perché i due numeri non possano
+      // divergere. L'XIRR resta fra le statistiche, con un nome suo.
+      label: 'Rendimento annualizzato',
+      value: perf.annualGain != null && perf.annualizedReturn != null
+        ? `${formatCurrency(perf.annualGain, { sign: true })}/anno · ${fmtPct(perf.annualizedReturn)}/anno`
         : dash,
-      tone: perf.simpleAnnualGain != null ? (perf.simpleAnnualGain >= 0 ? 'text-green' : 'text-red') : undefined,
-      hint: perf.simpleAnnualGain == null ? reasonLabel(perf.simpleUnavailableReason) : undefined,
+      tone: perf.annualGain != null ? (perf.annualGain >= 0 ? 'text-green' : 'text-red') : undefined,
+      hint: perf.annualGain == null ? reasonLabel(perf.annualUnavailableReason) : undefined,
     },
-    { label: 'Durata', value: perf.years != null ? durationLabel(perf.years) : dash },
+    {
+      label: 'Durata',
+      value: perf.years != null ? durationLabel(perf.years) : dash,
+      // Il caso che merita una parola è quello senza data dichiarata: la durata
+      // parte dal primo versamento e si allunga appena la data viene messa.
+      // (La riga è `truncate`: il testo va tenuto corto.)
+      hint: perf.startDateSource === 'first-movement' ? 'dal 1° movimento' : undefined,
+    },
   ];
 
   const stats: { label: string; value: string }[] = [
@@ -181,10 +190,12 @@ export function InvestmentDetailSheet({
     { label: 'Commissioni', value: perf.fees > 0 ? formatCurrency(perf.fees) : dash },
     { label: 'Guadagno realizzato', value: perf.realizedGain !== 0 ? formatCurrency(perf.realizedGain, { sign: true }) : dash },
     { label: 'Guadagno latente', value: perf.latentGain != null ? formatCurrency(perf.latentGain, { sign: true }) : dash },
-    // Statistica avanzata (money-weighted): non sostituisce la media annua semplice.
-    { label: 'Rendimento annualizzato (XIRR)', value: perf.annualizedReturn != null ? `${fmtPct(perf.annualizedReturn)}/anno` : dash },
+    // Statistica avanzata: pesa ogni versamento per quanto è rimasto investito,
+    // quindi risponde a un'altra domanda rispetto al rendimento annualizzato.
+    { label: 'Rendimento money-weighted (XIRR)', value: perf.moneyWeightedReturn != null ? `${fmtPct(perf.moneyWeightedReturn)}/anno` : dash },
     { label: 'TFR totale', value: perf.tfrTotal > 0 ? `${formatCurrency(perf.tfrTotal)}${perf.contributed > 0 ? ` · ${Math.round((perf.tfrTotal / perf.contributed) * 100)}%` : ''}` : dash },
     { label: 'Peso nel portafoglio', value: weight != null ? `${Math.round(weight * 100)}%` : dash },
+    { label: 'Data di sottoscrizione', value: category.subscriptionDate ? capitalize(formatDate(category.subscriptionDate)) : dash },
     { label: 'Prima operazione', value: firstOp ? capitalize(formatDate(firstOp)) : dash },
     { label: 'Ultima operazione', value: lastOp ? capitalize(formatDate(lastOp)) : dash },
     { label: 'Numero movimenti', value: String(movements.flows.length) },

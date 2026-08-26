@@ -196,9 +196,9 @@ export function EditDefSheet({ open, draft, withKind, canDelete, showFundType, s
               </p>
             )}
             <p className="text-[11px] text-secondary/70 px-1 mt-1.5">
-              Usata per calcolare durata e rendimento annualizzato. Con capitale iniziale a 0
-              vale la data della prima operazione; con capitale iniziale &gt; 0 senza questa data
-              il rendimento annualizzato non è disponibile.
+              Da qui partono durata e rendimento annualizzato, e vince su tutto: se il fondo è
+              aperto da anni ma i movimenti in Sunny iniziano ieri, conta questa. Senza, si parte
+              dalla prima operazione registrata.
             </p>
           </div>
         )}

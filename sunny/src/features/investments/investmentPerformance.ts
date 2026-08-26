@@ -9,21 +9,31 @@
  *    proiezioni — contano solo le occorrenze effettive;
  *  - TFR e apporti senza conto contano PER INTERO come capitale versato
  *    (la loro esclusione vale solo per il cash flow, non per la performance);
- *  - data di partenza = subscriptionDate, con FALLBACK al primo movimento
- *    effettivo quando manca;
+ *  - data di partenza = subscriptionDate della categoria, che PREVALE sempre:
+ *    è la data che l'utente ha dichiarato, e vale anche quando i movimenti
+ *    registrati partono prima o dopo. Il primo movimento effettivo è solo il
+ *    fallback di chi quella data non l'ha messa;
  *  - anni = giorni / 365,2425 (anno civile medio);
  *  - con dati non validi le metriche valgono null (UI: "—" con spiegazione,
  *    mai 0 inventato).
  *
- * KPI "Media annua semplice" (NON usa XIRR):
+ * RENDIMENTO ANNUALIZZATO — divisione semplice, non capitalizzazione:
  *    versato          = initialBalance + Σ versamenti effettivi (TFR/apporti inclusi)
  *    prelevato        = Σ incassi dai disinvestimenti
- *    guadagnoTotale   = currentValue + prelevato − versato
+ *    guadagnoTotale   = controvalore + prelevato − versato − commissioni
  *    €/anno           = guadagnoTotale / anni
  *    %/anno           = (guadagnoTotale / versato) / anni
  *
- * "Rendimento annualizzato (XIRR)" resta una statistica avanzata (money-
- * weighted, bisezione robusta + rifinitura Newton) e non sostituisce il KPI.
+ * Il guadagno è lo STESSO che la scheda mostra come "Guadagno totale", diviso
+ * per gli anni di sottoscrizione: il numero grande e la sua versione annua non
+ * possono raccontare due storie diverse. Un rendimento composto (CAGR) darebbe
+ * una percentuale più bassa a parità di dati — qui si è scelta la divisione,
+ * che è quella che si fa a mente.
+ *
+ * "Rendimento money-weighted (XIRR)" resta una statistica avanzata a parte
+ * (bisezione robusta + rifinitura Newton): pesa OGNI versamento per quanto è
+ * rimasto investito, quindi risponde a un'altra domanda e non sostituisce il
+ * rendimento annualizzato qui sopra.
  *
  * Convenzioni sui dati esistenti (investmentTransactionBuilder):
  *  - deposito: investment direction 'in' (amount = intero versamento);
@@ -182,6 +192,11 @@ export type MetricUnavailableReason =
   | 'insufficient-duration' // posizione troppo giovane per annualizzare
   | 'insufficient-data';    // solver XIRR senza soluzione affidabile
 
+/** Chi ha deciso la data di partenza della posizione. */
+export type StartDateSource =
+  | 'category'        // subscriptionDate della categoria: vince sempre
+  | 'first-movement'; // nessuna data dichiarata: si parte dal primo movimento
+
 export interface PositionPerformance {
   /** Capitale conferito totale: initialBalance + versamenti effettivi (TFR e apporti inclusi). */
   contributed: number;
@@ -202,18 +217,20 @@ export interface PositionPerformance {
   totalGain: number | null;
   /** totalGain / conferito (null senza dati). */
   totalGainPct: number | null;
-  /** Data di partenza: subscriptionDate, fallback primo movimento effettivo. */
+  /** Data di partenza: subscriptionDate della categoria, che prevale; il primo
+   *  movimento effettivo è il fallback quando la categoria non ce l'ha. */
   startDate: string | null;
+  /** Da dove viene `startDate` — la scheda lo dichiara accanto alla durata. */
+  startDateSource: StartDateSource | null;
   /** Durata in anni (giorni / 365,2425) da startDate alla data di valutazione. */
   years: number | null;
-  /** MEDIA ANNUA SEMPLICE — guadagno = controvalore + prelevato − versato
-   *  (commissioni escluse per definizione), NON usa XIRR. */
-  simpleAnnualGain: number | null;      // €/anno = guadagno / anni
-  simpleAnnualGainPct: number | null;   // frazione/anno = (guadagno / versato) / anni
-  simpleUnavailableReason: MetricUnavailableReason | null;
-  /** Rendimento annualizzato money-weighted (XIRR) — statistica avanzata. */
-  annualizedReturn: number | null;
-  annualizedUnavailableReason: MetricUnavailableReason | null;
+  /** RENDIMENTO ANNUALIZZATO — il guadagno totale diviso gli anni, non composto. */
+  annualGain: number | null;            // €/anno   = guadagnoTotale / anni
+  annualizedReturn: number | null;      // frazione/anno = guadagnoTotale% / anni
+  annualUnavailableReason: MetricUnavailableReason | null;
+  /** Rendimento money-weighted (XIRR) — statistica avanzata, altra domanda. */
+  moneyWeightedReturn: number | null;
+  moneyWeightedUnavailableReason: MetricUnavailableReason | null;
   /** TFR totale (tfrAmount pre-Sunny + quote tfr dei versamenti). */
   tfrTotal: number;
 }
@@ -239,11 +256,16 @@ export function buildPositionPerformance({ category, transactions, todayISO }: P
 
   const tfrTotal = r2((category.tfrAmount ?? 0) + m.deposits.reduce((s, t) => s + (t.tfr ?? 0), 0));
 
-  // Start of the position: subscriptionDate anchors initialBalance; FALLBACK to
-  // the first effective movement when the date is missing (same rule for the
-  // simple average AND the XIRR).
+  // Data di partenza. Quella della categoria PREVALE: se l'utente ha dichiarato
+  // di aver sottoscritto nel 2015, la posizione ha dieci anni anche se il primo
+  // movimento registrato in Sunny è di ieri — è il caso normale di chi importa
+  // un fondo aperto da tempo. Il primo movimento effettivo serve solo a chi
+  // quella data non l'ha messa.
   const firstOp = m.flows[0]?.date ?? null;
   const startDate = category.subscriptionDate ?? firstOp;
+  const startDateSource: StartDateSource | null = category.subscriptionDate
+    ? 'category'
+    : (firstOp ? 'first-movement' : null);
   const years = startDate && startDate <= todayISO
     ? (toTime(todayISO) - toTime(startDate)) / DAY_MS / YEAR_DAYS
     : null;
@@ -254,25 +276,30 @@ export function buildPositionPerformance({ category, transactions, todayISO }: P
   const totalGainPct = totalGain != null && contributed > 0 ? totalGain / contributed : null;
   const latentGain = currentValue != null ? r2(currentValue - netCapital) : null;
 
-  // ── Media annua semplice (NO XIRR) ──────────────────────────────────────────
-  //   versato = initialBalance + versamenti effettivi (TFR/apporti inclusi)
-  //   guadagno = controvalore + prelevato − versato
-  let simpleAnnualGain: number | null = null;
-  let simpleAnnualGainPct: number | null = null;
-  let simpleReason: MetricUnavailableReason | null = null;
-  if (currentValue == null) simpleReason = 'no-current-value';
-  else if (!startDate) simpleReason = 'no-start-date';
-  else if (!(contributed > 0)) simpleReason = 'no-capital';
-  else if (years == null || years < MIN_YEARS_FOR_ANNUALIZED) simpleReason = 'insufficient-duration';
+  // ── Rendimento annualizzato: guadagno totale diviso gli anni ────────────────
+  // Il guadagno è lo stesso `totalGain` mostrato in cima alla scheda — con le
+  // commissioni già dedotte — così la percentuale annua non può discostarsi
+  // dal numero grande che le sta sopra.
+  let annualGain: number | null = null;
+  let annualizedReturn: number | null = null;
+  let annualReason: MetricUnavailableReason | null = null;
+  if (currentValue == null) annualReason = 'no-current-value';
+  else if (!startDate) annualReason = 'no-start-date';
+  else if (!(contributed > 0)) annualReason = 'no-capital';
+  else if (years == null || years < MIN_YEARS_FOR_ANNUALIZED) annualReason = 'insufficient-duration';
   else {
-    const simpleGain = currentValue + proceeds - contributed;
-    simpleAnnualGain = r2(simpleGain / years);
-    simpleAnnualGainPct = (simpleGain / contributed) / years;
+    annualGain = r2(totalGain! / years);
+    annualizedReturn = totalGainPct! / years;
   }
 
   // ── XIRR (statistica avanzata) — stesse basi: flussi reali, TFR/apporti
-  //    inclusi, initialBalance ancorato a startDate (fallback compreso) ───────
-  let annualizedReturn: number | null = null;
+  //    inclusi, initialBalance ancorato a startDate (fallback compreso).
+  //    Nota: senza capitale iniziale la serie parte dal primo versamento, non
+  //    dalla data di sottoscrizione — non c'è niente da attualizzare prima. È
+  //    il motivo per cui NON è questo il "rendimento annualizzato" della
+  //    scheda: su un fondo dichiarato dal 2015 e alimentato da ieri direbbe una
+  //    durata che l'utente non riconosce. ─────────────────────────────────────
+  let moneyWeightedReturn: number | null = null;
   let xirrReason: MetricUnavailableReason | null = null;
   if (currentValue == null) {
     xirrReason = 'no-current-value';
@@ -287,8 +314,8 @@ export function buildPositionPerformance({ category, transactions, todayISO }: P
     for (const w of m.withdrawals) flows.push({ date: w.date, amount: withdrawalProceeds(w) });
     for (const f of m.fees) flows.push({ date: f.date, amount: -f.amount });
     if (currentValue > 0) flows.push({ date: todayISO, amount: currentValue });
-    annualizedReturn = xirr(flows);
-    if (annualizedReturn == null) xirrReason = 'insufficient-data';
+    moneyWeightedReturn = xirr(flows);
+    if (moneyWeightedReturn == null) xirrReason = 'insufficient-data';
   }
 
   return {
@@ -296,11 +323,11 @@ export function buildPositionPerformance({ category, transactions, todayISO }: P
     capitalReturned, proceeds, netCapital, fees,
     realizedGain: m.realizedGain, latentGain,
     totalGain, totalGainPct,
-    startDate, years,
-    simpleAnnualGain, simpleAnnualGainPct,
-    simpleUnavailableReason: simpleAnnualGain == null ? simpleReason : null,
-    annualizedReturn,
-    annualizedUnavailableReason: annualizedReturn == null ? xirrReason : null,
+    startDate, startDateSource, years,
+    annualGain, annualizedReturn,
+    annualUnavailableReason: annualizedReturn == null ? annualReason : null,
+    moneyWeightedReturn,
+    moneyWeightedUnavailableReason: moneyWeightedReturn == null ? xirrReason : null,
     tfrTotal,
   };
 }
@@ -317,10 +344,17 @@ export function buildPaidInSeries(
   const initial = category.initialBalance ?? 0;
   const start = category.subscriptionDate ?? m.flows[0]?.date ?? null;
   if (!start) return [];
-  const points: { date: string; value: number }[] = [];
+  // I movimenti anteriori alla data dichiarata confluiscono nel punto di
+  // partenza invece di generare punti a ritroso: la serie deve restare
+  // crescente nel tempo, altrimenti il grafico torna indietro.
   let value = initial;
-  points.push({ date: start, value: r2(value) });
   for (const t of m.flows) {
+    if (t.date >= start) break;
+    value += t.direction === 'out' ? -t.amount : t.amount;
+  }
+  const points: { date: string; value: number }[] = [{ date: start, value: r2(Math.max(0, value)) }];
+  for (const t of m.flows) {
+    if (t.date < start) continue;
     value += t.direction === 'out' ? -t.amount : t.amount;
     points.push({ date: t.date, value: r2(Math.max(0, value)) });
   }
