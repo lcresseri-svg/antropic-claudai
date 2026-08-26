@@ -32,12 +32,28 @@ const MAX_DIGEST_CALLS_PER_DAY = 30;
  * opzionale e validato, quindi una divergenza degrada al calcolo lato server
  * invece di rompere la chiamata.
  */
+type PlanNature = 'fixed' | 'periodic' | 'variable' | 'oneOff';
+
 interface CoachPlan {
   sustainableMonthly: number;
   monthsOfHistory: number;
   fixedMonthlyCost: number;
   freeLiquidity: number;
   savingsTarget: number;
+  /** Da qui in giù: campi aggiunti dopo. Un client in cache manda ancora il
+   *  payload di prima, quindi sono opzionali e vanno letti come tali. */
+  monthlyIncome?: number;
+  monthlyExpense?: number;
+  savingsRate?: number;
+  runwayMonths?: number | null;
+  paceConfidence?: 'alta' | 'media' | 'bassa';
+  worstMonthNet?: number;
+  breakdown?: {
+    fixedMonthly: number;
+    periodicMonthly: number;
+    variableMonthly: number;
+    reducibleMonthly: number;
+  };
   fitsThisMonth: boolean;
   affordableNow: boolean;
   monthsToAfford: number | null;
@@ -47,7 +63,7 @@ interface CoachPlan {
   gapMonthly: number;
   monthsWithCuts: number | null;
   cuts: { label: string; amount: number; currentMonthly: number }[];
-  topCategories: { label: string; monthlyAvg: number }[];
+  topCategories: { label: string; monthlyAvg: number; nature?: PlanNature; reason?: string }[];
   notes: string[];
 }
 
@@ -60,7 +76,7 @@ function usablePlan(p: unknown): p is CoachPlan {
     && typeof c.fitsThisMonth === 'boolean'
     && Array.isArray(c.cuts) && Array.isArray(c.topCategories) && Array.isArray(c.notes)
     && (c.notes as unknown[]).every((n) => typeof n === 'string')
-    && (c.notes as unknown[]).length <= 12;
+    && (c.notes as unknown[]).length <= 16;
 }
 
 export const generateAffordabilityAdvice = onRequest(
@@ -339,6 +355,16 @@ export const generateAffordabilityAdvice = onRequest(
         if (plan.fixedMonthlyCost > 0) facts.push(`Già impegnati ogni mese in rate, abbonamenti e ricorrenti: ${Math.round(plan.fixedMonthlyCost)}€.`);
         facts.push(`Liquidità libera oggi: ${Math.round(plan.freeLiquidity)}€.`);
         if (plan.savingsTarget > 0) facts.push(`Obiettivo di risparmio mensile impostato: ${Math.round(plan.savingsTarget)}€.`);
+        if (plan.monthlyIncome != null && plan.monthlyExpense != null) {
+          facts.push(`Entrate misurate: ${Math.round(plan.monthlyIncome)}€/mese, uscite: ${Math.round(plan.monthlyExpense)}€/mese${plan.savingsRate != null ? ` (ne resta il ${Math.round(plan.savingsRate * 100)}%)` : ''}.`);
+        }
+        if (plan.breakdown) {
+          facts.push(`Di quelle uscite: ${Math.round(plan.breakdown.fixedMonthly)}€ fisse, ${Math.round(plan.breakdown.periodicMonthly)}€ da accantonare per spese periodiche, ${Math.round(plan.breakdown.variableMonthly)}€ variabili. Tetto realistico ai tagli: ${Math.round(plan.breakdown.reducibleMonthly)}€/mese IN TUTTO.`);
+        }
+        if (plan.paceConfidence) {
+          facts.push(`Affidabilità del ritmo: ${plan.paceConfidence}${plan.worstMonthNet != null ? `. Mese chiuso peggiore osservato: ${Math.round(plan.worstMonthNet)}€` : ''}.`);
+        }
+        if (plan.runwayMonths != null) facts.push(`La liquidità libera copre ${plan.runwayMonths} mesi di spese.`);
         facts.push(`Costo: ${Math.round(cost)}€. ${plan.fitsThisMonth ? 'Rientra nel risparmio di un mese.' : 'NON rientra nel risparmio di un mese.'}`);
         if (plan.affordableNow) facts.push('La liquidità libera basterebbe già oggi per pagarlo.');
         if (plan.monthsToAfford !== null) facts.push(`Mesi al traguardo al ritmo attuale: ${plan.monthsToAfford} (pronto verso ${plan.readyByISO ?? '—'}).`);
@@ -346,11 +372,20 @@ export const generateAffordabilityAdvice = onRequest(
           facts.push(`Con la scadenza voluta servono ${Math.round(plan.requiredMonthly)}€/mese: ${plan.feasible ? 'raggiungibile' : 'NON raggiungibile'} al ritmo attuale${plan.gapMonthly > 0 ? `, mancano ${Math.round(plan.gapMonthly)}€/mese` : ''}.`);
         }
         if (plan.cuts.length > 0) {
-          facts.push(`Tagli realistici (max 30% per categoria): ${plan.cuts.map(c => `${c.label} −${Math.round(c.amount)}€ su ${Math.round(c.currentMonthly)}€`).join(', ')}.`);
+          facts.push(`Tagli già dimostrati dai dati (l'utente ha speso così almeno una volta): ${plan.cuts.map(c => `${c.label} −${Math.round(c.amount)}€ su ${Math.round(c.currentMonthly)}€`).join(', ')}. Non proporne di più grandi.`);
           if (plan.monthsWithCuts !== null) facts.push(`Con quei tagli i mesi scendono a ${plan.monthsWithCuts}.`);
         }
         if (plan.topCategories.length > 0) {
-          facts.push(`Spese medie per categoria: ${plan.topCategories.map(c => `${c.label} ${Math.round(c.monthlyAvg)}€`).join(', ')}.`);
+          const NATURE: Record<string, string> = {
+            fixed: 'FISSA, non tagliabile',
+            periodic: 'PERIODICA, da accantonare, non tagliabile',
+            variable: 'variabile, qui si può agire',
+            oneOff: 'una tantum, non è un ritmo',
+          };
+          facts.push(`Spese per categoria: ${plan.topCategories.map(c => {
+            const kind = c.nature ? ` — ${NATURE[c.nature] ?? c.nature}${c.reason ? `: ${c.reason}` : ''}` : '';
+            return `${c.label} ${Math.round(c.monthlyAvg)}€${kind}`;
+          }).join('; ')}.`);
         }
         for (const n of plan.notes) facts.push(n);
       }
@@ -424,6 +459,9 @@ export const generateAffordabilityAdvice = onRequest(
         // perché sovrascriva quelli calcolati qui sopra, non il contrario.
         ...(plan ? {
           monthlySaving: Math.round(plan.sustainableMonthly),
+          ...(plan.monthlyIncome != null ? { monthlyIncome: Math.round(plan.monthlyIncome) } : {}),
+          ...(plan.monthlyExpense != null ? { monthlyExpenses: Math.round(plan.monthlyExpense) } : {}),
+          ...(plan.fixedMonthlyCost != null ? { upcomingCommitted: Math.round(plan.fixedMonthlyCost) } : {}),
           fitsThisMonth: plan.fitsThisMonth,
           monthsToAfford: plan.monthsToAfford,
           monthsToAffordWithCuts: plan.monthsWithCuts,
