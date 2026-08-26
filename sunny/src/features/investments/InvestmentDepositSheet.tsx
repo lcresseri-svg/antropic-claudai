@@ -2,10 +2,10 @@ import { useState, useEffect } from 'react';
 import { Transaction, RecurrenceRule } from '../../types';
 import { useSettings } from '../../shared/providers/settings';
 import { expandRecurringOnCreate } from '../../shared/recurrence';
-import { formatDate } from '../../utils';
+import { formatDate, formatCurrency } from '../../utils';
 import { buildInvestmentDeposit } from './investmentTransactionBuilder';
 import { STATS_SPREAD_MIN, STATS_SPREAD_MAX } from './investmentStatsSpread';
-import { SheetShell, Field, EuroInput, Select, parseNum } from './SheetShell';
+import { SheetShell, Field, EuroInput, Select, AmountBlock, OptionList, OptionRow, EffectCard, parseNum } from './SheetShell';
 
 interface Props {
   open: boolean;
@@ -114,6 +114,13 @@ export function InvestmentDepositSheet({ open, preselectCategory, onSave, onClos
     }
   };
 
+  const accountLabel = visibleAccounts.find(a => a.id === account)?.label ?? 'il conto';
+  // Il CTA porta il gesto per intero: da solo "Versa" non distingue un
+  // versamento una tantum da un PAC che parte adesso.
+  const ctaLabel = parseNum(amount) > 0
+    ? `Versa ${formatCurrency(parseNum(amount))}${isRecurring ? ' al mese' : ''}`
+    : 'Versa';
+
   return (
     <SheetShell open={open} title="Versa" onClose={onClose}>
       <form onSubmit={submit} className="space-y-3 sm:space-y-4">
@@ -133,10 +140,9 @@ export function InvestmentDepositSheet({ open, preselectCategory, onSave, onClos
           </div>
         </Field>
 
-        <Field label="Importo (€)">
-          <EuroInput value={amount} onChange={v => { setAmount(v); setAmountError(false); }} autoFocus />
-          {amountError && <p className="text-xs mt-1 text-red">Inserisci un importo valido</p>}
-        </Field>
+        <AmountBlock label="Importo del versamento" autoFocus
+          value={amount} onChange={v => { setAmount(v); setAmountError(false); }}
+          hint={amountError ? <span className="text-red">Inserisci un importo valido</span> : undefined} />
 
         <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
           <Field label="Conto sorgente">
@@ -158,25 +164,30 @@ export function InvestmentDepositSheet({ open, preselectCategory, onSave, onClos
           </p>
         )}
 
+        {/* La lista compare solo se ha almeno una riga: un PAC senza conto e
+            senza TFR non deve lasciare una card vuota. */}
+        {(isPension || account !== '' || !isRecurring) && (
+        <OptionList>
         {isPension && (
-          <Field label="Di cui TFR (facoltativo)">
+          <OptionRow label="Di cui TFR" value={parseNum(tfr) > 0 ? formatCurrency(parseNum(tfr)) : 'nessuno'}>
             <EuroInput value={tfr} onChange={setTfr} />
             <p className="text-[11px] mt-1.5 px-1 text-secondary">Quanta parte di questo versamento proviene dal TFR.</p>
-          </Field>
+          </OptionRow>
         )}
 
         {account !== '' && (
-          <Field label="Commissione (opzionale)">
+          <OptionRow label="Commissione" value={parseNum(fee) > 0 ? formatCurrency(parseNum(fee)) : 'nessuna'}>
             <EuroInput value={fee} onChange={setFee} />
             <p className={`text-[11px] mt-1.5 px-1 ${parseNum(fee) > 0 ? 'text-secondary' : 'invisible'}`}>
               Registrata come spesa separata in "Altro"
             </p>
-          </Field>
+          </OptionRow>
         )}
 
         {/* Distribuzione statistica — one-off deposits only */}
         {!isRecurring && (
-          <Field label="Distribuzione statistica (opzionale)">
+          <OptionRow label="Distribuzione statistica"
+            value={spreadChoice === 'none' ? 'nessuna' : spreadChoice === 'custom' ? `${spreadCustom || '—'} mesi` : `${spreadChoice} mesi`}>
             <div className="grid grid-cols-5 gap-1.5">
               {SPREAD_CHOICES.map(o => (
                 <button key={String(o.value)} type="button"
@@ -200,7 +211,9 @@ export function InvestmentDepositSheet({ open, preselectCategory, onSave, onClos
                 ripartiscono l'importo dal mese del versamento in avanti.
               </p>
             )}
-          </Field>
+          </OptionRow>
+        )}
+        </OptionList>
         )}
 
         {/* Ricorrente */}
@@ -240,10 +253,25 @@ export function InvestmentDepositSheet({ open, preselectCategory, onSave, onClos
           )}
         </div>
 
-        <Field label="Note (opzionale)">
-          <input type="text" value={notes} maxLength={80} onChange={e => setNotes(e.target.value)}
-            className="w-full bg-elevated rounded-2xl px-4 py-3 text-primary placeholder:text-secondary/50 outline-none focus:ring-1 focus:ring-gold/40" />
-        </Field>
+        <OptionList>
+          <OptionRow label="Nota" value={notes.trim() ? 'presente' : 'nessuna'}>
+            <input type="text" value={notes} maxLength={80} onChange={e => setNotes(e.target.value)}
+              className="w-full bg-elevated rounded-xl px-3.5 py-2.5 text-primary text-sm placeholder:text-secondary/50 outline-none focus:ring-1 focus:ring-gold/40" />
+          </OptionRow>
+        </OptionList>
+
+        {/* Cosa cambia davvero premendo il CTA: tre conti diversi, e sbagliare
+            costa un movimento da cercare e cancellare a mano. */}
+        {parseNum(amount) > 0 && (
+          <EffectCard>
+            Il capitale investito sale di{' '}
+            <span className="font-semibold text-primary">{formatCurrency(parseNum(amount))}</span>.{' '}
+            {account === ''
+              ? 'Nessun conto viene toccato: è un apporto esterno, quindi la liquidità resta quella di prima.'
+              : <>Escono <span className="font-semibold text-primary">{formatCurrency(Math.max(0, parseNum(amount) - parseNum(tfr)))}</span> da {accountLabel}, quindi la liquidità libera scende di altrettanto.</>}
+            {parseNum(fee) > 0 && <> La commissione di <span className="font-semibold text-primary">{formatCurrency(parseNum(fee))}</span> è registrata a parte come spesa.</>}
+          </EffectCard>
+        )}
 
         {saveError && (
           <p className="text-xs text-red px-1 leading-snug">
@@ -253,9 +281,8 @@ export function InvestmentDepositSheet({ open, preselectCategory, onSave, onClos
         )}
 
         <button type="submit" disabled={saving}
-          className="w-full py-3 rounded-2xl font-semibold transition-transform active:scale-[0.98] disabled:opacity-60"
-          style={{ backgroundColor: 'var(--accent-hi)', color: 'var(--accent-on)' }}>
-          {saving ? 'Salvataggio…' : saveError ? 'Riprova' : 'Versa'}
+          className="w-full py-3.5 rounded-2xl cta-gold-fill text-[14px] font-semibold transition-transform active:scale-[0.98] disabled:opacity-60">
+          {saving ? 'Salvataggio…' : saveError ? 'Riprova' : ctaLabel}
         </button>
       </form>
     </SheetShell>

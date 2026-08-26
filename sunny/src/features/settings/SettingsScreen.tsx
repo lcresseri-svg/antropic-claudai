@@ -276,10 +276,13 @@ export function SettingsScreen({ user, transactions, budgetExport, onLogOut, onD
       onToggle={() => saveAiEnabled(!aiEnabled)}
     />
   );
-  const rowAiCoach = detailedInvestments ? (
+  const aiCoachChat = isFeatureEnabled('ai_coach_chat', user);
+  const rowAiCoach = aiCoachChat ? (
     <ToggleRow
       icon="🤖" label="AI Coach (bottone chat)"
-      sub={aiCoachWidgetEnabled ? 'Bottone flottante visibile in tutte le schermate' : 'Bottone nascosto'}
+      sub={!aiEnabled
+        ? 'Serve "Suggerimenti AI" acceso'
+        : aiCoachWidgetEnabled ? 'Bottone flottante visibile in tutte le schermate' : 'Bottone nascosto'}
       on={aiCoachWidgetEnabled}
       onToggle={() => saveAiCoachWidgetEnabled(!aiCoachWidgetEnabled)}
     />
@@ -429,7 +432,7 @@ export function SettingsScreen({ user, transactions, budgetExport, onLogOut, onD
               riga stessa: aprire un sottolivello per un sì/no era un passo di
               troppo. Le voci che portano davvero da qualche parte tengono il
               chevron. */}
-          <div className="space-y-5">
+          <div className="space-y-5 wide:grid wide:grid-cols-2 wide:gap-5 wide:space-y-0 wide:items-start">
               <MenuSection title="Come si comporta l'app" query={menuQuery}>
                 <SwitchRow icon="🌙" color="#8B8B8B" label="Tema scuro" sub="Chiaro o scuro"
                   on={theme === 'dark'} onToggle={() => saveTheme(theme === 'dark' ? 'light' : 'dark')} />
@@ -437,6 +440,14 @@ export function SettingsScreen({ user, transactions, budgetExport, onLogOut, onD
                   on={enableBudget} onToggle={() => saveEnableBudget(!enableBudget)} />
                 <SwitchRow icon="✨" color="#8A9270" label="AI abilitata" sub="Suggerimenti e riepilogo mensile"
                   on={aiEnabled} onToggle={() => saveAiEnabled(!aiEnabled)} />
+                {aiCoachChat && (
+                  <SwitchRow icon="🤖" color="#88B0C0" label="AI Coach (chat)"
+                    sub={aiEnabled
+                      ? 'Bottone flottante: chiedi se puoi permetterti una spesa'
+                      : 'Richiede "AI abilitata"'}
+                    on={aiEnabled && aiCoachWidgetEnabled}
+                    onToggle={() => { if (aiEnabled) saveAiCoachWidgetEnabled(!aiCoachWidgetEnabled); }} />
+                )}
                 <Row icon="🛟" color="#8FB0A0" label="Deposito di sicurezza"
                   sub="Quanto tenere da parte"
                   value={cashReserve > 0 ? formatCurrency(cashReserve) : 'Nessuno'}
@@ -743,7 +754,7 @@ export function SettingsScreen({ user, transactions, budgetExport, onLogOut, onD
       {sub === 'info' && (
         <>
           <ManageHeader title="Come funziona" editMode={false} onBack={exitToMenu} onToggleEdit={() => {}} hideEdit />
-          <div className="space-y-3 md:max-w-2xl">
+          <div className="space-y-3">
             <p className="text-[13px] text-secondary px-1 leading-relaxed">
               Sunny non indovina nulla: ogni numero nasce dai tuoi movimenti. Ecco, in parole semplici, come vengono calcolate le cose principali.
             </p>
@@ -781,7 +792,7 @@ export function SettingsScreen({ user, transactions, budgetExport, onLogOut, onD
       {sub === 'versioni' && (
         <>
           <ManageHeader title="Registro versioni" editMode={false} onBack={exitToMenu} onToggleEdit={() => {}} hideEdit />
-          <div className="space-y-3 md:max-w-2xl">
+          <div className="space-y-3">
             {APP_CHANNEL === 'beta' && (
               <div className="glass-card rounded-2xl px-4 py-3 flex items-start gap-2.5 border border-gold/15">
                 <span className="text-gold">🧪</span>

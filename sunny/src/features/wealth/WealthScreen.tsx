@@ -17,8 +17,11 @@ import { useSettings } from '../../shared/providers/settings';
 import { buildWealthHistory } from '../dashboard/wealthAnalytics';
 import { localISO } from '../dashboard/categoryAnalytics';
 import { WealthLineChart } from '../dashboard/WealthLineChart';
+import { useIsDesktop } from '../../shared/hooks/useMediaQuery';
 import { AccountsCard } from '../dashboard/AccountsCard';
 import { InvestmentSummaryCard } from '../dashboard/InvestmentSummaryCard';
+import { buildCommitments } from './commitments';
+import { CommitmentsEntryRow } from './CommitmentsEntryRow';
 
 interface Props {
   transactions: Transaction[];
@@ -27,12 +30,18 @@ interface Props {
   investmentTotal: number;
   accountBalances: Record<string, number>;
   investmentByCategory: Record<string, number>;
+  /** Il flag `commitments` è acceso per questo utente. Spento: nessuna riga,
+   *  nessun link morto verso una schermata che non si può aprire. */
+  showCommitments?: boolean;
 }
 
 export function WealthScreen(p: Props) {
   const navigate = useNavigate();
   const { accounts, categories, enableInvestments, includeInvestments } = useSettings();
   const [accMode, setAccMode] = useState<'balance' | 'spending'>('balance');
+  // Su desktop il grafico cresce: l'altezza è un numero che entra nell'SVG,
+  // quindi non si può esprimere con una variante Tailwind.
+  const isDesktop = useIsDesktop();
 
   const now = useMemo(() => new Date(), []);
 
@@ -65,6 +74,14 @@ export function WealthScreen(p: Props) {
     return { expenseByAccount: expense, investByAccount: invest };
   }, [p.transactions, now]);
 
+  // Quanto del mese è già promesso. Sta qui perché è la seconda metà della
+  // domanda a cui questa schermata risponde: i saldi e gli investimenti sono
+  // ciò che possiedi, gli impegni sono ciò che è già di qualcun altro.
+  const fixedMonthlyCost = useMemo(
+    () => (p.showCommitments ? buildCommitments(p.transactions, localISO(now)).fixedMonthlyCost : 0),
+    [p.showCommitments, p.transactions, now],
+  );
+
   const share = (v: number) => (p.netWorth > 0 ? Math.round((v / p.netWorth) * 100) : 0);
 
   return (
@@ -78,8 +95,8 @@ export function WealthScreen(p: Props) {
       </div>
 
       {/* Desktop: due colonne indipendenti in altezza, come la home. */}
-      <div className="flex flex-col md:flex-row gap-3.5 md:gap-4 md:items-start">
-        <div className="flex flex-col gap-3.5 md:gap-4 md:flex-1 md:min-w-0">
+      <div className="flex flex-col wide:flex-row gap-3.5 md:gap-4 ultra:gap-6 wide:items-start">
+        <div className="flex flex-col gap-3.5 md:gap-4 wide:flex-1 wide:min-w-0">
         {/* Hero: il patrimonio e come si è mosso */}
         <section className="hero-card rounded-[26px] shadow-elev-2 p-[22px] animate-rise-in">
           <p className="label-caps text-secondary mb-2">Patrimonio netto</p>
@@ -97,7 +114,13 @@ export function WealthScreen(p: Props) {
           )}
           {wealth.hasHistory && (
             <div className="mt-4 -mx-1">
-              <WealthLineChart points={wealth.points} formatValue={formatCurrency} height={112} />
+              <WealthLineChart points={wealth.points} formatValue={formatCurrency} height={isDesktop ? 140 : 112} />
+            </div>
+          )}
+          {p.showCommitments && (
+            <div className="mt-4 pt-3 border-t border-divider">
+              <CommitmentsEntryRow fixedMonthlyCost={fixedMonthlyCost}
+                onClick={() => navigate('/commitments')} />
             </div>
           )}
         </section>
@@ -124,7 +147,7 @@ export function WealthScreen(p: Props) {
         </div>
 
         {enableInvestments && (
-          <div className="md:w-[352px] md:flex-none">
+          <div className="wide:w-[352px] ultra:w-[384px] wide:flex-none">
             <InvestmentSummaryCard
               investmentByCategory={p.investmentByCategory}
               total={p.investmentTotal}

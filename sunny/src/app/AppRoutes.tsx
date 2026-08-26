@@ -32,6 +32,36 @@ const CommitmentsScreen = lazy(() => import('../features/wealth/CommitmentsScree
 const MonthlyPlanScreen = lazy(() => import('../features/budget/MonthlyPlanScreen').then(m => ({ default: m.MonthlyPlanScreen })));
 const WrappedScreen = lazy(() => import('../features/wrapped/WrappedScreen').then(m => ({ default: m.WrappedScreen })));
 
+/**
+ * Larghezze massime desktop (README parte 2, B1).
+ *
+ * Fino a ora su desktop il contenuto era il layout mobile allargato: le card
+ * si stiravano fino a 1400px e una riga finiva con descrizione e importo agli
+ * antipodi dello schermo. Ogni schermata ha ora un tetto, e il contenuto resta
+ * centrato: sotto `md` non cambia niente.
+ *
+ * I numeri non sono arbitrari — seguono cosa contiene la schermata: la home ha
+ * due colonne piene, le liste stanno strette per restare leggibili, le
+ * impostazioni sono la più stretta di tutte perché sono righe di testo.
+ */
+const W = {
+  home:     'wide:max-w-[1360px]',
+  wide:     'wide:max-w-[1200px]',   // Patrimonio, Piano, Investimenti
+  list:     'wide:max-w-[1100px]',   // Movimenti, Consigli, analisi, AI Coach
+  reading:  'wide:max-w-[1040px]',   // Riepilogo mensile, Impegni
+  admin:    'wide:max-w-[1180px]',   // Previsione V4, Metriche
+  settings: 'wide:max-w-[900px]',
+} as const;
+
+/**
+ * Contenitore di una rotta.
+ *
+ * Da `md` il contenuto è una colonna sola larga al massimo 720px — più larga
+ * di così una riga di testo non si legge — e da `wide` si apre fino al tetto
+ * della schermata, dove c'è spazio per due colonne.
+ */
+const page = (w: string) => `pt-4 md:pt-6 md:mx-auto md:max-w-[720px] ${w}`;
+
 /** In-flow loading placeholder — no layout shift, no white screen. */
 function RouteFallback() {
   return (
@@ -76,6 +106,7 @@ export function AppRoutes({ user, brand, tx, budget, editing, onLogOut, onDelete
     <Suspense fallback={<RouteFallback />}>
       <Routes>
         <Route path="/" element={
+          <div className={`md:mx-auto md:max-w-[720px] ${W.home}`}>
           <DashboardV2
             greeting={brand}
             netWorth={tx.netWorth} liquidity={tx.liquidity} investmentTotal={tx.investmentTotal}
@@ -96,12 +127,14 @@ export function AppRoutes({ user, brand, tx, budget, editing, onLogOut, onDelete
             onAddIncome={() => editing.openAddWithType('income')}
             onImportCSV={onImport}
           />
+          </div>
         } />
         {/* Tab Patrimonio — raccoglie saldo per conto e investimenti per
             categoria, che il redesign toglie dalla home. */}
         <Route path="/wealth" element={
-          <div className="pt-4 md:pt-6">
+          <div className={page(W.wide)}>
             <WealthScreen
+              showCommitments={isFeatureEnabled('commitments', user)}
               transactions={tx.transactions}
               netWorth={tx.netWorth} liquidity={tx.liquidity} investmentTotal={tx.investmentTotal}
               accountBalances={tx.accountBalances}
@@ -111,7 +144,7 @@ export function AppRoutes({ user, brand, tx, budget, editing, onLogOut, onDelete
         } />
         <Route path="/investments" element={
           !enableInvestments ? <Navigate to="/" replace /> : (
-            <div className="pt-4 md:pt-6">
+            <div className={page(W.wide)}>
               <InvestmentsScreen
                 investmentByCategory={tx.investmentByCategory}
                 investmentTotal={tx.investmentTotal}
@@ -124,7 +157,7 @@ export function AppRoutes({ user, brand, tx, budget, editing, onLogOut, onDelete
           )
         } />
         <Route path="/insights" element={
-          <div className="pt-4 md:pt-6">
+          <div className={page(W.list)}>
             {/* isAdmin here only widens the INSIGHT SET (rolled out to everyone
                 on 2026-06-16); it grants no data access. */}
             <InsightsScreenV2 user={user} transactions={tx.transactions}
@@ -134,7 +167,7 @@ export function AppRoutes({ user, brand, tx, budget, editing, onLogOut, onDelete
           </div>
         } />
         <Route path="/budget" element={
-          <div className="pt-4 md:pt-6">
+          <div className={page(W.wide)}>
             {enableBudget ? (
               <BudgetScreenV2
                 user={user}
@@ -148,9 +181,7 @@ export function AppRoutes({ user, brand, tx, budget, editing, onLogOut, onDelete
           </div>
         } />
         <Route path="/transactions" element={
-          // Colonna leggibile su desktop: una riga larga 1900px metterebbe
-          // descrizione e importo agli antipodi dello schermo.
-          <div className="pt-4 md:pt-6 md:max-w-3xl">
+          <div className={page(W.list)}>
             {/* Il titolo sta dentro la lista, nell'header da 56px insieme a
                 ricerca e selezione multipla. */}
             <TransactionList
@@ -162,7 +193,7 @@ export function AppRoutes({ user, brand, tx, budget, editing, onLogOut, onDelete
           </div>
         } />
         <Route path="/settings/*" element={
-          <div className="pt-4 md:pt-6 md:max-w-3xl">
+          <div className={page(W.settings)}>
             <SettingsScreen user={user} transactions={tx.transactions}
               budgetExport={{ currentMonth: budget.currentMonth, current: budget.monthly, history: budget.budgetHistory, legacy: budget.budget }}
               onLogOut={onLogOut} onDeleteAll={tx.deleteAll} onDeleteAccount={onDeleteAccount} />
@@ -170,30 +201,31 @@ export function AppRoutes({ user, brand, tx, budget, editing, onLogOut, onDelete
         } />
         {aiEnabled && (
           <Route path="/ai-coach" element={
-            <div className="pt-4 md:pt-6">
+            <div className={page(W.list)}>
               <AICoachScreen user={user}
                 transactions={tx.transactions} liquidity={tx.liquidity}
-                savingsTarget={budget.budget.savingsTarget} />
+                savingsTarget={budget.budget.savingsTarget}
+                onSetSavingsTarget={enableBudget ? budget.setSavingsTarget : undefined} />
             </div>
           } />
         )}
         <Route path="/income" element={
-          <div className="pt-4 md:pt-6">
+          <div className={page(W.list)}>
             <IncomeScreen transactions={tx.transactions} />
           </div>
         } />
         <Route path="/category-spending" element={
-          <div className="pt-4 md:pt-6">
+          <div className={page(W.list)}>
             <CategorySpendingScreen transactions={tx.transactions} categoryBudgets={budget.budget.categoryBudgets} />
           </div>
         } />
         <Route path="/account-balance" element={
-          <div className="pt-4 md:pt-6">
+          <div className={page(W.list)}>
             <AccountBalanceScreen transactions={tx.transactions} />
           </div>
         } />
         <Route path="/wealth-history" element={
-          <div className="pt-4 md:pt-6">
+          <div className={page(W.list)}>
             <WealthHistoryScreen transactions={tx.transactions} />
           </div>
         } />
@@ -207,12 +239,12 @@ export function AppRoutes({ user, brand, tx, budget, editing, onLogOut, onDelete
             user={user} onSetSavingsTarget={budget.setSavingsTarget} />
         } />
         <Route path="/recap/:ym" element={
-          <div className="pt-4 md:pt-6">
+          <div className={page(W.reading)}>
             <MonthlyRecapScreen transactions={tx.transactions} />
           </div>
         } />
         <Route path="/forecast-v3" element={
-          <div className="pt-4 md:pt-6">
+          <div className={page(W.admin)}>
             <ForecastV3Screen
               transactions={tx.transactions}
               expenseCategories={visibleCategories.filter(c => c.kind === 'expense')}
@@ -240,21 +272,21 @@ export function AppRoutes({ user, brand, tx, budget, editing, onLogOut, onDelete
             Data access is additionally enforced by Firestore rules. */}
         <Route path="/wealth-v2" element={
           isFeatureEnabled('wealth_v2', user)
-            ? <div className="pt-4 md:pt-6">
+            ? <div className={page(W.wide)}>
                 <WealthV2Screen user={user} transactions={tx.transactions} liquidity={tx.liquidity} />
               </div>
             : <Navigate to="/" replace />
         } />
         <Route path="/commitments" element={
           isFeatureEnabled('commitments', user)
-            ? <div className="pt-4 md:pt-6">
+            ? <div className={page(W.reading)}>
                 <CommitmentsScreen transactions={tx.allTransactions} />
               </div>
             : <Navigate to="/" replace />
         } />
         <Route path="/monthly-plan" element={
           isFeatureEnabled('monthly_plan_v2', user)
-            ? <div className="pt-4 md:pt-6">
+            ? <div className={page(W.wide)}>
                 <MonthlyPlanScreen user={user} transactions={tx.transactions}
                   monthlyIncome={tx.monthlyIncome} monthlyInvestments={tx.monthlyInvestments} />
               </div>
@@ -264,7 +296,7 @@ export function AppRoutes({ user, brand, tx, budget, editing, onLogOut, onDelete
             it reads admin-only DATA (metrics/*), not to hide a feature. */}
         <Route path="/metrics" element={
           isAdminUser(user)
-            ? <div className="pt-4 md:pt-6"><MetricsScreen /></div>
+            ? <div className={page(W.admin)}><MetricsScreen /></div>
             : <Navigate to="/" replace />
         } />
         <Route path="*" element={<Navigate to="/" replace />} />

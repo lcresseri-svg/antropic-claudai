@@ -32,6 +32,7 @@ import { RecentMovementsCard } from './RecentMovementsCard';
 import { ReorderHomeSheet } from './ReorderHomeSheet';
 import { HomeBlockId, resolveHomeOrder } from './homeOrder';
 import { WrappedEntryCard } from '../wrapped/WrappedEntryCard';
+import { isFeatureEnabled } from '../../shared/featureRollout';
 
 interface Props {
   greeting?: string;
@@ -192,8 +193,13 @@ export function DashboardV2(p: Props) {
     <SpendingBreakdownCard categoryTotals={currentMonthCategoryTotals} onSeeAll={openCategories} />
   );
 
+  // Il link agli impegni compare solo quando l'insight in evidenza parla di
+  // un'uscita programmata: è lì che "e le altre?" è la domanda successiva.
+  const showCommitmentsLink = nextMove?.category === 'forecast'
+    && isFeatureEnabled('commitments', { uid: p.userId });
   const nextMoveCard = nextMove
-    ? <NextMoveCard insight={nextMove} onSeeAll={p.onSeeInsights} />
+    ? <NextMoveCard insight={nextMove} onSeeAll={p.onSeeInsights}
+        onSeeCommitments={showCommitmentsLink ? () => navigate('/commitments') : undefined} />
     : null;
 
   const blocks: Record<HomeBlockId, React.ReactNode> = {
@@ -223,8 +229,8 @@ export function DashboardV2(p: Props) {
       {/* Mobile: colonna unica, nell'ordine scelto dall'utente. Desktop: due
           colonne indipendenti in altezza, ordine fisso — lì i blocchi stanno
           già affiancati e riordinarli non risolverebbe niente. */}
-      <div className="flex flex-col md:flex-row gap-3.5 md:gap-4 md:items-start">
-        <div className="flex flex-col gap-3.5 md:gap-4 md:flex-1 md:min-w-0">
+      <div className="flex flex-col wide:flex-row gap-3.5 md:gap-4 ultra:gap-6 wide:items-start">
+        <div className="flex flex-col gap-3.5 md:gap-4 wide:flex-1 wide:min-w-0">
           {p.userId && (
             <WrappedEntryCard
               transactions={p.transactions} projected={p.projected ?? []}
@@ -244,7 +250,7 @@ export function DashboardV2(p: Props) {
           </div>
         </div>
 
-        <div className="hidden md:flex md:flex-col md:gap-4 md:w-[352px] md:flex-none">
+        <div className="hidden md:flex md:flex-col md:gap-4 wide:w-[352px] ultra:w-[384px] wide:flex-none">
           {netWorthCard}
           {nextMoveCard}
           <RecentMovementsCard

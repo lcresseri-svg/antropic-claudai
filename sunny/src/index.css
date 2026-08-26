@@ -239,6 +239,26 @@ html:not(.light) .ui-v2 {
     border: 1px solid var(--border);
     border-top: 1px solid var(--hero-border-top);
   }
+  /* Riga di lista cliccabile (README parte 2, B2.3–B2.4).
+     Su desktop le righe respirano di più — 44px sul telefono, dove conta il
+     pollice, 48px sul mouse, dove conta la scansione — e devono dire di essere
+     cliccabili. L'hover sta SOLO qui: alcune card non cliccabili ce l'avevano e
+     sembravano bottoni. Il focus visibile serve a chi naviga da tastiera, che
+     senza non sa mai dove si trova. */
+  .row-tap {
+    min-height: 44px;
+  }
+  .row-tap:hover {
+    background: rgb(var(--c-card-hover));
+  }
+  .row-tap:focus-visible {
+    outline: 2px solid rgb(var(--c-gold));
+    outline-offset: 2px;
+  }
+  @media (min-width: 768px) {
+    .row-tap { min-height: 48px; }
+  }
+
   /* Card "calda" a bordo oro — Prossima mossa, testa del popup Novità. */
   .accent-card {
     background: var(--accent-surface);
@@ -411,7 +431,10 @@ html.light .text-\[\#E6B95C\]\/80 { color: rgb(var(--c-gold) / 0.9); }
   /* Cards print as flat bordered blocks and never split across a page break. */
   .recap-card { break-inside: avoid; page-break-inside: avoid; box-shadow: none !important; }
 
-  /* Movements table: always expanded, header repeated on every page. */
+  /* Movements table: always expanded, header repeated on every page. In app la
+     tabella è richiusa dietro una riga-azione; su carta non c'è niente da
+     aprire, quindi torna visibile comunque. */
+  .recap-movements-collapsed { display: block !important; }
   .recap-movements .overflow-x-auto { overflow: visible !important; }
   .recap-movements thead { display: table-header-group; }
   .recap-movements tr { page-break-inside: avoid; }

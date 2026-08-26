@@ -1,7 +1,7 @@
 import { useState, useEffect } from 'react';
 import { CategoryDef } from '../../types';
 import { formatCurrency, formatDate } from '../../utils';
-import { SheetShell, Field, EuroInput, parseNum } from './SheetShell';
+import { SheetShell, AmountBlock, EffectCard, parseNum } from './SheetShell';
 
 interface Props {
   open: boolean;
@@ -11,7 +11,14 @@ interface Props {
   onClose: () => void;
 }
 
-/** Bottom sheet to set/update an investment category's market value. */
+/**
+ * Controvalore di una posizione.
+ *
+ * La plus/minusvalenza latente sale a numero grande: è il motivo per cui si
+ * apre questa sheet. E la nota di chiusura dice l'unica cosa che si può
+ * fraintendere — aggiornare il controvalore non è un movimento: cambia il
+ * patrimonio, non la liquidità né le uscite del mese.
+ */
 export function SetCurrentValueSheet({ open, category, deposited, onSave, onClose }: Props) {
   const [value, setValue] = useState('');
 
@@ -21,7 +28,9 @@ export function SetCurrentValueSheet({ open, category, deposited, onSave, onClos
 
   if (!category) return null;
   const parsed = parseNum(value);
-  const delta = parsed > 0 || value !== '' ? parsed - deposited : null;
+  const touched = parsed > 0 || value !== '';
+  const delta = touched ? parsed - deposited : null;
+  const pct = delta != null && deposited > 0 ? (delta / deposited) * 100 : null;
 
   const submit = (e: React.FormEvent) => {
     e.preventDefault();
@@ -31,35 +40,44 @@ export function SetCurrentValueSheet({ open, category, deposited, onSave, onClos
   };
 
   return (
-    <SheetShell open={open} title={`Controvalore · ${category.label}`} onClose={onClose}>
-      <form onSubmit={submit} className="space-y-4">
-        <Field label="Controvalore attuale (€)">
-          <EuroInput value={value} onChange={setValue} autoFocus />
-        </Field>
+    <SheetShell open={open} onClose={onClose}
+      title={`Controvalore · ${category.label}`}
+      subtitle={category.lastValueUpdate
+        ? `Ultimo aggiornamento: ${formatDate(category.lastValueUpdate)}`
+        : 'Mai aggiornato'}>
+      <form onSubmit={submit} className="space-y-3">
+        <AmountBlock label="Controvalore attuale" value={value} onChange={setValue} autoFocus />
 
-        <div className="bg-elevated rounded-2xl px-4 py-3 space-y-1.5">
-          <div className="flex items-center justify-between text-xs">
-            <span className="text-secondary">Versato netto</span>
-            <span className="font-semibold text-primary balance-num">{formatCurrency(deposited)}</span>
+        <div className="glass-card rounded-[18px] px-4 py-3.5">
+          <div className="flex items-center justify-between">
+            <span className="text-[12.5px] text-secondary">Versato netto</span>
+            <span className="text-[13.5px] font-semibold text-primary balance-num">{formatCurrency(deposited)}</span>
           </div>
           {delta != null && (
-            <div className="flex items-center justify-between text-xs">
-              <span className="text-secondary">Plus/minus latente</span>
-              <span className="font-semibold balance-num" style={{ color: delta >= 0 ? '#8FB89A' : '#E05555' }}>
+            <div className="mt-2.5 pt-2.5 border-t border-divider">
+              <p className="label-caps text-secondary mb-1">
+                {delta >= 0 ? 'Plus latente' : 'Minus latente'}
+              </p>
+              <p className={`text-[19px] font-bold balance-num ${delta >= 0 ? 'text-green' : 'text-red'}`}>
                 {delta >= 0 ? '+' : '−'}{formatCurrency(Math.abs(delta))}
-                {deposited > 0 && ` (${delta >= 0 ? '+' : '−'}${Math.abs((delta / deposited) * 100).toFixed(1)}%)`}
-              </span>
+                {pct != null && (
+                  <span className="text-[13px] font-semibold ml-1.5">
+                    ({delta >= 0 ? '+' : '−'}{Math.abs(pct).toFixed(1).replace('.', ',')}%)
+                  </span>
+                )}
+              </p>
             </div>
           )}
         </div>
 
-        {category.lastValueUpdate && (
-          <p className="text-[11px] text-secondary px-1">Aggiornato il {formatDate(category.lastValueUpdate)}</p>
-        )}
+        <EffectCard>
+          Il patrimonio netto passa a riflettere questo valore. Non è un movimento:{' '}
+          <span className="font-semibold text-primary">nessun conto viene toccato</span>, la liquidità
+          resta quella di prima e il mese non registra né entrate né uscite.
+        </EffectCard>
 
         <button type="submit"
-          className="w-full py-3 rounded-2xl font-semibold transition-transform active:scale-[0.98]"
-          style={{ backgroundColor: 'var(--accent-hi)', color: 'var(--accent-on)' }}>
+          className="w-full py-3.5 rounded-2xl cta-gold-fill text-[14px] font-semibold transition-transform active:scale-[0.98]">
           Salva controvalore
         </button>
       </form>

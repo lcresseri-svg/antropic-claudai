@@ -11,6 +11,7 @@ import {
 } from './budgetUtils';
 import { forecastSavingsV4, forecastByCategoryV4 } from '../forecast/v4/forecastCompatV4';
 import { upcomingRecurringThisMonth, upcomingPlannedThisMonth, buildProjectedOccurrences, isPending } from '../../shared/recurrence';
+import { buildCommitments } from '../wealth/commitments';
 import { history } from '../insights/insightsEngine';
 import { SavingsGoalCard } from './SavingsGoalCard';
 import { SuggestedBudgetCard } from './SuggestedBudgetCard';
@@ -20,6 +21,7 @@ import { WatchlistCategories, WatchRow } from './WatchlistCategories';
 import { BudgetOverview } from './BudgetOverview';
 import { BudgetEditSheet } from './BudgetEditSheet';
 import { formatCurrency, capitalize } from '../../utils';
+import { isFeatureEnabled } from '../../shared/featureRollout';
 import { listRecapMonths } from '../recap/monthlyRecap';
 
 type EditSection = 'savings' | 'income' | 'expenses' | 'investments';
@@ -71,6 +73,16 @@ export function BudgetScreenV2({
 
   // Monthly recaps archive (newest first) — computed from in-memory transactions.
   const recapMonths = useMemo(() => listRecapMonths(transactions), [transactions]);
+
+  // Quanto del mese è già promesso a impegni ricorrenti. Serve solo alla riga
+  // di ingresso in fondo: senza il flag non si calcola nemmeno.
+  const showCommitments = isFeatureEnabled('commitments', user);
+  const fixedMonthlyCost = useMemo(
+    () => (showCommitments
+      ? buildCommitments(transactions, new Date().toISOString().slice(0, 10)).fixedMonthlyCost
+      : 0),
+    [showCommitments, transactions],
+  );
 
   // Month navigated to (defaults to the current month). Drives every slice below.
   const [selectedMonth, setSelectedMonth] = useState(currentMonth);
@@ -318,7 +330,7 @@ export function BudgetScreenV2({
   };
 
   return (
-    <div className="pb-32 space-y-4 md:max-w-3xl">
+    <div className="pb-32 space-y-4">
       {/* Header 56px: titolo + navigatore mese compatto. Lo stato del mese non
           è più una pill decorativa: è diventato l'azione dentro l'hero. */}
       <div className="h-14 flex items-center justify-between gap-3">
@@ -454,6 +466,17 @@ export function BudgetScreenV2({
           monthLabel={monthKeyLabel(selectedMonth)}
           forecastColLabel={isPastMonth ? 'Consuntivo' : 'Previsto'}
         />
+        {/* Qui l'utente sta guardando quanto del mese è già deciso: è esattamente
+            la domanda che porta agli impegni fissi. */}
+        {showCommitments && fixedMonthlyCost > 0 && (
+          <button type="button" onClick={() => navigate('/commitments')}
+            className="row-tap w-full flex items-center justify-between gap-3 px-1 text-left">
+            <span className="text-[12.5px] text-secondary">
+              Di cui <span className="font-semibold text-primary balance-num">{formatCurrency(fixedMonthlyCost)}</span> di impegni fissi ricorrenti
+            </span>
+            <span className="text-[12px] font-semibold text-gold flex-none">Vedi gli impegni ›</span>
+          </button>
+        )}
       </div>
 
       {/* Archivio riepiloghi: una riga che APRE l'elenco, non che salta

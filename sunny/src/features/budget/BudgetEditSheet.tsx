@@ -59,11 +59,22 @@ export function BudgetEditSheet({
 
   const isPreset = TARGET_PRESETS.includes(savingsTarget);
 
+  // "Da assegnare": l'informazione che mancava del tutto. Si inserivano numeri
+  // senza sapere quanto restava, e ci si accorgeva di aver sforato solo dopo,
+  // guardando il Piano. La formula è quella del Piano stesso — entrate
+  // previste meno tutto ciò che è già stato promesso.
+  const sum = (r: Record<string, number>) => Object.values(r).reduce((a, b) => a + b, 0);
+  const expected = sum(incomeBudgets);
+  const outExpenses = sum(categoryBudgets);
+  const outInvest = sum(investmentBudgets);
+  const unassigned = expected - outExpenses - outInvest - savingsTarget;
+  const pct = (v: number) => (expected > 0 ? Math.max(0, Math.min(100, (v / expected) * 100)) : 0);
+
   return (
     <div className="fixed inset-0 z-[60] flex items-end sm:items-center justify-center p-3"
       onClick={e => { if (e.target === e.currentTarget) onClose(); }}>
       <div className="absolute inset-0 bg-black/70 backdrop-blur-md animate-fade-in-fast" />
-      <div className="relative w-full max-w-md glass-elevated rounded-3xl shadow-float animate-sheet-up max-h-[85dvh] flex flex-col">
+      <div className="relative w-full max-w-md sm:max-w-[640px] glass-elevated rounded-[26px] shadow-float animate-sheet-up sm:animate-scale-in max-h-[85dvh] flex flex-col">
 
         {/* Header — sticky: con la tastiera numerica aperta il contenuto si
             muove, la testa no, quindi la ✕ resta dov'è.
@@ -80,6 +91,44 @@ export function BudgetEditSheet({
           <button type="button" aria-label="Chiudi" onClick={onClose}
             className="w-11 h-11 -mr-2 rounded-full bg-elevated flex items-center justify-center text-secondary text-base active:scale-90 transition-transform">✕</button>
         </div>
+
+        {/* Da assegnare — resta in cima mentre la lista scorre: è il numero
+            che dice se il piano sta in piedi. */}
+        {expected > 0 && (
+          <div className="px-6 pb-3 shrink-0">
+            <div className="glass-card rounded-[18px] px-4 py-3.5">
+              <div className="flex items-baseline justify-between gap-3">
+                <div className="min-w-0">
+                  <p className="label-caps text-secondary mb-1">Da assegnare</p>
+                  <p className={`text-[26px] font-bold leading-none balance-num ${
+                    unassigned < 0 ? 'text-red' : 'text-primary'}`}>
+                    {formatCurrency(unassigned)}
+                  </p>
+                </div>
+                <p className="text-[11.5px] text-tertiary text-right flex-none">
+                  su {formatCurrency(expected)}<br />di entrate previste
+                </p>
+              </div>
+
+              <div className="flex gap-[2px] h-[7px] mt-3 rounded-full overflow-hidden"
+                style={{ background: 'rgba(var(--c-primary) / 0.1)' }}>
+                <span style={{ width: `${pct(outExpenses)}%`, background: 'rgb(var(--c-red))' }} />
+                <span style={{ width: `${pct(outInvest)}%`, background: 'rgb(var(--c-gold))' }} />
+                <span style={{ width: `${pct(savingsTarget)}%`, background: 'rgb(var(--c-green))' }} />
+              </div>
+              <div className="flex flex-wrap gap-x-3 gap-y-1 mt-2">
+                <Legend color="rgb(var(--c-red))" label="Uscite" value={outExpenses} />
+                {outInvest > 0 && <Legend color="rgb(var(--c-gold))" label="Investimenti" value={outInvest} />}
+                <Legend color="rgb(var(--c-green))" label="Risparmio" value={savingsTarget} />
+              </div>
+              {unassigned < 0 && (
+                <p className="text-[11.5px] text-red mt-2 leading-snug">
+                  Hai assegnato più di quello che prevedi di incassare: qualcosa dovrà cedere.
+                </p>
+              )}
+            </div>
+          </div>
+        )}
 
         {/* Tabs */}
         <div className="px-6 pb-3 shrink-0">
@@ -228,5 +277,15 @@ function CategoryInputList({ categories, budgets, focusId, onChange }: {
         </li>
       ))}
     </ul>
+  );
+}
+
+/** Voce della legenda della barra di composizione. */
+function Legend({ color, label, value }: { color: string; label: string; value: number }) {
+  return (
+    <span className="flex items-center gap-1.5 text-[11.5px] text-secondary">
+      <span className="w-2 h-2 rounded-full flex-none" style={{ background: color }} />
+      {label} <span className="font-semibold text-primary balance-num">{formatCurrency(value)}</span>
+    </span>
   );
 }

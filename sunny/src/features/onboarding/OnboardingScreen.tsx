@@ -63,11 +63,17 @@ export function OnboardingScreen({
   const canSkip = step >= 1 && step <= 4;
 
   return (
-    <OnboardingLayout step={step} totalSteps={TOTAL_STEPS} onSkip={canSkip ? skipOnboarding : undefined}>
+    <OnboardingLayout step={step} totalSteps={TOTAL_STEPS} onSkip={canSkip ? skipOnboarding : undefined}
+      footer={step === 1 ? (
+        <button type="button" onClick={() => handleGoalsNext(goals)}
+          className="w-full py-4 rounded-2xl cta-gold-fill font-semibold text-[15px] active:scale-[0.98] transition-transform">
+          {goals.length === 0
+            ? 'Continua senza scegliere'
+            : `Continua con ${goals.length} ${goals.length === 1 ? 'obiettivo' : 'obiettivi'}`}
+        </button>
+      ) : undefined}>
       {step === 0 && <WelcomeStep onNext={() => advance(1)} />}
-      {step === 1 && (
-        <GoalsStep selected={goals} onChange={setGoals} onNext={handleGoalsNext} />
-      )}
+      {step === 1 && <GoalsStep selected={goals} onChange={setGoals} />}
       {step === 2 && <AccountStep onNext={handleAccountNext} />}
       {step === 3 && (
         <DataSourceStep uid={uid} accountId={accountId} onNext={handleDataSourceNext} />

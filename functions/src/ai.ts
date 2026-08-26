@@ -24,6 +24,45 @@ const MAX_DIGEST_CALLS_PER_DAY = 30;
 //   { dailyCount: number; lastResetDay: string }  (YYYY-MM-DD UTC)
 // ─────────────────────────────────────────────────────────────────────────────
 
+/**
+ * Piano calcolato dal client con `sunny/src/features/aiCoach/savingsEngine.ts`.
+ *
+ * Duplicato qui perché functions e client sono due pacchetti separati e non
+ * condividono i tipi. Se cambia di là, va cambiato di qua — il campo è
+ * opzionale e validato, quindi una divergenza degrada al calcolo lato server
+ * invece di rompere la chiamata.
+ */
+interface CoachPlan {
+  sustainableMonthly: number;
+  monthsOfHistory: number;
+  fixedMonthlyCost: number;
+  freeLiquidity: number;
+  savingsTarget: number;
+  fitsThisMonth: boolean;
+  affordableNow: boolean;
+  monthsToAfford: number | null;
+  readyByISO: string | null;
+  requiredMonthly: number | null;
+  feasible: boolean | null;
+  gapMonthly: number;
+  monthsWithCuts: number | null;
+  cuts: { label: string; amount: number; currentMonthly: number }[];
+  topCategories: { label: string; monthlyAvg: number }[];
+  notes: string[];
+}
+
+/** Il piano è utilizzabile? Un payload malformato non deve rompere la
+ *  chiamata: si ricade sul calcolo lato server di sempre. */
+function usablePlan(p: unknown): p is CoachPlan {
+  if (!p || typeof p !== 'object') return false;
+  const c = p as Record<string, unknown>;
+  return typeof c.sustainableMonthly === 'number' && Number.isFinite(c.sustainableMonthly)
+    && typeof c.fitsThisMonth === 'boolean'
+    && Array.isArray(c.cuts) && Array.isArray(c.topCategories) && Array.isArray(c.notes)
+    && (c.notes as unknown[]).every((n) => typeof n === 'string')
+    && (c.notes as unknown[]).length <= 12;
+}
+
 export const generateAffordabilityAdvice = onRequest(
   { region: 'europe-west1', cors: ALLOWED_ORIGINS },
   async (req, res) => {
@@ -64,11 +103,12 @@ export const generateAffordabilityAdvice = onRequest(
       const settings = (settingsSnap.data() ?? {}) as { aiEnabled?: boolean; categories?: { id: string; label: string }[] };
 
       // ── Parse request body ────────────────────────────────────────────────
-      const { itemName, cost, targetDate, priority } = (req.body ?? {}) as {
+      const { itemName, cost, targetDate, priority, plan } = (req.body ?? {}) as {
         itemName: string;
         cost: number;
         targetDate?: string;
         priority?: 'low' | 'medium' | 'high';
+        plan?: CoachPlan;
       };
       void priority;
       if (!itemName || typeof itemName !== 'string' || itemName.length > 200 ||
@@ -288,7 +328,37 @@ export const generateAffordabilityAdvice = onRequest(
         facts.push(`Scadenza voluta: entro ${daysLeft} giorni → servirebbero ${requiredMonthly}€/mese, ${targetFeasible ? 'raggiungibile con qualche taglio o pausa investimenti' : 'difficile senza tagli importanti o senza allungare i tempi'}.`);
       }
 
+      // Il client calcola il piano con il motore puro dell'app (savingsEngine):
+      // stesse primitive della dashboard, quindi numeri che non possono
+      // contraddirla. Quando c'è, è LUI la fonte — al modello resta il
+      // racconto, che è la parte che sa fare bene.
+      if (usablePlan(plan)) {
+        facts.length = 0;
+        facts.push(`Ritmo di risparmio su cui contare: ${Math.round(plan.sustainableMonthly)}€/mese (la più bassa delle medie su 3/6/12 mesi, così il piano non salta al primo mese normale).`);
+        facts.push(`Storico disponibile: ${plan.monthsOfHistory} mesi chiusi.`);
+        if (plan.fixedMonthlyCost > 0) facts.push(`Già impegnati ogni mese in rate, abbonamenti e ricorrenti: ${Math.round(plan.fixedMonthlyCost)}€.`);
+        facts.push(`Liquidità libera oggi: ${Math.round(plan.freeLiquidity)}€.`);
+        if (plan.savingsTarget > 0) facts.push(`Obiettivo di risparmio mensile impostato: ${Math.round(plan.savingsTarget)}€.`);
+        facts.push(`Costo: ${Math.round(cost)}€. ${plan.fitsThisMonth ? 'Rientra nel risparmio di un mese.' : 'NON rientra nel risparmio di un mese.'}`);
+        if (plan.affordableNow) facts.push('La liquidità libera basterebbe già oggi per pagarlo.');
+        if (plan.monthsToAfford !== null) facts.push(`Mesi al traguardo al ritmo attuale: ${plan.monthsToAfford} (pronto verso ${plan.readyByISO ?? '—'}).`);
+        if (plan.requiredMonthly !== null) {
+          facts.push(`Con la scadenza voluta servono ${Math.round(plan.requiredMonthly)}€/mese: ${plan.feasible ? 'raggiungibile' : 'NON raggiungibile'} al ritmo attuale${plan.gapMonthly > 0 ? `, mancano ${Math.round(plan.gapMonthly)}€/mese` : ''}.`);
+        }
+        if (plan.cuts.length > 0) {
+          facts.push(`Tagli realistici (max 30% per categoria): ${plan.cuts.map(c => `${c.label} −${Math.round(c.amount)}€ su ${Math.round(c.currentMonthly)}€`).join(', ')}.`);
+          if (plan.monthsWithCuts !== null) facts.push(`Con quei tagli i mesi scendono a ${plan.monthsWithCuts}.`);
+        }
+        if (plan.topCategories.length > 0) {
+          facts.push(`Spese medie per categoria: ${plan.topCategories.map(c => `${c.label} ${Math.round(c.monthlyAvg)}€`).join(', ')}.`);
+        }
+        for (const n of plan.notes) facts.push(n);
+      }
+
       const prompt =
+        (plan ? `I NUMERI QUI SOTTO SONO GIÀ CALCOLATI E VERIFICATI: usali così come sono. ` +
+          `Non ricalcolarli, non arrotondarli diversamente, non inventarne altri. ` +
+          `Se un dato non c'è, non dedurlo: parla di quello che c'è.\n\n` : '') +
         `Sei il coach finanziario dell'app Sunny: amichevole, schietto e concreto. ` +
         `L'utente vuole sapere se può permettersi un acquisto. NON chiedere mai quanto ha già da parte.\n\n` +
         `Incrocia TUTTO il quadro: entrate, uscite, investimenti, obiettivo di risparmio, budget e ` +
@@ -349,6 +419,19 @@ export const generateAffordabilityAdvice = onRequest(
         topCuts,
         advice,
         remaining,
+        // Quando il client ha mandato il piano, sono i SUOI numeri a valere:
+        // vengono dallo stesso motore della dashboard. Lo spread sta in fondo
+        // perché sovrascriva quelli calcolati qui sopra, non il contrario.
+        ...(plan ? {
+          monthlySaving: Math.round(plan.sustainableMonthly),
+          fitsThisMonth: plan.fitsThisMonth,
+          monthsToAfford: plan.monthsToAfford,
+          monthsToAffordWithCuts: plan.monthsWithCuts,
+          requiredMonthly: plan.requiredMonthly,
+          targetFeasible: plan.feasible,
+          savingsTarget: plan.savingsTarget,
+          topCuts: plan.cuts.map((c) => ({ categoryId: c.label, label: c.label, amount: Math.round(c.amount) })),
+        } : {}),
       });
     } catch (err) {
       logError('generateAffordabilityAdvice failed', err);
