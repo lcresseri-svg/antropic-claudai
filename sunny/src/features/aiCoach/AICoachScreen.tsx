@@ -1,4 +1,4 @@
-import { useEffect, useState } from 'react';
+import { useEffect, useMemo, useRef, useState } from 'react';
 import { User } from 'firebase/auth';
 import { Transaction } from '../../types';
 import { useSettings } from '../../shared/providers/settings';
@@ -9,10 +9,12 @@ import { AffordabilityResultCard } from './AffordabilityResultCard';
 import { DecisionCoachPanel } from './DecisionCoachPanel';
 import { AffordabilityRequest } from './aiCoachTypes';
 import { logEvent } from '../../shared/analytics/metrics';
-import { useNavigate } from 'react-router-dom';
+import { useNavigate, useSearchParams } from 'react-router-dom';
 import { PageHead } from '../../shared/components/PageHead';
 import { buildCommitments } from '../wealth/commitments';
-import { buildCoachPlan } from './buildCoachPlan';
+import { coachPlanFrom } from './buildCoachPlan';
+import { buildSavingsContext } from './savingsEngine';
+import { SpendingProfileCard } from './SpendingProfileCard';
 
 interface Props {
   user?: User | null;
@@ -26,6 +28,7 @@ interface Props {
 
 export function AICoachScreen({ user, transactions, liquidity, savingsTarget, onSetSavingsTarget }: Props) {
   const navigate = useNavigate();
+  const [params] = useSearchParams();
   const { categories } = useSettings();
   const { status, result, errorMsg, remaining, analyze, reset } = useAICoach();
   // Last submitted request — feeds the deterministic Decision Coach panel.
@@ -37,21 +40,32 @@ export function AICoachScreen({ user, transactions, liquidity, savingsTarget, on
   // metrics: aicoach_open on mount (fire-and-forget).
   useEffect(() => { if (user) logEvent(user.uid, 'aicoach_open'); }, [user]);
 
+  // La domanda può arrivare già scritta dal Piano (?item=&cost=): in quel caso
+  // l'analisi parte da sola, altrimenti si arriverebbe su un form da
+  // ricompilare con le stesse due cose appena inserite.
+  const askedRef = useRef(false);
+  useEffect(() => {
+    if (askedRef.current) return;
+    const itemName = params.get('item')?.trim();
+    const cost = Number(params.get('cost'));
+    if (!itemName || !Number.isFinite(cost) || cost <= 0) return;
+    askedRef.current = true;
+    void submitRef.current({ itemName, cost });
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [params]);
+
   const counterLabel = remaining === 0
     ? 'nessuna analisi rimasta oggi'
     : `${remaining} ${remaining === 1 ? 'analisi rimasta' : 'analisi rimaste'} oggi`;
 
-  // I numeri li calcola il codice PRIMA di chiamare il modello: il modello
-  // riceve un piano già fatto e deve solo spiegarlo. È l'unico modo perché
-  // quello che dice non possa contraddire la dashboard — e perché non possa
-  // inventarsi una cifra.
-  const submit = (req: AffordabilityRequest) => {
-    setLastReq(req);
-    if (!transactions) return analyze(req);
-
+  // Il quadro finanziario si calcola una volta sola, all'apertura: serve alla
+  // domanda, ma soprattutto serve PRIMA della domanda — è quello che si vede
+  // in "Come è fatto il tuo mese", e non costa una chiamata a nessuno.
+  const ctx = useMemo(() => {
+    if (!transactions) return null;
     const todayISO = new Date().toISOString().slice(0, 10);
     const commitments = buildCommitments(transactions, todayISO);
-    const plan = buildCoachPlan({
+    return buildSavingsContext({
       transactions, categories, todayISO,
       liquidity: liquidity ?? 0,
       savingsTarget,
@@ -61,11 +75,20 @@ export function AICoachScreen({ user, transactions, liquidity, savingsTarget, on
       endingInstallments: commitments.installments
         .filter(c => c.expectedEnd)
         .map(c => ({ description: c.description, monthly: c.monthlyEquivalent, endsISO: c.expectedEnd! })),
-      cost: req.cost,
-      targetDateISO: req.targetDate,
     });
-    return analyze({ ...req, plan });
+  }, [transactions, categories, liquidity, savingsTarget]);
+
+  // I numeri li calcola il codice PRIMA di chiamare il modello: il modello
+  // riceve un piano già fatto e deve solo spiegarlo. È l'unico modo perché
+  // quello che dice non possa contraddire la dashboard — e perché non possa
+  // inventarsi una cifra.
+  const submit = (req: AffordabilityRequest) => {
+    setLastReq(req);
+    if (!ctx) return analyze(req);
+    return analyze({ ...req, plan: coachPlanFrom(ctx, req.cost, req.targetDate) });
   };
+  const submitRef = useRef(submit);
+  submitRef.current = submit;
 
   return (
     <div className="pb-32 md:pb-6">
@@ -94,15 +117,18 @@ export function AICoachScreen({ user, transactions, liquidity, savingsTarget, on
                 ? monthly => { onSetSavingsTarget(monthly); navigate('/budget'); }
                 : undefined} />
           </div>
-          {decisionCoachEnabled && lastReq && transactions && liquidity != null && (
-            <div className="wide:w-[360px] wide:flex-none">
-              <DecisionCoachPanel
-                itemName={lastReq.itemName}
-                cost={lastReq.cost}
-                transactions={transactions}
-                liquidity={liquidity}
-                savingsTarget={savingsTarget ?? result.savingsTarget ?? 0}
-              />
+          {(ctx || (decisionCoachEnabled && lastReq)) && (
+            <div className="wide:w-[360px] wide:flex-none space-y-3.5 md:space-y-4">
+              {ctx && <SpendingProfileCard ctx={ctx} />}
+              {decisionCoachEnabled && lastReq && transactions && liquidity != null && (
+                <DecisionCoachPanel
+                  itemName={lastReq.itemName}
+                  cost={lastReq.cost}
+                  transactions={transactions}
+                  liquidity={liquidity}
+                  savingsTarget={savingsTarget ?? result.savingsTarget ?? 0}
+                />
+              )}
             </div>
           )}
         </div>
@@ -123,6 +149,8 @@ export function AICoachScreen({ user, transactions, liquidity, savingsTarget, on
               )}
             </div>
           )}
+
+          {ctx && <SpendingProfileCard ctx={ctx} />}
         </div>
       )}
     </div>

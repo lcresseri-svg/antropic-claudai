@@ -13,14 +13,37 @@ export interface AffordabilityRequest {
   plan?: CoachPlan;
 }
 
+/** Come si legge una categoria di spesa: la natura la deduce il codice dai
+ *  dati, non il modello dal nome. */
+export type PlanNature = 'fixed' | 'periodic' | 'variable' | 'oneOff';
+
 /** Sottoinsieme serializzabile di quello che `savingsEngine` sa. */
 export interface CoachPlan {
-  /** Ritmo di risparmio su cui contare (la più bassa delle medie 3/6/12). */
+  /** Ritmo di risparmio su cui contare (la più bassa delle medie 3/6/12,
+   *  al netto degli accantonamenti periodici non ancora spesi). */
   sustainableMonthly: number;
   monthsOfHistory: number;
   fixedMonthlyCost: number;
   freeLiquidity: number;
   savingsTarget: number;
+  /** Entrate e uscite mensili misurate, lette in modo prudente. */
+  monthlyIncome: number;
+  monthlyExpense: number;
+  /** Quota del reddito che resta (0–1). */
+  savingsRate: number;
+  /** Mesi di spese coperti dalla liquidità libera. */
+  runwayMonths: number | null;
+  /** Quanto ci si può fidare del ritmo misurato. */
+  paceConfidence: 'alta' | 'media' | 'bassa';
+  /** Il mese chiuso peggiore osservato. */
+  worstMonthNet: number;
+  /** Il mese diviso per quello che si può davvero decidere. */
+  breakdown: {
+    fixedMonthly: number;
+    periodicMonthly: number;
+    variableMonthly: number;
+    reducibleMonthly: number;
+  };
   fitsThisMonth: boolean;
   affordableNow: boolean;
   monthsToAfford: number | null;
@@ -30,8 +53,9 @@ export interface CoachPlan {
   gapMonthly: number;
   monthsWithCuts: number | null;
   cuts: { label: string; amount: number; currentMonthly: number }[];
-  /** Categorie di spesa più pesanti, con la media mensile. */
-  topCategories: { label: string; monthlyAvg: number }[];
+  /** Categorie di spesa più pesanti, con natura e motivo: è così che il
+   *  modello sa che l'affitto non si taglia senza doverlo dedurre dal nome. */
+  topCategories: { label: string; monthlyAvg: number; nature: PlanNature; reason: string }[];
   /** Avvertenze già verificate: storico corto, stagionalità, rate in scadenza. */
   notes: string[];
 }

@@ -279,10 +279,10 @@ export function SettingsScreen({ user, transactions, budgetExport, onLogOut, onD
   const aiCoachChat = isFeatureEnabled('ai_coach_chat', user);
   const rowAiCoach = aiCoachChat ? (
     <ToggleRow
-      icon="🤖" label="AI Coach (bottone chat)"
+      icon="🤖" label="AI Coach"
       sub={!aiEnabled
         ? 'Serve "Suggerimenti AI" acceso'
-        : aiCoachWidgetEnabled ? 'Bottone flottante visibile in tutte le schermate' : 'Bottone nascosto'}
+        : aiCoachWidgetEnabled ? 'Ingresso "Chiedi a Sunny" nel Piano' : 'Nascosto'}
       on={aiCoachWidgetEnabled}
       onToggle={() => saveAiCoachWidgetEnabled(!aiCoachWidgetEnabled)}
     />
@@ -441,9 +441,9 @@ export function SettingsScreen({ user, transactions, budgetExport, onLogOut, onD
                 <SwitchRow icon="✨" color="#8A9270" label="AI abilitata" sub="Suggerimenti e riepilogo mensile"
                   on={aiEnabled} onToggle={() => saveAiEnabled(!aiEnabled)} />
                 {aiCoachChat && (
-                  <SwitchRow icon="🤖" color="#88B0C0" label="AI Coach (chat)"
+                  <SwitchRow icon="🤖" color="#88B0C0" label="AI Coach"
                     sub={aiEnabled
-                      ? 'Bottone flottante: chiedi se puoi permetterti una spesa'
+                      ? 'Nel Piano: chiedi se puoi permetterti una spesa'
                       : 'Richiede "AI abilitata"'}
                     on={aiEnabled && aiCoachWidgetEnabled}
                     onToggle={() => { if (aiEnabled) saveAiCoachWidgetEnabled(!aiCoachWidgetEnabled); }} />
