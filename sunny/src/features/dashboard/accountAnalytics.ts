@@ -62,6 +62,7 @@ export interface AccountFlowSummary {
   income: number;
   expense: number;
   investment: number;       // NET cash invested out of this account (deposits − withdrawals)
+  refundsReceived: number; // storni accreditati sul conto
   transferNet: number;      // transfers in − transfers out
   delta: number;            // closingBalance − openingBalance
 }
@@ -69,7 +70,13 @@ export interface AccountFlowSummary {
 /**
  * Opening/closing balance and the period flows for one account.
  * Quadratura (guaranteed by construction):
- *   closingBalance = openingBalance + income − expense − investment + transferNet
+ *   closingBalance =
+  openingBalance
+  + income
+  + refundsReceived
+  - expense
+  - investment
+  + transferNet
  * and closingBalance === balanceAsOf(account, endISO capped to today).
  */
 export function aggregateAccountFlow(
@@ -85,7 +92,12 @@ export function aggregateAccountFlow(
   const endISO = rangeEndISO <= todayISO ? rangeEndISO : todayISO; // never count the future
 
   let openingBalance = account.initialBalance ?? 0;
-  let income = 0, expense = 0, investment = 0, transferIn = 0, transferOut = 0;
+  let income = 0;
+  let expense = 0;
+  let investment = 0;
+  let refundsReceived = 0;
+  let transferIn = 0;
+  let transferOut = 0;
 
   for (const t of transactions) {
     if (!counts(t)) continue;
@@ -102,10 +114,13 @@ export function aggregateAccountFlow(
       if (t.toAccount === account.id) transferIn += t.amount;
       if (t.account === account.id) transferOut += t.amount;
     }
+    else if (t.type === 'refund' && t.account === account.id) {
+      refundsReceived += t.amount;
+    }
   }
 
   const transferNet = transferIn - transferOut;
-  const closingBalance = openingBalance + income - expense - investment + transferNet;
+  const closingBalance =  openingBalance  + income  + refundsReceived  - expense  - investment  + transferNet;
   return {
     accountId: account.id,
     openingBalance,
@@ -115,6 +130,7 @@ export function aggregateAccountFlow(
     investment,
     transferNet,
     delta: closingBalance - openingBalance,
+    refundsReceived,
   };
 }
 
