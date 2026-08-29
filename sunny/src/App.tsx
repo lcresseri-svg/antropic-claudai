@@ -35,6 +35,8 @@ import { AppHeader } from './app/AppHeader';
 import { AppRoutes } from './app/AppRoutes';
 import { useTransactionEditing } from './app/useTransactionEditing';
 import { useWealthSnapshot } from './features/wealth/useWealthSnapshot';
+import { useApplePayPending } from './features/applePay/useApplePayPending';
+import type { ApplePayPendingPayment, Transaction } from './types';
 
 function Loader({ phase }: { phase: string }) {
   const [secs, setSecs] = useState(0);
@@ -135,10 +137,53 @@ function Main({ user, onLogOut, onDeleteAccount }: {
 }) {
   const navigate = useNavigate();
   const location = useLocation();
-  const { accounts, categories, includeInvestments, enableInvestments, enableBudget, settingsLoaded, aiEnabled } = useSettings();
+  const {
+    accounts, categories, includeInvestments, enableInvestments, enableBudget,
+    settingsLoaded, aiEnabled, applePayCardMappings, saveApplePayCardMapping,
+  } = useSettings();
   const tx = useTransactions(user, accounts, includeInvestments, categories, enableInvestments);
   const budget = useBudget(user);
   const editing = useTransactionEditing(user, tx);
+  const applePay = useApplePayPending(user);
+  const [reviewingApplePay, setReviewingApplePay] = useState<ApplePayPendingPayment | null>(null);
+
+  const applePayInitialValues = useMemo<Partial<Omit<Transaction, 'id'>> | undefined>(() => {
+    if (!reviewingApplePay) return undefined;
+    const currentMapping = applePayCardMappings.find(m => m.cardKey === reviewingApplePay.cardKey);
+    const mappedAccount = currentMapping?.accountId ?? reviewingApplePay.accountId;
+    const account = mappedAccount && accounts.some(a => a.id === mappedAccount && !a.archived)
+      ? mappedAccount
+      : undefined;
+    return {
+      type: 'expense',
+      // Sunny is euro-only. A foreign-currency Wallet amount must be converted
+      // deliberately instead of being silently treated as euros.
+      amount: reviewingApplePay.currency === 'EUR' ? reviewingApplePay.amount : 0,
+      date: reviewingApplePay.date,
+      description: reviewingApplePay.description || reviewingApplePay.merchant,
+      account,
+      source: 'apple_pay',
+      sourceId: reviewingApplePay.id,
+    };
+  }, [reviewingApplePay, applePayCardMappings, accounts]);
+
+  const confirmApplePay = async (_deleteIds: string[], create: Omit<Transaction, 'id'>[]) => {
+    if (!reviewingApplePay) throw new Error('no-apple-pay-payment-selected');
+    await applePay.confirmPayment(reviewingApplePay, create);
+    // First successful use of an unknown card teaches Sunny the account. An
+    // existing mapping is changed only from Settings, so one unusual purchase
+    // cannot silently rewire every future payment from that card.
+    const known = applePayCardMappings.some(m => m.cardKey === reviewingApplePay.cardKey);
+    const sourceAccount = create.find(t => t.account)?.account;
+    if (!known && sourceAccount) {
+      saveApplePayCardMapping({
+        cardKey: reviewingApplePay.cardKey,
+        cardLabel: reviewingApplePay.cardLabel,
+        accountId: sourceAccount,
+      });
+    }
+    logEvent(user.uid, 'tx_add');
+  };
 
   // Fotografia settimanale del patrimonio: costruisce lo storico che i dati
   // non hanno (il controvalore esiste solo come "valore di adesso").
@@ -280,6 +325,9 @@ function Main({ user, onLogOut, onDeleteAccount }: {
         <main className="max-w-2xl mx-auto md:max-w-none px-4 md:px-8 pt-4 md:pt-2 pb-24 md:pb-2">
           <AppRoutes
             user={user} brand={brand} tx={tx} budget={budget} editing={editing}
+            applePayPayments={applePay.payments} applePayLoading={applePay.loading}
+            applePayError={applePay.error} onReviewApplePay={setReviewingApplePay}
+            onIgnoreApplePay={applePay.ignorePayment}
             onLogOut={onLogOut} onDeleteAccount={onDeleteAccount}
             onImport={() => setImportOpen(true)}
           />
@@ -299,6 +347,25 @@ function Main({ user, onLogOut, onDeleteAccount }: {
         onSave={editing.handleSave}
         onRegisterRefund={id => { editing.closeModal(); editing.openRefund(id); }}
         onEditRefund={r => { editing.closeModal(); editing.openRefund(undefined, r); }}
+      />
+      <TransactionModal
+        open={!!reviewingApplePay}
+        editing={null}
+        defaultType="expense"
+        initialValues={applePayInitialValues}
+        awaitSave
+        singleSave
+        title="Conferma Apple Pay"
+        sourceBanner={reviewingApplePay
+          ? reviewingApplePay.currency === 'EUR'
+            ? `Ricevuto da ${reviewingApplePay.cardLabel}. Controlla i dati: il saldo cambierà solo dopo la conferma.`
+            : `Pagamento in ${reviewingApplePay.currency} ricevuto da ${reviewingApplePay.cardLabel}. Inserisci l'importo convertito in euro prima di confermare.`
+          : undefined}
+        saveLabel="Conferma pagamento"
+        recognize={editing.recognize ?? undefined}
+        transactions={tx.transactions}
+        onClose={() => setReviewingApplePay(null)}
+        onSave={confirmApplePay}
       />
       <RefundSheet
         open={editing.refundOpen}

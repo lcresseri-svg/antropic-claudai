@@ -1,10 +1,11 @@
-# Shortcut iOS — Aggiungi spesa (admin, fase preview)
+# Shortcut iOS — Aggiungi spesa
 
 Aggiunge una **spesa** a Sunny in modo *headless* da iOS, autenticandosi con un
-**token** (non con la sessione Firebase). In questa fase tutto è **admin-only**:
-solo l'admin può generare il token (da *Impostazioni → Shortcut spese*) e quindi
-usare la Shortcut. Gli endpoint runtime accettano qualsiasi token valido, ma il
-token lo ottiene solo l'admin.
+**token** (non con la sessione Firebase). Ogni utente autenticato può generare e
+revocare i propri token da *Impostazioni → Comandi rapidi e Apple Pay*.
+
+Lo stesso token autentica anche l'automazione Apple Pay descritta in
+[`apple-pay.md`](apple-pay.md): chi ne possiede già uno non deve rigenerarlo.
 
 La Shortcut crea **solo** movimenti `type = "expense"`, con importo positivo.
 
@@ -22,7 +23,8 @@ https://europe-west1-sunny-a2a98.cloudfunctions.net
 |----------|--------|------|-----|
 | `getExpenseOptions` | GET  | `Authorization: Bearer <TOKEN>` | Elenco categorie (solo spesa) e conti per nome |
 | `addExpense`        | POST | `Authorization: Bearer <TOKEN>` | Crea la spesa |
-| `issueExpenseToken` / `listExpenseTokens` / `revokeExpenseToken` | — | Firebase ID token + admin | Gestione token (usati dalla UI, non dalla Shortcut) |
+| `receiveApplePayPayment` | POST | `Authorization: Bearer <TOKEN>` | Accoda un pagamento Wallet da confermare |
+| `issueExpenseToken` / `listExpenseTokens` / `revokeExpenseToken` | — | Firebase ID token | Gestione token (usati dalla UI, non dalla Shortcut) |
 
 > `<TOKEN>` è il token generato in app, **non** un ID token Firebase.
 
@@ -93,12 +95,10 @@ Costruisci la Shortcut in *Comandi rapidi* e poi **Condividi → Copia link iClo
 
 ---
 
-## Sicurezza (fase attuale)
+## Sicurezza
 
 - Il token in chiaro **non** viene mai salvato: in Firestore vive solo
   `expenseTokens/{sha256(token)}` (id = hash). Regole: accesso client negato,
   gestito solo dall'Admin SDK.
-- Generazione/gestione token: **admin-only** (Firebase ID token + UID admin).
+- Generazione/gestione token: utente autenticato; ogni token è vincolato al suo UID.
 - Rate-limit per token: max 30 richieste/ora → `429`.
-- Per estendere a tutti gli utenti in futuro basterà rimuovere il gate admin
-  nella UI; gli endpoint runtime già funzionano per qualsiasi token valido.

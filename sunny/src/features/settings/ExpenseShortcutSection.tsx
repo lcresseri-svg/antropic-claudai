@@ -1,13 +1,13 @@
-// Admin-only UI for the iOS "Expense Shortcut": generate a token (copied to the
+// UI for the iOS automations: generate a token (copied to the
 // clipboard + opens the Shortcut import link) and manage existing tokens
-// (list + revoke). Rendered inside the Settings "shortcut" sub-screen, which is
-// itself gated to the admin. Dark-premium styling consistent with Settings.
+// (list + revoke). The same token also authenticates the Apple Pay receiver.
 
 import { useState, useEffect, useCallback } from 'react';
 import {
   issueExpenseToken, listExpenseTokens, revokeExpenseToken,
   shortcutErrorMsg, SUNNY_EXPENSE_SHORTCUT_URL, ExpenseTokenMeta,
 } from './expenseShortcut';
+import { useSettings } from '../../shared/providers/settings';
 
 function fmtDate(ms: number | null): string {
   if (!ms) return '—';
@@ -15,6 +15,10 @@ function fmtDate(ms: number | null): string {
 }
 
 export function ExpenseShortcutSection() {
+  const {
+    applePayCardMappings, visibleAccounts,
+    saveApplePayCardMapping, removeApplePayCardMapping,
+  } = useSettings();
   const [tokens, setTokens] = useState<ExpenseTokenMeta[]>([]);
   const [loading, setLoading] = useState(true);
   const [listError, setListError] = useState<string | null>(null);
@@ -65,10 +69,43 @@ export function ExpenseShortcutSection() {
   return (
     <div className="space-y-4 md:max-w-xl">
       <p className="text-[13px] text-secondary px-1 leading-relaxed">
-        Aggiungi una spesa al volo da iOS con una Shortcut, senza aprire l'app. Genera un token,
-        importa la Shortcut e incolla il token quando richiesto. Il token vale solo per aggiungere
-        spese e può essere revocato in qualsiasi momento.
+        Usa Sunny dai Comandi rapidi oppure ricevi automaticamente i pagamenti Apple Pay da
+        confermare. Entrambi usano lo stesso token: se ne hai già creato uno, non generarne un altro.
+        Il token può essere revocato in qualsiasi momento.
       </p>
+
+      {/* Card/account mappings learned at the first confirmed Wallet payment. */}
+      <div>
+        <p className="label-caps text-secondary mb-2 px-1">Carte Apple Pay</p>
+        {applePayCardMappings.length === 0 ? (
+          <div className="bg-card rounded-2xl px-4 py-4">
+            <p className="text-[13px] text-secondary leading-relaxed">
+              Nessuna carta riconosciuta. Al primo pagamento scegli il conto nel riepilogo:
+              Sunny ricorderà automaticamente l'associazione per i pagamenti successivi.
+            </p>
+          </div>
+        ) : (
+          <div className="bg-card rounded-2xl divide-y divide-divider">
+            {applePayCardMappings.map(mapping => (
+              <div key={mapping.cardKey} className="p-4 space-y-2.5">
+                <div className="flex items-center gap-3">
+                  <div className="flex-1 min-w-0">
+                    <p className="text-sm font-medium text-primary truncate">{mapping.cardLabel}</p>
+                    <p className="text-[11px] text-secondary mt-0.5">Conto usato automaticamente</p>
+                  </div>
+                  <button type="button" onClick={() => removeApplePayCardMapping(mapping.cardKey)}
+                    className="text-[12px] font-medium text-red px-2 py-1 flex-none">Rimuovi</button>
+                </div>
+                <select value={mapping.accountId}
+                  onChange={e => saveApplePayCardMapping({ ...mapping, accountId: e.target.value })}
+                  className="w-full bg-elevated rounded-xl px-3 py-2.5 text-sm text-primary outline-none focus:ring-1 focus:ring-gold/40">
+                  {visibleAccounts.map(a => <option key={a.id} value={a.id}>{a.icon} {a.label}</option>)}
+                </select>
+              </div>
+            ))}
+          </div>
+        )}
+      </div>
 
       {/* Generate */}
       <div className="bg-card rounded-2xl p-4 space-y-3">
@@ -87,7 +124,7 @@ export function ExpenseShortcutSection() {
           disabled={generating}
           className="w-full py-3 rounded-xl bg-gold text-bg text-sm font-semibold active:scale-[0.98] transition-transform disabled:opacity-50"
         >
-          {generating ? 'Generazione…' : 'Genera token e apri la Shortcut'}
+          {generating ? 'Generazione…' : 'Genera token e apri la Shortcut spese'}
         </button>
         {genError && <p className="text-xs text-red px-0.5">{genError}</p>}
       </div>

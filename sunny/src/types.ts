@@ -89,6 +89,40 @@ export interface AccountDef {
                            // hidden from every picker / management / planning list.
 }
 
+/** Apple Wallet card → Sunny account association. `cardKey` is a normalized,
+ *  stable key produced by the receiving Cloud Function; `cardLabel` is only for
+ *  display in Settings. Existing users have an empty list by default. */
+export interface ApplePayCardMapping {
+  cardKey: string;
+  cardLabel: string;
+  accountId: string;
+}
+
+export type ApplePayPendingStatus = 'pending' | 'confirmed' | 'ignored';
+
+/** A Wallet payment received from the iOS automation but not yet booked.
+ *  Pending payments live in a dedicated collection and therefore never affect
+ *  balances/statistics until the review modal creates real transactions. */
+export interface ApplePayPendingPayment {
+  id: string;
+  schemaVersion: 1;
+  eventId: string;
+  source: 'apple_pay';
+  status: ApplePayPendingStatus;
+  amount: number;
+  currency: string;
+  date: string;
+  merchant: string;
+  description: string;
+  cardKey: string;
+  cardLabel: string;
+  accountId?: string;
+  receivedAt: number;
+  confirmedAt?: number;
+  ignoredAt?: number;
+  confirmedTransactionIds?: string[];
+}
+
 export interface Transaction {
   id: string;
   date: string;          // YYYY-MM-DD
@@ -109,6 +143,12 @@ export interface Transaction {
   projected?: boolean;   // CLIENT-ONLY: a virtual future occurrence — NEVER persisted to Firestore
   demo?: boolean;        // written by onboarding demo data; removable from Settings
   createdAt?: number;    // ms epoch — when this document was created; used to break same-date sort ties
+  /** Provenance for movements created by an iOS Shortcut. Absent for every
+   *  existing/manual transaction, so this is fully backwards-compatible. */
+  source?: 'shortcut' | 'apple_pay';
+  /** Id of the source event/pending document, used to make confirmations
+   *  traceable and idempotent. */
+  sourceId?: string;
   /** Investments only: explicit market-value delta this movement applies to the
    *  category's currentValue, when it differs from ±amount (e.g. a withdrawal's
    *  'out' leg carries capitaleRimborsato but must drop the value by the full

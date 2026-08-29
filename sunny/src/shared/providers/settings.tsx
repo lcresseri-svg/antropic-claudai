@@ -2,7 +2,7 @@ import { createContext, useContext, useEffect, useState, useCallback, useMemo, R
 import { doc, onSnapshot, setDoc } from 'firebase/firestore';
 import { User } from 'firebase/auth';
 import { db } from '../../lib/firebase';
-import { CategoryDef, AccountDef } from '../../types';
+import { CategoryDef, AccountDef, ApplePayCardMapping } from '../../types';
 import {
   DEFAULT_CATEGORIES, DEFAULT_ACCOUNTS, FALLBACK_CATEGORY, FALLBACK_ACCOUNT,
   SYSTEM_CATEGORIES,
@@ -15,6 +15,7 @@ export type InsightDepth = 'minimal' | 'medium' | 'advanced';
 interface SettingsValue {
   categories: CategoryDef[];           // full source of truth (incl. archived) — editing + getCat
   accounts: AccountDef[];              // full source of truth (incl. archived) — editing + getAcc
+  applePayCardMappings: ApplePayCardMapping[];
   visibleCategories: CategoryDef[];    // non-archived — pickers / enumerations / planning
   visibleAccounts: AccountDef[];       // non-archived — pickers / enumerations / planning
   theme: Theme;
@@ -37,6 +38,8 @@ interface SettingsValue {
   getAcc: (id: string) => AccountDef;
   saveCategories: (c: CategoryDef[]) => void;
   saveAccounts: (a: AccountDef[]) => void;
+  saveApplePayCardMapping: (mapping: ApplePayCardMapping) => void;
+  removeApplePayCardMapping: (cardKey: string) => void;
   saveTheme: (t: Theme) => void;
   saveIncludeInvestments: (v: boolean) => void;
   saveEnableInvestments: (v: boolean) => void;
@@ -85,6 +88,7 @@ function initialTheme(): Theme {
 export function SettingsProvider({ user, children }: { user: User | null; children: ReactNode }) {
   const [categories, setCategories] = useState<CategoryDef[]>(DEFAULT_CATEGORIES);
   const [accounts, setAccounts] = useState<AccountDef[]>(DEFAULT_ACCOUNTS);
+  const [applePayCardMappings, setApplePayCardMappings] = useState<ApplePayCardMapping[]>([]);
   const [theme, setTheme] = useState<Theme>(initialTheme);
   const [includeInvestments, setIncludeInvestments] = useState(true);
   const [enableInvestments, setEnableInvestments] = useState(true);
@@ -107,6 +111,7 @@ export function SettingsProvider({ user, children }: { user: User | null; childr
     if (!user) {
       setCategories(DEFAULT_CATEGORIES);
       setAccounts(DEFAULT_ACCOUNTS);
+      setApplePayCardMappings([]);
       setTheme(initialTheme());
       setIncludeInvestments(true);
       setEnableInvestments(true);
@@ -136,6 +141,13 @@ export function SettingsProvider({ user, children }: { user: User | null; childr
       const d = snap.data();
       setCategories((d.categories as CategoryDef[]) ?? DEFAULT_CATEGORIES);
       setAccounts((d.accounts as AccountDef[]) ?? DEFAULT_ACCOUNTS);
+      setApplePayCardMappings(
+        Array.isArray(d.applePayCardMappings)
+          ? (d.applePayCardMappings as ApplePayCardMapping[]).filter(m =>
+              !!m && typeof m.cardKey === 'string' && typeof m.cardLabel === 'string'
+              && typeof m.accountId === 'string')
+          : [],
+      );
       setTheme((d.theme as Theme) ?? systemTheme());
       setIncludeInvestments(d.includeInvestments ?? true);
       setEnableInvestments(d.enableInvestments ?? true);
@@ -166,6 +178,21 @@ export function SettingsProvider({ user, children }: { user: User | null; childr
     setAccounts(a);
     if (user) setDoc(settingsRef(), { accounts: a }, MERGE);
   }, [user, settingsRef]);
+
+  const saveApplePayCardMapping = useCallback((mapping: ApplePayCardMapping) => {
+    const next = [
+      ...applePayCardMappings.filter(m => m.cardKey !== mapping.cardKey),
+      mapping,
+    ].slice(-50);
+    setApplePayCardMappings(next);
+    if (user) setDoc(settingsRef(), { applePayCardMappings: next }, MERGE);
+  }, [applePayCardMappings, user, settingsRef]);
+
+  const removeApplePayCardMapping = useCallback((cardKey: string) => {
+    const next = applePayCardMappings.filter(m => m.cardKey !== cardKey);
+    setApplePayCardMappings(next);
+    if (user) setDoc(settingsRef(), { applePayCardMappings: next }, MERGE);
+  }, [applePayCardMappings, user, settingsRef]);
 
   const saveTheme = useCallback((t: Theme) => {
     setTheme(t);
@@ -247,7 +274,7 @@ export function SettingsProvider({ user, children }: { user: User | null; childr
   );
 
   return (
-    <SettingsContext.Provider value={{ categories, accounts, visibleCategories, visibleAccounts, theme, includeInvestments, enableInvestments, enableBudget, insightDepth, aiEnabled, aiCoachWidgetEnabled, cashReserve, homeOrder, detailedInvestments, settingsLoaded, getCat, getAcc, saveCategories, saveAccounts, saveTheme, saveIncludeInvestments, saveEnableInvestments, saveEnableBudget, saveInsightDepth, saveAiEnabled, saveAiCoachWidgetEnabled, saveCashReserve, saveHomeOrder, saveCurrentValue }}>
+    <SettingsContext.Provider value={{ categories, accounts, applePayCardMappings, visibleCategories, visibleAccounts, theme, includeInvestments, enableInvestments, enableBudget, insightDepth, aiEnabled, aiCoachWidgetEnabled, cashReserve, homeOrder, detailedInvestments, settingsLoaded, getCat, getAcc, saveCategories, saveAccounts, saveApplePayCardMapping, removeApplePayCardMapping, saveTheme, saveIncludeInvestments, saveEnableInvestments, saveEnableBudget, saveInsightDepth, saveAiEnabled, saveAiCoachWidgetEnabled, saveCashReserve, saveHomeOrder, saveCurrentValue }}>
       {children}
     </SettingsContext.Provider>
   );

@@ -16,6 +16,15 @@ interface Props {
   groupTransfers?: Transaction[];
   seriesEdit?: boolean;
   defaultType?: TransactionType;
+  /** Pre-populate a brand-new movement (Apple Pay review inbox). */
+  initialValues?: Partial<Omit<Transaction, 'id'>>;
+  /** Await non-investment writes and keep the modal open on failure. */
+  awaitSave?: boolean;
+  /** Hide the "+1" action for one-shot review flows. */
+  singleSave?: boolean;
+  title?: string;
+  sourceBanner?: string;
+  saveLabel?: string;
   /** Admin-only category recognizer (L1 history + L2 keywords). Absent → the
    *  non-admin path: plain `guessCategory`, behaviour unchanged. */
   recognize?: (description: string, candidates: Candidate[]) => Recognition | null;
@@ -60,7 +69,7 @@ const r2 = (n: number) => Math.round(n * 100) / 100;
 const today = () => new Date().toISOString().slice(0, 10);
 const yesterday = () => { const d = new Date(); d.setDate(d.getDate() - 1); return d.toISOString().slice(0, 10); };
 
-export function TransactionModal({ open, editing, groupTransfers = [], seriesEdit = false, defaultType, recognize, transactions = [], onRegisterRefund, onEditRefund, onClose, onSave }: Props) {
+export function TransactionModal({ open, editing, groupTransfers = [], seriesEdit = false, defaultType, initialValues, awaitSave = false, singleSave = false, title, sourceBanner, saveLabel, recognize, transactions = [], onRegisterRefund, onEditRefund, onClose, onSave }: Props) {
   const { categories, accounts, visibleCategories, visibleAccounts, enableInvestments, detailedInvestments, theme, getAcc } = useSettings();
   const [type, setType] = useState<TransactionType>('expense');
   const [description, setDescription] = useState('');
@@ -147,9 +156,16 @@ export function TransactionModal({ open, editing, groupTransfers = [], seriesEdi
       else { setSpreadChoice('custom'); setSpreadCustom(String(sp)); }
     } else {
       const lastAcc = localStorage.getItem('sunny:lastAccount');
-      setType(defaultType ?? 'expense'); setDescription(''); setAmount(''); setDate(today());
-      setCategory('');
-      setAccount((lastAcc && visibleAccounts.some(a => a.id === lastAcc)) ? lastAcc : (visibleAccounts[0]?.id ?? ''));
+      const initialAccount = initialValues?.account;
+      setType(initialValues?.type ?? defaultType ?? 'expense');
+      setDescription(initialValues?.description ?? '');
+      setDescOpen(!!initialValues?.description);
+      setAmount(initialValues?.amount && initialValues.amount > 0 ? String(initialValues.amount) : '');
+      setDate(initialValues?.date ?? today());
+      setCategory(initialValues?.category ?? '');
+      setAccount(initialAccount && visibleAccounts.some(a => a.id === initialAccount)
+        ? initialAccount
+        : ((lastAcc && visibleAccounts.some(a => a.id === lastAcc)) ? lastAcc : (visibleAccounts[0]?.id ?? '')));
       setToAccount(visibleAccounts[1]?.id ?? ''); setNotes('');
       setIsShared(false); setReimbursements([]);
       setSeriesKind('none'); setRecurringFreq('monthly'); setRecurringUntil('');
@@ -160,13 +176,13 @@ export function TransactionModal({ open, editing, groupTransfers = [], seriesEdi
     setSaving(false); setSaveError(false);
     setAmountError(false);
     setKeypad('amount');
-    setCategoryTouched(!!editing);
+    setCategoryTouched(!!editing || !!initialValues?.category);
     setConfirmDelete(false);
     setAdvancedOpen(false);
     const hasGroup = !!editing && editing.type === 'expense' && !!editing.groupId
       && groupTransfers.some(t => t.type === 'transfer');
     setShowMore(!!editing && (!!editing.recurring || hasGroup || !!editing.shared));
-  }, [open, editing, groupTransfers.length]);
+  }, [open, editing, groupTransfers.length, initialValues?.sourceId]);
 
   useScrollLock(open);
 
@@ -191,6 +207,26 @@ export function TransactionModal({ open, editing, groupTransfers = [], seriesEdi
     if (type === 'transfer') return;
     if (!typeCats.some(c => c.id === category)) setCategory(typeCats[0]?.id ?? '');
   }, [type, categories]);
+
+  // A Wallet merchant arrives already in the description field, so its initial
+  // value never fires onChange. Apply the normal recognizer once on review open.
+  useEffect(() => {
+    if (!open || editing || !initialValues || initialValues.category) return;
+    const text = (initialValues.description ?? '').trim();
+    if (!text || type === 'transfer') return;
+    const recognized = recognize?.(text, typeCats);
+    const suggested = recognized && recognized.confidence >= RECOGNITION_THRESHOLD
+      ? recognized.categoryId
+      : guessCategory(text, typeCats);
+    if (suggested) {
+      setCategory(suggested);
+      setCategoryTouched(false);
+    } else {
+      // The category effect will select the first valid option as a fallback,
+      // but it must not be presented as a merchant-based suggestion.
+      setCategoryTouched(true);
+    }
+  }, [open, editing, initialValues?.sourceId, type, recognize]);
 
   // L'ordine dei CHIP lo decide l'uso reale (frequenza + quanto di recente),
   // non il solo ordine manuale di Impostazioni — che resta il tie-break a
@@ -321,7 +357,7 @@ export function TransactionModal({ open, editing, groupTransfers = [], seriesEdi
     const involvesInvestment = editing?.type === 'investment'
       || create.some(t => t.type === 'investment')
       || groupTransfers.some(t => t.type === 'investment');
-    if (!involvesInvestment) {
+    if (!involvesInvestment && !awaitSave) {
       Promise.resolve(onSave(deleteIds, create)).catch(e =>
         console.error('save failed', (e as { code?: string })?.code ?? e));
       if (keepOpen && !editing) { resetKeepContext(); } else { onClose(); }
@@ -522,7 +558,7 @@ export function TransactionModal({ open, editing, groupTransfers = [], seriesEdi
             </div>
           ) : (
             <h2 className="flex-1 text-base font-semibold text-primary text-center">
-              {seriesEdit ? 'Modifica serie' : editing ? 'Modifica' : 'Nuova transazione'}
+              {title ?? (seriesEdit ? 'Modifica serie' : editing ? 'Modifica' : 'Nuova transazione')}
             </h2>
           )}
           <span className="w-8 flex-none" aria-hidden />
@@ -533,6 +569,12 @@ export function TransactionModal({ open, editing, groupTransfers = [], seriesEdi
           {seriesEdit && (
             <p className="text-[11px] text-secondary bg-elevated rounded-xl px-3 py-2 leading-snug">
               🔁 Stai modificando l'intera serie. Le modifiche valgono per le occorrenze future; le voci già registrate non cambiano.
+            </p>
+          )}
+
+          {sourceBanner && (
+            <p className="text-[11.5px] text-secondary bg-gold/10 border border-gold/15 rounded-xl px-3 py-2.5 leading-snug">
+              {sourceBanner}
             </p>
           )}
 
@@ -728,7 +770,7 @@ export function TransactionModal({ open, editing, groupTransfers = [], seriesEdi
               </div>
               <DateField date={date} td={td} yd={yd} setDate={setDate} seriesEdit={seriesEdit} />
             </>
-          ) : quickMode ? (
+          ) : quickMode && !initialValues ? (
             /* Quick mode: conto + data collapsed under "Dettagli avanzati" */
             <>
               <button type="button" onClick={() => setAdvancedOpen(s => !s)}
@@ -1079,10 +1121,10 @@ export function TransactionModal({ open, editing, groupTransfers = [], seriesEdi
                 <button type="submit" disabled={saving}
                   className="row-span-2 col-start-4 row-start-1 rounded-2xl cta-gold-fill text-[15px] font-semibold
                              active:scale-[0.98] transition-transform disabled:opacity-60">
-                  {saving ? '…' : saveError ? 'Riprova' : editing ? 'Salva' : 'Salva'}
+                  {saving ? '…' : saveError ? 'Riprova' : saveLabel ?? 'Salva'}
                 </button>
 
-                {!editing ? (
+                {!editing && !singleSave ? (
                   <button type="button" onClick={() => doSubmit(true)} disabled={saving}
                     className="row-span-2 col-start-4 row-start-3 rounded-2xl bg-elevated text-primary text-[15px] font-semibold
                                active:scale-[0.98] transition-transform disabled:opacity-60">
@@ -1092,7 +1134,7 @@ export function TransactionModal({ open, editing, groupTransfers = [], seriesEdi
                   <span className="row-span-2 col-start-4 row-start-3" aria-hidden />
                 )}
               </div>
-              {!editing && (
+              {!editing && !singleSave && (
                 <p className="text-[12px] text-secondary text-center mt-2">
                   <span className="font-semibold text-primary">+1</span> salva e riapre subito la modale.
                 </p>
@@ -1104,10 +1146,10 @@ export function TransactionModal({ open, editing, groupTransfers = [], seriesEdi
               <button type="submit" disabled={saving}
                 className="w-full py-3 rounded-2xl font-semibold transition-transform active:scale-[0.98] disabled:opacity-60"
                 style={{ backgroundColor: typeColor(type, theme), color: typeOnColor(theme) }}>
-                {saving ? 'Salvataggio…' : saveError ? 'Riprova' : editing ? 'Salva modifiche' : `Aggiungi ${TYPE_META[type].label.toLowerCase()}`}
+                {saving ? 'Salvataggio…' : saveError ? 'Riprova' : saveLabel ?? (editing ? 'Salva modifiche' : `Aggiungi ${TYPE_META[type].label.toLowerCase()}`)}
               </button>
 
-              {!editing && (
+              {!editing && !singleSave && (
                 <button type="button" onClick={() => doSubmit(true)} disabled={saving}
                   className="w-full py-2.5 rounded-2xl text-sm font-medium text-secondary bg-elevated active:bg-card-hover transition-colors disabled:opacity-60">
                   Salva e aggiungi un'altra

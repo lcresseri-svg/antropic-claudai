@@ -112,7 +112,7 @@ jobs:
       #    must be added here or it will never be deployed.
       - name: Deploy HTTP functions
         if: github.event_name == 'push'
-        run: npx -y firebase-tools@${FIREBASE_TOOLS_VERSION} deploy --only functions:generateDigest,functions:sendTestPush,functions:generateAffordabilityAdvice,functions:issueExpenseToken,functions:listExpenseTokens,functions:revokeExpenseToken,functions:getExpenseOptions,functions:addExpense,functions:testMetricsRollup --project sunny-a2a98 --non-interactive --force
+        run: npx -y firebase-tools@${FIREBASE_TOOLS_VERSION} deploy --only functions:generateDigest,functions:sendTestPush,functions:generateAffordabilityAdvice,functions:issueExpenseToken,functions:listExpenseTokens,functions:revokeExpenseToken,functions:getExpenseOptions,functions:addExpense,functions:receiveApplePayPayment,functions:testMetricsRollup --project sunny-a2a98 --non-interactive --force
 
       # 2) Scheduled + trigger functions — require the service-agent IAM
       #    bindings. If this step fails with an IAM error, an owner must grant

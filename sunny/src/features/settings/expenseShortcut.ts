@@ -1,7 +1,7 @@
-// Client helpers for the admin-only "Expense Shortcut" feature. Mirrors the
+// Client helpers for the per-user "Expense Shortcut" feature. Mirrors the
 // onRequest + Bearer(ID token) pattern used by the AI Coach (aiCoachUtils.ts):
 // the Cloud Functions are plain HTTP endpoints, authenticated with the current
-// user's Firebase ID token. Everything here is gated to the admin in the UI.
+// user's Firebase ID token.
 
 import { getAuth } from 'firebase/auth';
 

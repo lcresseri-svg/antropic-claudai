@@ -10,6 +10,8 @@ import { isForecastV4EnabledForUser } from '../features/forecast/forecastFeature
 import { DashboardV2 } from '../features/dashboard/DashboardV2';
 import { BudgetDisabled } from '../features/budget/BudgetDisabled';
 import type { useTransactionEditing } from './useTransactionEditing';
+import type { ApplePayPendingPayment } from '../types';
+import { ApplePayPendingCard } from '../features/applePay/ApplePayPendingCard';
 
 // Non-essential screens load on demand: the home renders immediately while the
 // rest of the bundle stays out of the critical path.
@@ -77,12 +79,17 @@ interface AppRoutesProps {
   tx: ReturnType<typeof useTransactions>;
   budget: ReturnType<typeof useBudget>;
   editing: ReturnType<typeof useTransactionEditing>;
+  applePayPayments: ApplePayPendingPayment[];
+  applePayLoading: boolean;
+  applePayError: string | null;
+  onReviewApplePay: (payment: ApplePayPendingPayment) => void;
+  onIgnoreApplePay: (id: string) => Promise<void>;
   onLogOut: () => void;
   onDeleteAccount: () => Promise<void>;
   onImport: () => void;
 }
 
-export function AppRoutes({ user, brand, tx, budget, editing, onLogOut, onDeleteAccount, onImport }: AppRoutesProps) {
+export function AppRoutes({ user, brand, tx, budget, editing, applePayPayments, applePayLoading, applePayError, onReviewApplePay, onIgnoreApplePay, onLogOut, onDeleteAccount, onImport }: AppRoutesProps) {
   const navigate = useNavigate();
   const {
     visibleCategories, visibleAccounts, categories, includeInvestments,
@@ -102,11 +109,22 @@ export function AppRoutes({ user, brand, tx, budget, editing, onLogOut, onDelete
     return { controvalore, versato: tx.investmentTotal };
   }, [enableInvestments, categories, tx.investmentTotal, tx.investmentByCategory]);
 
+  const applePayCard = (
+    <ApplePayPendingCard
+      payments={applePayPayments}
+      loading={applePayLoading}
+      error={applePayError}
+      onReview={onReviewApplePay}
+      onIgnore={onIgnoreApplePay}
+    />
+  );
+
   return (
     <Suspense fallback={<RouteFallback />}>
       <Routes>
         <Route path="/" element={
           <div className={`md:mx-auto md:max-w-[720px] ${W.home}`}>
+          {applePayCard}
           <DashboardV2
             greeting={brand}
             netWorth={tx.netWorth} liquidity={tx.liquidity} investmentTotal={tx.investmentTotal}
@@ -182,6 +200,7 @@ export function AppRoutes({ user, brand, tx, budget, editing, onLogOut, onDelete
         } />
         <Route path="/transactions" element={
           <div className={page(W.list)}>
+            {applePayCard}
             {/* Il titolo sta dentro la lista, nell'header da 56px insieme a
                 ricerca e selezione multipla. */}
             <TransactionList
