@@ -120,7 +120,7 @@ export function aggregateAccountFlow(
   }
 
   const transferNet = transferIn - transferOut;
-  const closingBalance =  openingBalance  + income  + refundsReceived  - expense  - investment  + transferNet;
+  const closingBalance = balanceAsOf(transactions, account, endISO);
   return {
     accountId: account.id,
     openingBalance,
