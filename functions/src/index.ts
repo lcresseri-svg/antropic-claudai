@@ -33,6 +33,7 @@ export {
   revokeExpenseToken,
   getExpenseOptions,
   addExpense,
+  receiveApplePayPayment,
 } from './shortcuts';
 export { rollupMetrics, testMetricsRollup } from './metrics';
 export { onUserDeleted } from './deletion';

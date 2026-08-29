@@ -20,7 +20,7 @@ import {
   initializeTestEnvironment, assertSucceeds, assertFails,
   type RulesTestEnvironment,
 } from '@firebase/rules-unit-testing';
-import { doc, setDoc, getDoc, deleteDoc } from 'firebase/firestore';
+import { doc, setDoc, getDoc, deleteDoc, updateDoc } from 'firebase/firestore';
 
 let env: RulesTestEnvironment;
 const A = 'userA';
@@ -143,6 +143,18 @@ describe('transaction validation', () => {
       validTxn({ type: 'investment', direction: 'in' })));
   });
 
+  it('accepts Shortcut provenance and rejects malformed source metadata', async () => {
+    const db = dbOf(A);
+    await assertSucceeds(setDoc(doc(db, `users/${A}/transactions/ap1`),
+      validTxn({ source: 'apple_pay', sourceId: 'pending-123' })));
+    await assertSucceeds(setDoc(doc(db, `users/${A}/transactions/sc1`),
+      validTxn({ source: 'shortcut' })));
+    await assertFails(setDoc(doc(db, `users/${A}/transactions/apb1`),
+      validTxn({ source: 'wallet' })));
+    await assertFails(setDoc(doc(db, `users/${A}/transactions/apb2`),
+      validTxn({ source: 'apple_pay', sourceId: 'x'.repeat(129) })));
+  });
+
   it('accepts valid seriesMeta (subscription / installment), rejects malformed', async () => {
     const db = dbOf(A);
     await assertSucceeds(setDoc(doc(db, `users/${A}/transactions/s1`),
@@ -189,6 +201,12 @@ describe('meta/* specific rules', () => {
       { theme: 'system' })); // legacy value stays accepted
     await assertFails(setDoc(doc(db, `users/${A}/meta/settings`), { theme: 'neon' }));
     await assertFails(setDoc(doc(db, `users/${A}/meta/settings`), { enableBudget: 'yes' }));
+    await assertSucceeds(setDoc(doc(db, `users/${A}/meta/settings`), {
+      applePayCardMappings: [{ cardKey: 'card-1', cardLabel: 'Visa', accountId: 'cc' }],
+    }));
+    await assertFails(setDoc(doc(db, `users/${A}/meta/settings`), {
+      applePayCardMappings: Array.from({ length: 51 }, (_, i) => ({ cardKey: `c${i}` })),
+    }));
     // Riserva di sicurezza (liquidità disponibile): numero mai negativo.
     await assertSucceeds(setDoc(doc(db, `users/${A}/meta/settings`), { cashReserve: 0 }));
     await assertSucceeds(setDoc(doc(db, `users/${A}/meta/settings`), { cashReserve: 1500 }));
@@ -317,6 +335,42 @@ describe('expenseTokens', () => {
     const db = dbOf(A);
     await assertFails(getDoc(doc(db, 'expenseTokens/abc')));
     await assertFails(setDoc(doc(db, 'expenseTokens/abc'), { uid: A }));
+  });
+});
+
+describe('Apple Pay pending inbox', () => {
+  const pending = (over: Record<string, unknown> = {}) => ({
+    schemaVersion: 1, eventId: 'evt-1', source: 'apple_pay', status: 'pending',
+    amount: 12.5, currency: 'EUR', date: '2026-08-29', merchant: 'Negozio',
+    description: 'Negozio', cardKey: 'card-key', cardLabel: 'Visa',
+    receivedAt: Date.now(), ...over,
+  });
+
+  async function seed(id: string) {
+    await env.withSecurityRulesDisabled(async ctx => {
+      await setDoc(doc(ctx.firestore(), `users/${A}/applePayPending/${id}`), pending());
+    });
+  }
+
+  it('owner can read and confirm, but cannot create directly', async () => {
+    await seed('p1');
+    const db = dbOf(A);
+    const ref = doc(db, `users/${A}/applePayPending/p1`);
+    await assertSucceeds(getDoc(ref));
+    await assertFails(setDoc(doc(db, `users/${A}/applePayPending/direct`), pending()));
+    await assertSucceeds(updateDoc(ref, {
+      status: 'confirmed', confirmedAt: Date.now(), confirmedTransactionIds: ['t1'],
+    }));
+    // Terminal state: a second confirmation/update is denied.
+    await assertFails(updateDoc(ref, { confirmedAt: Date.now() + 1 }));
+  });
+
+  it('owner can ignore; captured data and other users remain protected', async () => {
+    await seed('p2');
+    const own = doc(dbOf(A), `users/${A}/applePayPending/p2`);
+    await assertFails(updateDoc(own, { amount: 1 }));
+    await assertSucceeds(updateDoc(own, { status: 'ignored', ignoredAt: Date.now() }));
+    await assertFails(getDoc(doc(dbOf(B), `users/${A}/applePayPending/p2`)));
   });
 });
 

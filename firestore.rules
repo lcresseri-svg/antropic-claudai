@@ -50,6 +50,8 @@ service cloud.firestore {
         && (!('seriesId' in d) || vStr(d.seriesId, 128))
         && (!('groupId' in d) || vStr(d.groupId, 128))
         && (!('demo' in d) || d.demo is bool)
+        && (!('source' in d) || d.source in ['shortcut', 'apple_pay'])
+        && (!('sourceId' in d) || vStr(d.sourceId, 128))
         // Controvalore sync (investments): optional explicit value delta and
         // the bookkeeping stamp of the delta actually applied. Bounded numbers
         // only — the same anti-DoS cap used for amount.
@@ -109,6 +111,7 @@ service cloud.firestore {
         allow write: if owner(userId)
           && (!('categories' in request.resource.data) || (request.resource.data.categories is list && request.resource.data.categories.size() <= 500))
           && (!('accounts' in request.resource.data) || (request.resource.data.accounts is list && request.resource.data.accounts.size() <= 200))
+          && (!('applePayCardMappings' in request.resource.data) || (request.resource.data.applePayCardMappings is list && request.resource.data.applePayCardMappings.size() <= 50))
           && (!('theme' in request.resource.data) || request.resource.data.theme in ['system', 'dark', 'light'])
           && (!('insightDepth' in request.resource.data) || request.resource.data.insightDepth in ['minimal', 'medium', 'advanced'])
           && (!('enableInvestments' in request.resource.data) || request.resource.data.enableInvestments is bool)
@@ -259,6 +262,30 @@ service cloud.firestore {
       match /events/{eventId} {
         allow read:   if owner(userId);
         allow create: if owner(userId) && validEvent(request.resource.data);
+      }
+
+      // Wallet payments arrive only through the token-authenticated Cloud
+      // Function (Admin SDK). The owner may read them and perform the two
+      // terminal transitions used by the review UI; direct create/delete and
+      // edits to the captured amount/card/merchant are denied.
+      match /applePayPending/{pendingId} {
+        allow read: if owner(userId);
+        allow create, delete: if false;
+        allow update: if owner(userId)
+          && resource.data.status == 'pending'
+          && request.resource.data.diff(resource.data).affectedKeys().hasOnly([
+            'status', 'confirmedAt', 'confirmedTransactionIds', 'ignoredAt'
+          ])
+          && (
+            (request.resource.data.status == 'confirmed'
+              && request.resource.data.confirmedAt is number
+              && request.resource.data.confirmedTransactionIds is list
+              && request.resource.data.confirmedTransactionIds.size() >= 1
+              && request.resource.data.confirmedTransactionIds.size() <= 20)
+            ||
+            (request.resource.data.status == 'ignored'
+              && request.resource.data.ignoredAt is number)
+          );
       }
     }
 

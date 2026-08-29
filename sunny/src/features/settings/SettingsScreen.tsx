@@ -460,7 +460,7 @@ export function SettingsScreen({ user, transactions, budgetExport, onLogOut, onD
               <MenuSection title="I tuoi dati" query={menuQuery}>
                 <Row icon="🗂️" color="#6FA8DC" label="Conti e categorie" sub="Saldi, icone, ordine" onClick={() => enterSub('gestione')} />
                 <Row icon="💾" color="#8A9270" label="Importa, esporta, elimina" sub="CSV, backup, cancellazione" onClick={() => enterSub('dati')} />
-                <Row icon="⚡" color="#E6B95C" label="Aggiungi spese da iPhone" sub="Scorciatoia iOS" onClick={() => enterSub('shortcut')} />
+                <Row icon="⚡" color="#E6B95C" label="Comandi rapidi e Apple Pay" sub="Automazioni iPhone" onClick={() => enterSub('shortcut')} />
               </MenuSection>
 
               {push.supported && (
@@ -824,7 +824,7 @@ export function SettingsScreen({ user, transactions, budgetExport, onLogOut, onD
 
       {sub === 'shortcut' && (
         <>
-          <ManageHeader title="Spese da iPhone" editMode={false} onBack={exitToMenu} onToggleEdit={() => {}} hideEdit />
+          <ManageHeader title="Comandi rapidi e Apple Pay" editMode={false} onBack={exitToMenu} onToggleEdit={() => {}} hideEdit />
           <ExpenseShortcutSection />
         </>
       )}

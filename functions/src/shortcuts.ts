@@ -13,7 +13,7 @@ import {
 // bearer token (NOT a Firebase session). Available to ALL signed-in users: each
 // user mints/manages tokens for THEIR OWN account (issueExpenseToken &co), and a
 // token grants writes only to its owner's data. The runtime endpoints
-// (getExpenseOptions / addExpense) trust the minted token.
+// (getExpenseOptions / addExpense / receiveApplePayPayment) trust the minted token.
 //
 // STYLE NOTE — onRequest, not onCall: this whole codebase authenticates HTTP
 // endpoints with a Bearer header on purpose. The callable (onCall) protocol was
@@ -27,8 +27,8 @@ import {
 // ─────────────────────────────────────────────────────────────────────────────
 
 const EXPENSE_SCOPE = 'expenses:write';
-// Per-token safety cap: max authenticated requests in a rolling hour → 429. One
-// shortcut run spends 2 (getExpenseOptions + addExpense), so ~15 adds/hour.
+// Per-token safety cap: max authenticated requests in a rolling hour → 429. A
+// manual add spends 2 (options + write); one Wallet delivery spends 1.
 const MAX_EXPENSE_REQS_PER_HOUR = 30;
 
 const sha256 = (s: string): string => createHash('sha256').update(s).digest('hex');
@@ -42,6 +42,12 @@ interface ExpenseTokenDoc {
   label?: string;
   rateWindowStart?: number; // ms epoch — start of the current rate-limit window
   rateCount?: number;       // requests counted in the current window
+}
+
+interface ApplePayCardMappingDoc {
+  cardKey?: string;
+  cardLabel?: string;
+  accountId?: string;
 }
 
 type ExpenseAuth =
@@ -289,6 +295,7 @@ export const addExpense = onRequest(
         category: cat.id as string,
         account: acc.id as string,
         createdAt: Date.now(),
+        source: 'shortcut',
       });
       const ref = await db.collection(`users/${auth.uid}/transactions`).add(txData);
 
@@ -314,6 +321,149 @@ export const addExpense = onRequest(
       res.json({ ok: true, id: ref.id, summary });
     } catch (err) {
       logError('addExpense failed', err);
+      res.status(500).json({ ok: false, error: 'internal' });
+    }
+  },
+);
+
+// ── Apple Pay inbox ─────────────────────────────────────────────────────────
+
+/** Parse either a JSON number or the localized text Shortcuts commonly emits
+ *  ("12,50", "12,50 €", "1.234,56"). Missing/invalid amounts intentionally
+ *  become 0: the payment still reaches the review inbox and Sunny asks the user
+ *  to correct it before confirmation. */
+function parseApplePayAmount(raw: unknown): number {
+  if (typeof raw === 'number') return Number.isFinite(raw) ? raw : 0;
+  let s = String(raw ?? '').trim().replace(/[^0-9,.-]/g, '');
+  if (!s) return 0;
+  const comma = s.lastIndexOf(',');
+  const dot = s.lastIndexOf('.');
+  if (comma >= 0 && dot >= 0) {
+    s = comma > dot ? s.replace(/\./g, '').replace(',', '.') : s.replace(/,/g, '');
+  } else if (comma >= 0) {
+    s = s.replace(',', '.');
+  }
+  const n = Number(s);
+  return Number.isFinite(n) && n >= 0 && n <= 1000000000 ? Math.round(n * 100) / 100 : 0;
+}
+
+function cleanText(raw: unknown, max: number): string {
+  return String(raw ?? '').trim().replace(/\s+/g, ' ').slice(0, max);
+}
+
+/** The label is preserved for display, while mappings use a normalized hash so
+ *  punctuation/case changes from Shortcuts do not create duplicate cards. */
+function applePayCardKey(label: string): string {
+  const normalized = label.normalize('NFKD').replace(/[\u0300-\u036f]/g, '')
+    .trim().toLowerCase().replace(/\s+/g, ' ');
+  return sha256(`apple-pay-card:${normalized || 'unknown'}`).slice(0, 32);
+}
+
+/** POST: receive a Wallet transaction and put it in the user's review inbox.
+ *  Authentication is deliberately the SAME minted expense token used by the
+ *  existing manual Shortcut, including tokens issued before this endpoint
+ *  existed. No final transaction is created here, so balances/statistics stay
+ *  untouched until the user confirms the payment in Sunny. */
+export const receiveApplePayPayment = onRequest(
+  { region: 'europe-west1', cors: ALLOWED_ORIGINS },
+  async (req, res) => {
+    try {
+      if (req.method !== 'POST') { res.status(405).json({ ok: false, error: 'method-not-allowed' }); return; }
+      if (bodyTooLarge(req)) { res.status(413).json({ ok: false, error: 'payload-too-large' }); return; }
+      const auth = await authExpenseToken(req.headers.authorization);
+      if (!auth.ok) { res.status(auth.status).json({ ok: false, error: auth.error }); return; }
+
+      const body = (req.body ?? {}) as {
+        eventId?: unknown;
+        amount?: unknown;
+        currency?: unknown;
+        merchant?: unknown;
+        description?: unknown;
+        card?: unknown;
+        date?: unknown;
+      };
+      const eventId = cleanText(body.eventId, 128);
+      if (!eventId) { res.status(400).json({ ok: false, error: 'missing-event-id' }); return; }
+
+      const amount = parseApplePayAmount(body.amount);
+      const currencyRaw = cleanText(body.currency, 8).toUpperCase();
+      const currency = /^[A-Z]{3}$/.test(currencyRaw) ? currencyRaw : 'EUR';
+      const merchant = cleanText(body.merchant, 160);
+      const suppliedDescription = cleanText(body.description, 500);
+      const description = suppliedDescription || merchant || 'Pagamento Apple Pay';
+      const cardLabel = cleanText(body.card, 160) || 'Carta Apple Pay';
+      const cardKey = applePayCardKey(cardLabel);
+      const dateRaw = cleanText(body.date, 10);
+      const date = /^\d{4}-\d{2}-\d{2}$/.test(dateRaw) ? dateRaw : todayRomeISO();
+
+      // Resolve the card against settings, but only keep a mapping whose account
+      // still exists and is not archived. Unknown cards simply reach the inbox
+      // without an account; the first confirmation can remember the choice.
+      const settingsSnap = await db.doc(`users/${auth.uid}/meta/settings`).get();
+      const settings = (settingsSnap.data() ?? {}) as {
+        accounts?: { id?: string; archived?: boolean }[];
+        applePayCardMappings?: ApplePayCardMappingDoc[];
+      };
+      const mapping = (settings.applePayCardMappings ?? []).find(m => m.cardKey === cardKey);
+      const mappedAccount = mapping?.accountId
+        ? (settings.accounts ?? []).find(a => a.id === mapping.accountId && !a.archived)
+        : undefined;
+      const accountId = mappedAccount?.id;
+
+      // eventId is generated once at the beginning of the Shortcut. Repeated
+      // network delivery of the same run points to the same document and is a
+      // no-op; two genuine purchases still receive different UUIDs.
+      const pendingId = sha256(`${auth.uid}:${eventId}`).slice(0, 40);
+      const ref = db.doc(`users/${auth.uid}/applePayPending/${pendingId}`);
+      let created = false;
+      await db.runTransaction(async tx => {
+        const existing = await tx.get(ref);
+        if (existing.exists) return;
+        tx.create(ref, dropUndefined({
+          schemaVersion: 1,
+          eventId,
+          source: 'apple_pay',
+          status: 'pending',
+          amount,
+          currency,
+          date,
+          merchant,
+          description,
+          cardKey,
+          cardLabel,
+          accountId,
+          receivedAt: Date.now(),
+        }));
+        created = true;
+      });
+
+      if (created) {
+        try {
+          const amountText = amount > 0
+            ? new Intl.NumberFormat('it-IT', { style: 'currency', currency }).format(amount)
+            : 'Importo da verificare';
+          const where = merchant || cardLabel;
+          await sendToUser(
+            auth.uid,
+            'Pagamento Apple Pay da confermare',
+            `${amountText} · ${where}`,
+            undefined,
+            'apple-pay-pending',
+          );
+        } catch (err) {
+          logError('receiveApplePayPayment: push failed (ignored)', err);
+        }
+      }
+
+      res.json({
+        ok: true,
+        id: pendingId,
+        duplicate: !created,
+        accountMatched: !!accountId,
+        summary: `${amount.toFixed(2)} ${currency} · ${merchant || 'Apple Pay'}`,
+      });
+    } catch (err) {
+      logError('receiveApplePayPayment failed', err);
       res.status(500).json({ ok: false, error: 'internal' });
     }
   },
