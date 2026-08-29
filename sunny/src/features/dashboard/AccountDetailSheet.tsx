@@ -64,6 +64,7 @@ export function AccountDetailSheet({
   //                  quindi non compaiono: vedi la nota sotto)
   const kpis: { label: string; value: string; tone?: string }[] = [];
   kpis.push({ label: 'Entrate', value: formatCurrency(flow.income), tone: flow.income > 0 ? 'text-green' : undefined });
+  kpis.push({  label: 'Storni',  value: formatCurrency(flow.refundsReceived),  tone: flow.refundsReceived > 0 ? 'text-green' : undefined,});
   kpis.push({ label: 'Uscite', value: formatCurrency(flow.expense), tone: flow.expense > 0 ? 'text-red' : undefined });
   kpis.push({ label: 'Investimenti', value: formatCurrency(flow.investment), tone: flow.investment > 0 ? 'text-gold' : undefined });
   if (depth === 'advanced') {
@@ -193,13 +194,14 @@ export function AccountDetailSheet({
 
 /** Deterministic one-liner naming the main driver of the period's balance change. */
 function deltaNote(
-  flow: { delta: number; income: number; expense: number; investment: number; transferNet: number },
+  flow: { delta: number; income: number; expense: number; investment: number; refundsReceived: number;  transferNet: number },
   accountLabel: string,
 ): string {
-  const { delta, income, expense, investment, transferNet } = flow;
+  const { delta, income, expense, investment, refundsReceived, transferNet } = flow;
   if (Math.abs(delta) < 1) return `Il saldo di ${accountLabel} è rimasto sostanzialmente stabile nel periodo.`;
   const drivers = [
     { k: 'le entrate', v: income },
+    { k: 'gli storni', v: refundsReceived },
     { k: 'le uscite', v: -expense },
     { k: 'un investimento', v: -investment },
     { k: 'i trasferimenti', v: transferNet },
