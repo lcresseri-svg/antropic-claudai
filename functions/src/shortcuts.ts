@@ -211,11 +211,11 @@ export const getExpenseOptions = onRequest(
 
       const settingsSnap = await db.doc(`users/${auth.uid}/meta/settings`).get();
       const settings = (settingsSnap.data() ?? {}) as {
-        categories?: { label?: string; kind?: string }[];
+        categories?: { label?: string; kind?: string; archived?: boolean }[];
         accounts?: { label?: string }[];
       };
       const categories = (settings.categories ?? [])
-        .filter(c => c.kind === 'expense' && (c.label ?? '').trim())
+        .filter(c => c.kind === 'expense' && !c.archived && (c.label ?? '').trim())
         .map(c => (c.label as string).trim());
       const accounts = (settings.accounts ?? [])
         .filter(a => (a.label ?? '').trim())
@@ -254,10 +254,11 @@ export const addExpense = onRequest(
       // user's settings. Category is matched among EXPENSE categories only.
       const settingsSnap = await db.doc(`users/${auth.uid}/meta/settings`).get();
       const settings = (settingsSnap.data() ?? {}) as {
-        categories?: { id?: string; label?: string; kind?: string; icon?: string }[];
+        categories?: { id?: string; label?: string; kind?: string; icon?: string; archived?: boolean }[];
         accounts?: { id?: string; label?: string }[];
       };
-      const expenseCats = (settings.categories ?? []).filter(c => c.kind === 'expense' && c.id && c.label);
+      const expenseCats = (settings.categories ?? [])
+        .filter(c => c.kind === 'expense' && !c.archived && c.id && c.label);
       const accs = (settings.accounts ?? []).filter(a => a.id && a.label);
 
       const norm = (s: unknown) => String(s ?? '').trim().toLowerCase();
