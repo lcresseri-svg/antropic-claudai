@@ -151,7 +151,7 @@ export function DashboardV2(p: Props) {
     <FreeCashHero
       freeCash={cash.available} liquidity={p.liquidity} committed={cash.committed}
       reserve={cash.reserve}
-      income={flow.cashIn} expenses={flow.expenses} invested={investedTotal}
+      income={flow.cashIn - flow.refundsReceived} expenses={p.monthlyExpenses} invested={investedTotal}
       showInvested={enableInvestments}
       onOpenIncome={() => navigate('/income')}
       onOpenExpenses={openCategories}
