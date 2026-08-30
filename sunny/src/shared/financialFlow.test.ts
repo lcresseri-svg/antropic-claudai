@@ -1,7 +1,7 @@
 import { describe, it, expect } from 'vitest';
 import { Transaction } from '../types';
 import {
-  tfrPortion, accountDelta, investedDelta, flowParts, netFlowDelta, aggregateFlow,
+  tfrPortion, accountDelta, investedDelta, flowParts, netFlowDelta, statisticalNetDelta, aggregateFlow,
 } from './financialFlow';
 
 const base = { id: 'x', date: '2026-07-10', description: 't', category: 'c' };
@@ -127,6 +127,19 @@ describe('flowParts / aggregateFlow — unified flow', () => {
     const sum = txs.reduce((s, t) => s + netFlowDelta(t), 0);
     expect(sum).toBeCloseTo(aggregateFlow(txs).netFlow, 6);
   });
+  it('statisticalNetDelta excludes refunds and attributes them to the original expense', () => {
+    const fullRefundedExpense = tx({ type: 'expense', amount: 125, refundedTotal: 125 });
+    const partialRefundedExpense = tx({ type: 'expense', amount: 125, refundedTotal: 25 });
+    const refund = tx({ type: 'refund', amount: 125, refundOf: fullRefundedExpense.id });
+
+    expect(statisticalNetDelta(fullRefundedExpense)).toBe(0);
+    expect(statisticalNetDelta(partialRefundedExpense)).toBe(-100);
+    expect(statisticalNetDelta(refund)).toBe(0);
+    // Cash remains faithful to the real account movements.
+    expect(netFlowDelta(fullRefundedExpense)).toBe(-125);
+    expect(netFlowDelta(refund)).toBe(125);
+  });
+
   it('flowParts of a plain expense uses ownShare', () => {
     expect(flowParts(tx({ type: 'expense', amount: 60, shared: 20 })).expenses).toBe(40);
   });
