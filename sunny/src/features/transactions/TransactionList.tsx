@@ -1,10 +1,10 @@
 import { useState, useMemo, useEffect } from 'react';
 import { useSearchParams } from 'react-router-dom';
-import { Transaction, TransactionType, TYPE_META, TYPE_ORDER, TransactionPatch, typeColor } from '../../types';
+import { Transaction, TransactionType, TYPE_META, TYPE_ORDER, TransactionPatch, typeColor, ownShare } from '../../types';
 import { formatCurrency, formatDate, formatDateFull, formatMonthLong, capitalize } from '../../utils';
 import { useSettings } from '../../shared/providers/settings';
 import { isPending } from '../../shared/recurrence';
-import { aggregateFlow, netFlowDelta } from '../../shared/financialFlow';
+import { aggregateFlow, statisticalNetDelta } from '../../shared/financialFlow';
 import { OutflowInfo, FlowInfoLine } from '../../shared/components/OutflowInfo';
 import { TransactionRow } from './TransactionRow';
 import { MonthSummaryHeader } from './MonthSummaryHeader';
@@ -242,12 +242,10 @@ export function TransactionList({ transactions, projected = [], onEdit, onDelete
       : groupMode === 'account' ? `${getAcc(key).icon} ${getAcc(key).label}`
       : `${getCat(key).icon} ${getCat(key).label}`;
 
-  // Subtotals reflect only realized (actual) transactions — projected occurrences
-  // and planned future-dated one-offs are forecasts and must not inflate the total.
-  // The signed value is the unified-flow contribution (netFlow share), so the
-  // group subtotals always reconcile with the dashboard's flow cards: TFR
-  // excluded, source-less deposits +, account-funded deposits −, withdrawals +.
-  const signed = (t: Transaction) => netFlowDelta(t);
+  // Subtotals are STATISTICAL: a refund is neutral here because it has already
+  // reduced the original expense through refundedTotal / ownShare. Cash balances
+  // keep using netFlowDelta elsewhere, with the real debit/credit dates.
+  const signed = (t: Transaction) => statisticalNetDelta(t);
   const groupSum = (txs: Transaction[]) =>
     txs.filter(t => !isUpcoming(t)).reduce((s, t) => s + signed(t), 0);
   const groupHasReal = (txs: Transaction[]) => txs.some(t => !isUpcoming(t));
@@ -256,19 +254,22 @@ export function TransactionList({ transactions, projected = [], onEdit, onDelete
   // Flow breakdown for the ⓘ on a group subtotal (realized rows only), shown
   // when the group contains investment movements.
   const groupFlowLines = (txs: Transaction[]): FlowInfoLine[] => {
-    const f = aggregateFlow(txs.filter(t => !isUpcoming(t)));
+    const realized = txs.filter(t => !isUpcoming(t));
+    const f = aggregateFlow(realized);
+    const expenses = realized
+      .filter(t => t.type === 'expense')
+      .reduce((sum, t) => sum + ownShare(t), 0);
     return [
       ...(f.ordinaryIncome > 0 ? [{ label: 'Entrate', value: f.ordinaryIncome, valueClass: 'text-green' }] : []),
-      ...(f.expenses > 0 ? [{ label: 'Spese', value: -f.expenses }] : []),
+      ...(expenses > 0 ? [{ label: 'Spese', value: -expenses }] : []),
       ...(f.investedFromAccounts > 0 ? [{ label: 'Investimenti dai conti', value: -f.investedFromAccounts, valueClass: 'text-gold' }] : []),
       ...(f.externalContributions > 0 ? [{ label: 'Apporti esterni', value: f.externalContributions, valueClass: 'text-gold' }] : []),
       ...(f.capitalReturned > 0 ? [{ label: 'Rientri da disinvestimenti', value: f.capitalReturned, valueClass: 'text-gold' }] : []),
-      ...(f.refundsReceived > 0 ? [{ label: 'Storni di spese', value: f.refundsReceived, valueClass: 'text-[#8FB0A0]' }] : []),
       ...(f.tfrExcluded > 0 ? [{ label: 'TFR escluso', value: f.tfrExcluded, valueClass: 'text-secondary' }] : []),
     ];
   };
   const groupHasInvestment = (txs: Transaction[]) =>
-    txs.some(t => !isUpcoming(t) && (t.type === 'investment' || t.type === 'refund'));
+    txs.some(t => !isUpcoming(t) && t.type === 'investment');
 
   const toggleCollapse = (key: string) => {
     setCollapsed(prev => {

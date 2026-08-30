@@ -2,11 +2,11 @@
 // il netto, e una barra a segmenti che dice in un colpo d'occhio com'è fatto
 // quel mese — entrate, uscite, investito.
 //
-// I tre segmenti usano la stessa scomposizione del flusso unificato della home
-// (`aggregateFlow`), quindi i numeri qui e quelli in cima alla home non possono
-// divergere: le previsioni non contano, il TFR resta fuori dalla cassa.
+// I segmenti sono STATISTICI: gli storni non sono entrate e riducono la spesa
+// originale tramite ownShare, anche se sono arrivati in un mese successivo.
+// Il flusso di cassa lordo resta riservato ai saldi dei conti.
 
-import { Transaction } from '../../types';
+import { Transaction, ownShare } from '../../types';
 import { aggregateFlow } from '../../shared/financialFlow';
 import { formatCurrency, formatMonthLong, capitalize } from '../../utils';
 
@@ -19,7 +19,7 @@ interface Props {
   realized: Transaction[];
   realizedCount: number;
   upcomingCount: number;
-  /** Netto del mese (solo righe realizzate) — già calcolato dalla lista. */
+  /** Netto statistico del mese (solo righe realizzate), già calcolato dalla lista. */
   net: number;
 }
 
@@ -28,11 +28,15 @@ const MIN_SEGMENT_PCT = 3;
 
 export function MonthSummaryHeader({ ym, realized, realizedCount, upcomingCount, net }: Props) {
   const flow = aggregateFlow(realized);
+  const income = flow.cashIn - flow.refundsReceived;
+  const expenses = realized
+    .filter(t => t.type === 'expense')
+    .reduce((sum, t) => sum + ownShare(t), 0);
   const invested = flow.investedFromAccounts + flow.externalContributions + flow.tfrExcluded;
 
   const segments = [
-    { label: 'entrate', value: flow.cashIn, color: 'rgb(var(--c-green))' },
-    { label: 'uscite', value: flow.expenses, color: 'rgb(var(--c-red))' },
+    { label: 'entrate', value: income, color: 'rgb(var(--c-green))' },
+    { label: 'uscite', value: expenses, color: 'rgb(var(--c-red))' },
     { label: 'investiti', value: invested, color: 'rgb(var(--c-gold))' },
   ].filter(s => s.value > 0);
 
@@ -50,7 +54,7 @@ export function MonthSummaryHeader({ ym, realized, realizedCount, upcomingCount,
             {upcomingCount > 0 && ` · ${upcomingCount} programmat${upcomingCount === 1 ? 'o' : 'i'}`}
           </p>
         </div>
-        <p className={`balance-num text-[18px] font-bold flex-none ${net >= 0 ? 'text-green' : 'text-red'}`}>
+        <p className={`balance-num text-[18px] font-bold flex-none ${net > 0.005 ? 'text-green' : net < -0.005 ? 'text-red' : 'text-secondary'}`}>
           {formatCurrency(net, { sign: true })}
         </p>
       </div>

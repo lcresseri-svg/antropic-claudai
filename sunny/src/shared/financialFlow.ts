@@ -44,7 +44,7 @@
  * Filtering (projected rows, pending/future dates, period) is the CALLER's
  * responsibility, mirroring the other pure aggregators.
  */
-import { Transaction, grossOwnShare, investSign } from '../types';
+import { Transaction, grossOwnShare, investSign, ownShare } from '../types';
 
 const r2 = (n: number) => Math.round(n * 100) / 100;
 
@@ -156,11 +156,27 @@ export function flowParts(t: Transaction): Pick<FlowBreakdown,
 }
 
 /** Signed netFlow contribution of a single transaction (cashIn − cashOut share).
- *  Used for list subtotals so they always reconcile with the flow cards. */
+ *  This is the CASH view: expenses are gross and refunds credit their receipt date. */
 export function netFlowDelta(t: Transaction): number {
   const p = flowParts(t);
   return (p.ordinaryIncome + p.capitalReturned + p.refundsReceived)
     - (p.expenses + p.investedFromAccounts);
+}
+
+/**
+ * Signed contribution for STATISTICAL summaries.
+ *
+ * Refunds themselves are neutral: their amount is already reattributed to the
+ * original expense through `refundedTotal` / `ownShare`. Investments keep the
+ * existing cash-flow sign and transfers remain neutral.
+ */
+export function statisticalNetDelta(t: Transaction): number {
+  if (t.type === 'refund') return 0;
+  if (t.type === 'expense') {
+    const expense = ownShare(t);
+    return expense > 0 ? -expense : 0;
+  }
+  return netFlowDelta(t);
 }
 
 /** Aggregate the unified flow over transactions (already filtered by the caller). */
