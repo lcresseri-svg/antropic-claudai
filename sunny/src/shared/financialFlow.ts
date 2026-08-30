@@ -172,7 +172,10 @@ export function netFlowDelta(t: Transaction): number {
  */
 export function statisticalNetDelta(t: Transaction): number {
   if (t.type === 'refund') return 0;
-  if (t.type === 'expense') return -ownShare(t);
+  if (t.type === 'expense') {
+    const expense = ownShare(t);
+    return expense > 0 ? -expense : 0;
+  }
   return netFlowDelta(t);
 }
 
