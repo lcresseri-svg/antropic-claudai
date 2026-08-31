@@ -193,7 +193,7 @@ export function buildWealthV2Summary(
     if (t.type === 'transfer' && t.toAccount) bal(t.toAccount, accountDelta(t, t.toAccount));
   }
   const accountEntries: WealthV2CompositionEntry[] = accounts
-    .filter(a => !a.archived && Math.abs(balances[a.id] ?? 0) > 0.005)
+    .filter(a => !a.archived && !a.excludeFromNetWorth && Math.abs(balances[a.id] ?? 0) > 0.005)
     .map(a => ({ id: a.id, label: a.label, value: r2(balances[a.id] ?? 0), share: 0 }));
   const cashTotal = accountEntries.reduce((s, e) => s + e.value, 0);
   for (const e of accountEntries) e.share = Math.abs(cashTotal) > 0.005 ? r2(e.value / cashTotal) : 0;
