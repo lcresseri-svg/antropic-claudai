@@ -84,6 +84,9 @@ export interface AccountDef {
   color: string;
   initialBalance?: number;
   isInvestment?: boolean;
+  /** When true, the account remains usable but its balance is omitted from
+   *  aggregate liquidity and net-worth calculations. Missing means included. */
+  excludeFromNetWorth?: boolean;
   archived?: boolean;      // soft-deleted: removed by the user but still referenced in
                            // the transaction history. Resolved by getAcc for display,
                            // hidden from every picker / management / planning list.

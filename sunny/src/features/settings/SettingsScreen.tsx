@@ -194,6 +194,8 @@ export function SettingsScreen({ user, transactions, budgetExport, onLogOut, onD
       delete def.initialBalance;
       if (d.initialBalance !== undefined) def.initialBalance = d.initialBalance;
       if (d.isInvestment) def.isInvestment = true;
+      if (d.excludeFromNetWorth) def.excludeFromNetWorth = true;
+      else delete def.excludeFromNetWorth;
       saveAccounts(editing.isNew ? [...accounts, def] : accounts.map(a => a.id === d.id ? def : a));
     }
     setEditing(null);
@@ -693,6 +695,7 @@ export function SettingsScreen({ user, transactions, budgetExport, onLogOut, onD
             <div className="bg-card rounded-2xl divide-y divide-divider">
               {liveAccounts.map((a) => (
                 <ManageRow key={a.id} icon={a.icon} color={a.color} label={a.label}
+                  sub={a.excludeFromNetWorth ? 'Escluso dal patrimonio' : undefined}
                   editMode={false} selected={false}
                   showHandle={editMode}
                   isDragging={a.id === draggingId}
@@ -880,8 +883,8 @@ function ManageHeader({ title, editMode, onBack, onToggleEdit, hideEdit, deleteC
   );
 }
 
-function ManageRow({ icon, color, label, editMode, selected, onClick, showHandle, isDragging, onHandlePointerDown }: {
-  icon: string; color: string; label: string;
+function ManageRow({ icon, color, label, sub, editMode, selected, onClick, showHandle, isDragging, onHandlePointerDown }: {
+  icon: string; color: string; label: string; sub?: string;
   editMode: boolean; selected: boolean;
   onClick?: () => void;
   showHandle?: boolean;
@@ -910,7 +913,10 @@ function ManageRow({ icon, color, label, editMode, selected, onClick, showHandle
         </span>
       )}
       <span className="w-9 h-9 rounded-full flex items-center justify-center text-base flex-shrink-0" style={{ backgroundColor: color + '22' }}>{icon}</span>
-      <span className="flex-1 text-[15px] font-medium text-primary">{label}</span>
+      <span className="flex-1 min-w-0">
+        <span className="block text-[15px] font-medium text-primary truncate">{label}</span>
+        {sub && <span className="block text-[11px] text-tertiary mt-0.5">{sub}</span>}
+      </span>
       {!!onClick && !showHandle && <ChevronRight />}
     </div>
   );

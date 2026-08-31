@@ -84,6 +84,11 @@ export function AccountsCard({ accountBalances, expenseByAccount, investByAccoun
             <div className="flex items-center gap-2.5 mb-1.5">
               <span className="w-7 h-7 rounded-xl flex items-center justify-center text-sm flex-shrink-0" style={{ backgroundColor: acc.color + '18' }}>{acc.icon}</span>
               <span className="text-[13px] text-primary flex-1 truncate">{acc.label}</span>
+              {mode === 'balance' && acc.excludeFromNetWorth && (
+                <span className="text-[9.5px] font-semibold text-secondary bg-surface px-1.5 py-0.5 rounded-full flex-shrink-0">
+                  Escluso
+                </span>
+              )}
               {mode === 'spending' && enableInvestments && (investByAccount[acc.id] ?? 0) !== 0 && (
                 <OutflowInfo ariaLabel="Dettaglio uscite conto" lines={[
                   { label: 'Spese', value: expenseByAccount[acc.id] ?? 0 },

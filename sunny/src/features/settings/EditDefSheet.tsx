@@ -12,6 +12,7 @@ export interface DefDraft {
   kind?: TransactionType;
   initialBalance?: number;
   isInvestment?: boolean;
+  excludeFromNetWorth?: boolean;
   fundType?: FundType;
   tfrAmount?: number;
   /** Investment categories only: subscription date (never in the future). */
@@ -39,6 +40,7 @@ export function EditDefSheet({ open, draft, withKind, canDelete, showFundType, s
   const [color, setColor] = useState(COLOR_CHOICES[0]);
   const [kind, setKind] = useState<TransactionType>('expense');
   const [initialBalance, setInitialBalance] = useState('');
+  const [excludeFromNetWorth, setExcludeFromNetWorth] = useState(false);
   const [fundType, setFundType] = useState<FundType | ''>('');
   const [tfrAmount, setTfrAmount] = useState('');
   const [subscriptionDate, setSubscriptionDate] = useState('');
@@ -51,6 +53,7 @@ export function EditDefSheet({ open, draft, withKind, canDelete, showFundType, s
     setLabel(draft.label); setIcon(draft.icon); setColor(draft.color);
     setKind(draft.kind ?? 'expense');
     setInitialBalance(draft.initialBalance !== undefined ? String(draft.initialBalance) : '');
+    setExcludeFromNetWorth(draft.excludeFromNetWorth ?? false);
     setFundType(draft.fundType ?? '');
     setTfrAmount(draft.tfrAmount !== undefined ? String(draft.tfrAmount) : '');
     setSubscriptionDate(draft.subscriptionDate ?? '');
@@ -96,6 +99,7 @@ export function EditDefSheet({ open, draft, withKind, canDelete, showFundType, s
       id: draft.id, label: label.trim(), icon, color,
       kind: isCategory ? kind : undefined,
       initialBalance: showBalance ? validBalance : undefined,
+      excludeFromNetWorth: !isCategory && excludeFromNetWorth ? true : undefined,
       fundType: showFunds && fundType ? fundType : undefined,
       tfrAmount: showFunds && fundType === 'pension' ? validTfr : undefined,
       subscriptionDate: isInvestmentCategory ? validSubscription : undefined,
@@ -156,6 +160,23 @@ export function EditDefSheet({ open, draft, withKind, canDelete, showFundType, s
               style={{ backgroundColor: c }} />
           ))}
         </div>
+
+        {!isCategory && (
+          <label className="mb-6 flex items-center gap-3 rounded-2xl bg-elevated px-4 py-3.5 cursor-pointer">
+            <span className="flex-1 min-w-0">
+              <span className="block text-sm font-medium text-primary">Escludi dal patrimonio</span>
+              <span className="block text-[11px] text-secondary/70 mt-0.5 leading-relaxed">
+                Il conto resta disponibile per movimenti e analisi, ma il saldo non entra nei totali.
+              </span>
+            </span>
+            <input
+              type="checkbox"
+              checked={excludeFromNetWorth}
+              onChange={e => setExcludeFromNetWorth(e.target.checked)}
+              className="w-5 h-5 flex-shrink-0 accent-gold"
+            />
+          </label>
+        )}
 
         {showBalance && (
           <div className="mb-6">

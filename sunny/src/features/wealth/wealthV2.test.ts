@@ -110,3 +110,15 @@ describe('buildWealthV2Summary', () => {
     expect(s.warnings.some(w => w.includes('non è aggiornato'))).toBe(true);
   });
 });
+
+describe('buildWealthV2Summary — excluded accounts', () => {
+  it('keeps excluded accounts out of totals and wealth composition', () => {
+    const withExcludedCash = accounts.map(a =>
+      a.id === 'cash' ? { ...a, excludeFromNetWorth: true } : a);
+    const s = buildWealthV2Summary(fixture, withExcludedCash, categories, '1m', { now: NOW });
+
+    expect(s.base.liquidity.endValue).toBeCloseTo(1090, 2);
+    expect(s.composition.accounts.some(a => a.id === 'cash')).toBe(false);
+    expect(s.marketToday.netWorthAtMarket).toBeCloseTo(2440, 2);
+  });
+});
