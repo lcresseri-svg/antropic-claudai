@@ -33,6 +33,10 @@ export function AccountBalanceScreen({ transactions }: Props) {
 
   // Cash accounts only (investment accounts aren't liquidity).
   const cashAccounts = useMemo(() => accounts.filter(a => !a.isInvestment), [accounts]);
+  const includedCashAccounts = useMemo(
+    () => cashAccounts.filter(a => !a.excludeFromNetWorth),
+    [cashAccounts],
+  );
 
   const rows = useMemo(() => {
     return cashAccounts
@@ -46,8 +50,14 @@ export function AccountBalanceScreen({ transactions }: Props) {
       .sort((a, b) => b.current - a.current);
   }, [cashAccounts, transactions, range, now]);
 
-  const liquidity = useMemo(() => rows.reduce((s, r) => s + r.current, 0), [rows]);
-  const totalDelta = useMemo(() => rows.reduce((s, r) => s + r.delta, 0), [rows]);
+  const liquidity = useMemo(
+    () => rows.reduce((s, r) => r.acc.excludeFromNetWorth ? s : s + r.current, 0),
+    [rows],
+  );
+  const totalDelta = useMemo(
+    () => rows.reduce((s, r) => r.acc.excludeFromNetWorth ? s : s + r.delta, 0),
+    [rows],
+  );
   const maxAbs = useMemo(() => Math.max(1, ...rows.map(r => Math.abs(r.current))), [rows]);
 
   // Changing the window closes any open detail.
@@ -60,17 +70,17 @@ export function AccountBalanceScreen({ transactions }: Props) {
   // (stessa funzione del dettaglio conto, quindi stessi bucket e stessa
   // definizione di saldo — non un secondo calcolo che può divergere).
   const liquiditySeries = useMemo(() => {
-    if (cashAccounts.length === 0) return [];
-    const curves = cashAccounts.map(a => aggregateAccountBalanceTrend(transactions, a, period, offset, now));
+    if (includedCashAccounts.length === 0) return [];
+    const curves = includedCashAccounts.map(a => aggregateAccountBalanceTrend(transactions, a, period, offset, now));
     const len = Math.min(...curves.map(c => c.length));
     // Il primo punto è il saldo di APERTURA, cioè il giorno prima che il
     // periodo cominci. Senza, la curva partirebbe dalla fine della prima
     // settimana — dopo lo stipendio — e scenderebbe mentre la variazione qui
     // sopra dice "+1.026 €": due racconti opposti sullo stesso periodo.
     const openingISO = localISO(new Date(range.start.getTime() - 86_400_000));
-    const opening = cashAccounts.reduce((s, a) => s + balanceAsOf(transactions, a, openingISO), 0);
+    const opening = includedCashAccounts.reduce((s, a) => s + balanceAsOf(transactions, a, openingISO), 0);
     return [opening, ...Array.from({ length: len }, (_, i) => curves.reduce((s, c) => s + c[i].balance, 0))];
-  }, [cashAccounts, transactions, period, offset, now, range.start]);
+  }, [includedCashAccounts, transactions, period, offset, now, range.start]);
 
   return (
     <div className="pb-32">
@@ -105,8 +115,8 @@ export function AccountBalanceScreen({ transactions }: Props) {
             {liquiditySeries.length >= 2 && <LiquiditySparkline values={liquiditySeries} />}
             <p className="text-[12px] text-secondary mt-3">
               {range.isCurrent
-                ? 'Somma dei saldi dei conti, oggi.'
-                : `Somma dei saldi dei conti al ${formatDateFull(localISO(range.end))}.`}
+                ? 'Somma dei saldi dei conti inclusi nel patrimonio, oggi.'
+                : `Somma dei saldi dei conti inclusi al ${formatDateFull(localISO(range.end))}.`}
             </p>
           </div>
 
@@ -126,7 +136,14 @@ export function AccountBalanceScreen({ transactions }: Props) {
                       {r.acc.icon}
                     </span>
                     <div className="flex-1 min-w-0">
-                      <p className="text-[14.5px] font-medium text-primary truncate">{r.acc.label}</p>
+                      <div className="flex items-center gap-2 min-w-0">
+                        <p className="text-[14.5px] font-medium text-primary truncate">{r.acc.label}</p>
+                        {r.acc.excludeFromNetWorth && (
+                          <span className="text-[9.5px] font-semibold text-secondary bg-surface px-1.5 py-0.5 rounded-full flex-shrink-0">
+                            Escluso
+                          </span>
+                        )}
+                      </div>
                       {showDelta && Math.abs(r.delta) > 0.005 && (
                         <p className={`text-[11.5px] balance-num ${tone(r.delta)}`}>
                           {formatCurrency(r.delta, { sign: true })} nel periodo
