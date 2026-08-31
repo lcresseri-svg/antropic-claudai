@@ -300,3 +300,35 @@ describe('shiftMonthsISO', () => {
     expect(shiftMonthsISO('2026-01-15', -3)).toBe('2025-10-15');
   });
 });
+
+describe('account wealth perimeter', () => {
+  const perimeterAccounts: AccountDef[] = [
+    ACCOUNTS[0],
+    { ...ACCOUNTS[1], excludeFromNetWorth: true },
+  ];
+
+  it('omits an excluded account baseline and its movements from liquidity', () => {
+    const pts = buildWealthHistory([
+      tx({ date: '2026-07-10', type: 'income', category: 'stipendio', account: 'risparmio', amount: 300 }),
+      tx({ date: '2026-07-11', type: 'expense', account: 'conto', amount: 100 }),
+    ], perimeterAccounts, CATS, '1m', { now: NOW });
+
+    expect(pts[pts.length - 1].liquidity).toBe(900);
+    expect(pts[pts.length - 1].total).toBe(900);
+  });
+
+  it('counts a transfer when it crosses from an excluded to an included account', () => {
+    const pts = buildWealthHistory([
+      tx({
+        date: '2026-07-10',
+        type: 'transfer',
+        category: '',
+        account: 'risparmio',
+        toAccount: 'conto',
+        amount: 100,
+      }),
+    ], perimeterAccounts, CATS, '1m', { now: NOW });
+
+    expect(pts[pts.length - 1].liquidity).toBe(1100);
+  });
+});
