@@ -247,7 +247,13 @@ export function useTransactions(user: User | null, accounts: AccountDef[] = [], 
       bal(t.account, accountDelta(t, t.account));
       if (t.type === 'transfer' && t.toAccount) bal(t.toAccount, accountDelta(t, t.toAccount));
     }
-    const liquidity = Object.values(accountBalances).reduce((s, v) => s + v, 0);
+    // Keep every balance available to account-level views, but only sum the
+    // accounts that participate in the user's wealth perimeter.
+    const excludedFromNetWorth = new Set(
+      accounts.filter(a => a.excludeFromNetWorth).map(a => a.id),
+    );
+    const liquidity = Object.entries(accountBalances)
+      .reduce((s, [id, v]) => excludedFromNetWorth.has(id) ? s : s + v, 0);
     const netWorth = includeInvestments ? liquidity + investmentTotal : liquidity;
 
     // Spending by category (current month, expenses)
