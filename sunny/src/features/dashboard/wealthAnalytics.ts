@@ -5,7 +5,7 @@
 //   total       = liquidity + investments   (investments ALWAYS included here,
 //                                            regardless of the includeInvestments
 //                                            dashboard preference)
-//   liquidity   = Σ account balances  (initial balance + signed cash flow)
+//   liquidity   = Σ included account balances (initial balance + signed cash flow)
 //   investments = Σ per-category invested value (initial + deposits − withdrawals,
 //                 floored at 0 per category, like useTransactions)
 //
@@ -151,6 +151,9 @@ function sampleWealth(
   sampleDates: string[],
 ): RawSample[] {
   const txs = transactions.filter(counts).slice().sort((a, b) => a.date.localeCompare(b.date));
+  const excludedFromNetWorth = new Set(
+    accounts.filter(a => a.excludeFromNetWorth).map(a => a.id),
+  );
 
   // Liquidity baseline: account initial balances (same seeding as useTransactions).
   const accountBalances: Record<string, number> = {};
@@ -178,7 +181,9 @@ function sampleWealth(
     }
 
     let liquidity = 0;
-    for (const v of Object.values(accountBalances)) liquidity += v;
+    for (const [id, v] of Object.entries(accountBalances)) {
+      if (!excludedFromNetWorth.has(id)) liquidity += v;
+    }
 
     // Per-category floor at 0 (mirror useTransactions) — net deposited capital,
     // never the manual market value.
