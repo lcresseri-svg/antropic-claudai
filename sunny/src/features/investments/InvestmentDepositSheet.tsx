@@ -1,4 +1,5 @@
 import { useState, useEffect } from 'react';
+import { RecurrenceEditor } from '../transactions/RecurrenceEditor';
 import { Transaction, RecurrenceRule } from '../../types';
 import { useSettings } from '../../shared/providers/settings';
 import { expandRecurringOnCreate } from '../../shared/recurrence';
@@ -41,7 +42,7 @@ export function InvestmentDepositSheet({ open, preselectCategory, onSave, onClos
   const [tfr, setTfr] = useState('');
   const [notes, setNotes] = useState('');
   const [isRecurring, setIsRecurring] = useState(false);
-  const [recurringFreq, setRecurringFreq] = useState<RecurrenceRule['freq']>('monthly');
+  const [recurringRule, setRecurringRule] = useState<RecurrenceRule>({ freq: 'monthly', mode: 'interval', interval: 1 });
   const [recurringUntil, setRecurringUntil] = useState('');
   const [spreadChoice, setSpreadChoice] = useState<'none' | 'custom' | number>('none');
   const [spreadCustom, setSpreadCustom] = useState('');
@@ -57,7 +58,7 @@ export function InvestmentDepositSheet({ open, preselectCategory, onSave, onClos
     setAmount(''); setDate(today());
     setAccount((lastAcc && visibleAccounts.some(a => a.id === lastAcc)) ? lastAcc : (visibleAccounts[0]?.id ?? ''));
     setFee(''); setTfr(''); setNotes('');
-    setIsRecurring(false); setRecurringFreq('monthly'); setRecurringUntil('');
+    setIsRecurring(false); setRecurringRule({ freq: 'monthly', mode: 'interval', interval: 1 }); setRecurringUntil('');
     setSpreadChoice('none'); setSpreadCustom('');
     setAmountError(false); setSaving(false); setSaveError(false);
     // eslint-disable-next-line react-hooks/exhaustive-deps
@@ -83,7 +84,7 @@ export function InvestmentDepositSheet({ open, preselectCategory, onSave, onClos
     if (!category) return;
 
     const recurring: RecurrenceRule | undefined = isRecurring
-      ? { freq: recurringFreq, until: recurringUntil || undefined }
+      ? { ...recurringRule, anchorDate: recurringRule.mode === 'interval' ? date : undefined, until: recurringUntil || undefined }
       : undefined;
     const seriesId = isRecurring ? crypto.randomUUID() : undefined;
 
@@ -230,17 +231,7 @@ export function InvestmentDepositSheet({ open, preselectCategory, onSave, onClos
           </button>
           {isRecurring && (
             <div className="border-t border-white/[0.06] px-4 pb-4 pt-3 space-y-3">
-              <div>
-                <label className="text-xs font-medium text-secondary mb-2 block">Frequenza</label>
-                <div className="grid grid-cols-2 gap-2">
-                  {(['daily', 'weekly', 'monthly', 'yearly'] as const).map(f => (
-                    <button key={f} type="button" onClick={() => setRecurringFreq(f)}
-                      className={`py-2 rounded-xl text-xs font-semibold transition-colors ${recurringFreq === f ? 'bg-gold text-bg' : 'bg-elevated text-secondary'}`}>
-                      {f === 'daily' ? 'Ogni giorno' : f === 'weekly' ? 'Ogni settimana' : f === 'monthly' ? 'Ogni mese' : 'Ogni anno'}
-                    </button>
-                  ))}
-                </div>
-              </div>
+              <RecurrenceEditor value={recurringRule} anchorDate={date} onChange={setRecurringRule} />
               <div>
                 <label className="text-xs font-medium text-secondary mb-1.5 block">Fine ricorrenza</label>
                 <input type="date" value={recurringUntil} onChange={e => setRecurringUntil(e.target.value)}
