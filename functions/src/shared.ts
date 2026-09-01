@@ -89,15 +89,43 @@ export async function verifyAppCheckSoft(req: { header(name: string): string | u
 export const euro = (n: number) => `${Math.round(n)}€`;
 
 export type Freq = 'daily' | 'weekly' | 'monthly' | 'yearly';
-
-/** Shift an ISO date one period forward (UTC calendar arithmetic). */
-export function addPeriod(dateStr: string, freq: Freq): string {
-  const d = new Date(dateStr + 'T00:00:00Z');
-  if (freq === 'daily')   d.setUTCDate(d.getUTCDate() + 1);
-  if (freq === 'weekly')  d.setUTCDate(d.getUTCDate() + 7);
-  if (freq === 'monthly') d.setUTCMonth(d.getUTCMonth() + 1);
-  if (freq === 'yearly')  d.setUTCFullYear(d.getUTCFullYear() + 1);
-  return d.toISOString().slice(0, 10);
+export interface RecurrenceRule {
+  freq: Freq; until?: string; mode?: 'interval' | 'calendar'; interval?: number;
+  anchorDate?: string; weekday?: number; dayOfMonth?: number | 'last'; monthOfYear?: number;
+}
+const isoDate = (y: number, m0: number, day: number) => {
+  const last = new Date(Date.UTC(y, m0 + 1, 0)).getUTCDate();
+  return new Date(Date.UTC(y, m0, Math.min(day, last))).toISOString().slice(0, 10);
+};
+export function addPeriod(dateStr: string, ruleOrFreq: Freq | RecurrenceRule): string {
+  const rule: RecurrenceRule = typeof ruleOrFreq === 'string' ? { freq: ruleOrFreq } : ruleOrFreq;
+  const [y, m, d] = dateStr.split('-').map(Number);
+  if (rule.mode === 'calendar') {
+    if (rule.freq === 'weekly') {
+      const cur = new Date(Date.UTC(y, m - 1, d));
+      const wanted = Math.min(6, Math.max(0, rule.weekday ?? 1));
+      cur.setUTCDate(cur.getUTCDate() + (((wanted - cur.getUTCDay() + 7) % 7) || 7));
+      return cur.toISOString().slice(0, 10);
+    }
+    if (rule.freq === 'monthly') {
+      const wanted = rule.dayOfMonth ?? 1;
+      for (let offset=0; offset<=1; offset++) {
+        const base = new Date(Date.UTC(y, m - 1 + offset, 1));
+        const last = new Date(Date.UTC(base.getUTCFullYear(), base.getUTCMonth()+1, 0)).getUTCDate();
+        const candidate = isoDate(base.getUTCFullYear(), base.getUTCMonth(), wanted === 'last' ? last : Math.min(wanted,last));
+        if (candidate > dateStr) return candidate;
+      }
+    }
+    if (rule.freq === 'yearly') {
+      const month=Math.min(12,Math.max(1,rule.monthOfYear??1)), wanted=rule.dayOfMonth??1;
+      for(let yy=y;yy<=y+1;yy++){const last=new Date(Date.UTC(yy,month,0)).getUTCDate();const candidate=isoDate(yy,month-1,wanted==='last'?last:Math.min(wanted,last));if(candidate>dateStr)return candidate;}
+    }
+  }
+  const every=Math.max(1,Math.floor(rule.interval??1)), anchor=rule.anchorDate??dateStr;
+  if(rule.freq==='daily'||rule.freq==='weekly'){const dt=new Date(dateStr+'T00:00:00Z');dt.setUTCDate(dt.getUTCDate()+every*(rule.freq==='weekly'?7:1));return dt.toISOString().slice(0,10);}
+  const [ay,am,ad]=anchor.split('-').map(Number);
+  if(rule.freq==='monthly'){const cur=y*12+m-1,a=ay*12+am-1;let step=Math.max(1,Math.floor((cur-a)/every)+1),target=a+step*every,candidate=isoDate(Math.floor(target/12),target%12,ad);while(candidate<=dateStr){target=a+(++step)*every;candidate=isoDate(Math.floor(target/12),target%12,ad);}return candidate;}
+  let step=Math.max(1,Math.floor((y-ay)/every)+1),candidate=isoDate(ay+step*every,am-1,ad);while(candidate<=dateStr)candidate=isoDate(ay+(++step)*every,am-1,ad);return candidate;
 }
 
 /** YYYY-MM-DD for "now" in Europe/Rome (fr-CA locale gives ISO format). */
