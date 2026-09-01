@@ -2,7 +2,7 @@ import { onRequest } from 'firebase-functions/v2/https';
 import {
   db, ADMIN_UID, ALLOWED_ORIGINS, GEMINI_TIMEOUT_MS,
   bodyTooLarge, fetchWithTimeout, logError, verifyBearer, verifyAppCheckSoft,
-  addPeriod, Freq,
+  addPeriod, Freq, RecurrenceRule,
 } from './shared';
 
 // ─────────────────────────────────────────────────────────────────────────────
