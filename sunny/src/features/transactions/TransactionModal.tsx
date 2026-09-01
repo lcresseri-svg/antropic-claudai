@@ -8,6 +8,7 @@ import { useSettings } from '../../shared/providers/settings';
 import { expandRecurringOnCreate, shouldExpandOnSave, monthlyEquivalent, nthOccurrenceDate } from '../../shared/recurrence';
 import { useEscapeKey } from '../../shared/hooks/useEscapeKey';
 import { refundsFor, summarizeRefunds } from '../../shared/refunds';
+import { RecurrenceEditor } from './RecurrenceEditor';
 import { useScrollLock } from '../../shared/useScrollLock';
 
 interface Props {
@@ -82,7 +83,8 @@ export function TransactionModal({ open, editing, groupTransfers = [], seriesEdi
   const [isShared, setIsShared] = useState(false);
   const [reimbursements, setReimbursements] = useState<Reimb[]>([]);
   const [seriesKind, setSeriesKind] = useState<ModalSeriesKind>('none');
-  const [recurringFreq, setRecurringFreq] = useState<RecurrenceRule['freq']>('monthly');
+  const [recurringRule, setRecurringRule] = useState<RecurrenceRule>({ freq: 'monthly', mode: 'interval', interval: 1 });
+  const recurringFreq = recurringRule.freq;
   const [recurringUntil, setRecurringUntil] = useState('');
   // Installment plan inputs (kind='installment'): the per-installment amount and
   // the series end are DERIVED from these at submit, never entered directly.
@@ -140,7 +142,7 @@ export function TransactionModal({ open, editing, groupTransfers = [], seriesEdi
         : []);
       // Legacy series without seriesMeta open as plain 'recurring'.
       setSeriesKind(editing.recurring ? (editing.seriesMeta?.kind ?? 'recurring') : 'none');
-      setRecurringFreq(editing.recurring?.freq ?? 'monthly');
+      setRecurringRule(editing.recurring ?? { freq: 'monthly', mode: 'interval', interval: 1 });
       setRecurringUntil(editing.recurring?.until ?? '');
       const inst = editing.seriesMeta?.installment;
       setInstTotal(inst ? String(inst.totalAmount) : '');
@@ -168,7 +170,7 @@ export function TransactionModal({ open, editing, groupTransfers = [], seriesEdi
         : ((lastAcc && visibleAccounts.some(a => a.id === lastAcc)) ? lastAcc : (visibleAccounts[0]?.id ?? '')));
       setToAccount(visibleAccounts[1]?.id ?? ''); setNotes('');
       setIsShared(false); setReimbursements([]);
-      setSeriesKind('none'); setRecurringFreq('monthly'); setRecurringUntil('');
+      setSeriesKind('none'); setRecurringRule({ freq: 'monthly', mode: 'interval', interval: 1 }); setRecurringUntil('');
       setInstTotal(''); setInstCount(''); setInstFirstDate(today());
       setFee(''); setTfr('');
       setSpreadChoice('none'); setSpreadCustom('');
@@ -338,7 +340,7 @@ export function TransactionModal({ open, editing, groupTransfers = [], seriesEdi
   const resetKeepContext = () => {
     setDescription(''); setAmount(''); setNotes('');
     setIsShared(false); setReimbursements([]);
-    setSeriesKind('none'); setRecurringFreq('monthly'); setRecurringUntil('');
+    setSeriesKind('none'); setRecurringRule({ freq: 'monthly', mode: 'interval', interval: 1 }); setRecurringUntil('');
     setInstTotal(''); setInstCount(''); setInstFirstDate(today());
     setFee(''); setTfr('');
     setSpreadChoice('none'); setSpreadCustom('');
@@ -394,8 +396,8 @@ export function TransactionModal({ open, editing, groupTransfers = [], seriesEdi
     const recurring: RecurrenceRule | undefined = !isSeries
       ? undefined
       : isInstallment
-        ? { freq: recurringFreq, until: nthOccurrenceDate(instFirstDate, recurringFreq, instCountVal) }
-        : { freq: recurringFreq, until: recurringUntil || undefined };
+        ? { ...recurringRule, anchorDate: instFirstDate, until: nthOccurrenceDate(instFirstDate, { ...recurringRule, anchorDate: instFirstDate }, instCountVal) }
+        : { ...recurringRule, anchorDate: recurringRule.mode === 'interval' ? effDate : undefined, until: recurringUntil || undefined };
     // Stable series id: preserve an existing one (series edits churn the doc id,
     // and single-instance edits must keep their link); otherwise mint one for a
     // brand-new series, falling back to the legacy template's own id.
@@ -986,17 +988,7 @@ export function TransactionModal({ open, editing, groupTransfers = [], seriesEdi
 
             {seriesKind !== 'none' && (
               <div className="border-t border-white/[0.06] px-4 pb-4 pt-3 space-y-3">
-                <div>
-                  <label className="text-xs font-medium text-secondary mb-2 block">Frequenza</label>
-                  <div className="grid grid-cols-2 gap-2">
-                    {(['daily', 'weekly', 'monthly', 'yearly'] as const).map(f => (
-                      <button key={f} type="button" onClick={() => setRecurringFreq(f)}
-                        className={`py-2 rounded-xl text-xs font-semibold transition-colors ${recurringFreq === f ? 'bg-gold text-bg' : 'bg-elevated text-secondary'}`}>
-                        {f === 'daily' ? 'Ogni giorno' : f === 'weekly' ? 'Ogni settimana' : f === 'monthly' ? 'Ogni mese' : 'Ogni anno'}
-                      </button>
-                    ))}
-                  </div>
-                </div>
+                <RecurrenceEditor value={recurringRule} anchorDate={seriesKind === 'installment' ? instFirstDate : date} onChange={setRecurringRule} />
 
                 {seriesKind !== 'installment' ? (
                   <>
@@ -1019,7 +1011,7 @@ export function TransactionModal({ open, editing, groupTransfers = [], seriesEdi
 
                     {seriesKind === 'subscription' && (() => {
                       const amt = parseFloat(amount.replace(',', '.')) || 0;
-                      const me = monthlyEquivalent(amt, recurringFreq);
+                      const me = monthlyEquivalent(amt, recurringRule);
                       return (
                         <div className="bg-elevated rounded-xl px-3 py-2.5 space-y-1">
                           <Row label="Equivalente mensile" value={amt > 0 ? formatCurrency(me) : '—'} muted />
