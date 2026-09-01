@@ -1,5 +1,5 @@
 /**
- * Impegni (admin-only, flag `commitments`) — pure module.
+ * Impegni fissi (flag `commitments`, disponibile a tutti) — pure module.
  *
  * Aggregates every ACTIVE recurring series (subscription / installment / plain
  * recurring) into a single view: monthly-equivalent cost, next due dates,

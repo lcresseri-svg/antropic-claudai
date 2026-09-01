@@ -46,7 +46,7 @@ export const FEATURE_ROLLOUT: Record<FeatureFlag, RolloutStage> = {
   available_cash:   { stage: 'admin' },
   forecast_unified: { stage: 'admin' },
   monthly_plan_v2:  { stage: 'admin' },
-  commitments:      { stage: 'admin' },
+  commitments:      { stage: 'all' },
   decision_coach:   { stage: 'admin' },
   insight_ranking_v2: { stage: 'admin' },
   expense_financing: { stage: 'admin' },

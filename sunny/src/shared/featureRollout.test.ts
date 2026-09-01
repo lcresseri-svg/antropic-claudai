@@ -9,16 +9,16 @@ const ADMIN = ADMIN_UIDS[0];
 const FLAGS = Object.keys(FEATURE_ROLLOUT) as FeatureFlag[];
 
 describe('featureRollout', () => {
-  it('every flag is admin-only at the current stage', () => {
+  it('commitments is public while the remaining previews stay admin-only', () => {
     for (const flag of FLAGS) {
-      expect(FEATURE_ROLLOUT[flag].stage).toBe('admin');
+      expect(FEATURE_ROLLOUT[flag].stage).toBe(flag === 'commitments' ? 'all' : 'admin');
     }
   });
 
-  it('admin sees every gated feature; normal users see none (admin stage)', () => {
+  it('admin sees every feature; normal users see commitments only', () => {
     for (const flag of FLAGS) {
       expect(isFeatureEnabled(flag, { uid: ADMIN })).toBe(true);
-      expect(isFeatureEnabled(flag, { uid: 'normal-user-uid' })).toBe(false);
+      expect(isFeatureEnabled(flag, { uid: 'normal-user-uid' })).toBe(flag === 'commitments');
     }
   });
 
