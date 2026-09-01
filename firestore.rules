@@ -68,6 +68,12 @@ service cloud.firestore {
               d.recurring is map
               && d.recurring.freq in ['daily', 'weekly', 'monthly', 'yearly']
               && (!('until' in d.recurring) || vDate(d.recurring.until))
+              && (!('mode' in d.recurring) || d.recurring.mode in ['interval', 'calendar'])
+              && (!('interval' in d.recurring) || (d.recurring.interval is int && d.recurring.interval >= 1 && d.recurring.interval <= 999))
+              && (!('anchorDate' in d.recurring) || vDate(d.recurring.anchorDate))
+              && (!('weekday' in d.recurring) || (d.recurring.weekday is int && d.recurring.weekday >= 0 && d.recurring.weekday <= 6))
+              && (!('dayOfMonth' in d.recurring) || d.recurring.dayOfMonth == 'last' || (d.recurring.dayOfMonth is int && d.recurring.dayOfMonth >= 1 && d.recurring.dayOfMonth <= 31))
+              && (!('monthOfYear' in d.recurring) || (d.recurring.monthOfYear is int && d.recurring.monthOfYear >= 1 && d.recurring.monthOfYear <= 12))
            ))
         // Smart-series metadata (subscription / installment). Input data only —
         // derived figures are computed client-side and never stored.
