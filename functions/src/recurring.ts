@@ -131,7 +131,7 @@ export const processRecurringTransactions = onSchedule(
               instance.valueEffect = { category: instance.category, delta, appliedAt: now };
             }
             trx.set(newRef, instance);
-            date = addPeriod(date, recurring.freq);
+            date = addPeriod(date, recurring);
             count++;
           }
 
