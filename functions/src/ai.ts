@@ -200,12 +200,12 @@ export const generateAffordabilityAdvice = onRequest(
         if (rule.until && rule.until < todayISO) continue;
         let d = t.date ?? todayISO;
         let guard = 500;
-        while (d <= todayISO && --guard > 0) d = addPeriod(d, rule.freq);
+        while (d <= todayISO && --guard > 0) d = addPeriod(d, rule);
         let cap = 40;
         while (d <= monthEnd && (!rule.until || d <= rule.until) && --cap > 0) {
           if (t.type === 'expense') upcomingRecurringExp += ownShareOf(t);
           else if (t.type === 'investment') upcomingRecurringInvest += Number(t.amount) || 0;
-          d = addPeriod(d, rule.freq);
+          d = addPeriod(d, rule);
         }
       }
 
