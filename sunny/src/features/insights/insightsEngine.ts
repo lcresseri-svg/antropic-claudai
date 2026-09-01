@@ -451,7 +451,7 @@ export function buildInsights(input: InsightInput): Insight[] {
   for (const [, t] of seriesMap) {
     const rule = t.recurring!;
     if (rule.until && rule.until < today) continue;
-    const nextDue = addPeriod(t.date, rule.freq);
+    const nextDue = addPeriod(t.date, rule);
     // Don't announce an occurrence that falls after the series' end date.
     if (rule.until && nextDue > rule.until) continue;
     const days = daysUntil(nextDue, now);
@@ -489,9 +489,9 @@ export function buildInsights(input: InsightInput): Insight[] {
       if (rule.until && rule.until < monthStart) continue;
 
       // Advance to first occurrence in this month, with a safety cap
-      let d = addPeriod(t.date, rule.freq);
+      let d = addPeriod(t.date, rule);
       let guard = 2000;
-      while (d < monthStart && --guard > 0) d = addPeriod(d, rule.freq);
+      while (d < monthStart && --guard > 0) d = addPeriod(d, rule);
       if (d > monthEnd) continue;
 
       // Count all occurrences in the month (capped at 35 for daily)
