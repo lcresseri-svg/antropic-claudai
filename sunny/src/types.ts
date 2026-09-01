@@ -188,9 +188,24 @@ export interface AppliedValueEffect {
   appliedAt: number;  // ms epoch
 }
 
+export type RecurrenceMode = 'interval' | 'calendar';
+
 export interface RecurrenceRule {
+  /** Kept for backward compatibility and as the normalized base unit. */
   freq: 'daily' | 'weekly' | 'monthly' | 'yearly';
   until?: string; // YYYY-MM-DD
+  /** Missing on legacy data: equivalent to interval=1 anchored to the transaction date. */
+  mode?: RecurrenceMode;
+  /** Interval mode only. Integer >= 1. */
+  interval?: number;
+  /** Original transaction date. Prevents 31 Jan -> 28 Feb -> 28 Mar drift. */
+  anchorDate?: string;
+  /** Calendar/week: 0=Sunday ... 6=Saturday. */
+  weekday?: number;
+  /** Calendar/month or year: 1..31, or the last day of the month. */
+  dayOfMonth?: number | 'last';
+  /** Calendar/year: 1=January ... 12=December. */
+  monthOfYear?: number;
 }
 
 export type Freq = RecurrenceRule['freq'];

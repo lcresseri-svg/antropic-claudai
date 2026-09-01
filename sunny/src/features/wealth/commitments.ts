@@ -75,7 +75,8 @@ function addMonthsClamped(iso: string, delta: number): string {
 }
 
 function toCommitment(s: SeriesSummary): Commitment {
-  const monthly = s.freq ? monthlyEquivalent(s.amount, s.freq) : s.amount;
+  const monthly = s.recurrenceRule ? monthlyEquivalent(s.amount, s.recurrenceRule)
+    : s.freq ? monthlyEquivalent(s.amount, s.freq) : s.amount;
   const c: Commitment = {
     seriesId: s.seriesId,
     kind: s.kind,
