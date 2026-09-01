@@ -421,3 +421,23 @@ describe('buildSeriesSummary', () => {
     expect(s.paidCount).toBe(2);
   });
 });
+
+
+describe('flexible recurrence rules', () => {
+  it('supports custom day and week intervals', () => {
+    expect(addPeriod('2026-09-01', { freq: 'daily', mode: 'interval', interval: 2, anchorDate: '2026-09-01' })).toBe('2026-09-03');
+    expect(addPeriod('2026-09-01', { freq: 'weekly', mode: 'interval', interval: 3, anchorDate: '2026-09-01' })).toBe('2026-09-22');
+  });
+  it('keeps the original monthly anchor after a short month', () => {
+    const rule = { freq: 'monthly', mode: 'interval', interval: 1, anchorDate: '2027-01-31' } as const;
+    expect(addPeriod('2027-01-31', rule)).toBe('2027-02-28');
+    expect(addPeriod('2027-02-28', rule)).toBe('2027-03-31');
+  });
+  it('supports weekly and last-day calendar schedules', () => {
+    expect(addPeriod('2026-09-01', { freq: 'weekly', mode: 'calendar', weekday: 1 })).toBe('2026-09-07');
+    expect(addPeriod('2026-09-15', { freq: 'monthly', mode: 'calendar', dayOfMonth: 'last' })).toBe('2026-09-30');
+  });
+  it('accounts for intervals in monthly equivalents', () => {
+    expect(monthlyEquivalent(10, { freq: 'weekly', mode: 'interval', interval: 2 })).toBeCloseTo(21.65);
+  });
+});
