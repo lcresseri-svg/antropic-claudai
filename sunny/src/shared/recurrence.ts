@@ -1,4 +1,4 @@
-import { Transaction, Freq, SeriesKind, ownShare } from '../types';
+import { Transaction, Freq, RecurrenceRule, SeriesKind, ownShare } from '../types';
 
 // Monthly-equivalent multipliers — kept identical to the original "fixed cost
 // load" insight so refactors don't shift existing numbers.
@@ -9,38 +9,89 @@ const MONTHLY_EQUIV: Record<Freq, number> = {
   yearly: 1 / 12,
 };
 
-/** Monthly-equivalent cost of `amount` repeating at `freq` (same multipliers as
- *  the fixed-cost-load insight, so all screens show identical numbers). */
-export function monthlyEquivalent(amount: number, freq: Freq): number {
-  return amount * MONTHLY_EQUIV[freq];
+/** Monthly-equivalent cost, accounting for custom intervals. */
+export function monthlyEquivalent(amount: number, ruleOrFreq: Freq | RecurrenceRule): number {
+  const freq = typeof ruleOrFreq === 'string' ? ruleOrFreq : ruleOrFreq.freq;
+  const interval = typeof ruleOrFreq === 'string' || ruleOrFreq.mode === 'calendar'
+    ? 1 : Math.max(1, ruleOrFreq.interval ?? 1);
+  return amount * MONTHLY_EQUIV[freq] / interval;
 }
 
-/** Date of the n-th occurrence (1-based: n=1 → `start`) of a series starting at
- *  `start` with frequency `freq`. Uses addPeriod to stay byte-identical with the
- *  materialization engine. */
-export function nthOccurrenceDate(start: string, freq: Freq, n: number): string {
+const iso = (y: number, m0: number, day: number) => {
+  const last = new Date(Date.UTC(y, m0 + 1, 0)).getUTCDate();
+  return new Date(Date.UTC(y, m0, Math.min(day, last))).toISOString().slice(0, 10);
+};
+const parts = (s: string) => s.split('-').map(Number) as [number, number, number];
+
+/** Date of the n-th occurrence (1-based). */
+export function nthOccurrenceDate(start: string, ruleOrFreq: Freq | RecurrenceRule, n: number): string {
+  const rule = typeof ruleOrFreq === 'string' ? { freq: ruleOrFreq } : ruleOrFreq;
+  const anchored = { ...rule, anchorDate: rule.anchorDate ?? start };
   let d = start;
-  for (let i = 1; i < n; i++) d = addPeriod(d, freq);
+  for (let i = 1; i < n; i++) d = addPeriod(d, anchored);
   return d;
 }
 
-/**
- * Next occurrence date (YYYY-MM-DD) after advancing one period.
- *
- * All arithmetic is done in UTC (parse the y-m-d explicitly, use the setUTC*
- * mutators). The previous version parsed the string as UTC midnight but mutated
- * with the LOCAL setters and read back via toISOString(): crossing a DST
- * boundary shifted the wall-clock vs UTC by an hour and rolled long-range dates
- * back by a day (e.g. a series on the 10th showed the 9th from 2027 onward).
- */
-export function addPeriod(dateStr: string, freq: Freq): string {
-  const [y, m, d] = dateStr.split('-').map(Number);
-  const dt = new Date(Date.UTC(y, m - 1, d));
-  if      (freq === 'daily')   dt.setUTCDate(dt.getUTCDate() + 1);
-  else if (freq === 'weekly')  dt.setUTCDate(dt.getUTCDate() + 7);
-  else if (freq === 'monthly') dt.setUTCMonth(dt.getUTCMonth() + 1);
-  else                          dt.setUTCFullYear(dt.getUTCFullYear() + 1);
-  return dt.toISOString().slice(0, 10);
+/** Next occurrence after dateStr. Legacy string frequencies remain supported. */
+export function addPeriod(dateStr: string, ruleOrFreq: Freq | RecurrenceRule): string {
+  const rule: RecurrenceRule = typeof ruleOrFreq === 'string'
+    ? { freq: ruleOrFreq }
+    : ruleOrFreq;
+  const [y, m, d] = parts(dateStr);
+  if (rule.mode === 'calendar') {
+    if (rule.freq === 'weekly') {
+      const wanted = Math.min(6, Math.max(0, rule.weekday ?? 1));
+      const cur = new Date(Date.UTC(y, m - 1, d));
+      const delta = ((wanted - cur.getUTCDay() + 7) % 7) || 7;
+      cur.setUTCDate(cur.getUTCDate() + delta);
+      return cur.toISOString().slice(0, 10);
+    }
+    if (rule.freq === 'monthly') {
+      const wanted = rule.dayOfMonth ?? 1;
+      for (let offset = 0; offset <= 1; offset++) {
+        const base = new Date(Date.UTC(y, m - 1 + offset, 1));
+        const last = new Date(Date.UTC(base.getUTCFullYear(), base.getUTCMonth() + 1, 0)).getUTCDate();
+        const day = wanted === 'last' ? last : Math.min(wanted, last);
+        const candidate = iso(base.getUTCFullYear(), base.getUTCMonth(), day);
+        if (candidate > dateStr) return candidate;
+      }
+    }
+    if (rule.freq === 'yearly') {
+      const month = Math.min(12, Math.max(1, rule.monthOfYear ?? 1));
+      const wanted = rule.dayOfMonth ?? 1;
+      for (let yy = y; yy <= y + 1; yy++) {
+        const last = new Date(Date.UTC(yy, month, 0)).getUTCDate();
+        const day = wanted === 'last' ? last : Math.min(wanted, last);
+        const candidate = iso(yy, month - 1, day);
+        if (candidate > dateStr) return candidate;
+      }
+    }
+  }
+
+  const every = Math.max(1, Math.floor(rule.interval ?? 1));
+  const anchor = rule.anchorDate ?? dateStr;
+  if (rule.freq === 'daily' || rule.freq === 'weekly') {
+    const dt = new Date(dateStr + 'T00:00:00Z');
+    dt.setUTCDate(dt.getUTCDate() + every * (rule.freq === 'weekly' ? 7 : 1));
+    return dt.toISOString().slice(0, 10);
+  }
+  const [ay, am, ad] = parts(anchor);
+  if (rule.freq === 'monthly') {
+    const currentIndex = y * 12 + (m - 1);
+    const anchorIndex = ay * 12 + (am - 1);
+    let step = Math.max(1, Math.floor((currentIndex - anchorIndex) / every) + 1);
+    let target = anchorIndex + step * every;
+    let candidate = iso(Math.floor(target / 12), target % 12, ad);
+    while (candidate <= dateStr) {
+      target = anchorIndex + (++step) * every;
+      candidate = iso(Math.floor(target / 12), target % 12, ad);
+    }
+    return candidate;
+  }
+  let step = Math.max(1, Math.floor((y - ay) / every) + 1);
+  let candidate = iso(ay + step * every, am - 1, ad);
+  while (candidate <= dateStr) candidate = iso(ay + (++step) * every, am - 1, ad);
+  return candidate;
 }
 
 export interface ProjectOpts {
@@ -75,9 +126,9 @@ export function projectOccurrences(
 
   const out: Transaction[] = [];
   let guard = 5000;
-  let d = addPeriod(template.date, rule.freq);
+  let d = addPeriod(template.date, rule);
   // Fast-forward past occurrences before the visible window start.
-  while (d < fromISO && --guard > 0) d = addPeriod(d, rule.freq);
+  while (d < fromISO && --guard > 0) d = addPeriod(d, rule);
   while (d <= upper && out.length < cap && --guard > 0) {
     // Strip the recurring rule: a projected row is an occurrence, not the
     // template. groupId stays (display-only): a shared series projects its
@@ -85,7 +136,7 @@ export function projectOccurrences(
     const { recurring: _r, projected: _p, ...rest } = template;
     void _r; void _p;
     out.push({ ...rest, id: `${template.id}__${d}`, date: d, seriesId, projected: true });
-    d = addPeriod(d, rule.freq);
+    d = addPeriod(d, rule);
   }
   return out;
 }
@@ -173,7 +224,7 @@ export function expandRecurringOnCreate<T extends Omit<Transaction, 'id'>>(
     const { recurring: _r, ...rest } = base;
     void _r;
     out.push({ ...(rest as T), seriesId, date });
-    date = addPeriod(date, rule.freq);
+    date = addPeriod(date, rule);
   }
   // No past occurrence materialized → the series starts in the future: keep the
   // single template as a "previsto".
@@ -259,7 +310,7 @@ export function catchUpRecurring(
         creates.push({ ...rest, seriesId, date });
         have.add(key);
       }
-      date = addPeriod(date, rule.freq);
+      date = addPeriod(date, rule);
     }
     // Always advance the template to its next date — even if that is past `until`
     // (it then becomes an expired, hidden template). We never delete it.
@@ -517,11 +568,11 @@ export function upcomingRecurringThisMonth(
     // first occurrence; fast-forward past any occurrence already realized (<= today).
     let d = t.date;
     let guard = 500;
-    while (d <= todayISO && --guard > 0) d = addPeriod(d, rule.freq);
+    while (d <= todayISO && --guard > 0) d = addPeriod(d, rule);
     let cap = 35; // guard against dense daily series
     while (d <= monthEndISO && (!rule.until || d <= rule.until) && --cap > 0) {
       total += t.amount;
-      d = addPeriod(d, rule.freq);
+      d = addPeriod(d, rule);
     }
   }
   return total;
