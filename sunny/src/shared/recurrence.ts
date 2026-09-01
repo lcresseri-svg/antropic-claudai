@@ -406,6 +406,7 @@ export interface SeriesSummary {
   /** Per-occurrence amount (from the template, falling back to the anchor). */
   amount: number;
   freq?: Freq;
+  recurrenceRule?: RecurrenceRule;
   until?: string;
   /** True when the series is over (past `until`, expired template, or no template left). */
   ended: boolean;
@@ -470,6 +471,7 @@ export function buildSeriesSummary(
     type: template?.type ?? anchor.type,
     amount,
     freq: rule?.freq,
+    recurrenceRule: rule,
     until: rule?.until,
     ended,
     nextDate,
@@ -479,7 +481,7 @@ export function buildSeriesSummary(
   };
 
   if (kind === 'subscription' && rule) {
-    summary.monthlyEquivalent = monthlyEquivalent(amount, rule.freq);
+    summary.monthlyEquivalent = monthlyEquivalent(amount, rule);
     summary.annualEquivalent = summary.monthlyEquivalent * 12;
   }
 
@@ -534,7 +536,7 @@ export function recurringMonthlyEquivalent(
     if (t.type !== type || !t.recurring) continue;
     if (t.recurring.until && t.recurring.until < todayISO) continue;
     if (isExpiredTemplate(t)) continue; // ended series whose template lingers past `until`
-    total += t.amount * MONTHLY_EQUIV[t.recurring.freq];
+    total += monthlyEquivalent(t.amount, t.recurring);
   }
   return total;
 }
