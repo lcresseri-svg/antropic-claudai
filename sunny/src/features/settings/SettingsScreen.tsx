@@ -270,15 +270,15 @@ export function SettingsScreen({ user, transactions, budgetExport, onLogOut, onD
       onToggle={() => saveEnableBudget(!enableBudget)}
     />
   );
-  const rowAiEnabled = (
+  const rowAiEnabled = isAdmin ? (
     <ToggleRow
       icon="✨" label="Suggerimenti AI"
       sub={aiEnabled ? 'Riepilogo mensile generato da Gemini' : 'Disattivato — nessuna chiamata all\'API'}
       on={aiEnabled}
       onToggle={() => saveAiEnabled(!aiEnabled)}
     />
-  );
-  const aiCoachChat = isFeatureEnabled('ai_coach_chat', user);
+  ) : null;
+  const aiCoachChat = isAdmin && isFeatureEnabled('ai_coach_chat', user);
   const rowAiCoach = aiCoachChat ? (
     <ToggleRow
       icon="🤖" label="AI Coach"
@@ -440,8 +440,10 @@ export function SettingsScreen({ user, transactions, budgetExport, onLogOut, onD
                   on={theme === 'dark'} onToggle={() => saveTheme(theme === 'dark' ? 'light' : 'dark')} />
                 <SwitchRow icon="🎯" color="#E6B95C" label="Piano e budget" sub="Limiti di spesa e previsioni"
                   on={enableBudget} onToggle={() => saveEnableBudget(!enableBudget)} />
-                <SwitchRow icon="✨" color="#8A9270" label="AI abilitata" sub="Suggerimenti e riepilogo mensile"
-                  on={aiEnabled} onToggle={() => saveAiEnabled(!aiEnabled)} />
+                {isAdmin && (
+                  <SwitchRow icon="✨" color="#8A9270" label="AI abilitata" sub="Suggerimenti e riepilogo mensile"
+                    on={aiEnabled} onToggle={() => saveAiEnabled(!aiEnabled)} />
+                )}
                 {aiCoachChat && (
                   <SwitchRow icon="🤖" color="#88B0C0" label="AI Coach"
                     sub={aiEnabled
