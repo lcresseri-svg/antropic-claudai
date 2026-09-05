@@ -10,7 +10,8 @@ import { InvestmentWithdrawSheet } from '../investments/InvestmentWithdrawSheet'
 import { SetCurrentValueSheet } from '../investments/SetCurrentValueSheet';
 import { InvestmentDetailSheet } from '../investments/InvestmentDetailSheet';
 import { monthlyInvestmentStats, statsSpreadOf, addMonths } from '../investments/investmentStatsSpread';
-import { InvestmentTrendChart, InvestmentTrendPoint } from './InvestmentTrendChart';
+import { buildInvestmentTrend } from './investmentTrend';
+import { InvestmentOverviewCard } from './InvestmentOverviewCard';
 import { AnalysisHeader } from './AnalysisHeader';
 
 interface Props {
@@ -91,8 +92,9 @@ export function InvestmentsScreen({ investmentByCategory, investmentTotal, month
   // (full, incl. archived) still backs net worth elsewhere.
   const versatoTotale = positions.reduce((s, p) => s + p.versato, 0);
   const controvaloreTotale = positions.reduce((s, p) => s + p.weightValue, 0);
-  const plusMinusTotale = controvaloreTotale - versatoTotale;
-  const pmPct = versatoTotale > 0 ? (plusMinusTotale / versatoTotale) * 100 : 0;
+  const hasMarketValue = positions.some(p => p.controvalore !== null);
+  const estimatedValue = hasMarketValue && positions.some(p => p.controvalore === null && p.versato > 0);
+  const todayISO = new Date().toISOString().slice(0, 10);
 
   // ── Fund-type allocation (detailed mode) — unchanged computation ────────────
   const fundAlloc = useMemo(() => {
@@ -126,28 +128,9 @@ export function InvestmentsScreen({ investmentByCategory, investmentTotal, month
   const hasFlows = last6.some(t => t.invest !== 0);
   const currentKey = last6[last6.length - 1]?.key;
 
-  // Versato cumulato mese per mese sugli ultimi 12: parte dal capitale che
-  // c'era PRIMA della finestra, così la curva non riparte da zero.
-  const trend12: InvestmentTrendPoint[] = useMemo(() => {
-    const keys = trend.map(t => t.key);
-    if (keys.length === 0) return [];
-    const byMonth = new Map<string, number>();
-    for (const t of investTx) {
-      const k = t.date.slice(0, 7);
-      byMonth.set(k, (byMonth.get(k) ?? 0) + investSign(t) * t.amount);
-    }
-    // Si parte dalla FINE: l'ultimo punto deve valere esattamente il versato
-    // mostrato nell'hero, qualunque cosa ci sia dietro (capitali iniziali,
-    // categorie archiviate, arrotondamenti per categoria). Camminare in avanti
-    // da uno zero ricostruito farebbe finire la curva altrove.
-    const out: InvestmentTrendPoint[] = new Array(keys.length);
-    let running = versatoTotale;
-    for (let i = keys.length - 1; i >= 0; i--) {
-      out[i] = { key: keys[i], versato: Math.max(0, running) };
-      running -= byMonth.get(keys[i]) ?? 0;
-    }
-    return out;
-  }, [trend, investTx, versatoTotale]);
+  const trend12 = useMemo(() => buildInvestmentTrend(
+    trend.map(t => t.key), visibleCategories, investTx, todayISO,
+  ), [trend, visibleCategories, investTx, todayISO]);
 
   // Un solo avviso per i controvalori fermi, invece dell'azione ripetuta su
   // ogni riga: dice QUALI e da quanto, e porta direttamente alla prima.
@@ -183,25 +166,9 @@ export function InvestmentsScreen({ investmentByCategory, investmentTotal, month
       />
 
       {/* ── Hero: portfolio ── */}
-      <section className="hero-card rounded-[26px] shadow-elev-2 p-[22px] animate-rise-in">
-        <p className="label-caps text-secondary mb-2">Controvalore totale</p>
-        <p className="text-[38px] leading-none font-bold balance-num text-primary">{formatCurrency(controvaloreTotale)}</p>
-        {versatoTotale > 0 && (
-          <div className="flex items-center gap-2 mt-2.5 flex-wrap">
-            <span className={`text-[11.5px] font-semibold balance-num px-2 py-[3px] rounded-full ${
-              plusMinusTotale >= 0 ? 'text-green bg-green/[0.14]' : 'text-red bg-red/[0.14]'}`}>
-              {plusMinusTotale >= 0 ? '+' : '−'}{formatCurrency(Math.abs(plusMinusTotale))} · {plusMinusTotale >= 0 ? '+' : '−'}{Math.abs(pmPct).toFixed(1)}%
-            </span>
-            <span className="text-[11.5px] text-secondary balance-num">versato {formatCurrency(versatoTotale)}</span>
-          </div>
-        )}
-        {trend12.length >= 2 && (
-          <div className="mt-4">
-            <InvestmentTrendChart points={trend12}
-              controvalore={controvaloreTotale > 0 ? controvaloreTotale : null} />
-          </div>
-        )}
-      </section>
+      <InvestmentOverviewCard deposited={versatoTotale}
+        marketValue={hasMarketValue ? controvaloreTotale : null}
+        estimated={estimatedValue} points={trend12} currentMonth={todayISO.slice(0, 7)} />
 
       {/* ── Un solo avviso per i controvalori fermi ── */}
       {stalePositions.length > 0 && (

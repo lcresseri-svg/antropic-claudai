@@ -25,7 +25,7 @@ import { buildWealthHistory } from './wealthAnalytics';
 import { localISO } from './categoryAnalytics';
 import { FreeCashHero } from './FreeCashHero';
 import { NetWorthCard } from './NetWorthCard';
-import { MonthRhythm } from './MonthRhythm';
+import { MonthRhythm } from './MonthRhythmCard';
 import { MonthRhythmSheet } from './MonthRhythmSheet';
 import { SpendingBreakdownCard } from './SpendingBreakdownCard';
 import { NextMoveCard, pickNextMove } from './NextMoveCard';
