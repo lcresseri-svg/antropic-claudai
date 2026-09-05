@@ -9,7 +9,7 @@
 import { useEffect, useMemo, useRef, useState } from 'react';
 import { Transaction } from '../../types';
 import { SheetShell } from '../investments/SheetShell';
-import { RhythmGrid, RhythmLegend, roundEuro } from './MonthRhythmCard';
+import { RhythmGrid, RhythmLegend, roundEuro } from './MonthRhythm';
 import {
   buildMonthRhythm, rhythmMonths, shiftMonth, compareMonths, monthRhythmStats, ScheduledOutflow,
 } from './monthRhythm';
