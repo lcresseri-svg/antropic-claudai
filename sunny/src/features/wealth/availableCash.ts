@@ -1,17 +1,18 @@
 /**
- * Liquidità disponibile (admin-only, flag `available_cash`) — pure module.
+ * Liquidità disponibile (home e viste di dettaglio) — pure module.
  *
  *   liquidità disponibile = liquidità − uscite future già impegnate − riserva
  *
  * "Già impegnate" nel periodo scelto (7/14/30 giorni o fine mese): l'elenco
  * degli eventi è quello CONDIVISO con la schermata Impegni
  * (commitmentProjection.buildCommitmentEvents — ricorrenti proiettate senza
- * doppioni + una-tantum future). Qui cambia solo COME si somma: ogni evento
- * conta per la sola quota propria (`ownShare`), mentre Impegni somma l'importo
- * pieno. I trasferimenti non sono mai spese (esclusi) e le entrate future NON
- * compensano (prudenza).
+ * doppioni + una-tantum future). Le spese contano per la sola quota propria;
+ * i versamenti investimento per l'uscita effettiva dai conti inclusi nella
+ * liquidità (senza TFR). Trasferimenti, apporti esterni e disinvestimenti
+ * futuri non riducono gli impegni; le entrate future NON compensano (prudenza).
  */
-import { Transaction, ownShare } from '../../types';
+import { AccountDef, Transaction, ownShare } from '../../types';
+import { accountDelta } from '../../shared/financialFlow';
 import { buildCommitmentEvents, addDaysISO } from './commitmentProjection';
 
 export type CashHorizon = 7 | 14 | 30 | 'eom';
@@ -19,7 +20,7 @@ export type CashHorizon = 7 | 14 | 30 | 'eom';
 export interface CommittedItem {
   date: string;
   description: string;
-  amount: number;          // own share
+  amount: number;          // expense own share or investment cash outflow
   kind: 'ricorrente' | 'pianificata';
 }
 
@@ -74,16 +75,28 @@ export function computeAvailableCash(opts: {
   horizon: CashHorizon;
   reserve: number;
   now?: Date;
+  /** Investment outflows from excluded accounts do not consume this liquidity. */
+  accounts?: Pick<AccountDef, 'id' | 'excludeFromNetWorth'>[];
 }): AvailableCashResult {
   const { transactions, liquidity, horizon } = opts;
   const reserve = Math.max(0, opts.reserve);
   const todayISO = (opts.now ?? new Date()).toISOString().slice(0, 10);
   const horizonEndISO = horizon === 'eom' ? endOfMonthISO(todayISO) : addDaysISO(todayISO, horizon);
 
-  // Stessa lista di eventi della schermata Impegni; la quota propria si applica
-  // QUI, in fase di somma (una spesa condivisa impegna solo la parte tua).
-  const items: CommittedItem[] = buildCommitmentEvents(transactions, todayISO, horizonEndISO)
-    .map(e => ({ date: e.date, description: e.description, amount: r2(ownShare(e.source)), kind: e.kind }));
+  const excludedAccounts = new Set((opts.accounts ?? []).filter(a => a.excludeFromNetWorth).map(a => a.id));
+  // Preserve expense semantics; investments reserve only real outgoing cash.
+  // A future withdrawal is not income available to spend today.
+  const items: CommittedItem[] = buildCommitmentEvents(transactions, todayISO, horizonEndISO, { includeInvestments: true })
+    .flatMap(e => {
+      const t = e.source;
+      let amount = ownShare(t);
+      if (t.type === 'investment') {
+        if (t.date <= todayISO || !t.account || excludedAccounts.has(t.account)) return [];
+        amount = Math.max(0, -accountDelta(t, t.account));
+        if (amount === 0) return [];
+      }
+      return [{ date: e.date, description: e.description, amount: r2(amount), kind: e.kind }];
+    });
 
   const committed = r2(items.reduce((s, i) => s + i.amount, 0));
   const available = r2(liquidity - committed - reserve);
@@ -99,7 +112,7 @@ export function computeAvailableCash(opts: {
   const horizonLabel = horizon === 'eom' ? `fine mese (${horizonEndISO})` : `${horizon} giorni (fino al ${horizonEndISO})`;
   const explanation = [
     `Liquidità attuale: ${r2(liquidity)} €.`,
-    `Uscite già impegnate entro ${horizonLabel}: ${committed} € (${items.filter(i => i.kind === 'ricorrente').length} ricorrenti, ${items.filter(i => i.kind === 'pianificata').length} pianificate). Trasferimenti e quote condivise altrui esclusi.`,
+    `Uscite già impegnate entro ${horizonLabel}: ${committed} € (${items.filter(i => i.kind === 'ricorrente').length} ricorrenti, ${items.filter(i => i.kind === 'pianificata').length} pianificate). Inclusi i versamenti investimento dai conti della liquidità, al netto del TFR. Trasferimenti, apporti senza conto e quote condivise altrui esclusi; entrate e disinvestimenti futuri non compensano.`,
     `Riserva di sicurezza: ${r2(reserve)} €.`,
     `Disponibile = liquidità − impegni − riserva = ${available} €.`,
     monthsOfAutonomy !== null

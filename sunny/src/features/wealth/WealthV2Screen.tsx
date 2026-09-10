@@ -64,8 +64,8 @@ export function WealthV2Screen({ user, transactions, liquidity }: Props) {
     [transactions, accounts, categories, period, now],
   );
   const cash = useMemo(
-    () => computeAvailableCash({ transactions, liquidity, horizon, reserve, now }),
-    [transactions, liquidity, horizon, reserve, now],
+    () => computeAvailableCash({ transactions, liquidity, horizon, reserve, now, accounts }),
+    [transactions, liquidity, horizon, reserve, now, accounts],
   );
 
   const d = summary.decomposition;

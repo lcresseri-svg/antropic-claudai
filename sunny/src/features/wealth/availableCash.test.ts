@@ -101,6 +101,99 @@ describe('computeAvailableCash', () => {
   });
 });
 
+describe('scheduled investments in available cash', () => {
+  const calculate = (transactions: Transaction[], accounts?: { id: string; excludeFromNetWorth?: boolean }[]) =>
+    computeAvailableCash({ transactions, liquidity: 2000, horizon: 'eom', reserve: 100, now: NOW, accounts });
+  const investment = (over: Partial<Transaction> = {}) => tx({
+    id: 'pac', type: 'investment', date: '2026-07-15', amount: 250, ...over,
+  });
+
+  it('adds both recurring and one-off investments to expenses and reserve', () => {
+    const r = calculate([
+      investment({ recurring: { freq: 'monthly' } }),
+      investment({ id: 'single', date: '2026-07-31', amount: 300 }),
+      tx({ date: '2026-07-20', amount: 100, shared: 60 }),
+    ]);
+    expect(r.committed).toBe(590);
+    expect(r.available).toBe(1310);
+    expect(r.committedItems.map(i => i.amount)).toEqual([250, 40, 300]);
+    expect(r.explanation.join(' ')).toContain('versamenti investimento');
+  });
+
+  it('counts all weekly installments once, including a duplicate template', () => {
+    const template = investment({ date: '2026-07-12', seriesId: 'pac', recurring: { freq: 'weekly' } });
+    const r = calculate([template, { ...template, id: 'duplicate' }]);
+    expect(r.committedItems.map(i => i.date)).toEqual(['2026-07-12', '2026-07-19', '2026-07-26']);
+    expect(r.committed).toBe(750);
+  });
+
+  it('subtracts only non-TFR cash and ignores external and fully TFR deposits', () => {
+    const r = calculate([
+      investment({ amount: 300, tfr: 100 }),
+      investment({ id: 'external', account: '', amount: 400 }),
+      investment({ id: 'tfr', tfr: 250 }),
+      investment({ id: 'excess-tfr', tfr: 500 }),
+    ]);
+    expect(r.committed).toBe(200);
+    expect(r.committedItems).toHaveLength(1);
+  });
+
+  it('respects excluded accounts and includes accounts without an exclusion setting', () => {
+    const transactions = [investment(), investment({ id: 'other', account: 'other', amount: 100 })];
+    expect(calculate(transactions, [{ id: 'cc', excludeFromNetWorth: true }]).committed).toBe(100);
+    expect(calculate(transactions, [{ id: 'cc', excludeFromNetWorth: false }]).committed).toBe(350);
+    expect(calculate(transactions).committed).toBe(350);
+  });
+
+  it('does not treat future withdrawals or income as spendable cash', () => {
+    const r = calculate([
+      investment(), investment({ id: 'withdrawal', direction: 'out', amount: 900 }),
+      tx({ date: '2026-07-20', type: 'income', amount: 3000 }),
+      tx({ date: '2026-07-20', type: 'transfer', amount: 500, toAccount: 'other' }),
+    ]);
+    expect(r.committed).toBe(250);
+    expect(r.available).toBe(1650);
+  });
+
+  it('excludes past/today, out-of-month, expired series and synthetic input rows', () => {
+    const r = calculate([
+      investment({ id: 'past', date: '2026-07-09' }),
+      investment({ id: 'today', date: '2026-07-10' }),
+      investment({ id: 'august', date: '2026-08-01' }),
+      investment({ id: 'expired', recurring: { freq: 'monthly', until: '2026-06-30' } }),
+      investment({ id: 'synthetic', projected: true }),
+      investment({ id: 'stale-template', date: '2026-06-10', recurring: { freq: 'monthly' } }),
+    ]);
+    expect(r.committed).toBe(0);
+    expect(r.available).toBe(1900);
+  });
+
+  it('includes a stored future series instance even when its template has advanced', () => {
+    const r = calculate([
+      investment({ id: 'instance', seriesId: 'pac', amount: 175 }),
+      investment({ id: 'template', seriesId: 'pac', date: '2026-08-15', recurring: { freq: 'monthly' } }),
+    ]);
+    expect(r.committed).toBe(175);
+    expect(r.committedItems).toHaveLength(1);
+  });
+
+  it('prefers actual instance amount and account over duplicate generated occurrences', () => {
+    const r = calculate([
+      investment({ id: 'template', seriesId: 'pac', date: '2026-07-12', recurring: { freq: 'weekly' } }),
+      investment({ id: 'edited', seriesId: 'pac', date: '2026-07-19', amount: 400, tfr: 50 }),
+      investment({ id: 'external', seriesId: 'pac', date: '2026-07-26', account: '' }),
+    ]);
+    expect(r.committedItems.map(i => i.amount)).toEqual([250, 350]);
+    expect(r.committed).toBe(600);
+  });
+
+  it('counts flexible intervals without changing their dates', () => {
+    const r = calculate([investment({ date: '2026-07-12', recurring: { freq: 'weekly', mode: 'interval', interval: 2 } })]);
+    expect(r.committedItems.map(i => i.date)).toEqual(['2026-07-12', '2026-07-26']);
+    expect(r.committed).toBe(500);
+  });
+});
+
 describe('medianMonthlyExpenses / autonomia', () => {
   it('uses complete months only and reports months of autonomy', () => {
     const txs: Transaction[] = [

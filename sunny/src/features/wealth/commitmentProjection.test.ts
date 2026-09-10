@@ -75,13 +75,13 @@ describe('buildCommitmentEvents', () => {
     expect(cash.committed).toBe(full - shared * 60);
   });
 
-  it('gli investimenti entrano solo se richiesti: la liquidità non si muove', () => {
+  it('gli investimenti entrano su richiesta e riducono la liquidità disponibile', () => {
     const pac: Transaction[] = [
       ...fixture,
       tx({ id: 'pac', seriesId: 'pac', date: '2026-07-25', description: 'PAC ETF', amount: 250,
         type: 'investment', recurring: { freq: 'monthly' } }),
     ];
-    // Default: solo uscite — è quello che somma `availableCash`.
+    // Default della proiezione: solo spese. availableCash attiva l'opzione.
     const solo = buildCommitmentEvents(pac, TODAY, '2026-08-10');
     expect(solo.some(e => e.description === 'PAC ETF')).toBe(false);
     expect(solo.every(e => e.type === 'expense')).toBe(true);
@@ -92,5 +92,10 @@ describe('buildCommitmentEvents', () => {
     expect(ev?.type).toBe('investment');
     // Nient'altro si muove: stesso insieme di uscite, stesso ordine.
     expect(con.filter(e => e.type === 'expense')).toEqual(solo);
+    const base = { liquidity: 5000, horizon: 30 as const, reserve: 0, now: NOW };
+    const withoutPac = computeAvailableCash({ ...base, transactions: fixture });
+    const withPac = computeAvailableCash({ ...base, transactions: pac });
+    expect(withPac.committed).toBe(withoutPac.committed + 250);
+    expect(withPac.available).toBe(withoutPac.available - 250);
   });
 });

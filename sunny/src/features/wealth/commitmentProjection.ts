@@ -25,8 +25,7 @@
  * `includeInvestments` entrano anche le serie di tipo `investment` — un PAC
  * esce dal conto alla sua data esattamente come una bolletta, ma NON è un
  * costo, quindi ogni evento dichiara il proprio `type` e chi somma decide.
- * L'opzione è spenta di default: la liquidità disponibile continua a contare
- * le sole uscite, come prima.
+ * L'opzione è spenta di default; Impegni e Liquidità disponibile la attivano.
  */
 import { Transaction, TransactionType } from '../../types';
 import { buildProjectedOccurrences, isPending, isExpiredTemplate } from '../../shared/recurrence';
@@ -88,6 +87,15 @@ export function buildCommitmentEvents(
       source: t,
     });
   };
+
+  // Future investment instances may already be stored (e.g. an edited date).
+  // Prefer their actual amount/account over a projection of the same occurrence.
+  // Scope this to investments: expense-series handling remains unchanged.
+  for (const t of transactions) {
+    if (!opts.includeInvestments || t.type !== 'investment' || t.recurring || t.projected || !t.seriesId) continue;
+    if (!isPending(t, todayISO) || t.date > horizonEndISO) continue;
+    push(t, 'ricorrente', t.seriesId);
+  }
 
   // 1. Prossima scadenza di ogni serie ATTIVA (la data del template stesso).
   for (const t of transactions) {

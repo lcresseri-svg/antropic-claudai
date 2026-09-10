@@ -4,6 +4,7 @@
 // spiega ma non li produce.
 import { useMemo, useState } from 'react';
 import { Transaction } from '../../types';
+import { useSettings } from '../../shared/providers/settings';
 import { formatCurrency } from '../../utils';
 import { medianMonthlyFlowV3 } from '../forecast/forecastEngineV3';
 import { computeAvailableCash, medianMonthlyExpenses } from '../wealth/availableCash';
@@ -24,6 +25,7 @@ const RISK_STYLE: Record<DecisionScenario['risk'], string> = {
 };
 
 export function DecisionCoachPanel({ itemName, cost, transactions, liquidity, savingsTarget }: Props) {
+  const { accounts } = useSettings();
   const [reserve, setReserve] = useState(500);
   const now = useMemo(() => new Date(), []);
   const todayISO = now.toISOString().slice(0, 10);
@@ -32,7 +34,7 @@ export function DecisionCoachPanel({ itemName, cost, transactions, liquidity, sa
     const medExpenses = medianMonthlyExpenses(transactions, todayISO);
     const medIncome = medianMonthlyFlowV3(transactions, 'income', now);
     const medInvest = medianMonthlyFlowV3(transactions, 'investment', now);
-    const committed = computeAvailableCash({ transactions, liquidity, horizon: 30, reserve: 0, now }).committed;
+    const committed = computeAvailableCash({ transactions, liquidity, horizon: 30, reserve: 0, now, accounts }).committed;
     const monthlySavings = Math.round(medIncome - (medExpenses ?? 0) - medInvest);
     return evaluatePurchase({
       itemName,
@@ -47,7 +49,7 @@ export function DecisionCoachPanel({ itemName, cost, transactions, liquidity, sa
       // expenses can realistically be redirected to the purchase.
       monthlyCutPotential: medExpenses != null ? Math.round(medExpenses * 0.15) : 0,
     });
-  }, [itemName, cost, transactions, liquidity, reserve, savingsTarget, now, todayISO]);
+  }, [itemName, cost, transactions, liquidity, reserve, savingsTarget, now, todayISO, accounts]);
 
   return (
     <section className="rounded-2xl bg-card border border-divider px-5 py-5" aria-label="Confronto scenari">
