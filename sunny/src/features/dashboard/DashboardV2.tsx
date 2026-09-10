@@ -91,9 +91,9 @@ export function DashboardV2(p: Props) {
   // Il calcolo è puro e locale: nessun dato nuovo, nessuna chiamata in più.
   const cash = useMemo(
     () => computeAvailableCash({
-      transactions: p.transactions, liquidity: p.liquidity, horizon: 'eom', reserve: cashReserve, now,
+      transactions: p.transactions, liquidity: p.liquidity, horizon: 'eom', reserve: cashReserve, now, accounts,
     }),
-    [p.transactions, p.liquidity, cashReserve, now],
+    [p.transactions, p.liquidity, cashReserve, now, accounts],
   );
 
   // Spese del mese per categoria — realizzate soltanto: i movimenti ancora
