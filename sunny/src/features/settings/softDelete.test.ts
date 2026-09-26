@@ -1,6 +1,6 @@
 import { describe, it, expect } from 'vitest';
 import { Transaction, CategoryDef, AccountDef } from '../../types';
-import { isCategoryUsed, isAccountUsed, removeCategoryDef, removeAccountDef, visibleDefs } from './softDelete';
+import { isCategoryUsed, isAccountUsed, removeCategoryDef, restoreCategoryDef, removeAccountDef, visibleDefs } from './softDelete';
 
 const cat = (id: string, extra: Partial<CategoryDef> = {}): CategoryDef =>
   ({ id, label: id, icon: '•', color: '#888', kind: 'expense', ...extra });
@@ -36,6 +36,43 @@ describe('softDelete — categories', () => {
     const txs = [tx({ category: 'spesa' })];
     expect(isCategoryUsed(txs, 'spesa')).toBe(true);
     expect(isCategoryUsed(txs, 'casa')).toBe(false);
+  });
+});
+
+describe('restoreCategoryDef', () => {
+  it('restores the same ID, preserves order and history references, and changes only archived', () => {
+    const original = cat('fund', { kind: 'investment', archived: true, initialBalance: 1200,
+      currentValue: 1500, lastValueUpdate: '2026-09-01', fundType: 'pension', tfrAmount: 100,
+      subscriptionDate: '2020-01-01' });
+    const categories = [cat('a'), original, cat('b', { archived: true })];
+    const historical = tx({ category: 'fund', type: 'investment' });
+    const next = restoreCategoryDef(categories, 'fund');
+    expect(next.map(c => c.id)).toEqual(['a', 'fund', 'b']);
+    expect(next[1]).toEqual({ ...original, archived: false });
+    expect(original.archived).toBe(true);
+    expect(next[0]).toBe(categories[0]);
+    expect(next[2]).toBe(categories[2]);
+    expect(visibleDefs(next).map(c => c.id)).toEqual(['a', historical.category]);
+  });
+
+  it.each(['expense', 'income', 'investment'] as const)('restores %s without changing kind', kind => {
+    const category = cat('x', { kind, archived: true, financedAmount: 500 });
+    expect(restoreCategoryDef([category], 'x')).toEqual([{ ...category, archived: false }]);
+  });
+
+  it('is idempotent and never recreates a hard-deleted category', () => {
+    const categories = [cat('a')];
+    expect(restoreCategoryDef(categories, 'a')).toBe(categories);
+    expect(restoreCategoryDef(categories, 'missing')).toBe(categories);
+    expect(restoreCategoryDef([], 'missing')).toEqual([]);
+  });
+
+  it('distinguishes identical labels by ID and allows archiving again', () => {
+    const categories = [cat('a', { label: 'Spesa', archived: true }), cat('b', { label: 'Spesa', archived: true })];
+    const restored = restoreCategoryDef(categories, 'b');
+    expect(restored[0].archived).toBe(true);
+    expect(restored[1].archived).toBe(false);
+    expect(removeCategoryDef(restored, 'b', [tx({ category: 'b' })])).toEqual(categories);
   });
 });
 
