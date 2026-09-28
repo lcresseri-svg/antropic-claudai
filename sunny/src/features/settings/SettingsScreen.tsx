@@ -7,6 +7,7 @@ import { usePush } from '../../shared/hooks/usePush';
 import { EditDefSheet, DefDraft } from './EditDefSheet';
 import { FeedbackSheet } from '../feedback/FeedbackSheet';
 import { ExpenseShortcutSection } from './ExpenseShortcutSection';
+import { ArchivedCategories } from './ArchivedCategories';
 import { removeCategoryDef, removeAccountDef, visibleDefs } from './softDelete';
 import { buildExportPayload, downloadJson, downloadCsv, BudgetExportInput } from './dataExport';
 import { isForecastV4EnabledForUser } from '../forecast/forecastFeatureGate';
@@ -46,7 +47,7 @@ function reorder<T>(arr: T[], from: number, to: number): T[] {
 export function SettingsScreen({ user, transactions, budgetExport, onLogOut, onDeleteAll, onDeleteAccount }: Props) {
   const navigate = useNavigate();
   const location = useLocation();
-  const { categories, accounts, visibleCategories, visibleAccounts, theme, includeInvestments, enableInvestments, enableBudget, insightDepth, aiEnabled, aiCoachWidgetEnabled, detailedInvestments, cashReserve, saveCategories, saveAccounts, saveTheme, saveIncludeInvestments, saveEnableInvestments, saveEnableBudget, saveInsightDepth, saveAiEnabled, saveAiCoachWidgetEnabled, saveCashReserve } = useSettings();
+  const { categories, accounts, visibleCategories, visibleAccounts, theme, includeInvestments, enableInvestments, enableBudget, insightDepth, aiEnabled, aiCoachWidgetEnabled, detailedInvestments, cashReserve, saveCategories, restoreCategory, saveAccounts, saveTheme, saveIncludeInvestments, saveEnableInvestments, saveEnableBudget, saveInsightDepth, saveAiEnabled, saveAiCoachWidgetEnabled, saveCashReserve } = useSettings();
   const [sub, setSub] = useState<Sub>('menu');
   const [editing, setEditing] = useState<{ kind: 'category' | 'account'; draft: DefDraft; isNew: boolean; withKind?: boolean } | null>(null);
   const [confirmReset, setConfirmReset] = useState(false);
@@ -752,6 +753,7 @@ export function SettingsScreen({ user, transactions, budgetExport, onLogOut, onD
                 </div>
               );
             })}
+            {!editMode && <ArchivedCategories categories={categories} onRestore={restoreCategory} />}
           </div>
         </>
       )}

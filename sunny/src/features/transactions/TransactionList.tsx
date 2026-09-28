@@ -33,7 +33,7 @@ type SortDir = 'desc' | 'asc';
 type PeriodFilter = 'all' | '1m' | '3m' | '6m' | '1y';
 
 const PERIOD_OPTS: { value: PeriodFilter; label: string }[] = [
-  { value: 'all', label: 'Tutto' },
+  { value: 'all', label: 'Da sempre' },
   { value: '1m', label: 'Ultimo mese' },
   { value: '3m', label: 'Ultimi 3 mesi' },
   { value: '6m', label: 'Ultimi 6 mesi' },

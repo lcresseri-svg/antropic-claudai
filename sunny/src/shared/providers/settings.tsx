@@ -8,6 +8,7 @@ import {
   SYSTEM_CATEGORIES,
 } from '../../defaults';
 import { canUseDetailedInvestments } from '../featureFlags';
+import { restoreArchivedCategory } from '../../features/settings/categoryRestore';
 
 type Theme = 'dark' | 'light';
 export type InsightDepth = 'minimal' | 'medium' | 'advanced';
@@ -37,6 +38,7 @@ interface SettingsValue {
   getCat: (id: string) => CategoryDef;
   getAcc: (id: string) => AccountDef;
   saveCategories: (c: CategoryDef[]) => void;
+  restoreCategory: (id: string) => Promise<void>;
   saveAccounts: (a: AccountDef[]) => void;
   saveApplePayCardMapping: (mapping: ApplePayCardMapping) => void;
   removeApplePayCardMapping: (cardKey: string) => void;
@@ -179,6 +181,11 @@ export function SettingsProvider({ user, children }: { user: User | null; childr
     if (user) setDoc(settingsRef(), { accounts: a }, MERGE);
   }, [user, settingsRef]);
 
+  const restoreCategory = useCallback(async (id: string) => {
+    if (!user) throw new Error('Accesso richiesto.');
+    await restoreArchivedCategory(user.uid, id);
+  }, [user]);
+
   const saveApplePayCardMapping = useCallback((mapping: ApplePayCardMapping) => {
     const next = [
       ...applePayCardMappings.filter(m => m.cardKey !== mapping.cardKey),
@@ -274,7 +281,7 @@ export function SettingsProvider({ user, children }: { user: User | null; childr
   );
 
   return (
-    <SettingsContext.Provider value={{ categories, accounts, applePayCardMappings, visibleCategories, visibleAccounts, theme, includeInvestments, enableInvestments, enableBudget, insightDepth, aiEnabled, aiCoachWidgetEnabled, cashReserve, homeOrder, detailedInvestments, settingsLoaded, getCat, getAcc, saveCategories, saveAccounts, saveApplePayCardMapping, removeApplePayCardMapping, saveTheme, saveIncludeInvestments, saveEnableInvestments, saveEnableBudget, saveInsightDepth, saveAiEnabled, saveAiCoachWidgetEnabled, saveCashReserve, saveHomeOrder, saveCurrentValue }}>
+    <SettingsContext.Provider value={{ categories, accounts, applePayCardMappings, visibleCategories, visibleAccounts, theme, includeInvestments, enableInvestments, enableBudget, insightDepth, aiEnabled, aiCoachWidgetEnabled, cashReserve, homeOrder, detailedInvestments, settingsLoaded, getCat, getAcc, saveCategories, restoreCategory, saveAccounts, saveApplePayCardMapping, removeApplePayCardMapping, saveTheme, saveIncludeInvestments, saveEnableInvestments, saveEnableBudget, saveInsightDepth, saveAiEnabled, saveAiCoachWidgetEnabled, saveCashReserve, saveHomeOrder, saveCurrentValue }}>
       {children}
     </SettingsContext.Provider>
   );

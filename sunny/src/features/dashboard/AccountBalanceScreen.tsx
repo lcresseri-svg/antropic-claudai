@@ -9,7 +9,7 @@ import { useNavigate } from 'react-router-dom';
 import { Transaction } from '../../types';
 import { useSettings } from '../../shared/providers/settings';
 import { formatCurrency, capitalize, formatDateFull } from '../../utils';
-import { PERIOD_OPTS, PeriodType, getPeriodRange, localISO } from './categoryAnalytics';
+import { PERIOD_OPTS, PeriodType, getPeriodRange, getHistoryStartISO, localISO } from './categoryAnalytics';
 import { aggregateAccountFlow, aggregateAccountBalanceTrend, balanceAsOf } from './accountAnalytics';
 import { AnalysisHeader } from './AnalysisHeader';
 import { PeriodControls } from './PeriodControls';
@@ -29,7 +29,8 @@ export function AccountBalanceScreen({ transactions }: Props) {
   const [selectedId, setSelectedId] = useState<string | null>(null);
 
   const now = useMemo(() => new Date(), []);
-  const range = useMemo(() => getPeriodRange(period, offset, now), [period, offset, now]);
+  const historyStart = useMemo(() => getHistoryStartISO(transactions, now), [transactions, now]);
+  const range = useMemo(() => getPeriodRange(period, offset, now, historyStart), [period, offset, now, historyStart]);
 
   // Cash accounts only (investment accounts aren't liquidity).
   const cashAccounts = useMemo(() => accounts.filter(a => !a.isInvestment), [accounts]);

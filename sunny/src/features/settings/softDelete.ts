@@ -29,6 +29,12 @@ export function removeCategoryDef(
     : categories.filter(c => c.id !== id);
 }
 
+/** Reactivate the original definition without changing its ID or metadata. */
+export function restoreCategoryDef(categories: CategoryDef[], id: string): CategoryDef[] {
+  if (!categories.some(c => c.id === id && c.archived)) return categories;
+  return categories.map(c => c.id === id ? { ...c, archived: false } : c);
+}
+
 /** Remove an account. See removeCategoryDef. */
 export function removeAccountDef(
   accounts: AccountDef[], id: string, transactions: Transaction[],

@@ -130,4 +130,11 @@ describe('accountAnalytics', () => {
     // Quadratura del conto: apertura + entrate − uscite − investimenti + trasferimenti
     expect(f.closingBalance).toBe(f.openingBalance + 2000 - 500 - 100 + f.transferNet);
   });
+
+  it('11. the all-time trend starts at the first real movement and ends today', () => {
+    const trend = aggregateAccountBalanceTrend(TXS, ACC_A, 'all', 0, NOW);
+    expect(trend).toHaveLength(2); // May and June 2026
+    expect(trend[0].balance).toBe(150);
+    expect(trend[trend.length - 1].balance).toBe(105);
+  });
 });

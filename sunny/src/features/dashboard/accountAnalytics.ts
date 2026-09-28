@@ -20,7 +20,7 @@
 import { Transaction, AccountDef, ownShare } from '../../types';
 import { accountDelta } from '../../shared/financialFlow';
 import {
-  PeriodType, PeriodRange, getPeriodRange, localISO,
+  PeriodType, PeriodRange, getPeriodRange, getHistoryStartISO, localISO,
 } from './categoryAnalytics';
 
 export type { PeriodType, PeriodRange };
@@ -153,7 +153,7 @@ export function aggregateAccountBalanceTrend(
   offset: number,
   now: Date = new Date(),
 ): AccountBalancePoint[] {
-  const range = getPeriodRange(period, offset, now);
+  const range = getPeriodRange(period, offset, now, getHistoryStartISO(transactions, now));
   const start = range.start;
   const todayISO = localISO(now);
   const cap = (iso: string) => (iso <= todayISO ? iso : todayISO);

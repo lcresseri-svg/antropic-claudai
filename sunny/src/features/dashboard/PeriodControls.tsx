@@ -1,5 +1,5 @@
 // Controlli di periodo condivisi dalle tre schermate di analisi (Entrate,
-// Saldo per conto, Spese per categoria): pill Mese/3M/6M/12M a sinistra e, a
+// Saldo per conto, Spese per categoria): pill Mese/3M/6M/12M/Da sempre a sinistra e, a
 // destra, un navigatore compatto in card.
 //
 // Erano tre copie della stessa cosa, con tre geometrie leggermente diverse.
@@ -38,16 +38,22 @@ export function PeriodControls({ period, onPeriodChange, offset, onOffsetChange,
           ))}
         </div>
 
-        <div className="flex items-center gap-1 glass-card rounded-xl px-1 py-1 flex-none">
-          <Arrow dir="prev" onClick={() => onOffsetChange(offset + 1)} />
-          <button type="button" onClick={() => onOffsetChange(0)} disabled={offset === 0}
-            aria-label={offset === 0 ? undefined : 'Torna al periodo corrente'}
-            className="text-[12px] font-semibold text-primary whitespace-nowrap px-1 disabled:cursor-default">
-            {capitalize(shown)}
-          </button>
-          {/* Avanti oltre il periodo corrente non ha senso: disabilitata. */}
-          <Arrow dir="next" disabled={offset === 0} onClick={() => onOffsetChange(Math.max(0, offset - 1))} />
-        </div>
+        {period === 'all' ? (
+          <div className="glass-card rounded-xl px-3 py-2 flex-none text-[12px] font-semibold text-primary whitespace-nowrap">
+            Tutto lo storico
+          </div>
+        ) : (
+          <div className="flex items-center gap-1 glass-card rounded-xl px-1 py-1 flex-none">
+            <Arrow dir="prev" onClick={() => onOffsetChange(offset + 1)} />
+            <button type="button" onClick={() => onOffsetChange(0)} disabled={offset === 0}
+              aria-label={offset === 0 ? undefined : 'Torna al periodo corrente'}
+              className="text-[12px] font-semibold text-primary whitespace-nowrap px-1 disabled:cursor-default">
+              {capitalize(shown)}
+            </button>
+            {/* Avanti oltre il periodo corrente non ha senso: disabilitata. */}
+            <Arrow dir="next" disabled={offset === 0} onClick={() => onOffsetChange(Math.max(0, offset - 1))} />
+          </div>
+        )}
       </div>
     </div>
   );
