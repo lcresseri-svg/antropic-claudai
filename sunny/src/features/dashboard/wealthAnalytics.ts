@@ -104,7 +104,7 @@ export const WEALTH_PERIOD_OPTS: { value: WealthPeriod; label: string }[] = [
   { value: '3m', label: '3M' },
   { value: '6m', label: '6M' },
   { value: '1y', label: '1A' },
-  { value: 'all', label: 'Tutto' },
+  { value: 'all', label: 'Da sempre' },
 ];
 
 const WEALTH_PERIOD_LABEL: Record<Exclude<WealthPeriod, 'custom'>, string> = {

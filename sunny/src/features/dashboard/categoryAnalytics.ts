@@ -7,15 +7,16 @@
 import { Transaction, ownShare } from '../../types';
 import { capitalize } from '../../utils';
 
-export type PeriodType = '1m' | '3m' | '6m' | '12m';
+export type PeriodType = '1m' | '3m' | '6m' | '12m' | 'all';
 
-export const PERIOD_MONTHS: Record<PeriodType, number> = { '1m': 1, '3m': 3, '6m': 6, '12m': 12 };
+export const PERIOD_MONTHS: Record<Exclude<PeriodType, 'all'>, number> = { '1m': 1, '3m': 3, '6m': 6, '12m': 12 };
 
 export const PERIOD_OPTS: { value: PeriodType; label: string }[] = [
   { value: '1m',  label: 'Mese' },
   { value: '3m',  label: '3M' },
   { value: '6m',  label: '6M' },
   { value: '12m', label: '12M' },
+  { value: 'all', label: 'Da sempre' },
 ];
 
 export interface PeriodRange {
@@ -37,7 +38,24 @@ const longMonth = (d: Date) => capitalize(d.toLocaleString('it-IT', { month: 'lo
  * Window of `months` calendar months. `offset` steps back by whole periods
  * (offset 0 = most recent, offset 1 = the immediately preceding period, …).
  */
-export function getPeriodRange(period: PeriodType, offset: number, now: Date = new Date()): PeriodRange {
+export function getPeriodRange(
+  period: PeriodType,
+  offset: number,
+  now: Date = new Date(),
+  allTimeStartISO?: string,
+): PeriodRange {
+  if (period === 'all') {
+    const fallback = `${now.getFullYear()}-${pad(now.getMonth() + 1)}-01`;
+    const [year, month, day] = (allTimeStartISO ?? fallback).split('-').map(Number);
+    const start = new Date(year, month - 1, day);
+    const safeStart = Number.isNaN(start.getTime()) || start > now
+      ? new Date(now.getFullYear(), now.getMonth(), 1)
+      : start;
+    const months = Math.max(1,
+      (now.getFullYear() - safeStart.getFullYear()) * 12 + now.getMonth() - safeStart.getMonth() + 1);
+    return { start: safeStart, end: now, fullEnd: now, label: 'Da sempre', months, isCurrent: true };
+  }
+
   const months = PERIOD_MONTHS[period];
   const cy = now.getFullYear(), cm = now.getMonth();
   // offset is in months (not periods): each arrow press moves by 1 month,
@@ -61,9 +79,24 @@ export function getPeriodRange(period: PeriodType, offset: number, now: Date = n
 }
 
 /** The non-overlapping period immediately before the given one. */
-export function getPreviousPeriodRange(period: PeriodType, offset: number, now: Date = new Date()): PeriodRange {
+export function getPreviousPeriodRange(period: Exclude<PeriodType, 'all'>, offset: number, now?: Date): PeriodRange;
+export function getPreviousPeriodRange(period: PeriodType, offset: number, now?: Date): PeriodRange | null;
+export function getPreviousPeriodRange(period: PeriodType, offset: number, now: Date = new Date()): PeriodRange | null {
+  if (period === 'all') return null;
   const months = PERIOD_MONTHS[period];
   return getPeriodRange(period, offset + months, now);
+}
+
+/** First real movement available for an all-time range. */
+export function getHistoryStartISO(transactions: Transaction[], now: Date = new Date()): string {
+  const todayISO = localISO(now);
+  const dates = transactions
+    .filter(t => !t.projected && !t.recurring && t.date <= todayISO)
+    .map(t => t.date)
+    .filter(d => /^\d{4}-\d{2}-\d{2}$/.test(d));
+  return dates.length > 0
+    ? dates.reduce((first, date) => date < first ? date : first)
+    : `${now.getFullYear()}-${pad(now.getMonth() + 1)}-01`;
 }
 
 /** Fraction (0..1) of the current period already elapsed. 1 for past periods. */
@@ -115,11 +148,12 @@ export interface CategoryAggregation {
 export function aggregateCategorySpending(
   transactions: Transaction[],
   range: PeriodRange,
-  prevRange: PeriodRange,
+  prevRange: PeriodRange | null,
   opts?: { categoryBudgets?: Record<string, number>; now?: Date },
 ): CategoryAggregation {
   const startISO = localISO(range.start), endISO = localISO(range.end);
-  const prevStartISO = localISO(prevRange.start), prevEndISO = localISO(prevRange.end);
+  const prevStartISO = prevRange ? localISO(prevRange.start) : null;
+  const prevEndISO = prevRange ? localISO(prevRange.end) : null;
 
   const lists: Record<string, number[]> = {};
   let total = 0;
@@ -130,7 +164,7 @@ export function aggregateCategorySpending(
     if (isExpenseIn(t, startISO, endISO)) {
       const v = ownShare(t);
       if (v > 0) { (lists[t.category] ??= []).push(v); total += v; }
-    } else if (isExpenseIn(t, prevStartISO, prevEndISO)) {
+    } else if (prevStartISO && prevEndISO && isExpenseIn(t, prevStartISO, prevEndISO)) {
       const v = ownShare(t);
       if (v > 0) { prev[t.category] = (prev[t.category] ?? 0) + v; previousTotal += v; }
     }
@@ -185,10 +219,11 @@ export function aggregateCategorySpending(
 export function aggregateIncomeByCategory(
   transactions: Transaction[],
   range: PeriodRange,
-  prevRange: PeriodRange,
+  prevRange: PeriodRange | null,
 ): CategoryAggregation {
   const startISO = localISO(range.start), endISO = localISO(range.end);
-  const prevStartISO = localISO(prevRange.start), prevEndISO = localISO(prevRange.end);
+  const prevStartISO = prevRange ? localISO(prevRange.start) : null;
+  const prevEndISO = prevRange ? localISO(prevRange.end) : null;
 
   const lists: Record<string, number[]> = {};
   let total = 0;
@@ -198,7 +233,7 @@ export function aggregateIncomeByCategory(
   for (const t of transactions) {
     if (isIncomeIn(t, startISO, endISO)) {
       if (t.amount > 0) { (lists[t.category] ??= []).push(t.amount); total += t.amount; }
-    } else if (isIncomeIn(t, prevStartISO, prevEndISO)) {
+    } else if (prevStartISO && prevEndISO && isIncomeIn(t, prevStartISO, prevEndISO)) {
       if (t.amount > 0) { prev[t.category] = (prev[t.category] ?? 0) + t.amount; previousTotal += t.amount; }
     }
   }
@@ -371,7 +406,7 @@ export function aggregateCategoryTrend(
   offset: number,
   now: Date = new Date(),
 ): CategoryTrendPoint[] {
-  const range = getPeriodRange(period, offset, now);
+  const range = getPeriodRange(period, offset, now, getHistoryStartISO(transactions, now));
   const startMonth = range.start;
   // Never count future-dated (planned) movements — cap every bucket at today so
   // the current month/period stops at "now", just like the spending aggregation.

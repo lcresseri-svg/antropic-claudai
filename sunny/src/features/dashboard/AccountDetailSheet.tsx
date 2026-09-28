@@ -7,7 +7,7 @@ import { useEffect, useMemo } from 'react';
 import { Transaction, AccountDef } from '../../types';
 import { InsightDepth } from '../../shared/providers/settings';
 import { formatCurrency, formatDate, capitalize } from '../../utils';
-import { PeriodType, getPeriodRange } from './categoryAnalytics';
+import { PeriodType, getPeriodRange, getHistoryStartISO } from './categoryAnalytics';
 import {
   aggregateAccountFlow, aggregateAccountBalanceTrend, getAccountMovements, signedDelta,
 } from './accountAnalytics';
@@ -41,7 +41,8 @@ export function AccountDetailSheet({
     return () => { window.removeEventListener('keydown', onKey); };
   }, [onClose]);
 
-  const range = useMemo(() => getPeriodRange(period, offset, now), [period, offset, now]);
+  const historyStart = useMemo(() => getHistoryStartISO(transactions, now), [transactions, now]);
+  const range = useMemo(() => getPeriodRange(period, offset, now, historyStart), [period, offset, now, historyStart]);
   const flow = useMemo(() => aggregateAccountFlow(transactions, account, range, { now }), [transactions, account, range, now]);
   const trend = useMemo(() => aggregateAccountBalanceTrend(transactions, account, period, offset, now), [transactions, account, period, offset, now]);
   const movements = useMemo(() => getAccountMovements(transactions, account, range, now), [transactions, account, range, now]);

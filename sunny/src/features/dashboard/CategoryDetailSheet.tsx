@@ -9,7 +9,7 @@ import { Transaction, ownShare } from '../../types';
 import { useSettings, InsightDepth } from '../../shared/providers/settings';
 import { formatCurrency, formatDate, capitalize } from '../../utils';
 import {
-  PeriodType, getPeriodRange, aggregateCategoryTrend, getCategoryMovements,
+  PeriodType, getPeriodRange, getHistoryStartISO, aggregateCategoryTrend, getCategoryMovements,
   historicalMonthlyAverage, periodElapsedFraction, CategorySpendingSummary,
   buildLoanProgress,
 } from './categoryAnalytics';
@@ -50,7 +50,8 @@ export function CategoryDetailSheet({
     return () => { window.removeEventListener('keydown', onKey); };
   }, [onClose]);
 
-  const range = useMemo(() => getPeriodRange(period, offset, now), [period, offset, now]);
+  const historyStart = useMemo(() => getHistoryStartISO(transactions, now), [transactions, now]);
+  const range = useMemo(() => getPeriodRange(period, offset, now, historyStart), [period, offset, now, historyStart]);
   const trend = useMemo(
     () => aggregateCategoryTrend(transactions, summary.categoryId, period, offset, now),
     [transactions, summary.categoryId, period, offset, now],
@@ -87,17 +88,19 @@ export function CategoryDetailSheet({
   // Deterministic note comparing this period's pace to the usual.
   const note = (() => {
     if (summary.transactionCount === 0) return 'Nessuna spesa in questa categoria nel periodo selezionato.';
-    if (histAvg > 0 && histDeviationPct !== null && Math.abs(histDeviationPct) >= 12) {
+    if (period !== 'all' && histAvg > 0 && histDeviationPct !== null && Math.abs(histDeviationPct) >= 12) {
       return histDeviationPct > 0
         ? `Le spese in ${cat.label} sono più alte del solito in questo periodo.`
         : `Le spese in ${cat.label} sono più contenute del solito in questo periodo.`;
     }
-    if (summary.deltaPercentage !== null && Math.abs(summary.deltaPercentage) >= 12) {
+    if (period !== 'all' && summary.deltaPercentage !== null && Math.abs(summary.deltaPercentage) >= 12) {
       return summary.deltaPercentage > 0
         ? `${cat.label} è in aumento rispetto al periodo precedente.`
         : `${cat.label} è in calo rispetto al periodo precedente.`;
     }
-    return `Spesa in ${cat.label} in linea con il tuo solito ritmo.`;
+    return period === 'all'
+      ? `${cat.label} rappresenta il ${Math.round(summary.percentageOfTotal)}% delle spese registrate da sempre.`
+      : `Spesa in ${cat.label} in linea con il tuo solito ritmo.`;
   })();
 
   // KPI cells, built per density.
@@ -106,7 +109,7 @@ export function CategoryDetailSheet({
     kpis.push({ label: 'Movimenti', value: String(summary.transactionCount) });
     kpis.push({ label: 'Spesa media', value: formatCurrency(summary.avgTransactionAmount) });
     kpis.push({ label: '% del totale', value: `${Math.round(summary.percentageOfTotal)}%` });
-    if (summary.deltaPercentage !== null) {
+    if (period !== 'all' && summary.deltaPercentage !== null) {
       kpis.push({
         label: 'Variazione',
         value: `${summary.deltaPercentage > 0 ? '+' : ''}${Math.round(summary.deltaPercentage)}%`,
@@ -117,8 +120,8 @@ export function CategoryDetailSheet({
     }
   }
   if (depth === 'advanced') {
-    if (histAvg > 0) kpis.push({ label: 'Media storica', value: `${formatCurrency(histAvg)}/mese` });
-    if (histAvg > 0) kpis.push({
+    if (period !== 'all' && histAvg > 0) kpis.push({ label: 'Media storica', value: `${formatCurrency(histAvg)}/mese` });
+    if (period !== 'all' && histAvg > 0) kpis.push({
       label: 'Scostamento',
       value: `${histDeviation > 0 ? '+' : ''}${formatCurrency(histDeviation)}`,
       tone: deltaColor(histDeviation),
@@ -131,7 +134,7 @@ export function CategoryDetailSheet({
         tone: summary.budgetUsedPercentage > 100 ? 'text-[#E08B8B]' : undefined,
       });
     }
-    if (projection !== null) kpis.push({ label: 'Proiezione periodo', value: `~${formatCurrency(projection)}` });
+    if (period !== 'all' && projection !== null) kpis.push({ label: 'Proiezione periodo', value: `~${formatCurrency(projection)}` });
   }
 
   return (

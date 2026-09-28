@@ -2,7 +2,7 @@ import { describe, it, expect } from 'vitest';
 import {
   getPeriodRange, getPreviousPeriodRange, periodElapsedFraction,
   aggregateCategorySpending, buildComposition, aggregateCategoryTrend,
-  getCategoryMovements, historicalMonthlyAverage, localISO,
+  getCategoryMovements, historicalMonthlyAverage, localISO, getHistoryStartISO,
   aggregateIncomeByCategory, aggregateIncomeStats, aggregateIncomeTrend, capitalReturnedIn,
   REALIZED_GAIN_CATEGORY, totalPaidAllTime, buildLoanProgress,
 } from './categoryAnalytics';
@@ -57,6 +57,22 @@ describe('getPeriodRange', () => {
     expect(localISO(prev.start)).toBe('2026-05-01');
     expect(localISO(prev.end)).toBe('2026-05-31');
   });
+
+  it('all-time starts at the first real movement and has no previous period', () => {
+    const start = getHistoryStartISO([
+      tx({ date: '2024-02-12', amount: 20 }),
+      tx({ date: '2023-07-04', amount: 10 }),
+      tx({ date: '2022-01-01', amount: 99, projected: true }),
+      tx({ date: '2027-01-01', amount: 99 }),
+    ], NOW);
+    const range = getPeriodRange('all', 9, NOW, start);
+    expect(start).toBe('2023-07-04');
+    expect(localISO(range.start)).toBe('2023-07-04');
+    expect(localISO(range.end)).toBe('2026-06-15');
+    expect(range.label).toBe('Da sempre');
+    expect(range.months).toBe(36);
+    expect(getPreviousPeriodRange('all', 0, NOW)).toBeNull();
+  });
 });
 
 describe('periodElapsedFraction', () => {
@@ -100,6 +116,15 @@ describe('aggregateCategorySpending', () => {
     expect(spesa.budgetAmount).toBe(100);
     expect(spesa.budgetUsedPercentage).toBeCloseTo(150, 5);
     expect(spesa.isOverPace).toBe(true);
+  });
+
+  it('all-time includes the full history without fabricating a comparison', () => {
+    const all = getPeriodRange('all', 0, NOW, getHistoryStartISO(SAMPLE, NOW));
+    const agg = aggregateCategorySpending(SAMPLE, all, null);
+    expect(agg.total).toBe(460);
+    expect(agg.previousTotal).toBe(0);
+    expect(agg.deltaPercentage).toBeNull();
+    expect(agg.categories.find(c => c.categoryId === 'spesa')?.deltaPercentage).toBeNull();
   });
 });
 
@@ -213,6 +238,17 @@ describe('analisi entrate', () => {
     const agg = aggregateIncomeByCategory(INCOME, range, prevRange);
     expect(agg.previousTotal).toBe(2000);
     expect(agg.deltaPercentage).toBeCloseTo(25, 0); // 2500 vs 2000
+  });
+
+  it('da sempre include tutte le entrate reali e non costruisce un confronto precedente', () => {
+    const all = getPeriodRange('all', 0, NOW, getHistoryStartISO(INCOME, NOW));
+    const agg = aggregateIncomeByCategory(INCOME, all, null);
+    const trend = aggregateIncomeTrend(INCOME, all.months, NOW);
+    expect(localISO(all.start)).toBe('2026-05-02');
+    expect(agg.total).toBe(4500);
+    expect(agg.previousTotal).toBe(0);
+    expect(agg.deltaPercentage).toBeNull();
+    expect(trend.map(p => p.value)).toEqual([2000, 2500]);
   });
 
   it('capitalReturnedIn conta solo i disinvestimenti del periodo', () => {

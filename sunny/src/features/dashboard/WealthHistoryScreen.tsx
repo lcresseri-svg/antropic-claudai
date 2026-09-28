@@ -73,7 +73,7 @@ export function WealthHistoryScreen({ transactions }: Props) {
 
       {/* Sticky period selector */}
       <div className="sticky top-0 z-10 -mx-4 px-4 md:-mx-8 md:px-8 pt-1 pb-3 bg-bg border-b border-divider mb-5">
-        <div className="flex items-center gap-1.5">
+        <div className="flex items-center gap-1.5 overflow-x-auto scrollbar-hide">
           {WEALTH_PERIOD_OPTS.map(opt => (
             <button
               key={opt.value}
@@ -137,7 +137,7 @@ export function WealthHistoryScreen({ transactions }: Props) {
       </div>
 
       {/* KPI — total variation over the four trailing windows */}
-      <section className="mb-4">
+      {period !== 'all' && <section className="mb-4">
         <p className="label-caps text-secondary mb-3 px-0.5">Variazione del totale</p>
         <div className="grid grid-cols-2 md:grid-cols-4 gap-2">
           {comparisons.map(c => (
@@ -158,7 +158,7 @@ export function WealthHistoryScreen({ transactions }: Props) {
             </div>
           ))}
         </div>
-      </section>
+      </section>}
 
       <div className="grid md:grid-cols-2 gap-4 mb-4">
         {/* Variation of the SELECTED period, all three metrics */}

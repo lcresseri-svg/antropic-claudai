@@ -17,7 +17,7 @@ import { Transaction } from '../../types';
 import { useSettings } from '../../shared/providers/settings';
 import { formatCurrency, capitalize } from '../../utils';
 import {
-  PeriodType, PERIOD_OPTS, getPeriodRange, getPreviousPeriodRange,
+  PeriodType, PERIOD_OPTS, getPeriodRange, getPreviousPeriodRange, getHistoryStartISO,
   aggregateIncomeByCategory, aggregateIncomeStats, aggregateIncomeTrend,
   capitalReturnedIn, buildComposition,
 } from './categoryAnalytics';
@@ -40,7 +40,8 @@ export function IncomeScreen({ transactions }: Props) {
   const [offset, setOffset] = useState(0);
 
   const now = useMemo(() => new Date(), []);
-  const range = useMemo(() => getPeriodRange(period, offset, now), [period, offset, now]);
+  const historyStart = useMemo(() => getHistoryStartISO(transactions, now), [transactions, now]);
+  const range = useMemo(() => getPeriodRange(period, offset, now, historyStart), [period, offset, now, historyStart]);
   const prevRange = useMemo(() => getPreviousPeriodRange(period, offset, now), [period, offset, now]);
 
   const agg = useMemo(
@@ -49,14 +50,17 @@ export function IncomeScreen({ transactions }: Props) {
   );
   const stats = useMemo(() => aggregateIncomeStats(transactions, range, agg), [transactions, range, agg]);
   const returned = useMemo(() => capitalReturnedIn(transactions, range), [transactions, range]);
-  const trend = useMemo(() => aggregateIncomeTrend(transactions, 12, now), [transactions, now]);
+  const trend = useMemo(
+    () => aggregateIncomeTrend(transactions, period === 'all' ? range.months : 12, now),
+    [transactions, period, range.months, now],
+  );
   const composition = useMemo(() => buildComposition(agg.categories, agg.total), [agg]);
 
   // Totale della card "Entrate": ordinarie + capitale rientrato.
   const cashIn = agg.total + returned;
   // Peso delle plusvalenze realizzate sulle entrate nette.
   const gainShare = stats.netIncome > 0 ? (stats.realizedGains / stats.netIncome) * 100 : 0;
-  const showDelta = insightDepth !== 'minimal';
+  const showDelta = insightDepth !== 'minimal' && period !== 'all';
 
   useEffect(() => { window.scrollTo({ top: 0 }); }, [period, offset]);
 
@@ -144,9 +148,11 @@ export function IncomeScreen({ transactions }: Props) {
             </div>
           )}
 
-          {/* Andamento 12 mesi */}
+          {/* Andamento: per "Da sempre" usa tutto lo storico disponibile. */}
           <div className="glass-card rounded-2xl p-5 mb-3">
-            <p className="label-caps text-secondary mb-3">Andamento entrate · 12 mesi</p>
+            <p className="label-caps text-secondary mb-3">
+              Andamento entrate · {period === 'all' ? 'da sempre' : '12 mesi'}
+            </p>
             <AccountBalanceLineChart
               points={trend}
               formatValue={formatCurrency}

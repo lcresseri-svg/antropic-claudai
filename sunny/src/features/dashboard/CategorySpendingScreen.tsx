@@ -10,7 +10,7 @@ import { Transaction } from '../../types';
 import { useSettings } from '../../shared/providers/settings';
 import { formatCurrency, capitalize } from '../../utils';
 import {
-  PeriodType, PERIOD_OPTS, getPeriodRange, getPreviousPeriodRange,
+  PeriodType, PERIOD_OPTS, getPeriodRange, getPreviousPeriodRange, getHistoryStartISO,
   aggregateCategorySpending, buildComposition, CategorySpendingSummary,
 } from './categoryAnalytics';
 import { CategoryDetailSheet } from './CategoryDetailSheet';
@@ -34,7 +34,8 @@ export function CategorySpendingScreen({ transactions, categoryBudgets }: Props)
   const [selectedId, setSelectedId] = useState<string | null>(null);
 
   const now = useMemo(() => new Date(), []);
-  const range = useMemo(() => getPeriodRange(period, offset, now), [period, offset, now]);
+  const historyStart = useMemo(() => getHistoryStartISO(transactions, now), [transactions, now]);
+  const range = useMemo(() => getPeriodRange(period, offset, now, historyStart), [period, offset, now, historyStart]);
   const prevRange = useMemo(() => getPreviousPeriodRange(period, offset, now), [period, offset, now]);
 
   const agg = useMemo(
@@ -47,7 +48,7 @@ export function CategorySpendingScreen({ transactions, categoryBudgets }: Props)
   useEffect(() => { setSelectedId(null); }, [period, offset]);
 
   const selected = selectedId ? agg.categories.find(c => c.categoryId === selectedId) ?? null : null;
-  const showDelta = insightDepth !== 'minimal';
+  const showDelta = insightDepth !== 'minimal' && period !== 'all';
   const showComposition = insightDepth !== 'minimal' && composition.length > 0;
   const maxAmount = agg.categories[0]?.amount ?? 0;
 
