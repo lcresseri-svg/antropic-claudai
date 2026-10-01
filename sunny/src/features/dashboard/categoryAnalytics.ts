@@ -7,15 +7,16 @@
 import { Transaction, ownShare } from '../../types';
 import { capitalize } from '../../utils';
 
-export type PeriodType = '1m' | '3m' | '6m' | '12m' | 'all';
+export type PeriodType = '1m' | '3m' | '6m' | '12m' | 'ytd' | 'all';
 
-export const PERIOD_MONTHS: Record<Exclude<PeriodType, 'all'>, number> = { '1m': 1, '3m': 3, '6m': 6, '12m': 12 };
+export const PERIOD_MONTHS: Record<Exclude<PeriodType, 'ytd' | 'all'>, number> = { '1m': 1, '3m': 3, '6m': 6, '12m': 12 };
 
 export const PERIOD_OPTS: { value: PeriodType; label: string }[] = [
   { value: '1m',  label: 'Mese' },
   { value: '3m',  label: '3M' },
   { value: '6m',  label: '6M' },
   { value: '12m', label: '12M' },
+  { value: 'ytd', label: "Quest'anno" },
   { value: 'all', label: 'Da sempre' },
 ];
 
@@ -44,6 +45,19 @@ export function getPeriodRange(
   now: Date = new Date(),
   allTimeStartISO?: string,
 ): PeriodRange {
+  if (period === 'ytd') {
+    const start = new Date(now.getFullYear(), 0, 1);
+    const fullEnd = new Date(now.getFullYear(), now.getMonth() + 1, 0, 23, 59, 59, 999);
+    return {
+      start,
+      end: now,
+      fullEnd,
+      label: "Quest'anno",
+      months: now.getMonth() + 1,
+      isCurrent: true,
+    };
+  }
+
   if (period === 'all') {
     const fallback = `${now.getFullYear()}-${pad(now.getMonth() + 1)}-01`;
     const [year, month, day] = (allTimeStartISO ?? fallback).split('-').map(Number);
@@ -83,6 +97,27 @@ export function getPreviousPeriodRange(period: Exclude<PeriodType, 'all'>, offse
 export function getPreviousPeriodRange(period: PeriodType, offset: number, now?: Date): PeriodRange | null;
 export function getPreviousPeriodRange(period: PeriodType, offset: number, now: Date = new Date()): PeriodRange | null {
   if (period === 'all') return null;
+  if (period === 'ytd') {
+    const year = now.getFullYear() - 1;
+    const maxDay = new Date(year, now.getMonth() + 1, 0).getDate();
+    const end = new Date(
+      year,
+      now.getMonth(),
+      Math.min(now.getDate(), maxDay),
+      now.getHours(),
+      now.getMinutes(),
+      now.getSeconds(),
+      now.getMilliseconds(),
+    );
+    return {
+      start: new Date(year, 0, 1),
+      end,
+      fullEnd: end,
+      label: String(year),
+      months: now.getMonth() + 1,
+      isCurrent: false,
+    };
+  }
   const months = PERIOD_MONTHS[period];
   return getPeriodRange(period, offset + months, now);
 }

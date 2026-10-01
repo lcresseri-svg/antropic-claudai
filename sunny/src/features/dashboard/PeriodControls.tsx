@@ -1,5 +1,5 @@
 // Controlli di periodo condivisi dalle tre schermate di analisi (Entrate,
-// Saldo per conto, Spese per categoria): pill Mese/3M/6M/12M/Da sempre a sinistra e, a
+// Saldo per conto, Spese per categoria): pill Mese/3M/6M/12M/Quest'anno/Da sempre a sinistra e, a
 // destra, un navigatore compatto in card.
 //
 // Erano tre copie della stessa cosa, con tre geometrie leggermente diverse.
@@ -30,7 +30,7 @@ export function PeriodControls({ period, onPeriodChange, offset, onOffsetChange,
           {PERIOD_OPTS.map(opt => (
             <button key={opt.value}
               onClick={() => { onPeriodChange(opt.value); onOffsetChange(0); }}
-              className={`px-3 py-1.5 rounded-full text-xs font-semibold whitespace-nowrap transition-colors ${
+              className={`flex-none px-3 py-1.5 rounded-full text-xs font-semibold whitespace-nowrap transition-colors ${
                 period === opt.value ? 'bg-gold/10 text-gold' : 'text-secondary hover:text-primary'
               }`}>
               {opt.label}
@@ -38,9 +38,9 @@ export function PeriodControls({ period, onPeriodChange, offset, onOffsetChange,
           ))}
         </div>
 
-        {period === 'all' ? (
+        {period === 'all' || period === 'ytd' ? (
           <div className="glass-card rounded-xl px-3 py-2 flex-none text-[12px] font-semibold text-primary whitespace-nowrap">
-            Tutto lo storico
+            {period === 'all' ? 'Tutto lo storico' : '1 gen – oggi'}
           </div>
         ) : (
           <div className="flex items-center gap-1 glass-card rounded-xl px-1 py-1 flex-none">

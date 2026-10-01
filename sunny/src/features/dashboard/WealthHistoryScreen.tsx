@@ -78,7 +78,7 @@ export function WealthHistoryScreen({ transactions }: Props) {
             <button
               key={opt.value}
               onClick={() => setPeriod(opt.value)}
-              className={`px-3.5 py-1.5 rounded-full text-xs font-semibold transition-colors ${
+              className={`flex-none whitespace-nowrap px-3.5 py-1.5 rounded-full text-xs font-semibold transition-colors ${
                 period === opt.value ? 'bg-gold text-bg' : 'bg-elevated text-secondary hover:text-primary'
               }`}
             >

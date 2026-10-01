@@ -30,7 +30,7 @@ interface Props {
 type GroupMode = 'day' | 'month' | 'account' | 'category';
 type SortKey = 'date' | 'amount';
 type SortDir = 'desc' | 'asc';
-type PeriodFilter = 'all' | '1m' | '3m' | '6m' | '1y';
+type PeriodFilter = 'all' | '1m' | '3m' | '6m' | '1y' | 'ytd';
 
 const PERIOD_OPTS: { value: PeriodFilter; label: string }[] = [
   { value: 'all', label: 'Da sempre' },
@@ -38,15 +38,18 @@ const PERIOD_OPTS: { value: PeriodFilter; label: string }[] = [
   { value: '3m', label: 'Ultimi 3 mesi' },
   { value: '6m', label: 'Ultimi 6 mesi' },
   { value: '1y', label: 'Ultimo anno' },
+  { value: 'ytd', label: "Quest'anno" },
 ];
 
 function periodCutoff(p: PeriodFilter, now: Date): Date | null {
   if (p === 'all') return null;
   const d = new Date(now);
-  if (p === '1m') d.setMonth(d.getMonth() - 1);
+  if (p === 'ytd') d.setMonth(0, 1);
+  else if (p === '1m') d.setMonth(d.getMonth() - 1);
   else if (p === '3m') d.setMonth(d.getMonth() - 3);
   else if (p === '6m') d.setMonth(d.getMonth() - 6);
   else d.setFullYear(d.getFullYear() - 1);
+  if (p === 'ytd') d.setHours(0, 0, 0, 0);
   return d;
 }
 

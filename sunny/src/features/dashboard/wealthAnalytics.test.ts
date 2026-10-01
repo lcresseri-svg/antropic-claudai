@@ -1,7 +1,7 @@
 import { describe, it, expect } from 'vitest';
 import {
   buildWealthHistory, buildWealthPeriodSummary, buildWealthComparisons,
-  buildWealthNote, shiftMonthsISO, WealthPeriodSummary,
+  buildWealthNote, shiftMonthsISO, WealthPeriodSummary, WealthPeriod, getWealthRange,
 } from './wealthAnalytics';
 import { Transaction, AccountDef, CategoryDef } from '../../types';
 
@@ -9,6 +9,7 @@ import { Transaction, AccountDef, CategoryDef } from '../../types';
 // the engine derives "today" with the dashboard's convention (toISOString).
 const NOW = new Date('2026-07-15T12:00:00Z');
 const TODAY = '2026-07-15';
+const YTD = 'ytd' as WealthPeriod;
 
 const ACCOUNTS: AccountDef[] = [
   { id: 'conto', label: 'Conto', icon: '🏦', color: '#888', initialBalance: 1000 },
@@ -30,6 +31,32 @@ const tx = (over: Partial<Transaction>): Transaction => ({
 const lastPoint = (s: WealthPeriodSummary) => s.points[s.points.length - 1];
 
 describe('buildWealthHistory — stock semantics', () => {
+  it("Quest'anno starts on 1 January and ends today", () => {
+    const range = getWealthRange(YTD, [], { now: NOW });
+    const points = buildWealthHistory([], ACCOUNTS, CATS, YTD, { now: NOW });
+    expect(range).toEqual({ startISO: '2026-01-01', endISO: TODAY, label: "Quest'anno" });
+    expect(points[0].date).toBe('2026-01-01');
+    expect(points[points.length - 1].date).toBe(TODAY);
+  });
+
+  it("Quest'anno uses the local calendar year around New Year's midnight", () => {
+    const localNewYear = new Date(2027, 0, 1, 0, 30);
+    expect(getWealthRange(YTD, [], { now: localNewYear })).toEqual({
+      startISO: '2027-01-01',
+      endISO: '2027-01-01',
+      label: "Quest'anno",
+    });
+  });
+
+  it("Quest'anno includes movements made on 1 January in its variation", () => {
+    const janFirstIncome = tx({ date: '2026-01-01', type: 'income', amount: 200 });
+    const summary = buildWealthPeriodSummary([janFirstIncome], ACCOUNTS, CATS, YTD, { now: NOW });
+    expect(summary.total.startValue).toBe(1500);
+    expect(summary.total.endValue).toBe(1700);
+    expect(summary.total.delta).toBe(200);
+    expect(summary.bestTotalDay?.date).toBe('2026-01-01');
+  });
+
   it('starts from initial balances with no transactions (zero investments)', () => {
     const pts = buildWealthHistory([], ACCOUNTS, CATS, '1m', { now: NOW });
     expect(pts.length).toBeGreaterThan(2);

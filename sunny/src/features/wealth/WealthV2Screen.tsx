@@ -124,11 +124,11 @@ export function WealthV2Screen({ user, transactions, liquidity }: Props) {
             <p className="text-lg font-semibold text-primary">{formatCurrency(m.netWorthAtMarket)}</p>
           </div>
         </div>
-        <div className="flex gap-1.5 mt-4" role="tablist" aria-label="Periodo">
+        <div className="flex gap-1.5 mt-4 overflow-x-auto scrollbar-hide" role="tablist" aria-label="Periodo">
           {WEALTH_PERIOD_OPTS.map(o => (
             <button key={o.value} type="button" role="tab" aria-selected={period === o.value}
               onClick={() => setPeriod(o.value)}
-              className={`px-3 py-2 min-h-[36px] rounded-xl text-xs font-medium transition-colors ${
+              className={`flex-none whitespace-nowrap px-3 py-2 min-h-[36px] rounded-xl text-xs font-medium transition-colors ${
                 period === o.value ? 'bg-gold/12 text-gold' : 'text-secondary hover:text-primary bg-elevated'
               }`}>
               {o.label}

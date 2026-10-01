@@ -32,6 +32,29 @@ const fixture: Transaction[] = [
 ];
 
 describe('buildWealthV2Summary', () => {
+  it("Quest'anno includes 1 January in both the delta and its decomposition", () => {
+    const janFirstIncome = tx({ date: '2026-01-01', type: 'income', category: 'stipendio', amount: 200 });
+    const s = buildWealthV2Summary([janFirstIncome], accounts, categories, 'ytd', { now: NOW });
+    expect(s.base.total.delta).toBe(200);
+    expect(s.decomposition.netSavings).toBe(200);
+    expect(s.decomposition.adjustments).toBe(0);
+  });
+
+  it("Quest'anno uses the local New Year's day for market value and composition", () => {
+    const localNewYear = new Date(2027, 0, 1, 0, 30);
+    const simpleAccounts = [accounts[0]];
+    const simpleCategories = [categories[1], { ...categories[2], currentValue: undefined, lastValueUpdate: undefined }];
+    const movements = [
+      tx({ date: '2027-01-01', type: 'income', category: 'stipendio', amount: 200 }),
+      tx({ date: '2027-01-01', type: 'investment', category: 'etf', account: '', amount: 300 }),
+    ];
+    const s = buildWealthV2Summary(movements, simpleAccounts, simpleCategories, 'ytd', { now: localNewYear });
+    expect(s.composition.accounts[0].value).toBe(1200);
+    expect(s.marketToday.investedCapital).toBe(300);
+    expect(s.composition.investments[0].value).toBe(300);
+    expect(s.marketToday.netWorthAtMarket).toBe(1500);
+  });
+
   it('decomposition: delta = risparmio + apporti esterni + TFR + rendimento + rettifiche', () => {
     const s = buildWealthV2Summary(fixture, accounts, categories, '3m', { now: NOW });
     const d = s.decomposition;

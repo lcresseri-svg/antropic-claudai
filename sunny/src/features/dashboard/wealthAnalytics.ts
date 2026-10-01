@@ -42,8 +42,10 @@ import { capitalize } from '../../utils';
  * liquidity figures would disagree.
  */
 const dashboardToday = (now: Date) => now.toISOString().slice(0, 10);
+const localToday = (now: Date) =>
+  `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, '0')}-${String(now.getDate()).padStart(2, '0')}`;
 
-export type WealthPeriod = '1m' | '3m' | '6m' | '1y' | 'all' | 'custom';
+export type WealthPeriod = '1m' | '3m' | '6m' | '1y' | 'ytd' | 'all' | 'custom';
 export type WealthMetric = 'total' | 'liquidity' | 'investments';
 
 export interface WealthPoint {
@@ -104,6 +106,7 @@ export const WEALTH_PERIOD_OPTS: { value: WealthPeriod; label: string }[] = [
   { value: '3m', label: '3M' },
   { value: '6m', label: '6M' },
   { value: '1y', label: '1A' },
+  { value: 'ytd', label: "Quest'anno" },
   { value: 'all', label: 'Da sempre' },
 ];
 
@@ -112,6 +115,7 @@ const WEALTH_PERIOD_LABEL: Record<Exclude<WealthPeriod, 'custom'>, string> = {
   '3m': 'Ultimi 3 mesi',
   '6m': 'Ultimi 6 mesi',
   '1y': 'Ultimo anno',
+  ytd: "Quest'anno",
   all: 'Da sempre',
 };
 
@@ -205,7 +209,7 @@ export function getWealthRange(
   opts?: { now?: Date; customStart?: string; customEnd?: string },
 ): WealthRange {
   const now = opts?.now ?? new Date();
-  const todayISO = dashboardToday(now);
+  const todayISO = period === 'ytd' ? localToday(now) : dashboardToday(now);
   if (period === 'custom') {
     const startISO = opts?.customStart ?? shiftMonthsISO(todayISO, -1);
     const rawEnd = opts?.customEnd ?? todayISO;
@@ -215,6 +219,9 @@ export function getWealthRange(
     const dates = transactions.filter(counts).map(t => t.date).filter(d => d <= todayISO);
     const first = dates.length ? dates.reduce((a, b) => (a < b ? a : b)) : shiftMonthsISO(todayISO, -12);
     return { startISO: first < todayISO ? first : shiftMonthsISO(todayISO, -1), endISO: todayISO, label: WEALTH_PERIOD_LABEL.all };
+  }
+  if (period === 'ytd') {
+    return { startISO: `${now.getFullYear()}-01-01`, endISO: todayISO, label: WEALTH_PERIOD_LABEL.ytd };
   }
   const months = period === '1m' ? 1 : period === '3m' ? 3 : period === '6m' ? 6 : 12;
   return { startISO: shiftMonthsISO(todayISO, -months), endISO: todayISO, label: WEALTH_PERIOD_LABEL[period] };
@@ -228,6 +235,7 @@ function bucketStep(period: WealthPeriod, startISO: string, endISO: string): Buc
     case '3m': return { kind: 'days', n: 7 };      // weekly
     case '6m': return { kind: 'days', n: 14 };     // biweekly
     case '1y': return { kind: 'months', n: 1 };    // monthly
+    case 'ytd': return { kind: 'months', n: 1 };   // monthly from 1 January
     case 'all': return { kind: 'months', n: 1 };   // monthly
     case 'custom': {
       // Auto: pick a granularity that keeps the point count chart-friendly.
@@ -311,6 +319,11 @@ export function buildWealthPeriodSummary(
   const points = buildWealthHistory(transactions, accounts, categories, period, opts);
   const first = points[0];
   const last = points[points.length - 1];
+  // YTD is inclusive of 1 January: its opening value is therefore the closing
+  // stock of 31 December, while the first chart point remains the Jan 1 stock.
+  const opening = period === 'ytd'
+    ? sampleWealth(transactions, accounts, categories, [addDaysISO(range.startISO, -1)])[0]
+    : first;
 
   const stats = (get: (p: WealthPoint) => number) => {
     const vals = points.map(get);
@@ -328,6 +341,11 @@ export function buildWealthPeriodSummary(
   let bestTotalDay: WealthPoint | undefined;
   let worstTotalDay: WealthPoint | undefined;
   let bestDelta = 0, worstDelta = 0;
+  if (period === 'ytd') {
+    const d = first.total - opening.total;
+    if (d > bestDelta + EPS) { bestDelta = d; bestTotalDay = first; }
+    if (d < worstDelta - EPS) { worstDelta = d; worstTotalDay = first; }
+  }
   for (let i = 1; i < points.length; i++) {
     const d = points[i].total - points[i - 1].total;
     if (d > bestDelta + EPS) { bestDelta = d; bestTotalDay = points[i]; }
@@ -340,9 +358,9 @@ export function buildWealthPeriodSummary(
     startDate: range.startISO,
     endDate: range.endISO,
     points,
-    total: metricSummary('total', first.total, last.total),
-    liquidity: metricSummary('liquidity', first.liquidity, last.liquidity),
-    investments: metricSummary('investments', first.investments, last.investments),
+    total: metricSummary('total', opening.total, last.total),
+    liquidity: metricSummary('liquidity', opening.liquidity, last.liquidity),
+    investments: metricSummary('investments', opening.investments, last.investments),
     minTotal: st.min, maxTotal: st.max, averageTotal: st.avg,
     minLiquidity: sl.min, maxLiquidity: sl.max, averageLiquidity: sl.avg,
     minInvestments: si.min, maxInvestments: si.max, averageInvestments: si.avg,
@@ -365,7 +383,7 @@ export function buildWealthComparisons(
 ): WealthComparison[] {
   const now = opts?.now ?? new Date();
   const todayISO = dashboardToday(now);
-  const periods: Exclude<WealthPeriod, 'all' | 'custom'>[] = ['1m', '3m', '6m', '1y'];
+  const periods: Exclude<WealthPeriod, 'ytd' | 'all' | 'custom'>[] = ['1m', '3m', '6m', '1y'];
   return periods.map(period => {
     const months = period === '1m' ? 1 : period === '3m' ? 3 : period === '6m' ? 6 : 12;
     const startISO = shiftMonthsISO(todayISO, -months);

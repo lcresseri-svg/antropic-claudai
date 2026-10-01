@@ -102,9 +102,15 @@ export interface WealthV2Summary {
 /** "Today" must match the dashboard convention (UTC toISOString). */
 const dashboardToday = (now: Date) => now.toISOString().slice(0, 10);
 
-/** Realized (non-projected, non-future) transactions inside (startISO, endISO]. */
-function realizedInPeriod(transactions: Transaction[], startISO: string, endISO: string): Transaction[] {
-  return transactions.filter(t => !t.projected && t.date > startISO && t.date <= endISO);
+/** Realized (non-projected, non-future) transactions inside the selected range. */
+function realizedInPeriod(
+  transactions: Transaction[],
+  startISO: string,
+  endISO: string,
+  includeStart = false,
+): Transaction[] {
+  return transactions.filter(t =>
+    !t.projected && (includeStart ? t.date >= startISO : t.date > startISO) && t.date <= endISO);
 }
 
 export function buildWealthV2Summary(
@@ -115,14 +121,13 @@ export function buildWealthV2Summary(
   opts?: { now?: Date; customStart?: string; customEnd?: string },
 ): WealthV2Summary {
   const now = opts?.now ?? new Date();
-  const todayISO = dashboardToday(now);
 
   const base = buildWealthPeriodSummary(transactions, accounts, categories, period, opts);
   const range = getWealthRange(period, transactions, opts);
+  const todayISO = period === 'ytd' ? range.endISO : dashboardToday(now);
 
   // ── Decomposition ───────────────────────────────────────────────────────────
-  const inPeriod = realizedInPeriod(transactions, range.startISO, range.endISO)
-    .filter(t => t.date <= todayISO);
+  const inPeriod = realizedInPeriod(transactions, range.startISO, range.endISO, period === 'ytd');
   let invFlows = 0;
   for (const t of inPeriod) {
     if (t.type === 'investment') invFlows += investSign(t) * t.amount;
