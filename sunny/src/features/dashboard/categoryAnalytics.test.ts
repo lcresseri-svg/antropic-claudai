@@ -5,10 +5,12 @@ import {
   getCategoryMovements, historicalMonthlyAverage, localISO, getHistoryStartISO,
   aggregateIncomeByCategory, aggregateIncomeStats, aggregateIncomeTrend, capitalReturnedIn,
   REALIZED_GAIN_CATEGORY, totalPaidAllTime, buildLoanProgress,
+  PeriodType,
 } from './categoryAnalytics';
 import { Transaction } from '../../types';
 
 const NOW = new Date(2026, 5, 15); // 15 June 2026 (local)
+const YTD = 'ytd' as PeriodType;
 
 const tx = (over: Partial<Transaction>): Transaction => ({
   id: Math.random().toString(36), date: '2026-06-01', description: '', amount: 0,
@@ -27,6 +29,24 @@ const SAMPLE: Transaction[] = [
 ];
 
 describe('getPeriodRange', () => {
+  it("Quest'anno runs from 1 January to today and compares the same elapsed dates last year", () => {
+    const range = getPeriodRange(YTD, 0, NOW);
+    const previous = getPreviousPeriodRange(YTD, 0, NOW)!;
+
+    expect(localISO(range.start)).toBe('2026-01-01');
+    expect(localISO(range.end)).toBe('2026-06-15');
+    expect(range.label).toBe("Quest'anno");
+    expect(range.months).toBe(6);
+    expect(localISO(previous.start)).toBe('2025-01-01');
+    expect(localISO(previous.end)).toBe('2025-06-15');
+  });
+
+  it("Quest'anno clamps 29 February when building last year's comparison", () => {
+    const leapDay = new Date(2028, 1, 29, 12);
+    const previous = getPreviousPeriodRange(YTD, 0, leapDay)!;
+    expect(localISO(previous.end)).toBe('2027-02-28');
+  });
+
   it('1m current period spans the current month up to now', () => {
     const r = getPeriodRange('1m', 0, NOW);
     expect(localISO(r.start)).toBe('2026-06-01');
