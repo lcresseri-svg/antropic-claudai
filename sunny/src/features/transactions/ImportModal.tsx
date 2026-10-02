@@ -1,3 +1,4 @@
+import { DialogSurface } from '../../shared/components/DialogSurface';
 import { useState, useRef } from 'react';
 import { useEscapeKey } from '../../shared/hooks/useEscapeKey';
 import { Transaction, TransactionType, TYPE_META, typeColor } from '../../types';
@@ -136,7 +137,7 @@ export function ImportModal({ open, onClose, onImport }: Props) {
     <div className="fixed inset-0 z-50 flex items-end sm:items-center justify-center p-3"
       onClick={e => { if (e.target === e.currentTarget) close(); }}>
       <div className="absolute inset-0 bg-black/60 backdrop-blur-sm animate-fade-in-fast" />
-      <div className="relative w-full max-w-xl sm:max-w-[720px] glass-elevated rounded-[26px] shadow-float max-h-[90dvh] flex flex-col animate-sheet-up sm:animate-scale-in">
+      <DialogSurface title={'Importa movimenti'} onDismiss={close} kind="import" className="relative w-full max-w-xl sm:max-w-[720px] glass-elevated rounded-[26px] shadow-float max-h-[90dvh] flex flex-col animate-sheet-up sm:animate-scale-in">
         <div className="flex items-center justify-between p-6 pb-4">
           <div>
             <h2 className="text-lg font-semibold text-primary">Importa</h2>
@@ -268,7 +269,7 @@ export function ImportModal({ open, onClose, onImport }: Props) {
           )}
           {step === 'done' && <button onClick={close} className="flex-1 py-3.5 rounded-2xl bg-gold text-bg font-semibold">Chiudi</button>}
         </div>
-      </div>
+      </DialogSurface>
     </div>
   );
 }

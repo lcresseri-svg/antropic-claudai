@@ -85,7 +85,7 @@ export function WealthScreen(p: Props) {
   const share = (v: number) => (p.netWorth > 0 ? Math.round((v / p.netWorth) * 100) : 0);
 
   return (
-    <div className="pb-32 md:pb-6">
+    <div className="ui-family-wealth pb-32 md:pb-6">
       <div className="h-14 flex items-center justify-between md:h-auto md:mb-5">
         <h1 className="text-[17px] md:text-xl font-semibold text-primary tracking-[-0.03em]">Patrimonio</h1>
         <button type="button" onClick={() => navigate('/wealth-history')}
@@ -95,7 +95,7 @@ export function WealthScreen(p: Props) {
       </div>
 
       {/* Desktop: due colonne indipendenti in altezza, come la home. */}
-      <div className="flex flex-col wide:flex-row gap-3.5 md:gap-4 ultra:gap-6 wide:items-start">
+      <div className="ui-wealth-layout flex flex-col wide:flex-row gap-3.5 md:gap-4 ultra:gap-6 wide:items-start">
         <div className="flex flex-col gap-3.5 md:gap-4 wide:flex-1 wide:min-w-0">
         {/* Hero: il patrimonio e come si è mosso */}
         <section className="hero-card rounded-[26px] shadow-elev-2 p-[22px] animate-rise-in">

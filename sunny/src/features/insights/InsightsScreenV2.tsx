@@ -125,7 +125,7 @@ export function InsightsScreenV2(p: Props) {
   const saved = p.monthlyIncome - p.monthlyExpenses - p.monthlyInvestments;
 
   return (
-    <div className="pb-32">
+    <div className="ui-family-insights pb-32">
       <div className="h-14 flex items-center">
         <h1 className="text-[17px] md:text-xl font-semibold text-primary tracking-[-0.03em]">Consigli</h1>
       </div>

@@ -4,6 +4,7 @@
 // conferma esplicita. Logica nei moduli puri monthlyPlanV2.ts.
 import { useEffect, useMemo, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
+import { useUiVersion } from '../../shared/providers/UiVersionProvider';
 import type { User } from 'firebase/auth';
 import { Transaction } from '../../types';
 import { useSettings } from '../../shared/providers/settings';
@@ -31,6 +32,7 @@ const SOURCE_LABEL: Record<MonthlyPlanV2['source'], string> = {
 
 export function MonthlyPlanScreen({ user, transactions, monthlyIncome, monthlyInvestments }: Props) {
   const navigate = useNavigate();
+  const ui3 = useUiVersion() === '3.0';
   const { visibleCategories, getCat } = useSettings();
   const [plan, setPlan] = useState<MonthlyPlanV2 | null>(null);
   const [loaded, setLoaded] = useState(false);
@@ -95,9 +97,9 @@ export function MonthlyPlanScreen({ user, transactions, monthlyIncome, monthlyIn
   return (
     <div className="pb-32 space-y-5 max-w-lg">
       <div className="flex items-center gap-3">
-        <button type="button" onClick={() => navigate(-1)} aria-label="Indietro"
+        <button type="button" onClick={() => ui3 ? navigate('/budget') : navigate(-1)} aria-label="Indietro"
           className="w-11 h-11 -ml-2 flex items-center justify-center text-secondary hover:text-primary rounded-full">
-          <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M15 18l-6-6 6-6"/></svg>
+          {ui3 ? '‹ Indietro' : <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M15 18l-6-6 6-6"/></svg>}
         </button>
         <div>
           <h1 className="text-2xl font-bold text-primary tracking-[-0.03em]">Piano di {formatMonthLong(month)}</h1>

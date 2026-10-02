@@ -1,4 +1,4 @@
-import { useMemo, useState } from 'react';
+import { useMemo, useState, useRef, useLayoutEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { Transaction, CategoryDef, FundType, FUND_TYPE_META, FUND_TYPE_ORDER, investSign } from '../../types';
 import { useSettings } from '../../shared/providers/settings';
@@ -12,6 +12,7 @@ import { InvestmentDetailSheet } from '../investments/InvestmentDetailSheet';
 import { monthlyInvestmentStats, statsSpreadOf, addMonths } from '../investments/investmentStatsSpread';
 import { InvestmentTrendChart, InvestmentTrendPoint } from './InvestmentTrendChart';
 import { AnalysisHeader } from './AnalysisHeader';
+import { useUiVersion } from '../../shared/providers/UiVersionProvider';
 
 interface Props {
   investmentByCategory: Record<string, number>;
@@ -39,6 +40,17 @@ export function InvestmentsScreen({ investmentByCategory, investmentTotal, month
   const [valueCat, setValueCat] = useState<CategoryDef | null>(null);
   const [detailCat, setDetailCat] = useState<CategoryDef | null>(null);
   const [showAllOps, setShowAllOps] = useState(false);
+  const ui3=useUiVersion()==='3.0';
+  const detailAction=useRef<HTMLElement|null>(null);
+  const enterDetailChild=()=>{
+    if(ui3) detailAction.current=document.activeElement as HTMLElement;
+    else setDetailCat(null);
+  };
+  useLayoutEffect(()=>{
+    if(ui3 && detailCat && !depositOpen && !withdrawOpen && !valueCat && detailAction.current) {
+      detailAction.current.focus({preventScroll:true}); detailAction.current=null;
+    }
+  },[ui3,detailCat,depositOpen,withdrawOpen,valueCat]);
 
   const investTx = useMemo(
     () => transactions.filter(t => t.type === 'investment').sort((a, b) => b.date.localeCompare(a.date)),
@@ -158,7 +170,7 @@ export function InvestmentsScreen({ investmentByCategory, investmentTotal, month
   const openWithdraw = (catId?: string) => { setWithdrawPreselect(catId); setWithdrawOpen(true); };
 
   return (
-    <div className="pb-32 space-y-5">
+    <div className="ui-family-investments pb-32 space-y-5">
       <AnalysisHeader title="Investimenti" subtitle="Quanto vale il portafoglio e come si muove"
         backTo="/wealth"
         action={
@@ -416,7 +428,8 @@ export function InvestmentsScreen({ investmentByCategory, investmentTotal, month
       {/* ── Sheets ── */}
       <InvestmentDepositSheet
         open={depositOpen}
-        onClose={() => setDepositOpen(false)}
+        onClose={() => { setDepositOpen(false); if(ui3) {setDetailCat(null);detailAction.current=null;} }}
+        onBack={ui3 && detailCat ? () => setDepositOpen(false) : undefined}
         // The controvalore update now happens atomically inside the write
         // (investmentValueSync): no separate saveCurrentValue bump here.
         onSave={txs => onAddTransactions(txs)}
@@ -425,7 +438,8 @@ export function InvestmentsScreen({ investmentByCategory, investmentTotal, month
         open={withdrawOpen}
         investmentByCategory={investmentByCategory}
         preselectCategory={withdrawPreselect}
-        onClose={() => setWithdrawOpen(false)}
+        onClose={() => { setWithdrawOpen(false); if(ui3) {setDetailCat(null);detailAction.current=null;} }}
+        onBack={ui3 && detailCat ? () => setWithdrawOpen(false) : undefined}
         // The 'out' leg carries valueDelta = −cash, so the atomic sync lands the
         // position exactly on result.newCurrentValue — no separate write.
         onSave={(_catId, _cv, result) => onAddTransactions(result.transactions)}
@@ -435,7 +449,8 @@ export function InvestmentsScreen({ investmentByCategory, investmentTotal, month
         category={valueCat}
         deposited={valueCat ? (investmentByCategory[valueCat.id] ?? 0) : 0}
         onSave={v => { if (valueCat) saveCurrentValue(valueCat.id, v); }}
-        onClose={() => setValueCat(null)}
+        onClose={() => { setValueCat(null); if(ui3) {setDetailCat(null);detailAction.current=null;} }}
+        onBack={ui3 && detailCat ? () => setValueCat(null) : undefined}
       />
       {detailCat && (
         <InvestmentDetailSheet
@@ -444,10 +459,11 @@ export function InvestmentsScreen({ investmentByCategory, investmentTotal, month
           transactions={transactions}
           deposited={investmentByCategory[detailCat.id] ?? 0}
           portfolioTotal={controvaloreTotale}
+          inactive={ui3 && (depositOpen || withdrawOpen || !!valueCat)}
           onClose={() => setDetailCat(null)}
-          onDeposit={() => { setDetailCat(null); setDepositOpen(true); }}
-          onWithdraw={() => { const id = detailCat.id; setDetailCat(null); openWithdraw(id); }}
-          onSetValue={() => { const c = detailCat; setDetailCat(null); setValueCat(c); }}
+          onDeposit={() => { enterDetailChild(); setDepositOpen(true); }}
+          onWithdraw={() => { const id = detailCat.id; enterDetailChild(); openWithdraw(id); }}
+          onSetValue={() => { const c = detailCat; enterDetailChild(); setValueCat(c); }}
         />
       )}
     </div>

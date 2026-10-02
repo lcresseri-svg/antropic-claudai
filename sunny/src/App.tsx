@@ -15,6 +15,7 @@ import { ONBOARDING_VERSION } from './features/onboarding/onboardingTypes';
 import { LoginScreen } from './shared/components/LoginScreen';
 import { BudgetSetupBanner } from './features/budget/BudgetSetupBanner';
 import { RecapPrompt } from './features/recap/RecapPrompt';
+import { useUiRouteFocus } from './shared/hooks/useUiRouteFocus';
 import { isFeatureEnabled } from './shared/featureRollout';
 import { TransactionModal } from './features/transactions/TransactionModal';
 import { SeriesDetailSheet } from './features/transactions/SeriesDetailSheet';
@@ -36,6 +37,8 @@ import { AppRoutes } from './app/AppRoutes';
 import { useTransactionEditing } from './app/useTransactionEditing';
 import { useWealthSnapshot } from './features/wealth/useWealthSnapshot';
 import { useApplePayPending } from './features/applePay/useApplePayPending';
+import { UiVersionProvider, useUiVersion } from './shared/providers/UiVersionProvider';
+import { AdaptiveNav } from './shared/components/AdaptiveNav';
 import type { ApplePayPendingPayment, Transaction } from './types';
 
 function Loader({ phase }: { phase: string }) {
@@ -68,16 +71,18 @@ export default function App() {
 
   return (
     <ErrorBoundary>
+      <UiVersionProvider user={authLoading ? null : user}>
       <SplashScreen isReady={splashReady} />
       {authLoading ? (
         <Loader phase="Accesso" />
       ) : !user ? (
         <LoginScreen onSignIn={signIn} error={authError} />
       ) : (
-        <SettingsProvider user={user}>
+        <SettingsProvider key={user.uid} user={user}>
           <OnboardingGate user={user} onLogOut={logOut} onDeleteAccount={deleteAccount} />
         </SettingsProvider>
       )}
+      </UiVersionProvider>
     </ErrorBoundary>
   );
 }
@@ -137,6 +142,7 @@ function Main({ user, onLogOut, onDeleteAccount }: {
 }) {
   const navigate = useNavigate();
   const location = useLocation();
+  const uiVersion = useUiVersion();
   const {
     accounts, categories, includeInvestments, enableInvestments, enableBudget,
     settingsLoaded, aiEnabled, applePayCardMappings, saveApplePayCardMapping,
@@ -206,10 +212,7 @@ function Main({ user, onLogOut, onDeleteAccount }: {
   // #app-scroll container (the body/window never scrolls — see its overflow
   // setup below), so window.scrollTo alone is a no-op on desktop: reset that
   // element too.
-  useEffect(() => {
-    document.getElementById('app-scroll')?.scrollTo(0, 0);
-    window.scrollTo(0, 0);
-  }, [location.pathname]);
+  useUiRouteFocus();
 
   // Show the push promo sheet once to iOS PWA users who haven't enabled push.
   useEffect(() => {
@@ -281,24 +284,29 @@ function Main({ user, onLogOut, onDeleteAccount }: {
   }, [tx.synced]);
 
   return (
-    <div className="h-full md:flex ui-v2">
+    <div data-ui-version={uiVersion} className={uiVersion === '3.0' ? 'h-full app-shell ui3-shell' : 'h-full md:flex ui-v2'}>
       {/* Global backdrop for settings dropdown — outside the header stacking context */}
-      {settingsOpen && !isSettings && (
+      {settingsOpen && (!isSettings || uiVersion === '3.0') && (
         <div className="fixed inset-0 z-[35]" onClick={() => setSettingsOpen(false)} />
       )}
 
       {/* Desktop sidebar */}
-      <SideNav loading={tx.loading} onAdd={editing.openAdd} onImport={() => setImportOpen(true)} aiEnabled={aiEnabled}
-        transactions={tx.allTransactions} showCommitments={isFeatureEnabled('commitments', user)} />
+      {uiVersion === '3.0'
+        ? <AdaptiveNav onAdd={editing.openAdd} onImport={() => setImportOpen(true)} aiEnabled={aiEnabled}
+            showCommitments={isFeatureEnabled('commitments', user)} isSettings={isSettings} />
+        : <SideNav loading={tx.loading} onAdd={editing.openAdd} onImport={() => setImportOpen(true)} aiEnabled={aiEnabled}
+            transactions={tx.allTransactions} showCommitments={isFeatureEnabled('commitments', user)} />}
 
       {/* Content (shifted right by sidebar on desktop) */}
-      <div className="flex-1 md:ml-[220px] min-w-0 flex flex-col h-full overflow-hidden">
+      <div className={`app-content flex-1 min-w-0 flex flex-col h-full overflow-hidden ${uiVersion === '2.0' ? 'md:ml-[220px]' : ''}`}>
 
         <AppHeader
           brand={brand} monthLine={monthContext()}
           loading={tx.loading} isSettings={isSettings}
           settingsOpen={settingsOpen} onToggleSettings={setSettingsOpen}
           onImport={() => setImportOpen(true)}
+          aiEnabled={aiEnabled}
+          showCommitments={isFeatureEnabled('commitments', user)}
         />
 
         {/* Scroll container — the ONLY element that scrolls; body stays still.
@@ -322,7 +330,7 @@ function Main({ user, onLogOut, onDeleteAccount }: {
           </div>
         )}
 
-        <main className="max-w-2xl mx-auto md:max-w-none px-4 md:px-8 pt-4 md:pt-2 pb-24 md:pb-2">
+        <main id="page-content" tabIndex={-1} className="app-main max-w-2xl mx-auto md:max-w-none px-4 md:px-8 pt-4 md:pt-2 pb-24 md:pb-2">
           <AppRoutes
             user={user} brand={brand} tx={tx} budget={budget} editing={editing}
             applePayPayments={applePay.payments} applePayLoading={applePay.loading}
@@ -336,7 +344,7 @@ function Main({ user, onLogOut, onDeleteAccount }: {
         </div>{/* end scroll container */}
 
         {/* Mobile-only bottom nav */}
-        {!isSettings && <BottomNav onAdd={editing.openAdd} />}
+        {uiVersion === '2.0' && !isSettings && <BottomNav onAdd={editing.openAdd} />}
       </div>
 
       <TransactionModal

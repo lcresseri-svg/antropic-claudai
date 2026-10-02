@@ -1,3 +1,4 @@
+import { DialogSurface } from './DialogSurface';
 // Popup "Novità" — componente PRESENTAZIONALE unico.
 //
 // Prima esistevano due scaffold quasi identici (WhatsNewModal e ReleaseNotice):
@@ -16,6 +17,7 @@
 import { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useEscapeKey } from '../hooks/useEscapeKey';
+import { useUiNoticeSlot } from '../providers/UiVersionProvider';
 import { formatDateFull } from '../../utils';
 
 export interface ReleaseHighlight {
@@ -51,9 +53,10 @@ export function ReleaseDialog({
   const navigate = useNavigate();
   const [expanded, setExpanded] = useState(false);
 
-  useEscapeKey(onClose, open);
+  const visible=useUiNoticeSlot(open,30);
+  useEscapeKey(onClose, visible);
 
-  if (!open) return null;
+  if (!visible) return null;
 
   const featured = items?.slice(0, FEATURED) ?? [];
   const rest = items?.slice(FEATURED) ?? [];
@@ -67,7 +70,7 @@ export function ReleaseDialog({
       aria-label={title}
     >
       <div className="absolute inset-0 bg-black/70 backdrop-blur-md animate-fade-in-fast" />
-      <div className="relative w-full max-w-md glass-elevated rounded-[26px] shadow-elev-2 animate-sheet-up
+      <DialogSurface title={title} onDismiss={onClose} kind="notice" className="relative w-full max-w-md glass-elevated rounded-[26px] shadow-elev-2 animate-sheet-up
                       overflow-hidden max-h-[88dvh] overflow-y-auto scrollbar-hide"
         style={{ borderTop: '1px solid var(--hero-border-top)' }}>
 
@@ -175,7 +178,7 @@ export function ReleaseDialog({
             Tutte le novità nel registro versioni
           </button>
         </div>
-      </div>
+      </DialogSurface>
     </div>
   );
 }

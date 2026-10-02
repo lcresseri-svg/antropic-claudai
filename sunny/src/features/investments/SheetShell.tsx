@@ -1,3 +1,4 @@
+import { DialogSurface } from '../../shared/components/DialogSurface';
 import { ReactNode, useState } from 'react';
 import { useEscapeKey } from '../../shared/hooks/useEscapeKey';
 
@@ -8,8 +9,8 @@ import { useEscapeKey } from '../../shared/hooks/useEscapeKey';
  * l'animazione di salita vale solo dove la sheet sale davvero, sopra `sm`
  * diventa una comparsa in scala, che su un mouse è più corretta.
  */
-export function SheetShell({ open, title, subtitle, onClose, children }: {
-  open: boolean; title: string; subtitle?: ReactNode; onClose: () => void; children: ReactNode;
+export function SheetShell({ open, title, subtitle, onClose, onBack, children }: {
+  open: boolean; title: string; subtitle?: ReactNode; onClose: () => void; onBack?: () => void; children: ReactNode;
 }) {
   useEscapeKey(onClose, open);
   if (!open) return null;
@@ -19,7 +20,7 @@ export function SheetShell({ open, title, subtitle, onClose, children }: {
       <div className="absolute inset-0 bg-black/60 backdrop-blur-sm animate-fade-in-fast" />
       {/* The card is a fixed mask (header stays put); only the content window
           scrolls, and overscroll-contain keeps the scroll from chaining out. */}
-      <div className="relative w-full max-w-sm sm:max-w-[520px] glass-elevated rounded-[26px] shadow-float max-h-[88dvh] overflow-hidden flex flex-col animate-sheet-up sm:animate-scale-in">
+      <DialogSurface title={title} onDismiss={onClose} onBack={onBack} kind="detail" className="relative w-full max-w-sm sm:max-w-[520px] glass-elevated rounded-[26px] shadow-float max-h-[88dvh] overflow-hidden flex flex-col animate-sheet-up sm:animate-scale-in">
         <div className="shrink-0 bg-[var(--modal-hdr-bg)] px-5 pt-5 pb-3 flex items-start justify-between gap-3">
           <div className="min-w-0">
             <h2 className="text-base font-semibold text-primary truncate">{title}</h2>
@@ -29,7 +30,7 @@ export function SheetShell({ open, title, subtitle, onClose, children }: {
             className="w-[30px] h-[30px] rounded-full bg-elevated flex items-center justify-center text-secondary flex-none">✕</button>
         </div>
         <div className="flex-1 min-h-0 overflow-y-auto overscroll-contain scrollbar-hide px-5 sm:px-7 pb-5 sm:pb-7 space-y-3 sm:space-y-4">{children}</div>
-      </div>
+      </DialogSurface>
     </div>
   );
 }

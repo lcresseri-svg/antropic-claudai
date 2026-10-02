@@ -1,3 +1,4 @@
+import { DialogSurface } from '../../shared/components/DialogSurface';
 import { useState, useEffect } from 'react';
 import { User } from 'firebase/auth';
 import { useEscapeKey } from '../../shared/hooks/useEscapeKey';
@@ -26,7 +27,7 @@ export function FeedbackSheet({ open, user, onClose }: Props) {
     <div className="fixed inset-0 z-[60] flex items-end sm:items-center justify-center p-3"
       onClick={e => { if (e.target === e.currentTarget) onClose(); }}>
       <div className="absolute inset-0 bg-black/70 backdrop-blur-md animate-fade-in-fast" />
-      <div className="relative w-full max-w-md sm:max-w-[460px] glass-elevated rounded-[26px] shadow-float animate-sheet-up sm:animate-scale-in max-h-[85dvh] flex flex-col">
+      <DialogSurface title={'Feedback'} onDismiss={onClose} kind="detail" className="relative w-full max-w-md sm:max-w-[460px] glass-elevated rounded-[26px] shadow-float animate-sheet-up sm:animate-scale-in max-h-[85dvh] flex flex-col">
 
         {/* Header */}
         <div className="flex items-center justify-between px-6 pt-6 pb-3 shrink-0">
@@ -91,7 +92,7 @@ export function FeedbackSheet({ open, user, onClose }: Props) {
             </>
           )}
         </div>
-      </div>
+      </DialogSurface>
     </div>
   );
 }

@@ -24,6 +24,7 @@ import { formatCurrency, capitalize } from '../../utils';
 import { isFeatureEnabled } from '../../shared/featureRollout';
 import { CoachEntryCard } from '../aiCoach/CoachEntryCard';
 import { listRecapMonths } from '../recap/monthlyRecap';
+import { useUiSessionState } from '../../shared/providers/UiVersionProvider';
 
 type EditSection = 'savings' | 'income' | 'expenses' | 'investments';
 
@@ -89,7 +90,7 @@ export function BudgetScreenV2({
   );
 
   // Month navigated to (defaults to the current month). Drives every slice below.
-  const [selectedMonth, setSelectedMonth] = useState(currentMonth);
+  const [selectedMonth, setSelectedMonth] = useUiSessionState('budget.month',currentMonth);
   const isCurrentMonth = selectedMonth === currentMonth;
   const isPastMonth = selectedMonth < currentMonth;
   const isFutureMonth = !isCurrentMonth && !isPastMonth;
@@ -97,7 +98,7 @@ export function BudgetScreenV2({
   const [editOpen, setEditOpen] = useState(false);
   const [editSection, setEditSection] = useState<EditSection>('expenses');
   const [focusCategory, setFocusCategory] = useState<string | null>(null);
-  const [recapOpen, setRecapOpen] = useState(false);
+  const [recapOpen, setRecapOpen] = useUiSessionState('budget.archive',false);
 
   const expenseCats    = useMemo(() => visibleCategories.filter(c => c.kind === 'expense'),    [visibleCategories]);
   const incomeCats     = useMemo(() => visibleCategories.filter(c => c.kind === 'income'),     [visibleCategories]);
@@ -334,7 +335,7 @@ export function BudgetScreenV2({
   };
 
   return (
-    <div className="pb-32 space-y-4">
+    <div className="ui-family-budget pb-32 space-y-4">
       {/* Header 56px: titolo + navigatore mese compatto. Lo stato del mese non
           è più una pill decorativa: è diventato l'azione dentro l'hero. */}
       <div className="h-14 flex items-center justify-between gap-3">

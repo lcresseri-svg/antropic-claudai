@@ -13,6 +13,7 @@
 
 import { useState, useMemo, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
+import { useUiSessionState } from '../../shared/providers/UiVersionProvider';
 import { Transaction } from '../../types';
 import { useSettings } from '../../shared/providers/settings';
 import { formatCurrency, capitalize } from '../../utils';
@@ -36,8 +37,8 @@ export function IncomeScreen({ transactions }: Props) {
   const navigate = useNavigate();
   const { getCat, insightDepth } = useSettings();
 
-  const [period, setPeriod] = useState<PeriodType>('1m');
-  const [offset, setOffset] = useState(0);
+  const [period, setPeriod] = useUiSessionState<PeriodType>('income.period','1m');
+  const [offset, setOffset] = useUiSessionState('income.offset',0);
 
   const now = useMemo(() => new Date(), []);
   const historyStart = useMemo(() => getHistoryStartISO(transactions, now), [transactions, now]);

@@ -13,12 +13,13 @@ interface Props {
    *  Retry on failure (no partial states). */
   onSave: (categoryId: string, currentValueEntered: number, result: WithdrawalResult) => Promise<void> | void;
   onClose: () => void;
+  onBack?: () => void;
 }
 
 const today = () => new Date().toISOString().slice(0, 10);
 
 /** "Disinvesti" — investment withdrawal form (§9: proportional to deposited capital). */
-export function InvestmentWithdrawSheet({ open, investmentByCategory, preselectCategory, onSave, onClose }: Props) {
+export function InvestmentWithdrawSheet({ open, investmentByCategory, preselectCategory, onSave, onClose, onBack }: Props) {
   const { visibleCategories, visibleAccounts } = useSettings();
   // Only (visible) positions with deposited capital can be withdrawn from.
   const investCats = visibleCategories.filter(c => c.kind === 'investment' && (investmentByCategory[c.id] ?? 0) > 0);
@@ -96,7 +97,7 @@ export function InvestmentWithdrawSheet({ open, investmentByCategory, preselectC
   };
 
   return (
-    <SheetShell open={open} title="Disinvesti" onClose={onClose}>
+    <SheetShell open={open} title="Disinvesti" onClose={onClose} onBack={onBack}>
       {investCats.length === 0 ? (
         <p className="text-sm text-secondary py-6 text-center">Nessuna posizione con capitale versato da disinvestire.</p>
       ) : (

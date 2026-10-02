@@ -1,4 +1,4 @@
-import { useState, useEffect, useMemo, useRef, useCallback } from 'react';
+import { createContext, useContext, useState, useEffect, useLayoutEffect, useMemo, useRef, useCallback } from 'react';
 import { Transaction, TransactionType, TYPE_META, TYPE_ORDER, RecurrenceRule, SeriesMeta, SeriesKind, AccountDef, typeColor, typeOnColor } from '../../types';
 import { formatCurrency, formatDate, guessCategory } from '../../utils';
 import { Candidate, Recognition, RECOGNITION_THRESHOLD } from './categoryRecognition';
@@ -10,6 +10,9 @@ import { useEscapeKey } from '../../shared/hooks/useEscapeKey';
 import { refundsFor, summarizeRefunds } from '../../shared/refunds';
 import { RecurrenceEditor } from './RecurrenceEditor';
 import { useScrollLock } from '../../shared/useScrollLock';
+import { DialogSurface } from '../../shared/components/DialogSurface';
+import { useUiVersion } from '../../shared/providers/UiVersionProvider';
+import { useMediaQuery } from '../../shared/hooks/useMediaQuery';
 
 interface Props {
   open: boolean;
@@ -45,6 +48,7 @@ interface Props {
 
 /** Quante categorie stanno nella riga di chip prima di "altre ›". */
 const CHIP_CATS = 6;
+const NumericKeypadContext = createContext<boolean | null>(null);
 
 /** Campi INTERI fra quelli serviti dal tastierino: niente virgola. */
 const KEYPAD_INTEGER = new Set(['spread', 'instCount']);
@@ -72,6 +76,11 @@ const yesterday = () => { const d = new Date(); d.setDate(d.getDate() - 1); retu
 
 export function TransactionModal({ open, editing, groupTransfers = [], seriesEdit = false, defaultType, initialValues, awaitSave = false, singleSave = false, title, sourceBanner, saveLabel, recognize, transactions = [], onRegisterRefund, onEditRefund, onClose, onSave }: Props) {
   const { categories, accounts, visibleCategories, visibleAccounts, enableInvestments, detailedInvestments, theme, getAcc } = useSettings();
+  const ui3 = useUiVersion() === '3.0';
+  const coarse = useMediaQuery('(any-pointer: coarse)');
+  const [keypadPreference, setKeypadPreference] = useState<boolean | null>(null);
+  const useKeypad = keypadPreference ?? coarse;
+  const [textInputActive, setTextInputActive] = useState(false);
   const [type, setType] = useState<TransactionType>('expense');
   const [description, setDescription] = useState('');
   const [amount, setAmount] = useState('');
@@ -106,11 +115,29 @@ export function TransactionModal({ open, editing, groupTransfers = [], seriesEdi
   // registra senza toccarle.
   const [descOpen, setDescOpen] = useState(false);
   const [catGridOpen, setCatGridOpen] = useState(false);
+  const categoryPickerTrigger = useRef<HTMLButtonElement>(null);
+  const categoryPickerWasOpen = useRef(false);
+  useLayoutEffect(() => {
+    if(ui3 && open && categoryPickerWasOpen.current && !catGridOpen) categoryPickerTrigger.current?.focus({preventScroll:true});
+    categoryPickerWasOpen.current=catGridOpen;
+  },[ui3,open,catGridOpen]);
   // Conto e data si aprono solo se vanno cambiati: il default è "il conto di
   // sempre, oggi".
   const [whenWhereOpen, setWhenWhereOpen] = useState(false);
   const [advancedOpen, setAdvancedOpen] = useState(false);
   const [confirmDelete, setConfirmDelete] = useState(false);
+  const [confirmDiscard, setConfirmDiscard] = useState(false);
+  const beforeInteraction = useRef<string | null>(null);
+  const draftSignature = JSON.stringify([type,description,amount,date,category,account,toAccount,notes,isShared,reimbursements,seriesKind,recurringRule,recurringUntil,instTotal,instCount,instFirstDate,fee,tfr,spreadChoice,spreadCustom]);
+  const captureDraft = () => { if (beforeInteraction.current === null) beforeInteraction.current = draftSignature; };
+  const amountInput = useRef<HTMLInputElement>(null);
+  useEffect(()=>{if(ui3 && amountError) amountInput.current?.focus();},[ui3,amountError]);
+  const requestClose = () => {
+    if (ui3 && saving) return;
+    if (ui3 && confirmDiscard) { setConfirmDiscard(false); return; }
+    if (ui3 && beforeInteraction.current !== null && beforeInteraction.current !== draftSignature && !saving) setConfirmDiscard(true);
+    else onClose();
+  };
 
   // Quick mode: defaultType set + not editing → hide type selector, collapse date/account
   const quickMode = !editing && !!defaultType && defaultType !== 'transfer';
@@ -123,6 +150,8 @@ export function TransactionModal({ open, editing, groupTransfers = [], seriesEdi
 
   useEffect(() => {
     if (!open) return;
+    beforeInteraction.current = null;
+    setConfirmDiscard(false); setTextInputActive(false);
     if (editing) {
       // Shared-expense reconstruction only folds the settlements (transfers): an
       // investment in the group is the fee parent and must not be summed in.
@@ -188,7 +217,7 @@ export function TransactionModal({ open, editing, groupTransfers = [], seriesEdi
 
   useScrollLock(open);
 
-  useEscapeKey(onClose, open);
+  useEscapeKey(requestClose, open);
 
   // Investments are created and managed exclusively from the /investments screen,
   // so the type selector does NOT offer "Investimento" for new transactions. It
@@ -338,6 +367,7 @@ export function TransactionModal({ open, editing, groupTransfers = [], seriesEdi
     setReimbursements(rs => rs.filter((_, j) => j !== i));
 
   const resetKeepContext = () => {
+    beforeInteraction.current = null;
     setDescription(''); setAmount(''); setNotes('');
     setIsShared(false); setReimbursements([]);
     setSeriesKind('none'); setRecurringRule({ freq: 'monthly', mode: 'interval', interval: 1 }); setRecurringUntil('');
@@ -532,7 +562,7 @@ export function TransactionModal({ open, editing, groupTransfers = [], seriesEdi
 
   return (
     <div className="fixed inset-0 z-50 flex items-end sm:items-center justify-center px-3 pt-[max(0.75rem,env(safe-area-inset-top))] pb-[max(0.75rem,env(safe-area-inset-bottom))]"
-      onClick={e => { if (e.target === e.currentTarget) onClose(); }}>
+      onClick={e => { if (e.target === e.currentTarget) requestClose(); }}>
       <div className="absolute inset-0 bg-black/60 backdrop-blur-sm animate-fade-in-fast" />
 
       {/* Mobile: the card fills the screen (minus a 12px + safe-area margin, so
@@ -541,11 +571,21 @@ export function TransactionModal({ open, editing, groupTransfers = [], seriesEdi
           The CARD ITSELF never scrolls: it's a fixed mask (header + footer)
           around an internal scrolling window (the form fields). overscroll-contain
           stops the scroll from chaining to the page when the window hits its end. */}
-      <div className="relative w-full max-w-none h-full max-h-full sm:max-w-[560px] sm:h-auto sm:max-h-[88dvh] glass-elevated rounded-3xl sm:rounded-[26px] shadow-float overflow-hidden flex flex-col animate-sheet-up">
+      <DialogSurface title={title ?? (seriesEdit ? 'Modifica serie' : editing ? 'Modifica movimento' : `Nuova ${TYPE_META[type].label.toLowerCase()}`)} onDismiss={requestClose} kind="editor"
+        data-keypad={ui3 ? String(useKeypad) : undefined} data-text-input={ui3 ? String(textInputActive) : undefined}
+        onChangeCapture={ui3 ? captureDraft : undefined}
+        onPointerDownCapture={ui3 ? captureDraft : undefined} onKeyDownCapture={ui3 ? e => {
+          captureDraft();
+          const target=e.target as HTMLInputElement;
+          if (useKeypad && target.tagName==='INPUT' && target.readOnly && (/^[\d.,]$/.test(e.key) || e.key==='Backspace')) { e.preventDefault(); pressKey(e.key==='Backspace'?'back':e.key); }
+        } : undefined}
+        onFocusCapture={ui3 ? e => { const target=e.target as HTMLInputElement; if (target.tagName==='INPUT'||target.tagName==='TEXTAREA') setTextInputActive(!target.readOnly && !['decimal','numeric','none'].includes(target.inputMode)); } : undefined}
+        onBlurCapture={ui3 ? e => { if (!e.currentTarget.contains(e.relatedTarget as Node | null)) setTextInputActive(false); } : undefined}
+        className="relative w-full max-w-none h-full max-h-full sm:max-w-[560px] sm:h-auto sm:max-h-[88dvh] glass-elevated rounded-3xl sm:rounded-[26px] shadow-float overflow-hidden flex flex-col animate-sheet-up">
         {/* Testa: ✕ a sinistra, segmented al centro. Il titolo sparisce — con
             il tipo selezionato davanti agli occhi non diceva nulla di nuovo. */}
         <div className="shrink-0 bg-[var(--modal-hdr-bg)] px-5 pt-5 pb-3 flex items-center gap-3">
-          <button type="button" onClick={onClose} aria-label="Chiudi"
+          <button type="button" onClick={requestClose} aria-label="Chiudi"
             className="w-8 h-8 rounded-full bg-elevated flex items-center justify-center text-secondary flex-none">✕</button>
           {!quickMode && availableTypes.length > 1 ? (
             <div className="flex-1 min-w-0 grid gap-1 bg-surface rounded-xl p-1"
@@ -566,7 +606,12 @@ export function TransactionModal({ open, editing, groupTransfers = [], seriesEdi
           <span className="w-8 flex-none" aria-hidden />
         </div>
 
-        <form onSubmit={submit} className="flex-1 min-h-0 flex flex-col">
+        {confirmDiscard && <div className="ui-discard" role="alert">
+          <h3>Abbandonare il movimento?</h3><p>I dati inseriti non sono ancora stati salvati.</p>
+          <div><button type="button" autoFocus onClick={() => setConfirmDiscard(false)}>Continua a modificare</button><button type="button" onClick={onClose}>Abbandona</button></div>
+        </div>}
+        <NumericKeypadContext.Provider value={ui3 ? useKeypad : null}>
+        <form onSubmit={submit} aria-busy={ui3 ? saving : undefined} className={`flex-1 min-h-0 flex flex-col ${confirmDiscard ? 'ui-draft-suspended' : ''}`}>
           <div className="flex-1 min-h-0 overflow-y-auto overscroll-contain scrollbar-hide px-5 sm:px-7 pb-4 space-y-3 sm:space-y-4">
           {seriesEdit && (
             <p className="text-[11px] text-secondary bg-elevated rounded-xl px-3 py-2 leading-snug">
@@ -653,6 +698,12 @@ export function TransactionModal({ open, editing, groupTransfers = [], seriesEdi
               tastierino, dopo che si è compilato un altro campo numerico. */}
           <div className="text-center pt-1">
             <div className="flex items-baseline justify-center gap-1.5">
+              {ui3 ? <input ref={amountInput} type="text" inputMode={useKeypad ? 'none' : 'decimal'} readOnly={useKeypad} placeholder="0" value={amount}
+                style={{width:`${Math.max(2,amount.length||1)}ch`,maxWidth:'calc(100% - 44px)'}}
+                aria-label="Importo" aria-invalid={amountError} aria-describedby={amountError ? 'movement-amount-error' : undefined}
+                onFocus={() => { setKeypad('amount'); setTextInputActive(false); }} onClick={() => setKeypad('amount')}
+                onChange={e => { setAmount(e.target.value.replace(/[^\d.,]/g, '')); setAmountError(false); }}
+                className={`ui-amount-input bg-transparent font-bold text-center balance-num ${amountError ? 'text-red' : 'text-primary'}`} /> : <>
               <input
                 type="text" inputMode="none" readOnly placeholder="0" value={amount}
                 aria-label="Importo"
@@ -666,10 +717,11 @@ export function TransactionModal({ open, editing, groupTransfers = [], seriesEdi
                 onChange={e => { setAmount(e.target.value.replace(/[^\d.,]/g, '')); setAmountError(false); }}
                 className={`hidden sm:block bg-transparent text-[44px] leading-none font-bold text-center w-52 outline-none balance-num placeholder:text-divider transition-colors ${amountError ? 'text-red' : 'text-primary'}`}
               />
+              </>}
               <span className={`text-[30px] font-semibold ${amountError ? 'text-red' : 'text-secondary'}`}>€</span>
             </div>
             {amountError && (
-              <p className="text-xs mt-2 transition-opacity text-red">Inserisci un importo valido</p>
+              <p id="movement-amount-error" className="text-xs mt-2 transition-opacity text-red">Inserisci un importo valido</p>
             )}
           </div>
 
@@ -682,7 +734,7 @@ export function TransactionModal({ open, editing, groupTransfers = [], seriesEdi
             </button>
           ) : (
           <Field label="Descrizione (facoltativa)">
-            <input type="text" autoFocus placeholder={defaultDesc || 'es. Supermercato'} value={description} maxLength={80}
+            <input type="text" aria-label={ui3 ? 'Descrizione facoltativa' : undefined} autoFocus={!ui3} placeholder={defaultDesc || 'es. Supermercato'} value={description} maxLength={80}
               onChange={e => {
                 const v = e.target.value;
                 setDescription(v);
@@ -712,6 +764,7 @@ export function TransactionModal({ open, editing, groupTransfers = [], seriesEdi
             <div>
               {catGridOpen ? (
                 <Field label="Categoria">
+                  {ui3 && <button type="button" className="ui-back" onClick={() => setCatGridOpen(false)}>‹ Indietro</button>}
                   <div className="grid grid-cols-3 sm:grid-cols-4 gap-2">
                     {orderedCats.map(c => {
                       const sel = category === c.id;
@@ -741,7 +794,7 @@ export function TransactionModal({ open, editing, groupTransfers = [], seriesEdi
                     );
                   })}
                   {orderedCats.length > chipCats.length && (
-                    <button type="button" onClick={() => setCatGridOpen(true)}
+                    <button type="button" ref={categoryPickerTrigger} onClick={() => setCatGridOpen(true)}
                       className="px-3 py-2 rounded-full text-[13px] font-medium whitespace-nowrap bg-surface text-secondary flex-none">
                       altre ›
                     </button>
@@ -814,7 +867,7 @@ export function TransactionModal({ open, editing, groupTransfers = [], seriesEdi
                 </span>
                 <button type="button" onClick={() => setWhenWhereOpen(o => !o)}
                   className="text-[12px] font-semibold text-gold flex-none">
-                  {whenWhereOpen ? 'Chiudi' : 'Modifica'}
+                  {whenWhereOpen ? (ui3 ? '‹ Indietro' : 'Chiudi') : 'Modifica'}
                 </button>
               </div>
               {whenWhereOpen && (
@@ -1084,7 +1137,8 @@ export function TransactionModal({ open, editing, groupTransfers = [], seriesEdi
 
           {/* Fixed action bar: part of the card's mask (like the header), the
               form scrolls in the window above it. */}
-          <div className="shrink-0 px-5 sm:px-7 pt-3 pb-5 sm:pb-7 bg-[var(--modal-hdr-bg)] space-y-2">
+          <div className="ui-editor-footer shrink-0 px-5 sm:px-7 pt-3 pb-5 sm:pb-7 bg-[var(--modal-hdr-bg)] space-y-2">
+            {ui3 && <button type="button" className="ui-keypad-toggle" onClick={() => { setKeypadPreference(!useKeypad); setTextInputActive(false); }}> {useKeypad ? 'Usa tastiera' : 'Mostra tastierino'} </button>}
             {saveError && (
               <p className="text-xs text-red px-1 leading-snug">
                 Salvataggio non riuscito: nessun dato è stato scritto (movimento e controvalore
@@ -1095,7 +1149,7 @@ export function TransactionModal({ open, editing, groupTransfers = [], seriesEdi
                 Salva è dentro la stessa griglia, così una spesa tipica si
                 registra senza mai alzare la mano. Da `sm` in su la modale resta
                 la sheet centrata di prima e il tastierino sparisce. */}
-            <div className="sm:hidden">
+            <div className={ui3 ? `ui-touch-footer ${!useKeypad || textInputActive ? 'hidden' : ''}` : 'sm:hidden'}>
               {/* Il campo può essere scrollato fuori vista: senza questa riga
                   le cifre comparirebbero "da qualche parte". */}
               {keypadLabel && (
@@ -1104,11 +1158,11 @@ export function TransactionModal({ open, editing, groupTransfers = [], seriesEdi
                   Stai scrivendo in «{keypadLabel}» · torna all'importo
                 </button>
               )}
-              <div className="grid grid-cols-4 grid-rows-4 gap-2">
+              <div className="ui-keypad-grid grid grid-cols-4 grid-rows-4 gap-2">
                 {['1', '2', '3', '4', '5', '6', '7', '8', '9', ',', '0'].map(k => (
                   <KeypadKey key={k} onClick={() => pressKey(k)}>{k}</KeypadKey>
                 ))}
-                <KeypadKey onClick={() => pressKey('back')} label="Cancella">⌫</KeypadKey>
+                <KeypadKey onClick={() => pressKey('back')} label={ui3 ? 'Cancella ultima cifra' : 'Cancella'}>⌫</KeypadKey>
 
                 <button type="submit" disabled={saving}
                   className="row-span-2 col-start-4 row-start-1 rounded-2xl cta-gold-fill text-[15px] font-semibold
@@ -1134,10 +1188,10 @@ export function TransactionModal({ open, editing, groupTransfers = [], seriesEdi
             </div>
 
             {/* Desktop: i bottoni di sempre. */}
-            <div className="hidden sm:block space-y-2">
+            <div className={ui3 ? `ui-keyboard-footer space-y-2 ${useKeypad && !textInputActive ? 'hidden' : ''}` : 'hidden sm:block space-y-2'}>
               <button type="submit" disabled={saving}
                 className="w-full py-3 rounded-2xl font-semibold transition-transform active:scale-[0.98] disabled:opacity-60"
-                style={{ backgroundColor: typeColor(type, theme), color: typeOnColor(theme) }}>
+                style={ui3 ? { backgroundColor: 'var(--ui-accent)', color: 'var(--ui-on-accent)' } : { backgroundColor: typeColor(type, theme), color: typeOnColor(theme) }}>
                 {saving ? 'Salvataggio…' : saveError ? 'Riprova' : saveLabel ?? (editing ? 'Salva modifiche' : `Aggiungi ${TYPE_META[type].label.toLowerCase()}`)}
               </button>
 
@@ -1150,7 +1204,8 @@ export function TransactionModal({ open, editing, groupTransfers = [], seriesEdi
             </div>
           </div>
         </form>
-      </div>
+        </NumericKeypadContext.Provider>
+      </DialogSurface>
     </div>
   );
 }
@@ -1259,11 +1314,15 @@ function NumberField({
   className: string;
 }) {
   useEffect(() => () => onRelease(id), [id, onRelease]);
+  const keypadMode = useContext(NumericKeypadContext);
 
   const active = activeId === id;
   const common = `${className} bg-elevated text-primary placeholder:text-secondary/50 outline-none balance-num ${
     active ? 'ring-1 ring-gold/60' : 'focus:ring-1 focus:ring-gold/40'}`;
 
+  if (keypadMode !== null) return <input type="text" inputMode={keypadMode ? 'none' : integer ? 'numeric' : 'decimal'} readOnly={keypadMode} value={value} placeholder={placeholder}
+    aria-label={ariaLabel} className={common} onFocus={() => onFocus(id)} onClick={() => onFocus(id)}
+    onChange={e => onChange(sanitizeNumericInput(e.target.value, { integer }))} />;
   return (
     <>
       <input type="text" inputMode="none" readOnly value={value} placeholder={placeholder}

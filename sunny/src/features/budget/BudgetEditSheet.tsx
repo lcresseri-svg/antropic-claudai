@@ -1,3 +1,4 @@
+import { DialogSurface } from '../../shared/components/DialogSurface';
 import { useState, useEffect } from 'react';
 import { CategoryDef } from '../../types';
 import { formatCurrency } from '../../utils';
@@ -74,7 +75,7 @@ export function BudgetEditSheet({
     <div className="fixed inset-0 z-[60] flex items-end sm:items-center justify-center p-3"
       onClick={e => { if (e.target === e.currentTarget) onClose(); }}>
       <div className="absolute inset-0 bg-black/70 backdrop-blur-md animate-fade-in-fast" />
-      <div className="relative w-full max-w-md sm:max-w-[640px] glass-elevated rounded-[26px] shadow-float animate-sheet-up sm:animate-scale-in max-h-[85dvh] flex flex-col">
+      <DialogSurface title={'Modifica piano'} onDismiss={onClose} kind="detail" className="relative w-full max-w-md sm:max-w-[640px] glass-elevated rounded-[26px] shadow-float animate-sheet-up sm:animate-scale-in max-h-[85dvh] flex flex-col">
 
         {/* Header — sticky: con la tastiera numerica aperta il contenuto si
             muove, la testa no, quindi la ✕ resta dov'è.
@@ -243,7 +244,7 @@ export function BudgetEditSheet({
             )
           )}
         </div>
-      </div>
+      </DialogSurface>
     </div>
   );
 }
