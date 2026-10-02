@@ -15,6 +15,7 @@ interface Props {
    *  the sheet stays open with a Retry on failure — no partial states. */
   onSave: (txs: Omit<Transaction, 'id'>[]) => Promise<void> | void;
   onClose: () => void;
+  onBack?: () => void;
 }
 
 const today = () => new Date().toISOString().slice(0, 10);
@@ -30,7 +31,7 @@ export const SPREAD_CHOICES: { value: number | 'none' | 'custom'; label: string 
 
 /** "Versa" — investment deposit form. Same logic as the historical
  *  TransactionModal investment path, via buildInvestmentDeposit. */
-export function InvestmentDepositSheet({ open, preselectCategory, onSave, onClose }: Props) {
+export function InvestmentDepositSheet({ open, preselectCategory, onSave, onClose, onBack }: Props) {
   const { visibleCategories, visibleAccounts, detailedInvestments } = useSettings();
   const investCats = visibleCategories.filter(c => c.kind === 'investment');
 
@@ -123,7 +124,7 @@ export function InvestmentDepositSheet({ open, preselectCategory, onSave, onClos
     : 'Versa';
 
   return (
-    <SheetShell open={open} title="Versa" onClose={onClose}>
+    <SheetShell open={open} title="Versa" onClose={onClose} onBack={onBack}>
       <form onSubmit={submit} className="space-y-3 sm:space-y-4">
         <Field label="Categoria">
           <div className="grid grid-cols-2 sm:grid-cols-3 gap-2">

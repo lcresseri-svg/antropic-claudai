@@ -1,5 +1,6 @@
 import { useState, useMemo, useEffect } from 'react';
 import { useSearchParams } from 'react-router-dom';
+import { useUiSessionState } from '../../shared/providers/UiVersionProvider';
 import { Transaction, TransactionType, TYPE_META, TYPE_ORDER, TransactionPatch, typeColor, ownShare } from '../../types';
 import { formatCurrency, formatDate, formatDateFull, formatMonthLong, capitalize } from '../../utils';
 import { useSettings } from '../../shared/providers/settings';
@@ -101,16 +102,16 @@ export function TransactionList({ transactions, projected = [], onEdit, onDelete
   // giorno tappato mostra esattamente i movimenti che hanno riempito la cella.
   const dateFilter = searchParams.get('date');
   const clearDateFilter = () => setSearchParams(p => { p.delete('date'); return p; }, { replace: true });
-  const [search, setSearch] = useState('');
+  const [search, setSearch] = useUiSessionState('transactions.search','');
   // La ricerca non è più una barra sempre presente: è un'icona che si apre.
-  const [searchOpen, setSearchOpen] = useState(false);
-  const [typeFilter, setTypeFilter] = useState<TransactionType | 'all'>('all');
+  const [searchOpen, setSearchOpen] = useUiSessionState('transactions.searchOpen',false);
+  const [typeFilter, setTypeFilter] = useUiSessionState<TransactionType | 'all'>('transactions.type','all');
   // Per giorno è la vista di default: è come si guarda il mese in corso.
-  const [groupMode, setGroupMode] = useState<GroupMode>('day');
-  const [sortKey, setSortKey] = useState<SortKey>('date');
-  const [sortDir, setSortDir] = useState<SortDir>('desc');
-  const [period, setPeriod] = useState<PeriodFilter>('all');
-  const [projView, setProjView] = useState<ProjView>(PROJ_DEFAULT);
+  const [groupMode, setGroupMode] = useUiSessionState<GroupMode>('transactions.group','day');
+  const [sortKey, setSortKey] = useUiSessionState<SortKey>('transactions.sort','date');
+  const [sortDir, setSortDir] = useUiSessionState<SortDir>('transactions.direction','desc');
+  const [period, setPeriod] = useUiSessionState<PeriodFilter>('transactions.period','all');
+  const [projView, setProjView] = useUiSessionState<ProjView>('transactions.projected',PROJ_DEFAULT);
   const [filterOpen, setFilterOpen] = useState(false);
   const [collapsed, setCollapsed] = useState<Set<string>>(new Set());
   const [selectMode, setSelectMode] = useState(false);

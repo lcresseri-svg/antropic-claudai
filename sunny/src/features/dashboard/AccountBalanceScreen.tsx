@@ -6,6 +6,7 @@
 
 import { useState, useMemo, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
+import { useUiSessionState } from '../../shared/providers/UiVersionProvider';
 import { Transaction } from '../../types';
 import { useSettings } from '../../shared/providers/settings';
 import { formatCurrency, capitalize, formatDateFull } from '../../utils';
@@ -24,8 +25,8 @@ const tone = (d: number) => (d > 0.005 ? 'text-green' : d < -0.005 ? 'text-red' 
 export function AccountBalanceScreen({ transactions }: Props) {
   const navigate = useNavigate();
   const { accounts, insightDepth } = useSettings();
-  const [period, setPeriod] = useState<PeriodType>('1m');
-  const [offset, setOffset] = useState(0);
+  const [period, setPeriod] = useUiSessionState<PeriodType>('accounts.period','1m');
+  const [offset, setOffset] = useUiSessionState('accounts.offset',0);
   const [selectedId, setSelectedId] = useState<string | null>(null);
 
   const now = useMemo(() => new Date(), []);

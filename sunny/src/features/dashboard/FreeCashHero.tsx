@@ -59,8 +59,8 @@ export function FreeCashHero(p: Props) {
   const pct = Math.round(ratio * 100);
 
   return (
-    <section className="hero-card rounded-[26px] shadow-elev-2 p-[22px] md:px-7 md:py-[26px] animate-rise-in">
-      <div className="flex items-center gap-[18px] md:gap-7">
+    <section className="ui-free-cash hero-card rounded-[26px] shadow-elev-2 p-[22px] md:px-7 md:py-[26px] animate-rise-in">
+      <div className="ui-free-cash-layout flex items-center gap-[18px] md:gap-7">
         <div className="flex-1 min-w-0">
           <p className="label-caps text-secondary mb-2 md:mb-2.5">
             {isFree ? 'Liquidità libera' : 'Liquidità'}
@@ -76,7 +76,7 @@ export function FreeCashHero(p: Props) {
           )}
         </div>
 
-        <div className="relative flex-none w-[104px] h-[104px] md:w-[132px] md:h-[132px]">
+        <div className="ui-free-cash-ring relative flex-none w-[104px] h-[104px] md:w-[132px] md:h-[132px]">
           <svg viewBox="0 0 200 200" className="w-full h-full" aria-hidden>
             <circle r={RING_R} cx="100" cy="100" fill="none" strokeWidth="14"
               stroke="var(--progress-track)" />
@@ -94,12 +94,12 @@ export function FreeCashHero(p: Props) {
         </div>
 
         {/* Desktop: i tre valori del mese in colonna, oltre un divisore verticale. */}
-        <div className="hidden md:block w-px self-stretch bg-divider" />
-        <MonthStats {...p} className="hidden md:flex flex-col gap-4 flex-none min-w-[130px]" size="lg" />
+        <div className="ui-free-cash-divider hidden md:block w-px self-stretch bg-divider" />
+        <MonthStats {...p} className="ui-free-cash-desktop-stats hidden md:flex flex-col gap-4 flex-none min-w-[130px]" size="lg" />
       </div>
 
       {/* Mobile: gli stessi tre valori in riga, sotto un divisore. */}
-      <MonthStats {...p} className="md:hidden flex gap-2 mt-[18px] pt-4 border-t border-divider" size="sm" />
+      <MonthStats {...p} className="ui-free-cash-mobile-stats md:hidden flex gap-2 mt-[18px] pt-4 border-t border-divider" size="sm" />
     </section>
   );
 }

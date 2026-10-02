@@ -1,3 +1,4 @@
+import { DialogSurface } from '../../shared/components/DialogSurface';
 // Category detail — a bottom sheet on mobile, a right side-panel on desktop.
 // Content density follows the global "Livello di analisi" (insightDepth):
 //   minimal  → essentials only
@@ -141,7 +142,7 @@ export function CategoryDetailSheet({
     <div className="fixed inset-0 z-[60] flex items-end md:items-stretch md:justify-end" role="dialog" aria-modal="true">
       <button aria-label="Chiudi" onClick={onClose} className="absolute inset-0 bg-black/70 animate-fade-in-fast" />
 
-      <div className="relative w-full md:w-[460px] md:max-w-[92vw] md:h-full max-h-[88dvh] md:max-h-none
+      <DialogSurface title={'Dettaglio categoria'} onDismiss={onClose} kind="detail" className="relative w-full md:w-[460px] md:max-w-[92vw] md:h-full max-h-[88dvh] md:max-h-none
                       glass-elevated rounded-t-3xl md:rounded-t-none md:rounded-l-3xl shadow-float
                       flex flex-col animate-sheet-up overflow-hidden">
         {/* Header */}
@@ -272,7 +273,7 @@ export function CategoryDetailSheet({
             <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"><path d="m9 18 6-6-6-6" /></svg>
           </button>
         </div>
-      </div>
+      </DialogSurface>
     </div>
   );
 }

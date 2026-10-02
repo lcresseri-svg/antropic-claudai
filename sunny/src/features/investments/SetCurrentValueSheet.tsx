@@ -9,6 +9,7 @@ interface Props {
   deposited: number; // versato netto della categoria
   onSave: (value: number) => void;
   onClose: () => void;
+  onBack?: () => void;
 }
 
 /**
@@ -19,7 +20,7 @@ interface Props {
  * fraintendere — aggiornare il controvalore non è un movimento: cambia il
  * patrimonio, non la liquidità né le uscite del mese.
  */
-export function SetCurrentValueSheet({ open, category, deposited, onSave, onClose }: Props) {
+export function SetCurrentValueSheet({ open, category, deposited, onSave, onClose, onBack }: Props) {
   const [value, setValue] = useState('');
 
   useEffect(() => {
@@ -40,7 +41,7 @@ export function SetCurrentValueSheet({ open, category, deposited, onSave, onClos
   };
 
   return (
-    <SheetShell open={open} onClose={onClose}
+    <SheetShell open={open} onClose={onClose} onBack={onBack}
       title={`Controvalore · ${category.label}`}
       subtitle={category.lastValueUpdate
         ? `Ultimo aggiornamento: ${formatDate(category.lastValueUpdate)}`

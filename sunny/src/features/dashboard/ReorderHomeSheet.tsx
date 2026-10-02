@@ -1,3 +1,4 @@
+import { DialogSurface } from '../../shared/components/DialogSurface';
 // "Riordina" — l'utente decide in che ordine vedere i blocchi della home.
 //
 // Frecce su/giù invece del trascinamento: su una lista di quattro voci il drag
@@ -43,7 +44,7 @@ export function ReorderHomeSheet({ open, order, onSave, onClose }: Props) {
       role="dialog" aria-modal="true" aria-label="Riordina la home"
       onClick={e => { if (e.target === e.currentTarget) close(); }}>
       <div className="absolute inset-0 bg-black/70 backdrop-blur-md animate-fade-in-fast" />
-      <div className="relative w-full max-w-md sm:max-w-[460px] glass-elevated rounded-[26px] shadow-float animate-sheet-up sm:animate-scale-in
+      <DialogSurface title={'Riordina Oggi'} onDismiss={close} kind="detail" className="relative w-full max-w-md sm:max-w-[460px] glass-elevated rounded-[26px] shadow-float animate-sheet-up sm:animate-scale-in
                       max-h-[85dvh] flex flex-col overflow-hidden">
 
         <div className="flex items-center justify-between px-5 pt-5 pb-3 shrink-0">
@@ -95,7 +96,7 @@ export function ReorderHomeSheet({ open, order, onSave, onClose }: Props) {
             </button>
           )}
         </div>
-      </div>
+      </DialogSurface>
     </div>
   );
 }

@@ -1,3 +1,4 @@
+import { DialogSurface } from '../../shared/components/DialogSurface';
 import { Transaction } from '../../types';
 import { useSettings } from '../../shared/providers/settings';
 import { buildSeriesSummary } from '../../shared/recurrence';
@@ -45,7 +46,7 @@ export function SeriesDetailSheet({ open, anchor, allTransactions, onClose, onEd
     <div className="fixed inset-0 z-[60] flex items-end sm:items-center justify-center p-3"
       onClick={e => { if (e.target === e.currentTarget) onClose(); }}>
       <div className="absolute inset-0 bg-black/70 backdrop-blur-md animate-fade-in-fast" />
-      <div className="relative w-full max-w-md glass-elevated rounded-3xl shadow-float max-h-[85dvh] overflow-hidden flex flex-col animate-sheet-up">
+      <DialogSurface title={'Dettaglio serie'} onDismiss={onClose} kind="detail" className="relative w-full max-w-md glass-elevated rounded-3xl shadow-float max-h-[85dvh] overflow-hidden flex flex-col animate-sheet-up">
 
         {/* Header */}
         <div className="shrink-0 flex items-start gap-3.5 px-6 pt-6 pb-4">
@@ -175,7 +176,7 @@ export function SeriesDetailSheet({ open, anchor, allTransactions, onClose, onEd
             Chiudi
           </button>
         </div>
-      </div>
+      </DialogSurface>
     </div>
   );
 }

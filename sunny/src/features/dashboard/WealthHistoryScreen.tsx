@@ -9,6 +9,7 @@
 
 import { useState, useMemo } from 'react';
 import { useNavigate } from 'react-router-dom';
+import { useUiVersion, useUiSessionState } from '../../shared/providers/UiVersionProvider';
 import { Transaction } from '../../types';
 import { useSettings } from '../../shared/providers/settings';
 import { formatCurrency, formatDateFull } from '../../utils';
@@ -36,10 +37,11 @@ const DOT = {
 
 export function WealthHistoryScreen({ transactions }: Props) {
   const navigate = useNavigate();
+  const ui3 = useUiVersion() === '3.0';
   // FULL lists (incl. archived): archived accounts/categories still carry
   // balance history — same source useTransactions feeds netWorth from.
   const { accounts, categories } = useSettings();
-  const [period, setPeriod] = useState<WealthPeriod>('3m');
+  const [period, setPeriod] = useUiSessionState<WealthPeriod>('wealth.history.period','3m');
 
   const now = useMemo(() => new Date(), []);
   const summary = useMemo(
@@ -59,13 +61,13 @@ export function WealthHistoryScreen({ transactions }: Props) {
       {/* Header */}
       <div className="flex items-center gap-3 mb-1">
         <button
-          onClick={() => navigate(-1)}
+          onClick={() => ui3 ? navigate('/wealth') : navigate(-1)}
           aria-label="Torna indietro"
-          className="w-9 h-9 rounded-2xl bg-elevated flex items-center justify-center text-secondary active:scale-95 transition-transform flex-shrink-0"
+          className={ui3 ? 'ui-back' : 'w-9 h-9 rounded-2xl bg-elevated flex items-center justify-center text-secondary active:scale-95 transition-transform flex-shrink-0'}
         >
-          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
+          {ui3 ? '‹ Indietro' : <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
             <path d="m15 18-6-6 6-6" />
-          </svg>
+          </svg>}
         </button>
         <h1 className="text-xl font-bold text-primary tracking-[-0.03em]">Andamento patrimonio</h1>
       </div>

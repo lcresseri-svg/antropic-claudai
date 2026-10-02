@@ -1,8 +1,9 @@
-import { useState, useEffect, useRef, Children, isValidElement, ReactNode } from 'react';
+import { useState, useEffect, useLayoutEffect, useRef, Children, isValidElement, ReactNode } from 'react';
 import { useNavigate, useLocation } from 'react-router-dom';
 import { User } from 'firebase/auth';
 import { CategoryDef, AccountDef, Transaction, TransactionType, TYPE_META, TYPE_ORDER, typeColor } from '../../types';
 import { useSettings } from '../../shared/providers/settings';
+import { useUiVersion } from '../../shared/providers/UiVersionProvider';
 import { usePush } from '../../shared/hooks/usePush';
 import { EditDefSheet, DefDraft } from './EditDefSheet';
 import { FeedbackSheet } from '../feedback/FeedbackSheet';
@@ -46,6 +47,7 @@ function reorder<T>(arr: T[], from: number, to: number): T[] {
 
 export function SettingsScreen({ user, transactions, budgetExport, onLogOut, onDeleteAll, onDeleteAccount }: Props) {
   const navigate = useNavigate();
+  const ui3 = useUiVersion() === '3.0';
   const location = useLocation();
   const { categories, accounts, visibleCategories, visibleAccounts, theme, includeInvestments, enableInvestments, enableBudget, insightDepth, aiEnabled, aiCoachWidgetEnabled, detailedInvestments, cashReserve, saveCategories, restoreCategory, saveAccounts, saveTheme, saveIncludeInvestments, saveEnableInvestments, saveEnableBudget, saveInsightDepth, saveAiEnabled, saveAiCoachWidgetEnabled, saveCashReserve } = useSettings();
   const [sub, setSub] = useState<Sub>('menu');
@@ -67,7 +69,15 @@ export function SettingsScreen({ user, transactions, budgetExport, onLogOut, onD
   // When switching settings sub-screen, jump back to the top so the header (with
   // the back arrow) is always in view — otherwise, returning from a long
   // sub-screen leaves you scrolled down with no visible way back.
-  useEffect(() => {
+  const menuReturn = useRef<{ top: number; text: string | null }>({top:0,text:null});
+  useLayoutEffect(() => {
+    if(ui3) {
+      const scroller=document.getElementById('app-scroll');
+      if(scroller) scroller.scrollTop=sub==='menu'?menuReturn.current.top:0;
+      const target=sub==='menu' ? Array.from(document.querySelectorAll<HTMLButtonElement>('.ui-settings-menu button')).find(el=>el.textContent===menuReturn.current.text) : document.querySelector<HTMLElement>('.ui-settings-detail h1');
+      if(target) { if(target.tabIndex<0 && !target.hasAttribute('tabindex')) target.tabIndex=-1; target.focus({preventScroll:true}); }
+      return;
+    }
     window.scrollTo({ top: 0 });
     document.scrollingElement?.scrollTo({ top: 0 });
   }, [sub]);
@@ -213,7 +223,10 @@ export function SettingsScreen({ user, transactions, budgetExport, onLogOut, onD
     setEditing(null);
   };
 
-  const enterSub = (s: Sub) => { setSub(s); setEditMode(false); };
+  const enterSub = (s: Sub) => {
+    if(ui3 && sub==='menu') menuReturn.current={top:document.getElementById('app-scroll')?.scrollTop??0,text:document.activeElement?.textContent??null};
+    setSub(s); setEditMode(false);
+  };
   const exitToMenu = () => { setSub('menu'); setEditMode(false); };
   const exitToGestione = () => { setSub('gestione'); setEditMode(false); };
   const toggleEditMode = () => { setEditMode(m => !m); setDrag(null); };
@@ -397,13 +410,13 @@ export function SettingsScreen({ user, transactions, budgetExport, onLogOut, onD
   ) : null;
 
   return (
-    <div className="space-y-6 pb-28 animate-fade-in">
-      {sub === 'menu' && (
-        <>
+    <div className="ui-settings space-y-6 pb-28 animate-fade-in" data-settings-sub={ui3 ? sub : undefined}>
+      {(sub === 'menu' || ui3) && (
+        <SettingsPane menu>
           <div className="flex items-center gap-2">
-            <button onClick={() => navigate(-1 as any)} aria-label="Indietro"
-              className="w-9 h-9 -ml-2 flex items-center justify-center text-secondary active:text-primary">
-              <ChevronLeft />
+            <button onClick={() => ui3 ? navigate('/') : navigate(-1 as any)} aria-label="Indietro"
+              className={ui3 ? 'ui-back' : 'w-9 h-9 -ml-2 flex items-center justify-center text-secondary active:text-primary'}>
+              {ui3 ? '‹ Indietro' : <ChevronLeft />}
             </button>
             <h1 className="text-2xl font-bold text-primary tracking-[-0.03em] flex-1">Impostazioni</h1>
           </div>
@@ -518,9 +531,10 @@ export function SettingsScreen({ user, transactions, budgetExport, onLogOut, onD
             </button>
           </div>
 
-        </>
+        </SettingsPane>
       )}
 
+      <SettingsPane>
       {/* Legacy combined page (non-V2 menu routes "Generali" here) */}
       {sub === 'generali' && (
         <>
@@ -836,6 +850,7 @@ export function SettingsScreen({ user, transactions, budgetExport, onLogOut, onD
         </>
       )}
 
+      </SettingsPane>
       <EditDefSheet
         open={!!editing}
         draft={editing?.draft ?? null}
@@ -853,18 +868,23 @@ export function SettingsScreen({ user, transactions, budgetExport, onLogOut, onD
   );
 }
 
+function SettingsPane({children,menu=false}:{children:ReactNode;menu?:boolean}) {
+  return useUiVersion()==='3.0' ? <div className={menu?'ui-settings-menu space-y-6':'ui-settings-detail space-y-6'}>{children}</div> : <>{children}</>;
+}
+
 function ManageHeader({ title, editMode, onBack, onToggleEdit, hideEdit, deleteCount, onDelete }: {
   title: string; editMode: boolean; onBack: () => void; onToggleEdit: () => void;
   hideEdit?: boolean; deleteCount?: number; onDelete?: () => void;
 }) {
   const [confirming, setConfirming] = useState(false);
+  const ui3 = useUiVersion() === '3.0';
   useEffect(() => { if (!editMode || (deleteCount ?? 0) === 0) setConfirming(false); }, [editMode, deleteCount]);
 
   return (
     <div className="flex items-center gap-2">
       <button onClick={onBack} aria-label="Indietro"
-        className="w-9 h-9 -ml-2 flex items-center justify-center text-secondary active:text-primary">
-        <ChevronLeft />
+        className={ui3 ? 'ui-back' : 'w-9 h-9 -ml-2 flex items-center justify-center text-secondary active:text-primary'}>
+        {ui3 ? '‹ Indietro' : <ChevronLeft />}
       </button>
       <h1 className="text-2xl font-bold text-primary tracking-[-0.03em] flex-1">{title}</h1>
       {!hideEdit && editMode && onDelete && (deleteCount ?? 0) > 0 && (
@@ -999,6 +1019,7 @@ function Row({ icon, color, label, sub, value, onClick }: {
 function SwitchRow({ icon, color, label, sub, on, onToggle }: {
   icon: string; color: string; label: string; sub?: string; on: boolean; onToggle: () => void;
 }) {
+  const ui3=useUiVersion()==='3.0';
   return (
     <div className="w-full flex items-center gap-3 px-4 py-3">
       <span className="w-8 h-8 rounded-[11px] flex items-center justify-center text-base flex-none"
@@ -1008,7 +1029,7 @@ function SwitchRow({ icon, color, label, sub, on, onToggle }: {
         {sub && <span className="block text-[11.5px] text-tertiary truncate">{sub}</span>}
       </span>
       <button type="button" role="switch" aria-checked={on} aria-label={label} onClick={onToggle}
-        className={`w-[42px] h-[25px] rounded-full flex-none transition-colors relative ${on ? 'bg-gold' : 'progress-track'}`}>
+        className={ui3 ? 'ui-toggle' : `w-[42px] h-[25px] rounded-full flex-none transition-colors relative ${on ? 'bg-gold' : 'progress-track'}`}>
         <span className={`absolute top-0.5 w-[21px] h-[21px] rounded-full transition-all ${
           on ? 'left-[19px] bg-[color:var(--accent-on)]' : 'left-0.5 bg-secondary'}`} />
       </button>
@@ -1019,6 +1040,7 @@ function SwitchRow({ icon, color, label, sub, on, onToggle }: {
 function ToggleRow({ icon, label, sub, on, onToggle }: {
   icon: string; label: string; sub: string; on: boolean; onToggle: () => void;
 }) {
+  const ui3=useUiVersion()==='3.0';
   return (
     <div className="flex items-center gap-3.5 p-4">
       <span className="text-2xl">{icon}</span>
@@ -1028,7 +1050,8 @@ function ToggleRow({ icon, label, sub, on, onToggle }: {
       </div>
       <button
         onClick={onToggle}
-        className={`relative flex-shrink-0 w-[46px] h-[26px] rounded-full transition-colors duration-200 ${on ? 'bg-gold' : 'bg-secondary/25'}`}
+        role={ui3 ? 'switch' : undefined} aria-checked={ui3 ? on : undefined}
+        className={ui3 ? 'ui-toggle' : `relative flex-shrink-0 w-[46px] h-[26px] rounded-full transition-colors duration-200 ${on ? 'bg-gold' : 'bg-secondary/25'}`}
         aria-label={label}
       >
         <span className={`absolute left-0 top-[3px] w-5 h-5 rounded-full bg-white shadow-sm transition-transform duration-200 ${on ? 'translate-x-[23px]' : 'translate-x-[3px]'}`} />

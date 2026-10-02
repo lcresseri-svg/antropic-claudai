@@ -1,3 +1,4 @@
+import { DialogSurface } from '../../shared/components/DialogSurface';
 // Investment position detail — bottom sheet on mobile, right side-panel on
 // desktop. Speculare ad AccountDetailSheet: stessa shell, focus management
 // (Escape + focus iniziale + trap), scroll lock. Mostra KPI di performance
@@ -16,6 +17,7 @@ import {
 } from './investmentPerformance';
 import { statsSpreadOf, monthlyInvestmentStats, addMonths } from './investmentStatsSpread';
 import { AccountBalanceLineChart } from '../dashboard/AccountBalanceLineChart';
+import { useUiVersion } from '../../shared/providers/UiVersionProvider';
 
 interface Props {
   category: CategoryDef;
@@ -28,6 +30,8 @@ interface Props {
   onDeposit: () => void;
   onWithdraw: () => void;
   onSetValue: () => void;
+  /** UI3 keeps the parent mounted while an operative child owns the focus. */
+  inactive?: boolean;
 }
 
 const GREEN = 'var(--accent-green)';
@@ -45,15 +49,17 @@ function durationLabel(years: number): string {
 }
 
 export function InvestmentDetailSheet({
-  category, transactions, deposited, portfolioTotal, onClose, onDeposit, onWithdraw, onSetValue,
+  category, transactions, deposited, portfolioTotal, onClose, onDeposit, onWithdraw, onSetValue, inactive=false,
 }: Props) {
   const navigate = useNavigate();
   const { getAcc } = useSettings();
   const panelRef = useRef<HTMLDivElement>(null);
+  const ui3=useUiVersion()==='3.0';
   useScrollLock();
 
   // Escape chiude; focus iniziale sul pannello; trap Tab dentro al dialog.
   useEffect(() => {
+    if(ui3) return; // DialogSurface is the single UI3 focus/Escape owner.
     panelRef.current?.focus();
     const onKey = (e: KeyboardEvent) => {
       if (e.key === 'Escape') { onClose(); return; }
@@ -67,7 +73,7 @@ export function InvestmentDetailSheet({
     };
     window.addEventListener('keydown', onKey);
     return () => window.removeEventListener('keydown', onKey);
-  }, [onClose]);
+  }, [onClose,ui3]);
 
   const todayISO = new Date().toISOString().slice(0, 10);
   const curMonth = todayISO.slice(0, 7);
@@ -205,10 +211,10 @@ export function InvestmentDetailSheet({
 
   return (
     <div className="fixed inset-0 z-[60] flex items-end md:items-stretch md:justify-end" role="dialog" aria-modal="true"
-      aria-label={`Dettaglio investimento ${category.label}`}>
+      aria-label={`Dettaglio investimento ${category.label}`} style={ui3 && inactive ? {display:'none'} : undefined}>
       <button aria-label="Chiudi" onClick={onClose} className="absolute inset-0 bg-black/70 animate-fade-in-fast" />
 
-      <div ref={panelRef} tabIndex={-1}
+      <DialogSurface title={'Dettaglio investimento'} onDismiss={onClose} kind="detail" ref={panelRef} tabIndex={-1}
         className="relative w-full md:w-[460px] md:max-w-[92vw] md:h-full max-h-[88dvh] md:max-h-none
                    glass-elevated rounded-t-3xl md:rounded-t-none md:rounded-l-3xl shadow-float
                    flex flex-col animate-sheet-up overflow-hidden outline-none">
@@ -345,7 +351,7 @@ export function InvestmentDetailSheet({
             <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"><path d="m9 18 6-6-6-6" /></svg>
           </button>
         </div>
-      </div>
+      </DialogSurface>
     </div>
   );
 }

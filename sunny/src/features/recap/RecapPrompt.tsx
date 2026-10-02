@@ -3,6 +3,8 @@ import { useNavigate } from 'react-router-dom';
 import { Transaction } from '../../types';
 import { monthKey } from '../insights/insightsEngine';
 import { recapMonthLabel } from './monthlyRecap';
+import { useUiNoticeSlot } from '../../shared/providers/UiVersionProvider';
+import { DialogSurface } from '../../shared/components/DialogSurface';
 
 /** Once-per-month, per-device nudge. Stored in localStorage (NOT Firestore) to
  *  keep Firebase cost at zero. Mounted in the authenticated shell (post-onboarding). */
@@ -11,6 +13,7 @@ const SEEN_KEY = 'sunny:recapPromptSeen';
 export function RecapPrompt({ transactions }: { transactions: Transaction[] }) {
   const navigate = useNavigate();
   const [prevYM, setPrevYM] = useState<string | null>(null);
+  const visible=useUiNoticeSlot(!!prevYM,20);
 
   useEffect(() => {
     const currentYM = monthKey(0);
@@ -28,12 +31,12 @@ export function RecapPrompt({ transactions }: { transactions: Transaction[] }) {
     if (go && prevYM) navigate(`/recap/${prevYM}`);
   };
 
-  if (!prevYM) return null;
+  if (!prevYM || !visible) return null;
 
   return (
     <div className="fixed inset-0 z-[60] flex items-end sm:items-center justify-center p-4 bg-black/50 animate-fade-in"
       onClick={() => dismiss(false)}>
-      <div className="w-full max-w-sm bg-elevated rounded-3xl p-6 shadow-float animate-sheet-up" onClick={e => e.stopPropagation()}>
+      <DialogSurface title="Riepilogo mensile" onDismiss={()=>dismiss(false)} kind="notice" className="w-full max-w-sm bg-elevated rounded-3xl p-6 shadow-float animate-sheet-up" onClick={e => e.stopPropagation()}>
         <div className="text-3xl mb-3">📊</div>
         <h2 className="text-lg font-bold text-primary tracking-[-0.02em]">Il tuo riepilogo di {recapMonthLabel(prevYM)} è pronto</h2>
         <p className="text-[13px] text-secondary mt-1.5 leading-relaxed">
@@ -49,7 +52,7 @@ export function RecapPrompt({ transactions }: { transactions: Transaction[] }) {
             Più tardi
           </button>
         </div>
-      </div>
+      </DialogSurface>
     </div>
   );
 }

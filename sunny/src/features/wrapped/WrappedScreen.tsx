@@ -15,6 +15,7 @@ import type { User } from 'firebase/auth';
 import { Transaction } from '../../types';
 import { useSettings } from '../../shared/providers/settings';
 import { useScrollLock } from '../../shared/useScrollLock';
+import { useUiNoticeBlock } from '../../shared/providers/UiVersionProvider';
 import { useEscapeKey } from '../../shared/hooks/useEscapeKey';
 import { isAdminUser } from '../../shared/featureFlags';
 import { buildWealthHistory } from '../dashboard/wealthAnalytics';
@@ -54,6 +55,7 @@ export function WrappedScreen({ transactions, projected, user, onSetSavingsTarge
   const todayISO = new Date().toISOString().slice(0, 10);
   const admin = isAdminUser(user);
   const allowed = canOpenWrapped(year, todayISO, { admin });
+  useUiNoticeBlock(allowed);
 
   // `buildWealthHistory` scarta di proposito le righe `projected` (sono di sola
   // vista). Qui il programmato È parte del racconto, quindi le occorrenze

@@ -1,5 +1,7 @@
-import { useNavigate } from 'react-router-dom';
+import { useNavigate, useLocation } from 'react-router-dom';
+import { useEffect, useRef } from 'react';
 import { ArcLogo } from '../shared/components/ArcLogo';
+import { useUiVersion } from '../shared/providers/UiVersionProvider';
 
 interface Props {
   brand: string;
@@ -13,11 +15,37 @@ interface Props {
   settingsOpen: boolean;
   onToggleSettings: (open: boolean) => void;
   onImport: () => void;
+  aiEnabled?: boolean;
+  showCommitments?: boolean;
 }
 
 /** Mobile-only header — in-flow (shrink-0) so it doesn't trigger iOS viewport resize. */
-export function AppHeader({ brand, monthLine, loading, isSettings, settingsOpen, onToggleSettings, onImport }: Props) {
+export function AppHeader({ brand, monthLine, loading, isSettings, settingsOpen, onToggleSettings, onImport, aiEnabled, showCommitments }: Props) {
   const navigate = useNavigate();
+  const {pathname}=useLocation();
+  const version = useUiVersion();
+  const menu = useRef<HTMLDivElement>(null);
+  useEffect(() => {
+    if(version!=='3.0' || !settingsOpen) return;
+    menu.current?.querySelector('button')?.focus();
+    const close=(e:KeyboardEvent)=>{if(e.key==='Escape'){e.preventDefault();onToggleSettings(false);document.getElementById('ui3-more-trigger')?.focus();}};
+    document.addEventListener('keydown',close);
+    return()=>document.removeEventListener('keydown',close);
+  },[version,settingsOpen,onToggleSettings]);
+  if (version === '3.0') return <header className="ui3-header glass-header">
+    <button className="ui3-header-brand" onClick={() => navigate('/')} aria-label="Sunny · Vai a Oggi"><ArcLogo size={26} /><span>sunny</span></button>
+    <span className="ui3-month-line">{monthLine ?? brand}{loading && <span role="status"> · Caricamento…</span>}</span>
+    <div className="relative ml-auto">
+      <button id="ui3-more-trigger" aria-expanded={settingsOpen} aria-controls="ui3-quick-menu" onClick={() => onToggleSettings(!settingsOpen)} className="ui3-more">Altro <span aria-hidden>⋯</span></button>
+      {settingsOpen && <div ref={menu} id="ui3-quick-menu" className="ui3-quick-menu glass-elevated">
+        {showCommitments && ['/wealth','/commitments'].includes(pathname) && <button onClick={()=>{navigate('/commitments');onToggleSettings(false);}}>Impegni</button>}
+        <button onClick={() => { navigate('/insights'); onToggleSettings(false); }}>Consigli</button>
+        {aiEnabled && <button onClick={() => { navigate('/ai-coach'); onToggleSettings(false); }}>AI Coach</button>}
+        <button onClick={() => { onImport(); onToggleSettings(false); }}>Importa CSV</button>
+        <button onClick={() => { navigate('/settings'); onToggleSettings(false); }}>Impostazioni</button>
+      </div>}
+    </div>
+  </header>;
   return (
     <header className="shrink-0 z-[40] glass-header md:hidden">
       <div className="max-w-2xl mx-auto px-4 h-14 flex items-center justify-between">

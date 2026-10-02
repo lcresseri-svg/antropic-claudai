@@ -47,12 +47,12 @@ const WrappedScreen = lazy(() => import('../features/wrapped/WrappedScreen').the
  * impostazioni sono la più stretta di tutte perché sono righe di testo.
  */
 const W = {
-  home:     'wide:max-w-[1360px]',
-  wide:     'wide:max-w-[1200px]',   // Patrimonio, Piano, Investimenti
-  list:     'wide:max-w-[1100px]',   // Movimenti, Consigli, analisi, AI Coach
-  reading:  'wide:max-w-[1040px]',   // Riepilogo mensile, Impegni
-  admin:    'wide:max-w-[1180px]',   // Previsione V4, Metriche
-  settings: 'wide:max-w-[900px]',
+  home:     'ui-page-home wide:max-w-[1360px]',
+  wide:     'ui-page-wide wide:max-w-[1200px]',   // Patrimonio, Piano, Investimenti
+  list:     'ui-page-list wide:max-w-[1100px]',   // Movimenti, Consigli, analisi, AI Coach
+  reading:  'ui-page-reading wide:max-w-[1040px]',   // Riepilogo mensile, Impegni
+  admin:    'ui-page-admin wide:max-w-[1180px]',   // Previsione V4, Metriche
+  settings: 'ui-page-settings wide:max-w-[900px]',
 } as const;
 
 /**

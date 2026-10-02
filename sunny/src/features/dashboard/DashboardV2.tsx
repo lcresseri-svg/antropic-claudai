@@ -25,7 +25,7 @@ import { buildWealthHistory } from './wealthAnalytics';
 import { localISO } from './categoryAnalytics';
 import { FreeCashHero } from './FreeCashHero';
 import { NetWorthCard } from './NetWorthCard';
-import { MonthRhythm } from './MonthRhythm';
+import { MonthRhythm } from './MonthRhythmCard';
 import { MonthRhythmSheet } from './MonthRhythmSheet';
 import { SpendingBreakdownCard } from './SpendingBreakdownCard';
 import { NextMoveCard, pickNextMove } from './NextMoveCard';
@@ -213,11 +213,11 @@ export function DashboardV2(p: Props) {
   };
 
   return (
-    <div className="pb-32 md:pb-6">
+    <div className="ui-home pb-32 md:pb-6">
       {/* Desktop: riga di testa con saluto + scorciatoia al riepilogo.
           Su mobile il contesto ("Agosto · giorno 24 di 31") sta nell'header. */}
       {p.greeting && (
-        <div className="hidden md:flex items-end justify-between gap-5 mb-5">
+        <div className="ui-home-greeting hidden md:flex items-end justify-between gap-5 mb-5">
           <div>
             <p className="text-xl font-semibold text-primary tracking-[-0.02em]">{p.greeting}</p>
             <p className="mt-1 text-[13px] text-secondary">{monthContext(now)}</p>
@@ -232,8 +232,8 @@ export function DashboardV2(p: Props) {
       {/* Mobile: colonna unica, nell'ordine scelto dall'utente. Desktop: due
           colonne indipendenti in altezza, ordine fisso — lì i blocchi stanno
           già affiancati e riordinarli non risolverebbe niente. */}
-      <div className="flex flex-col wide:flex-row gap-3.5 md:gap-4 ultra:gap-6 wide:items-start">
-        <div className="flex flex-col gap-3.5 md:gap-4 wide:flex-1 wide:min-w-0">
+      <div className="ui-home-layout flex flex-col wide:flex-row gap-3.5 md:gap-4 ultra:gap-6 wide:items-start">
+        <div className="ui-home-primary flex flex-col gap-3.5 md:gap-4 wide:flex-1 wide:min-w-0">
           {p.userId && (
             <WrappedEntryCard
               transactions={p.transactions} projected={p.projected ?? []}
@@ -242,18 +242,18 @@ export function DashboardV2(p: Props) {
           {hero}
 
           {/* Telefono: i blocchi nell'ordine preferito. */}
-          <div className="contents md:hidden">
+          <div className="ui-home-personal contents md:hidden">
             {order.map(id => <div key={id} className="md:hidden">{blocks[id]}</div>)}
           </div>
 
           {/* Desktop: ritmo e torta affiancati, come da design. */}
-          <div className="hidden md:flex flex-col lg:flex-row gap-3.5 lg:gap-4 lg:items-start">
+          <div className="ui-home-charts hidden md:flex flex-col lg:flex-row gap-3.5 lg:gap-4 lg:items-start">
             <div className="lg:flex-1 lg:min-w-0">{rhythm}</div>
             <div className="lg:flex-1 lg:min-w-0">{breakdown}</div>
           </div>
         </div>
 
-        <div className="hidden md:flex md:flex-col md:gap-4 wide:w-[352px] ultra:w-[384px] wide:flex-none">
+        <div className="ui-home-support hidden md:flex md:flex-col md:gap-4 wide:w-[352px] ultra:w-[384px] wide:flex-none">
           {netWorthCard}
           {nextMoveCard}
           <RecentMovementsCard
@@ -264,7 +264,7 @@ export function DashboardV2(p: Props) {
       </div>
 
       {/* Solo telefono: su desktop l'ordine è fisso, quindi il pulsante non c'è. */}
-      <div className="md:hidden flex justify-center pt-5">
+      <div className="ui-home-reorder md:hidden flex justify-center pt-5">
         <button type="button" onClick={() => setReorderOpen(true)}
           className="flex items-center gap-1.5 glass-card rounded-full px-3.5 py-2 text-[12px] font-medium text-secondary active:scale-[0.97] transition-transform">
           <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"

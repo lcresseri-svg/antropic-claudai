@@ -1,4 +1,5 @@
 @import url('https://fonts.googleapis.com/css2?family=DM+Serif+Display&display=swap');
+@import './ui-v3.css';
 
 @tailwind base;
 @tailwind components;
@@ -398,7 +399,7 @@ html.light .text-\[\#E6B95C\]\/80 { color: rgb(var(--c-gold) / 0.9); }
 
   /* Force the LIGHT palette (values mirror html.light) so the export prints on
      white whatever the current theme is — Tailwind reads rgb(var(--c-*)). */
-  :root {
+  :root, html[data-ui-version="3.0"], html.light[data-ui-version="3.0"] {
     --bg: #FCFAF5; --surface-1: #F5F1EA; --surface-2: #FAF7F1;
     --border: rgba(26,23,20,0.12); --border-strong: rgba(26,23,20,0.18);
     --text-1: #17140F; --text-2: #645F54; --text-3: #A8A296;

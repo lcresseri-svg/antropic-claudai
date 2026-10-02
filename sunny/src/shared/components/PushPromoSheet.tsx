@@ -1,4 +1,6 @@
+import { DialogSurface } from './DialogSurface';
 import { useEscapeKey } from '../hooks/useEscapeKey';
+import { useUiNoticeSlot } from '../providers/UiVersionProvider';
 
 interface Props {
   open: boolean;
@@ -8,8 +10,9 @@ interface Props {
 
 /** One-time bottom sheet (iOS PWA only) inviting the user to enable push notifications. */
 export function PushPromoSheet({ open, onClose, onGoToSettings }: Props) {
-  useEscapeKey(onClose, open);
-  if (!open) return null;
+  const visible=useUiNoticeSlot(open,10);
+  useEscapeKey(onClose, visible);
+  if (!visible) return null;
 
   return (
     <div
@@ -17,7 +20,7 @@ export function PushPromoSheet({ open, onClose, onGoToSettings }: Props) {
       onClick={e => { if (e.target === e.currentTarget) onClose(); }}
     >
       <div className="absolute inset-0 bg-black/70 backdrop-blur-md animate-fade-in-fast" />
-      <div className="relative w-full max-w-md sm:max-w-[460px] glass-elevated rounded-[26px] shadow-float animate-sheet-up sm:animate-scale-in">
+      <DialogSurface title={'Notifiche'} onDismiss={onClose} kind="notice" className="relative w-full max-w-md sm:max-w-[460px] glass-elevated rounded-[26px] shadow-float animate-sheet-up sm:animate-scale-in">
 
         <div className="flex items-center justify-between px-6 pt-6 pb-1">
           <h3 className="text-base font-semibold text-primary">Attiva le notifiche</h3>
@@ -47,7 +50,7 @@ export function PushPromoSheet({ open, onClose, onGoToSettings }: Props) {
             Non ora
           </button>
         </div>
-      </div>
+      </DialogSurface>
     </div>
   );
 }
