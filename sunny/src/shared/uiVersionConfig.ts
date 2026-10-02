@@ -1,6 +1,6 @@
 import { isAdminUser, type UserLike } from './featureFlags';
 
-export type UiVersion = '2.0' | '3.0';
+export type UiVersion = '2.0' | '2.0';
 export interface UiVersionConfig {
   everyone: UiVersion;
   pilotAdmin: UiVersion;
