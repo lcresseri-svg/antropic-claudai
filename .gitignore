@@ -2,4 +2,5 @@
 firestore-debug.log
 firebase-debug.log
 ui-debug.log
+.superpowers/
 firestore-debug.*.log

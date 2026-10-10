@@ -13,6 +13,75 @@ service cloud.firestore {
     function vAmount(v) { return v is number && v > 0 && v <= 1000000000; }
     function vDate(v) { return v is string && v.matches('^[0-9]{4}-[0-9]{2}-[0-9]{2}$'); }
 
+    // Firestore Rules has no loops: pad once and check each bounded cash target.
+    // Numeric ordering rejects strings, NaN and infinities. The emulator tests
+    // cover the final slot as well as the ordinary short maps.
+    function cashValue(v) { return v >= 0 && v <= 1000000000; }
+    function validCashTargets(m) {
+      let v = m.values().concat([0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0]);
+      return m.size() <= 50 && cashValue(v[0])
+        && cashValue(v[1])
+        && cashValue(v[2])
+        && cashValue(v[3])
+        && cashValue(v[4])
+        && cashValue(v[5])
+        && cashValue(v[6])
+        && cashValue(v[7])
+        && cashValue(v[8])
+        && cashValue(v[9])
+        && cashValue(v[10])
+        && cashValue(v[11])
+        && cashValue(v[12])
+        && cashValue(v[13])
+        && cashValue(v[14])
+        && cashValue(v[15])
+        && cashValue(v[16])
+        && cashValue(v[17])
+        && cashValue(v[18])
+        && cashValue(v[19])
+        && cashValue(v[20])
+        && cashValue(v[21])
+        && cashValue(v[22])
+        && cashValue(v[23])
+        && cashValue(v[24])
+        && cashValue(v[25])
+        && cashValue(v[26])
+        && cashValue(v[27])
+        && cashValue(v[28])
+        && cashValue(v[29])
+        && cashValue(v[30])
+        && cashValue(v[31])
+        && cashValue(v[32])
+        && cashValue(v[33])
+        && cashValue(v[34])
+        && cashValue(v[35])
+        && cashValue(v[36])
+        && cashValue(v[37])
+        && cashValue(v[38])
+        && cashValue(v[39])
+        && cashValue(v[40])
+        && cashValue(v[41])
+        && cashValue(v[42])
+        && cashValue(v[43])
+        && cashValue(v[44])
+        && cashValue(v[45])
+        && cashValue(v[46])
+        && cashValue(v[47])
+        && cashValue(v[48])
+        && cashValue(v[49]);
+    }
+    function validPlanningV3(d) {
+      return !('planningV3' in d) || (
+        d.planningV3 is map
+        && d.planningV3.keys().hasOnly(['schemaVersion', 'inputsReviewedAt', 'cashInvestmentBudgets'])
+        && d.planningV3.schemaVersion == 1
+        && d.planningV3.inputsReviewedAt is number
+        && d.planningV3.inputsReviewedAt >= 0 && d.planningV3.inputsReviewedAt <= 9007199254740991
+        && d.planningV3.cashInvestmentBudgets is map
+        && validCashTargets(d.planningV3.cashInvestmentBudgets)
+      );
+    }
+
     // Behavioural metric event: EXACTLY { name, ts } with name in the allowlist.
     // No financial data ever. Mirrored in sunny/src/shared/analytics/metrics.ts
     // and the rollup Cloud Function — keep the three allowlists in sync.
@@ -133,6 +202,7 @@ service cloud.firestore {
       match /meta/budget {
         allow read: if owner(userId);
         allow write: if owner(userId)
+          && validPlanningV3(request.resource.data)
           && (!('savingsTarget' in request.resource.data) || (request.resource.data.savingsTarget is number && request.resource.data.savingsTarget >= 0))
           && (!('categoryBudgets' in request.resource.data) || request.resource.data.categoryBudgets is map)
           && (!('incomeBudgets' in request.resource.data) || request.resource.data.incomeBudgets is map)
@@ -180,6 +250,8 @@ service cloud.firestore {
       match /budgetHistory/{month} {
         allow read: if owner(userId);
         allow write: if owner(userId)
+          && validPlanningV3(request.resource.data)
+          && (!('revision' in request.resource.data) || (request.resource.data.revision is int && request.resource.data.revision >= 0))
           && request.resource.data.savingsTarget is number
           && request.resource.data.savingsTarget >= 0
           && request.resource.data.categoryBudgets is map
