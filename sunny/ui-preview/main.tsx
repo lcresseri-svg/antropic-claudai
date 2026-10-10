@@ -36,6 +36,7 @@ function PreviewShell({uid,onSwitch}:{uid:string;onSwitch:(uid:string)=>void}) {
   const [editing,setEditing]=useState<Transaction|null>(query.has('edit') ? initialTransactions.find(t=>t.type===(query.get('edit')||'expense'))??null : null),[defaultType,setDefaultType]=useState<TransactionType|undefined>(query.has('generic')?undefined:'expense');
   const [rows,setRows]=useState(initialTransactions),[refund,setRefund]=useState(false);
   const [writes,setWrites]=useState(0);
+  const [scheduledDate,setScheduledDate]=useState<string|undefined>();
   const [notice,setNotice]=useState(query.has('notices')),[promo,setPromo]=useState(query.has('notices'));
   const tx=useMemo(()=>{
     const today=new Date().toISOString().slice(0,10),ym=today.slice(0,7);
@@ -51,7 +52,7 @@ function PreviewShell({uid,onSwitch}:{uid:string;onSwitch:(uid:string)=>void}) {
       monthlyFlow:flow,categoryTotals:totals,trend,deleteTransaction:async()=>{},updateTransactions:async()=>{},deleteTransactions:async()=>{},deleteAll:async()=>{}};
   },[rows,settings.accounts,settings.categories,settings.includeInvestments]);
   const openAdd=()=>{setEditing(null);setDefaultType('expense');setModal(true);};
-  const editor={openAdd,openAddWithType:(t:TransactionType)=>{setEditing(null);setDefaultType(t);setModal(true);},openEdit:(t:Transaction)=>{setEditing(t);setModal(true);},projected:[]};
+  const editor={openAdd,openScheduledExpense:(date:string)=>{setScheduledDate(date);openAdd();},openAddWithType:(t:TransactionType)=>{setEditing(null);setDefaultType(t);setModal(true);},openEdit:(t:Transaction)=>{setEditing(t);setModal(true);},projected:[]};
   const save=async(_deleteIds:string[],created:Omit<Transaction,'id'>[])=>{
     if(query.has('failSave')) throw new Error('Fixture: rete non disponibile');
     setWrites(n=>n+1); setRows(r=>[...r,...created.map((t,i)=>({...t,id:`preview-${Date.now()}-${i}`}))]);
@@ -65,12 +66,13 @@ function PreviewShell({uid,onSwitch}:{uid:string;onSwitch:(uid:string)=>void}) {
         <AppRoutes {...({user:userFor(uid),brand:'Ciao, Luca',tx,budget,editing:editor,applePayPayments:[],applePayLoading:false,applePayError:null,onReviewApplePay(){},onIgnoreApplePay:async()=>{},onLogOut:()=>onSwitch(''),onDeleteAccount:async()=>{},onImport(){}} as any)}/>
         <div style={{marginTop:40,padding:16,border:'1px dashed var(--border)',fontSize:12}} aria-label="Controlli anteprima locale">
           Dati illustrativi · nessuna connessione al database · scritture simulate: <output id="preview-writes">{writes}</output>
+          · Piani salvati in memoria: <output id="preview-plan-writes">{budget.writes}</output>
           <div className="flex gap-2 flex-wrap"><button onClick={openAdd}>Apri editor test</button><button onClick={()=>settings.saveTheme(settings.theme==='light'?'dark':'light')}>Cambia tema test</button><button onClick={()=>onSwitch('ordinary')}>Utente normale test</button><button onClick={()=>onSwitch(pilotUid)}>Admin test</button><button onClick={()=>onSwitch('')}>Logout test</button><button onClick={()=>navigate(`/wrapped/${new Date().getFullYear()}`)}>Wrapped test</button></div>
         </div>
       </main></div>
       {uiVersion==='2.0'&&!isSettings&&<BottomNav onAdd={openAdd}/>}
     </div>
-    {createPortal(<TransactionModal open={modal} editing={editing} defaultType={defaultType} transactions={rows} sourceBanner={query.has('applePay')?'Ricevuto da Carta test. Controlla i dati.':undefined} initialValues={query.has('applePay')?{source:'apple_pay',sourceId:'fixture-1',description:'Supermercato',amount:45}:undefined} singleSave={query.has('singleSave')} awaitSave={query.has('awaitSave')} onSave={save} onClose={()=>setModal(false)} onRegisterRefund={()=>{setModal(false);setRefund(true);}}/>,document.body)}
+    {createPortal(<TransactionModal open={modal} editing={editing} defaultType={defaultType} transactions={rows} sourceBanner={scheduledDate?'Spesa programmata registrata: Salva crea un movimento futuro, non una simulazione.':query.has('applePay')?'Ricevuto da Carta test. Controlla i dati.':undefined} initialValues={scheduledDate?{date:scheduledDate}:query.has('applePay')?{source:'apple_pay',sourceId:'fixture-1',description:'Supermercato',amount:45}:undefined} singleSave={query.has('singleSave')} awaitSave={query.has('awaitSave')} onSave={save} onClose={()=>{setModal(false);setScheduledDate(undefined);}} onRegisterRefund={()=>{setModal(false);setRefund(true);}}/>,document.body)}
     <RefundSheet open={refund} transactions={rows} onClose={()=>setRefund(false)} onSave={()=>{}}/>
     <ReleaseDialog open={notice} title="Avviso di prova" onClose={()=>setNotice(false)} bullets={['Solo anteprima locale.']}/>
     <PushPromoSheet open={promo} onClose={()=>setPromo(false)} onGoToSettings={()=>setPromo(false)}/>

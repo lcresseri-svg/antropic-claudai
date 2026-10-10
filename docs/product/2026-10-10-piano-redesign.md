@@ -1,4 +1,11 @@
 # Sunny — Riprogettazione della sezione Piano
+> Aggiornamento vincolante dell'utente durante l'implementazione (10 ottobre 2026):
+> Piano va svincolato da UI3 ed è richiesto nell'interfaccia attuale. Il redesign
+> generale UI3 verrà affrontato separatamente. Questo sostituisce i vincoli pilot
+> delle sezioni 8–10 e del caso 23: il nuovo /budget è indipendente dalla versione
+> UI, con gli stessi gate enableBudget, permessi e preferenze AI già esistenti.
+> Nessuna modifica al resolver UI3, nessun merge su main o deploy.
+
 Data: 10 ottobre 2026
 Stato: proposta completa e incarico per successiva esecuzione con Codex.
 Repository: lcresseri-svg/antropic-claudai

@@ -2,10 +2,12 @@ import { createContext, useContext, useLayoutEffect, useState, type ReactNode } 
 import { DEFAULT_ACCOUNTS, DEFAULT_CATEGORIES, FALLBACK_ACCOUNT, FALLBACK_CATEGORY } from '../src/defaults';
 import { resolveUiVersion as resolve, UI_VERSION_CONFIG, type UiVersionConfig } from '../src/shared/uiVersionConfig.ts';
 import type { AccountDef, CategoryDef, Transaction } from '../src/types';
+import { MonthlyBudget } from '../src/features/budget/monthlyBudget';
+import { revisionOf, validateMonthlyBudget } from '../src/features/budget/monthlyBudgetStore';
 
 const params = new URLSearchParams(location.search);
 export function resolveUiVersion(user: { uid?: string | null } | null, config?: UiVersionConfig) {
-  return resolve(user, config ?? (params.get('ui') === '2' ? { ...UI_VERSION_CONFIG, forceEveryone: '2.0' } : UI_VERSION_CONFIG));
+  return resolve(user, config ?? (params.get('ui') === '3' ? { ...UI_VERSION_CONFIG, pilotAdmin:'3.0' } : params.get('ui') === '2' ? { ...UI_VERSION_CONFIG, forceEveryone:'2.0' } : UI_VERSION_CONFIG));
 }
 export const categories: CategoryDef[] = DEFAULT_CATEGORIES.map(c => c.kind === 'investment' ? { ...c, initialBalance: c.id === 'azioni_etf' ? 8000 : 0, currentValue: c.id === 'azioni_etf' ? 9600 : 0, subscriptionDate: '2025-01-01' } : c);
 export const accounts: AccountDef[] = DEFAULT_ACCOUNTS.map((a,i) => ({ ...a, initialBalance: i === 0 ? 4800 : i === 1 ? 2000 : 0 }));
@@ -40,14 +42,34 @@ function useFixtureSettings() {
   };
 }
 const SettingsContext=createContext<ReturnType<typeof useFixtureSettings>|null>(null);
-export function SettingsProvider({children}:{children:ReactNode}) { return <SettingsContext.Provider value={useFixtureSettings()}>{children}</SettingsContext.Provider>; }
+export function SettingsProvider({children}:{children:ReactNode}) { return <SettingsContext.Provider value={useFixtureSettings()}><BudgetContext.Provider value={useFixtureBudget()}>{children}</BudgetContext.Provider></SettingsContext.Provider>; }
 export const useSettings=()=>useContext(SettingsContext)!;
 const budget={savingsTarget:500,categoryBudgets:{casa:700,spesa:300,ristoranti:180},incomeBudgets:{stipendio:2450},investmentBudgets:{azioni_etf:350},suggestionAccepted:true};
 const currentMonth=iso(0,1).slice(0,7);
-const monthly={...budget,month:currentMonth,status:'confirmed' as const,source:'manual' as const};
+const monthly:MonthlyBudget={...budget,month:currentMonth,status:'confirmed',source:'manual',revision:1,
+  planningV3:params.has('legacy')?undefined:{schemaVersion:1,inputsReviewedAt:1,cashInvestmentBudgets:{azioni_etf:350}}};
 const noop=()=>{};
-export const useBudget=()=>({budget,currentMonth,monthly,monthlyStatus:'confirmed',monthlySource:'manual',budgetHistory:[monthly],hasBudget:true,showBudgetPrompt:false,
+function useFixtureBudget(){
+  const [history,setHistory]=useState<MonthlyBudget[]>(params.has('empty')?[]:[monthly,{...monthly,month:iso(-1,1).slice(0,7)}]);
+  const [writes,setWrites]=useState(0),[conflicted,setConflicted]=useState(false);
+  const saveMonthlyBudget=async(month:string,draft:MonthlyBudget,expected:number|null)=>{
+    validateMonthlyBudget(draft);
+    if(params.has('failSave')||!navigator.onLine)throw new Error('Offline: bozza locale conservata. Riprova quando la rete è disponibile.');
+    const current=history.find(p=>p.month===month);
+    if(params.has('conflict')&&!conflicted){
+      setConflicted(true);setHistory(h=>h.map(p=>p.month===month?{...p,revision:(p.revision??0)+1,savingsTarget:p.savingsTarget+25}:p));
+      throw new Error('Il piano è stato modificato altrove. Bozza conservata.');
+    }
+    if(revisionOf(current)!==expected)throw new Error('Il piano è stato modificato altrove.');
+    const next={...draft,revision:(current?.revision??0)+1};
+    setHistory(h=>[...h.filter(p=>p.month!==month),next]);setWrites(n=>n+1);return next;
+  };
+  return {budget,currentMonth,monthly,monthlyStatus:'confirmed',monthlySource:'manual',budgetHistory:history,hasBudget:true,showBudgetPrompt:false,
+    loading:params.has('loading'),error:params.has('loadError')?'Errore fixture':null,fromCache:params.has('offline'),saveMonthlyBudget,writes,
   setSavingsTarget:noop,setCategoryBudget:noop,setIncomeBudget:noop,setInvestmentBudget:noop,acceptSuggestion:noop,resetAll:noop,confirmCurrentMonth:noop,copyFromPreviousMonth:noop,
-  valuesForMonth:()=>budget,statusForMonth:()=> 'confirmed',sourceForMonth:()=> 'manual',setSavingsTargetFor:noop,setCategoryBudgetFor:noop,setIncomeBudgetFor:noop,setInvestmentBudgetFor:noop,resetAllFor:noop,confirmMonth:noop,copyPrevInto:noop});
+  valuesForMonth:()=>budget,statusForMonth:()=> 'confirmed',sourceForMonth:()=> 'manual',setSavingsTargetFor:noop,setCategoryBudgetFor:noop,setIncomeBudgetFor:noop,setInvestmentBudgetFor:noop,resetAllFor:noop,confirmMonth:noop,copyPrevInto:noop};
+}
+const BudgetContext=createContext<ReturnType<typeof useFixtureBudget>|null>(null);
+export const useBudget=()=>useContext(BudgetContext)!;
 export const usePush=()=>({supported:false,enabled:false,busy:false,error:null,reminders:{},toggle:async()=>{},saveReminders:noop,testNotification:async()=>({ok:false}),diagnostics:null});
 export const useAICoach=()=>({status:'idle',result:null,errorMsg:null,remaining:3,analyze:noop,reset:noop});

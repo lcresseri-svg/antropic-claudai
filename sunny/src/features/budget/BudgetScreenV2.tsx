@@ -25,10 +25,15 @@ import { isFeatureEnabled } from '../../shared/featureRollout';
 import { CoachEntryCard } from '../aiCoach/CoachEntryCard';
 import { listRecapMonths } from '../recap/monthlyRecap';
 import { useUiSessionState } from '../../shared/providers/UiVersionProvider';
+import { PlanScreen } from './PlanScreen';
 
 type EditSection = 'savings' | 'income' | 'expenses' | 'investments';
 
 interface Props {
+  rawTransactions?: Transaction[];
+  loading?: boolean;
+  error?: string | null;
+  onAddScheduled?: (date: string) => void;
   user: User;
   transactions: Transaction[];
   monthlyIncome: number;
@@ -62,7 +67,13 @@ function monthKeyLabel(key: string): string {
   return capitalize(label);
 }
 
-export function BudgetScreenV2({
+export function BudgetScreenV2(props: Props) {
+  // Piano is independent of UI3 (user scope update, 2026-10-10).
+  // Existing enableBudget/feature/data gates remain in AppRoutes.
+  return <PlanScreen key={props.user.uid} user={props.user} transactions={props.rawTransactions ?? props.transactions} loading={props.loading} error={props.error} onAddScheduled={props.onAddScheduled} />;
+}
+
+export function LegacyBudgetScreen({
   user, transactions, monthlyInvestments,
 }: Props) {
   const navigate = useNavigate();

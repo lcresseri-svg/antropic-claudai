@@ -1,4 +1,8 @@
-# Piano UI3 implementation plan
+# Piano implementation plan
+
+**Scope update approved during execution:** new Piano is independent of UI3 and
+available in the current UI. All remaining UI2 screens, permissions and the UI3
+resolver remain unchanged. Supersedes pilot-only wording below.
 
 > **For agentic workers:** Use superpowers:executing-plans, inline, task by task.
 

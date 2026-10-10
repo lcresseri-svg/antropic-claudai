@@ -64,4 +64,9 @@ describe('Piano contract (amounts in cents)', () => {
     const r=select([tx('a',0.3,{shared:0.1}),tx('b',0.1)]);
     expect(r.A).toBe(30);
   });
+  it('shows an archived category and keeps its amount',()=>{
+    const r=selectMonthlyPlan({month:'2026-10',now,plan,transactions:[tx('a',12)],
+      categories:[{id:'a',label:'Vecchia',icon:'📁',kind:'expense',archived:true,color:'#888'}]});
+    expect(r.categories[0]).toMatchObject({label:'Vecchia',archived:true,spent:1200});
+  });
 });
