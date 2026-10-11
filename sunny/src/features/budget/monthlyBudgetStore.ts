@@ -20,6 +20,8 @@ const mirror = (db: Firestore, uid: string) => doc(db,'users',uid,'meta','budget
 /** All reads precede writes; preserve unknown fields in both documents. */
 export async function saveMonthlyBudget(db: Firestore, uid: string, month: string, draft: MonthlyBudget,
   expectedRevision: number | null, now = new Date()): Promise<MonthlyBudget> {
+  if (typeof navigator !== 'undefined' && navigator.onLine === false)
+    throw new Error('Offline: bozza locale conservata. Riprova quando la rete è disponibile.');
   validateMonthlyBudget(draft);
   if (draft.month !== month) throw new Error('Il mese del draft non corrisponde.');
   return runTransaction(db, async tx => {
@@ -47,7 +49,15 @@ export async function ensureMonthlyBudget(db: Firestore, uid: string, now = new 
   const month = monthKeyOf(now);
   return runTransaction(db, async tx => {
     const current = await tx.get(ref(db,uid,month));
-    if (current.exists()) return;
+    if (current.exists()) {
+      const legacy = await tx.get(mirror(db,uid));
+      const plan = current.data() as MonthlyBudget;
+      const values = {...monthlyToBudgetState(plan),...(plan.planningV3?{planningV3:plan.planningV3}:{})};
+      const previous = legacy.data() ?? {};
+      if (Object.entries(values).some(([k,v])=>JSON.stringify(previous[k])!==JSON.stringify(v)))
+        tx.set(mirror(db,uid),{...previous,...values});
+      return;
+    }
     const previous = await tx.get(ref(db,uid,prevMonthKey(month)));
     const legacy = await tx.get(mirror(db,uid));
     const next = { ...initMonthlyBudget({month,now:now.getTime(),

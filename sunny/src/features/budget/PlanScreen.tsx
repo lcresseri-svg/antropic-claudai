@@ -46,7 +46,7 @@ export function PlanScreen(p:Props) {
   const status=view.period==='past'?'Consuntivo':!view.reviewed?'Da completare':plan?.status==='confirmed'?'Confermato':'Bozza';
   const upcoming=(items:Transaction[])=><ul className="plan-lines">{items.map(t=><li key={t.id}><span>{t.description||'Spesa programmata'}<small>{t.date.split('-').reverse().join('/')} · {settings.categories.find(c=>c.id===t.category)?.label??`Categoria ${t.category}`}</small></span><strong>{formatCurrency(ownShare(t))}</strong></li>)}</ul>;
   if(store.loading||p.loading)return <div className="piano-page" role="status" aria-busy="true"><h1>Piano</h1><div className="plan-card plan-skeleton">Caricamento del piano…</div></div>;
-  if(store.error||p.error)return <div className="piano-page"><h1>Piano</h1><p role="alert">Dati non disponibili: {store.error||p.error}. Il margine non viene calcolato su dati incompleti.</p></div>;
+  if(store.error||p.error)return <div className="piano-page"><h1>Piano</h1><p role="alert">Dati non disponibili: {store.error||p.error}. Il margine non viene calcolato su dati incompleti.</p><button onClick={store.retry}>Riprova</button></div>;
   return <div className="piano-page ui-family-budget">
     <header className="plan-header"><div><h1>Piano</h1><span>{status}</span></div><div className="plan-month-nav">
       <button aria-label="Mese precedente" disabled={month<=earliest} onClick={()=>setMonth(prevMonthKey(month))}>‹</button>

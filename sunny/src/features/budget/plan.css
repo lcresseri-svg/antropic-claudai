@@ -44,6 +44,9 @@
 .plan-draft-summary { position:sticky;top:-24px;background:var(--surface-2);border:1px solid var(--border);padding:14px;border-radius:14px;display:grid;gap:4px;margin:16px 0;z-index:1; }
 .plan-draft-summary strong { font-size:1.2rem; }.plan-draft-summary small { color:var(--text-2); }
 .plan-field-row { border-bottom:1px solid var(--border);padding:8px 0; }
+.plan-editor fieldset { min-width:0; }
+.plan-changes summary { min-height:44px;padding:12px 0;cursor:pointer; }
+.plan-changes li { margin:8px 0;overflow-wrap:anywhere; }
 .plan-arithmetic>div { display:flex;justify-content:space-between;gap:16px;padding:10px 0;border-bottom:1px solid var(--border); }
 .plan-arithmetic dd { font-variant-numeric:tabular-nums;font-weight:650;white-space:nowrap; }
 .plan-skeleton { min-height:280px; }

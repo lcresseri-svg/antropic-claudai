@@ -109,11 +109,11 @@ export function initMonthlyBudget(args: InitMonthlyBudgetArgs): MonthlyBudget {
   if (args.previous) {
     return {
       ...base,
-      savingsTarget: args.previous.savingsTarget,
+      savingsTarget: args.previous.savingsTarget ?? 0,
       categoryBudgets: { ...args.previous.categoryBudgets },
       incomeBudgets: { ...args.previous.incomeBudgets },
       investmentBudgets: { ...args.previous.investmentBudgets },
-      suggestionAccepted: args.previous.suggestionAccepted,
+      suggestionAccepted: args.previous.suggestionAccepted ?? false,
       source: 'copied_from_previous_month',
       copiedFromMonth: args.previous.month,
       ...(args.previous.planningV3 ? { planningV3: { ...args.previous.planningV3, inputsReviewedAt: 0,
@@ -123,11 +123,11 @@ export function initMonthlyBudget(args: InitMonthlyBudgetArgs): MonthlyBudget {
   if (args.legacy) {
     return {
       ...base,
-      savingsTarget: args.legacy.savingsTarget,
+      savingsTarget: args.legacy.savingsTarget ?? 0,
       categoryBudgets: { ...args.legacy.categoryBudgets },
       incomeBudgets: { ...(args.legacy.incomeBudgets ?? {}) },
       investmentBudgets: { ...(args.legacy.investmentBudgets ?? {}) },
-      suggestionAccepted: args.legacy.suggestionAccepted,
+      suggestionAccepted: args.legacy.suggestionAccepted ?? false,
       source: 'copied_from_legacy_budget',
     };
   }

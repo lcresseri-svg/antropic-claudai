@@ -13,12 +13,23 @@ export const categories: CategoryDef[] = DEFAULT_CATEGORIES.map(c => c.kind === 
 export const accounts: AccountDef[] = DEFAULT_ACCOUNTS.map((a,i) => ({ ...a, initialBalance: i === 0 ? 4800 : i === 1 ? 2000 : 0 }));
 const now = new Date();
 const iso = (months: number, day: number) => { const d = new Date(now.getFullYear(), now.getMonth()+months,day); return `${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,'0')}-${String(d.getDate()).padStart(2,'0')}`; };
-export const transactions: Transaction[] = params.has('empty') ? [] : Array.from({ length: 12 }, (_, i) => [
+export const transactions: Transaction[] = params.has('empty') ? [] : params.has('pianoCase') ? [
+  {id:'spent',type:'expense',amount:900,category:'spesa',account:'conto_corrente',date:iso(0,5),description:'Spese registrate'},
+  {id:'due1',type:'expense',amount:250,category:'spesa',account:'conto_corrente',date:iso(0,20),description:'Spesa programmata'},
+  {id:'due2',type:'expense',amount:100,category:'casa',account:'conto_corrente',date:iso(0,25),description:'Utenza'},
+  {id:'invest',type:'investment',amount:300,tfr:100,category:'azioni_etf',account:'conto_corrente',date:iso(0,5),description:'Investimento con quota TFR'},
+  {id:'income',type:'income',amount:1200,category:'stipendio',account:'conto_corrente',date:iso(0,5),description:'Incasso parziale'},
+] : Array.from({ length: 12 }, (_, i) => [
   { id: `income-${i}`, type: 'income' as const, amount: 2450, category: 'stipendio', account: 'conto_corrente', date: iso(-i,1), description: 'Stipendio', createdAt: 0 },
   { id: `rent-${i}`, type: 'expense' as const, amount: 620, category: 'casa', account: 'conto_corrente', date: iso(-i,2), description: 'Affitto', createdAt: 0 },
   ...Array.from({length:10},(_,j) => ({id:`expense-${i}-${j}`,type:'expense' as const, amount: 24.9+j*5.4, category: j%2?'spesa':'ristoranti', account:'conto_corrente',date:iso(-i,j+1),description:j%2?'Spesa settimanale':'Caffè e pranzo',createdAt:0})),
   { id: `invest-${i}`, type: 'investment' as const, amount: 350, category: 'azioni_etf', account: 'conto_corrente', date: iso(-i,3), description: 'PAC ETF', createdAt: 0 },
 ]).flat();
+if(params.has('edgeCategories')){
+  categories.push({id:'archived',label:'Categoria archiviata con un nome molto lungo per verificare leggibilità e testo ingrandito',icon:'📚',color:'#888888',kind:'expense',archived:true});
+  transactions.push({id:'archived-spend',type:'expense',amount:80,category:'archived',account:'conto_corrente',date:iso(0,5),description:'Spesa archiviata'},
+    {id:'unknown-spend',type:'expense',amount:20,category:'unknown',account:'conto_corrente',date:iso(0,5),description:'Categoria non più disponibile'});
+}
 
 function useFixtureSettings() {
   const [theme,setTheme] = useState<'light'|'dark'>(params.get('theme') === 'dark' ? 'dark' : 'light');
@@ -48,12 +59,15 @@ const budget={savingsTarget:500,categoryBudgets:{casa:700,spesa:300,ristoranti:1
 const currentMonth=iso(0,1).slice(0,7);
 const monthly:MonthlyBudget={...budget,month:currentMonth,status:'confirmed',source:'manual',revision:1,
   planningV3:params.has('legacy')?undefined:{schemaVersion:1,inputsReviewedAt:1,cashInvestmentBudgets:{azioni_etf:350}}};
+if(params.has('pianoCase'))Object.assign(monthly,{savingsTarget:400,incomeBudgets:{stipendio:2400},categoryBudgets:{spesa:1200,casa:500},
+  planningV3:{schemaVersion:1,inputsReviewedAt:1,cashInvestmentBudgets:{azioni_etf:200}}});
 const noop=()=>{};
 function useFixtureBudget(){
   const [history,setHistory]=useState<MonthlyBudget[]>(params.has('empty')?[]:[monthly,{...monthly,month:iso(-1,1).slice(0,7)}]);
   const [writes,setWrites]=useState(0),[conflicted,setConflicted]=useState(false);
   const saveMonthlyBudget=async(month:string,draft:MonthlyBudget,expected:number|null)=>{
     validateMonthlyBudget(draft);
+    if(params.has('slowSave'))await new Promise(r=>setTimeout(r,2500));
     if(params.has('failSave')||!navigator.onLine)throw new Error('Offline: bozza locale conservata. Riprova quando la rete è disponibile.');
     const current=history.find(p=>p.month===month);
     if(params.has('conflict')&&!conflicted){
@@ -65,7 +79,7 @@ function useFixtureBudget(){
     setHistory(h=>[...h.filter(p=>p.month!==month),next]);setWrites(n=>n+1);return next;
   };
   return {budget,currentMonth,monthly,monthlyStatus:'confirmed',monthlySource:'manual',budgetHistory:history,hasBudget:true,showBudgetPrompt:false,
-    loading:params.has('loading'),error:params.has('loadError')?'Errore fixture':null,fromCache:params.has('offline'),saveMonthlyBudget,writes,
+    loading:params.has('loading'),error:params.has('loadError')?'Errore fixture':null,fromCache:params.has('offline'),saveMonthlyBudget,writes,retry:noop,
   setSavingsTarget:noop,setCategoryBudget:noop,setIncomeBudget:noop,setInvestmentBudget:noop,acceptSuggestion:noop,resetAll:noop,confirmCurrentMonth:noop,copyFromPreviousMonth:noop,
   valuesForMonth:()=>budget,statusForMonth:()=> 'confirmed',sourceForMonth:()=> 'manual',setSavingsTargetFor:noop,setCategoryBudgetFor:noop,setIncomeBudgetFor:noop,setInvestmentBudgetFor:noop,resetAllFor:noop,confirmMonth:noop,copyPrevInto:noop};
 }

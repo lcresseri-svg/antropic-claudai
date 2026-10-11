@@ -60,6 +60,14 @@ describe('Piano contract (amounts in cents)', () => {
     for (const d of [new Date(2026,9,1,0,5),new Date(2026,9,25,0,5),new Date(2026,2,29,23,55)])
       expect(localDay(d)).toBe(`${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,'0')}-${String(d.getDate()).padStart(2,'0')}`);
   });
+  it('financial month/day membership follows injected local midnight and DST',()=>{
+    const rows=[tx('sep',10,{date:'2026-09-30'}),tx('oct',20,{date:'2026-10-01'}),tx('tomorrow',30,{date:'2026-10-02'})];
+    const r=selectMonthlyPlan({month:'2026-10',now:new Date(2026,9,1,0,5),plan,transactions:rows,categories:[]});
+    expect([r.A,r.C]).toEqual([2000,3000]);
+    const dst=selectMonthlyPlan({month:'2026-03',now:new Date(2026,2,29,0,5),plan,transactions:[
+      tx('today',10,{date:'2026-03-29'}),tx('next',20,{date:'2026-03-30'})],categories:[]});
+    expect([dst.A,dst.C]).toEqual([1000,2000]);
+  });
   it('uses integer cents including shared expenses', () => {
     const r=select([tx('a',0.3,{shared:0.1}),tx('b',0.1)]);
     expect(r.A).toBe(30);

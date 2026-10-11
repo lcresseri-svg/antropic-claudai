@@ -9,6 +9,7 @@ import { saveMonthlyBudget as persist, ensureMonthlyBudget, editLegacyBudget } f
 const EMPTY: BudgetState = {savingsTarget:0,categoryBudgets:{},incomeBudgets:{},investmentBudgets:{},suggestionAccepted:false};
 export function useBudget(user: User | null) {
   const uid=user?.uid;
+  const [attempt,setAttempt]=useState(0);
   const [currentMonth,setCurrentMonth]=useState(()=>monthKeyOf(new Date()));
   const [state,setState]=useState<{uid?:string;history:MonthlyBudget[];loading:boolean;error:string|null;fromCache:boolean}>({
     uid,history:[],loading:true,error:null,fromCache:true,
@@ -20,20 +21,20 @@ export function useBudget(user: User | null) {
     return ()=>{clearInterval(timer);window.removeEventListener('focus',tick);document.removeEventListener('visibilitychange',tick);};
   },[]);
   useEffect(()=>{
-    let active=true, ensuring=false;
+    let active=true, ensured=false;
     setState({uid,history:[],loading:!!uid,error:null,fromCache:true});
     if (!uid) return;
     const unsub=onSnapshot(collection(db,'users',uid,'budgetHistory'),{includeMetadataChanges:true},snap=>{
       if(!active)return;
       const history=snap.docs.map(d=>({...d.data(),month:d.id}) as MonthlyBudget).sort((a,b)=>b.month.localeCompare(a.month));
       setState({uid,history,loading:false,error:null,fromCache:snap.metadata.fromCache});
-      if(!snap.metadata.fromCache&&!history.some(p=>p.month===currentMonth)&&!ensuring){
-        ensuring=true;
-        void ensureMonthlyBudget(db,uid).catch(e=>{if(active)setState(s=>({...s,error:String(e.message??e)}));}).finally(()=>{ensuring=false;});
+      if(!snap.metadata.fromCache&&!ensured){
+        ensured=true;
+        void ensureMonthlyBudget(db,uid).catch(e=>{if(active)setState(s=>({...s,error:String(e.message??e)}));});
       }
     },e=>{if(active)setState(s=>({...s,loading:false,error:e.message}));});
     return ()=>{active=false;unsub();};
-  },[uid,currentMonth]);
+  },[uid,currentMonth,attempt]);
   // UID tagging prevents even a first render from displaying a previous account.
   const history=state.uid===uid?state.history:[];
   const monthly=history.find(m=>m.month===currentMonth)??null;
@@ -54,6 +55,7 @@ export function useBudget(user: User | null) {
   },[uid]);
   return {
     budget,currentMonth,monthly,monthlyStatus:monthly?.status??'missing',monthlySource:monthly?.source,
+    retry:()=>setAttempt(n=>n+1),
     copiedFromMonth:monthly?.copiedFromMonth,budgetHistory:history,
     loading:state.uid!==uid||state.loading,error:state.uid===uid?state.error:null,fromCache:state.fromCache,saveMonthlyBudget,
     hasBudget:budget.suggestionAccepted||Object.keys(budget.categoryBudgets).length>0||Object.keys(budget.incomeBudgets).length>0||Object.keys(budget.investmentBudgets).length>0,

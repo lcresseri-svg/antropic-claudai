@@ -74,6 +74,32 @@ describe('planningV3 validation',()=>{
 });
 
 describe('production budget repository on real emulator transactions',()=>{
+  it('server rejection cannot claim success or partially change the plan',async()=>{
+    const db=dbOf(A) as any,now=new Date(2026,9,10),path=`users/${A}/budgetHistory/2026-10`;
+    await ensureMonthlyBudget(db,A,now);
+    const base=(await getDoc(doc(db,path))).data() as any;
+    const invalid={...base,savingsTarget:999,planningV3:{schemaVersion:1,inputsReviewedAt:1,cashInvestmentBudgets:{},unknown:true}};
+    await expect(saveMonthlyBudget(db,A,'2026-10',invalid,revisionOf(base),now)).rejects.toThrow();
+    expect((await getDoc(doc(db,path))).data()?.savingsTarget).toBe(0);
+    expect((await getDoc(doc(db,`users/${A}/meta/budget`))).data()?.savingsTarget).toBe(0);
+  },30000);
+  it('normalizes the partial budget legitimately written by onboarding',async()=>{
+    const db=dbOf(A) as any;
+    await setDoc(doc(db,`users/${A}/meta/budget`),{savingsTarget:350});
+    await ensureMonthlyBudget(db,A,new Date(2026,9,10));
+    const result=(await getDoc(doc(db,`users/${A}/budgetHistory/2026-10`))).data()!;
+    expect(result.savingsTarget).toBe(350);
+    expect(result.suggestionAccepted).toBe(false);
+  });
+  it('refreshes current mirror when a preplanned future month becomes current',async()=>{
+    const db=dbOf(A) as any,oct=new Date(2026,9,10);
+    await ensureMonthlyBudget(db,A,oct);
+    const old=(await getDoc(doc(db,`users/${A}/budgetHistory/2026-10`))).data() as any;
+    await saveMonthlyBudget(db,A,'2026-11',{...old,month:'2026-11',savingsTarget:777},null,oct);
+    await ensureMonthlyBudget(db,A,new Date(2026,10,1));
+    expect((await getDoc(doc(db,`users/${A}/meta/budget`))).data()?.savingsTarget).toBe(777);
+    expect((await getDoc(doc(db,`users/${A}/budgetHistory/2026-11`))).data()?.revision).toBe(1);
+  });
   it('two initializers and two editors cannot overwrite each other; mirror is atomic',async()=>{
     const db=dbOf(A) as any,now=new Date(2026,9,10);
     await Promise.all([ensureMonthlyBudget(db,A,now),ensureMonthlyBudget(db,A,now)]);

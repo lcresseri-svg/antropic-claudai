@@ -57,4 +57,11 @@ describe('canonical atomic budget repository',()=>{
     for(const value of [-1,Infinity,NaN]) await expect(saveMonthlyBudget(db,'u','2026-10',
       {...base(),planningV3:{...base().planningV3,cashInvestmentBudgets:{f:value}}},0)).rejects.toThrow();
   });
+  it('keeps an offline save local instead of invoking a transaction',async()=>{
+    vi.stubGlobal('navigator',{onLine:false});
+    const before=state.docs.get(p);
+    try{await expect(saveMonthlyBudget(db,'u','2026-10',base(),revisionOf(before))).rejects.toThrow('Offline');}
+    finally{vi.unstubAllGlobals();}
+    expect(state.docs.get(p)).toBe(before);
+  });
 });

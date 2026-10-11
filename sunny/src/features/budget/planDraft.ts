@@ -35,3 +35,28 @@ export function moveCategoryLimit(limits:Record<string,number>,from:string,to:st
   if(out[from]===0)delete out[from];return out;
 }
 export const draftKey=(uid:string,month:string)=>`sunny:piano-draft:${encodeURIComponent(uid)}:${month}`;
+
+/** Apply only the transfer delta, retaining independent locally edited fields. */
+export function applyLimitTransferToDraft(draft:PlanDraft,before:Record<string,number>,after:Record<string,number>):PlanDraft {
+  const limits={...draft.limits};
+  for(const id of new Set([...Object.keys(before),...Object.keys(after)])){
+    const delta=cents(after[id]??0)-cents(before[id]??0);
+    if(!delta)continue;
+    const current=id in limits?parsePlanAmount(limits[id]):0;
+    if(current===null||cents(current)+delta<0)throw new Error('Spostamento non applicato: completa i limiti della bozza e riprova. Le modifiche locali sono conservate.');
+    const next=cents(current)+delta;
+    if(next===0)delete limits[id];else limits[id]=inputAmount(next/100);
+  }
+  return {...draft,limits};
+}
+export function planDifferences(before:MonthlyBudget,after:MonthlyBudget) {
+  const changes:{field:string;id:string;before:number|null;after:number|null}[]=[];
+  if(before.savingsTarget!==after.savingsTarget)changes.push({field:'savingsTarget',id:'',before:before.savingsTarget,after:after.savingsTarget});
+  for(const field of ['incomeBudgets','categoryBudgets','cashInvestmentBudgets'] as const) {
+    const a=field==='cashInvestmentBudgets'?before.planningV3?.cashInvestmentBudgets??{}:before[field];
+    const b=field==='cashInvestmentBudgets'?after.planningV3?.cashInvestmentBudgets??{}:after[field];
+    for(const id of new Set([...Object.keys(a),...Object.keys(b)]))if(a[id]!==b[id])
+      changes.push({field,id,before:a[id]??null,after:b[id]??null});
+  }
+  return changes;
+}
