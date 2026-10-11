@@ -76,7 +76,8 @@ export function selectMonthlyPlan(input: MonthlyPlanInput) {
   const M = P === null ? null : P - A - C;
   const receivedIncome = sum(realized.filter(t => t.type === 'income').map(t => cents(t.amount)));
   const pendingIncome = Math.max(0, E - receivedIncome);
-  const ids = new Set([...Object.keys(plan?.categoryBudgets ?? {}), ...expense.map(t=>t.category), ...upcoming.map(t=>t.category)]);
+  const predictedIds = Object.entries(forecast?.byCategory ?? {}).filter(([,amount])=>amount>0).map(([id])=>id);
+  const ids = new Set([...Object.keys(plan?.categoryBudgets ?? {}), ...expense.map(t=>t.category), ...upcoming.map(t=>t.category), ...predictedIds]);
   const rows: PlanCategory[] = [...ids].map(id => {
     const cat = categories.find(c=>c.id===id);
     const limit = (plan?.categoryBudgets[id] ?? 0) > 0 ? cents(plan!.categoryBudgets[id]) : null;

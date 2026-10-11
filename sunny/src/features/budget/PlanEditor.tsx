@@ -130,8 +130,8 @@ export function PlanEditor(p:Props) {
       {storageError&&<p role="alert">Memoria locale non disponibile: lascia aperto l’editor per non perdere la bozza.</p>}
       {message&&<p role="status">{message}</p>}
       {exit?<div className="plan-notice"><p>Scartare le modifiche non salvate?</p><button onClick={()=>setExit(false)}>Continua a modificare</button><button onClick={()=>{try{localStorage.removeItem(key);}catch{}p.onClose();}}>Scarta</button></div>:
-      <footer><button disabled={busy} onClick={close}>Annulla</button><button disabled={busy} onClick={()=>void save(false)}>{candidate?.status==='confirmed'?'Salva modifiche':'Salva bozza'}</button>
-        {step<2?<button onClick={()=>setStep(step+1)}>Avanti</button>:!historical&&draft.base.status!=='confirmed'&&<button className="plan-primary" disabled={busy||!candidate} onClick={()=>void save(true)}>Conferma piano</button>}</footer>}
+      <footer><button disabled={busy} onClick={close}>Annulla</button><button className={candidate?.status==='confirmed'?'plan-primary cta-gold-fill':''} disabled={busy} onClick={()=>void save(false)}>{candidate?.status==='confirmed'?'Salva modifiche':'Salva bozza'}</button>
+        {step<2?<button onClick={()=>setStep(step+1)}>Avanti</button>:!historical&&draft.base.status!=='confirmed'&&<button className="plan-primary cta-gold-fill" disabled={busy||!candidate} onClick={()=>void save(true)}>Conferma piano</button>}</footer>}
       {busy&&<p role="status">Salvataggio in corso… La bozza resta qui fino alla conferma del server.</p>}
     </fieldset></div>
   </PlanDialog>;
