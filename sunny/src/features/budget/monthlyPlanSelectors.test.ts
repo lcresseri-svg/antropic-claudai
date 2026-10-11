@@ -11,6 +11,26 @@ const tx = (id: string, amount: number, over: Partial<Transaction> = {}): Transa
 const select = (transactions: Transaction[], p = plan, month = '2026-10') =>
   selectMonthlyPlan({ month, now, plan: p, transactions, categories: [], forecast: { total: 1600, byCategory: {} } });
 describe('Piano contract (amounts in cents)', () => {
+  it('includes forecast-only categories without reserving their estimate or doubling actuals', () => {
+    const r=selectMonthlyPlan({month:'2026-10',now,plan,transactions:[tx('spent',900),tx('due',350,{date:'2026-10-20'})],categories:[],
+      forecast:{total:1750,byCategory:{a:1600,historyOnly:150,empty:0}}});
+    expect(r.categories.find(c=>c.id==='historyOnly')).toMatchObject({forecast:15000,spent:0,scheduled:0,limit:null,remaining:null});
+    expect(r.categories.find(c=>c.id==='a')).toMatchObject({forecast:160000,spent:90000,scheduled:35000,remaining:45000});
+    expect(r.categories.some(c=>c.id==='empty')).toBe(false);
+    expect([r.M,r.U]).toEqual([55000,10000]);
+  });
+  it('preserves an explicit zero forecast, distinguishes missing estimates and flags forecast risk', () => {
+    const r=selectMonthlyPlan({month:'2026-10',now,plan:{...plan,categoryBudgets:{a:100,b:100,c:100}},transactions:[],categories:[],
+      forecast:{total:150,byCategory:{a:150,b:0}}});
+    expect(r.categories.find(c=>c.id==='a')).toMatchObject({forecast:15000,state:'forecast-risk'});
+    expect(r.categories.find(c=>c.id==='b')?.forecast).toBe(0);
+    expect(r.categories.find(c=>c.id==='c')?.forecast).toBeNull();
+  });
+  it.each(['2026-09','2026-11'])('does not leak current forecast-only categories into %s', month=>{
+    const r=selectMonthlyPlan({month,now,plan,transactions:[],categories:[],forecast:{total:150,byCategory:{historyOnly:150}}});
+    expect(r.categories.some(c=>c.id==='historyOnly')).toBe(false);
+    expect(r.categories.every(c=>c.forecast===null)).toBe(true);
+  });
   it('separates margin, cushion and forecast without counting commitments twice', () => {
     const r = select([tx('spent', 900), tx('due', 350, { date: '2026-10-20' }), tx('invest', 200, { type: 'investment' })]);
     expect([r.E, r.S, r.Ir, r.A, r.C, r.P, r.M, r.U, r.forecastGap]).toEqual([240000,40000,20000,90000,35000,180000,55000,10000,20000]);
