@@ -1,4 +1,8 @@
-# Anteprima locale UI 3.0
+# Anteprima locale Sunny
+
+Piano usa ora la UI corrente ed è indipendente da UI3. `ui=3` abilita solo nella preview il vecchio pilot per le verifiche di compatibilità; il resolver di produzione non cambia.
+
+Verifiche Piano: `node ui-preview/piano.mjs`, `node ui-preview/piano-acceptance.mjs`, `node ui-preview/piano-review.mjs`. Richiedono il server qui sotto, Edge e `SUNNY_NODE_PACKAGES` come gli altri script. Screenshot sintetici in `docs/product/piano-evidence/`; risultati e limiti in `docs/product/2026-10-10-piano-implementation-results.md`.
 
 Componenti reali e dati illustrativi, confine I/O separato. Nessun accesso al database e nessun bypass di autenticazione nell'app di produzione.
 

@@ -1,350 +1,82 @@
-import { useState, useCallback, useEffect, useRef } from 'react';
-import {
-  doc, collection, onSnapshot, setDoc, getDoc,
-} from 'firebase/firestore';
+import { useCallback, useEffect, useState } from 'react';
+import { collection, onSnapshot } from 'firebase/firestore';
 import { User } from 'firebase/auth';
 import { db } from '../../lib/firebase';
 import { BudgetState } from '../../types';
-import {
-  MonthlyBudget, monthKeyOf, prevMonthKey, initMonthlyBudget,
-  applyMonthlyBudgetEdit, confirmMonthlyBudget, monthlyToBudgetState,
-  shouldShowBudgetSetupPrompt,
-} from '../../features/budget/monthlyBudget';
+import { MonthlyBudget, monthKeyOf, monthlyToBudgetState, shouldShowBudgetSetupPrompt } from '../../features/budget/monthlyBudget';
+import { saveMonthlyBudget as persist, ensureMonthlyBudget, editLegacyBudget } from '../../features/budget/monthlyBudgetStore';
 
-const DEFAULT_BUDGET: BudgetState = {
-  savingsTarget: 500,
-  categoryBudgets: {},
-  incomeBudgets: {},
-  investmentBudgets: {},
-  suggestionAccepted: false,
-};
-
-/** Values shown for a month that has no snapshot yet (nothing planned). */
-const EMPTY_VALUES: BudgetState = {
-  savingsTarget: 0,
-  categoryBudgets: {},
-  incomeBudgets: {},
-  investmentBudgets: {},
-  suggestionAccepted: false,
-};
-
-const keyFor = (user: User | null) => `sunny:budget:${user?.uid ?? 'anon'}`;
-
-function normalize(parsed: Partial<BudgetState>): BudgetState {
-  return {
-    savingsTarget: parsed.savingsTarget ?? DEFAULT_BUDGET.savingsTarget,
-    categoryBudgets: parsed.categoryBudgets ?? {},
-    incomeBudgets: parsed.incomeBudgets ?? {},
-    investmentBudgets: parsed.investmentBudgets ?? {},
-    suggestionAccepted: parsed.suggestionAccepted ?? false,
-  };
-}
-
-/** Read the local cache (fast start + offline fallback). null when absent. */
-function loadLocal(user: User | null): BudgetState | null {
-  try {
-    const raw = localStorage.getItem(keyFor(user));
-    if (!raw) return null;
-    return normalize(JSON.parse(raw) as Partial<BudgetState>);
-  } catch {
-    return null;
-  }
-}
-
-const budgetDoc = (user: User) => doc(db, 'users', user.uid, 'meta', 'budget');
-const monthlyCol = (user: User) => collection(db, 'users', user.uid, 'budgetHistory');
-const monthlyDoc = (user: User, month: string) => doc(db, 'users', user.uid, 'budgetHistory', month);
-
-/** Values portion shared between BudgetState and MonthlyBudget. */
-function valuesOf(b: BudgetState) {
-  return {
-    savingsTarget: b.savingsTarget,
-    categoryBudgets: b.categoryBudgets,
-    incomeBudgets: b.incomeBudgets,
-    investmentBudgets: b.investmentBudgets,
-    suggestionAccepted: b.suggestionAccepted,
-  };
-}
-
-/**
- * Budget configuration with MONTHLY snapshots (section 17).
- *
- * - `users/{uid}/meta/budget` is kept as the backward-compatible mirror of the
- *   CURRENT month's values, so the existing screens keep working unchanged.
- * - `users/{uid}/budgetHistory/{YYYY-MM}` holds one snapshot per month with a
- *   status (missing/auto_initialized/draft/confirmed). At month rollover the
- *   previous month stays in history and a new month is auto-initialized
- *   (copying the previous values) but left UNCONFIRMED until the user confirms.
- */
+const EMPTY: BudgetState = {savingsTarget:0,categoryBudgets:{},incomeBudgets:{},investmentBudgets:{},suggestionAccepted:false};
 export function useBudget(user: User | null) {
-  const [budget, setBudget] = useState<BudgetState>(() => loadLocal(user) ?? DEFAULT_BUDGET);
-  const [monthly, setMonthly] = useState<MonthlyBudget | null>(null);
-  const [history, setHistory] = useState<MonthlyBudget[]>([]);
-  // Latest monthly snapshot, used by writers without re-subscribing.
-  const monthlyRef = useRef<MonthlyBudget | null>(null);
-  monthlyRef.current = monthly;
-  // Live mirrors of budget + history so month-parameterized writers read fresh
-  // values without re-creating callbacks on every change.
-  const budgetRef = useRef<BudgetState>(budget);
-  budgetRef.current = budget;
-  const historyRef = useRef<MonthlyBudget[]>(history);
-  historyRef.current = history;
-
-  // Current month key — stable for the session (recomputed on remount).
-  const currentMonth = monthKeyOf(new Date());
-
-  // ── meta/budget mirror (legacy, current-month values) ──────────────────────
-  useEffect(() => {
-    if (!user) { setBudget(DEFAULT_BUDGET); return; }
-    const cached = loadLocal(user);
-    if (cached) setBudget(cached);
-
-    const ref = budgetDoc(user);
-    return onSnapshot(ref, snap => {
-      if (!snap.exists()) {
-        if (!snap.metadata.fromCache) setDoc(ref, cached ?? DEFAULT_BUDGET);
-        return;
+  const uid=user?.uid;
+  const [attempt,setAttempt]=useState(0);
+  const [currentMonth,setCurrentMonth]=useState(()=>monthKeyOf(new Date()));
+  const [state,setState]=useState<{uid?:string;history:MonthlyBudget[];loading:boolean;error:string|null;fromCache:boolean}>({
+    uid,history:[],loading:true,error:null,fromCache:true,
+  });
+  useEffect(()=>{
+    const tick=()=>setCurrentMonth(monthKeyOf(new Date()));
+    const timer=setInterval(tick,30_000);
+    window.addEventListener('focus',tick);document.addEventListener('visibilitychange',tick);
+    return ()=>{clearInterval(timer);window.removeEventListener('focus',tick);document.removeEventListener('visibilitychange',tick);};
+  },[]);
+  useEffect(()=>{
+    let active=true, ensured=false;
+    setState({uid,history:[],loading:!!uid,error:null,fromCache:true});
+    if (!uid) return;
+    const unsub=onSnapshot(collection(db,'users',uid,'budgetHistory'),{includeMetadataChanges:true},snap=>{
+      if(!active)return;
+      const history=snap.docs.map(d=>({...d.data(),month:d.id}) as MonthlyBudget).sort((a,b)=>b.month.localeCompare(a.month));
+      setState({uid,history,loading:false,error:null,fromCache:snap.metadata.fromCache});
+      if(!snap.metadata.fromCache&&!ensured){
+        ensured=true;
+        void ensureMonthlyBudget(db,uid).catch(e=>{if(active)setState(s=>({...s,error:String(e.message??e)}));});
       }
-      const next = normalize(snap.data() as Partial<BudgetState>);
-      setBudget(next);
-      try { localStorage.setItem(keyFor(user), JSON.stringify(next)); } catch { /* ignore */ }
-    });
-  }, [user?.uid]);
-
-  // ── budgetHistory collection + ensure current month exists ─────────────────
-  const ensuredRef = useRef(false);
-  useEffect(() => {
-    if (!user) { setMonthly(null); setHistory([]); return; }
-    ensuredRef.current = false;
-
-    return onSnapshot(monthlyCol(user), snap => {
-      const list: MonthlyBudget[] = snap.docs.map(d => d.data() as MonthlyBudget);
-      list.sort((a, b) => b.month.localeCompare(a.month));
-      setHistory(list);
-      const cur = list.find(m => m.month === currentMonth) ?? null;
-      setMonthly(cur);
-
-      // Server-confirmed missing current month → auto-initialize (once).
-      if (!cur && !snap.metadata.fromCache && !ensuredRef.current) {
-        ensuredRef.current = true;
-        const previous = list.find(m => m.month === prevMonthKey(currentMonth)) ?? null;
-        const legacy = loadLocal(user) ?? budget;
-        const created = initMonthlyBudget({ month: currentMonth, previous, legacy });
-        setDoc(monthlyDoc(user, currentMonth), created).catch(() => { /* non-fatal */ });
-        // Mirror the (copied) values into meta/budget so the screens reflect them.
-        setDoc(budgetDoc(user), monthlyToBudgetState(created)).catch(() => {});
-      }
-    });
-  }, [user?.uid, currentMonth]);
-
-  // ── Writers ────────────────────────────────────────────────────────────────
-
-  /** Apply a values change to BOTH the legacy mirror and the monthly snapshot. */
-  const update = useCallback((patch: (prev: BudgetState) => BudgetState) => {
-    setBudget(prev => {
-      const next = patch(prev);
-      try { localStorage.setItem(keyFor(user), JSON.stringify(next)); } catch { /* ignore */ }
-      if (user) {
-        setDoc(budgetDoc(user), next);
-        const base = monthlyRef.current ?? initMonthlyBudget({ month: currentMonth, legacy: next });
-        const updated = applyMonthlyBudgetEdit(base, valuesOf(next));
-        setDoc(monthlyDoc(user, currentMonth), updated).catch(() => {});
-      }
-      return next;
-    });
-  }, [user, currentMonth]);
-
-  const setSavingsTarget = useCallback((n: number) => {
-    update(prev => ({ ...prev, savingsTarget: Math.max(0, Math.round(n)) }));
-  }, [update]);
-
-  const setCategoryBudget = useCallback((catId: string, n: number) => {
-    update(prev => {
-      const categoryBudgets = { ...prev.categoryBudgets };
-      if (n > 0) categoryBudgets[catId] = Math.round(n);
-      else delete categoryBudgets[catId];
-      return { ...prev, categoryBudgets };
-    });
-  }, [update]);
-
-  const setIncomeBudget = useCallback((catId: string, n: number) => {
-    update(prev => {
-      const incomeBudgets = { ...prev.incomeBudgets };
-      if (n > 0) incomeBudgets[catId] = Math.round(n);
-      else delete incomeBudgets[catId];
-      return { ...prev, incomeBudgets };
-    });
-  }, [update]);
-
-  const setInvestmentBudget = useCallback((catId: string, n: number) => {
-    update(prev => {
-      const investmentBudgets = { ...prev.investmentBudgets };
-      if (n > 0) investmentBudgets[catId] = Math.round(n);
-      else delete investmentBudgets[catId];
-      return { ...prev, investmentBudgets };
-    });
-  }, [update]);
-
-  const acceptSuggestion = useCallback((suggested: Record<string, number>, target: number) => {
-    update(prev => ({
-      ...prev,
-      savingsTarget: Math.max(0, Math.round(target)),
-      categoryBudgets: { ...suggested },
-      suggestionAccepted: true,
-    }));
-  }, [update]);
-
-  const resetAll = useCallback(() => {
-    update(prev => ({
-      ...prev,
-      categoryBudgets: {},
-      incomeBudgets: {},
-      investmentBudgets: {},
-      suggestionAccepted: false,
-    }));
-  }, [update]);
-
-  /** Confirm the current month's budget (used by the setup prompt + budget UI). */
-  const confirmCurrentMonth = useCallback(() => {
-    if (!user) return;
-    const base = monthlyRef.current ?? initMonthlyBudget({ month: currentMonth, legacy: budget });
-    const confirmed = confirmMonthlyBudget(applyMonthlyBudgetEdit(base, valuesOf(budget)));
-    setMonthly(confirmed);
-    setDoc(monthlyDoc(user, currentMonth), confirmed).catch(() => {});
-    setDoc(budgetDoc(user), monthlyToBudgetState(confirmed)).catch(() => {});
-  }, [user, currentMonth, budget]);
-
-  /** Re-copy the previous month's values into the current (unconfirmed) month. */
-  const copyFromPreviousMonth = useCallback(() => {
-    if (!user) return;
-    const previous = history.find(m => m.month === prevMonthKey(currentMonth)) ?? null;
-    if (!previous) return;
-    const created = initMonthlyBudget({ month: currentMonth, previous });
-    setMonthly(created);
-    setDoc(monthlyDoc(user, currentMonth), created).catch(() => {});
-    setDoc(budgetDoc(user), monthlyToBudgetState(created)).catch(() => {});
-  }, [user, currentMonth, history]);
-
-  // ── Arbitrary-month navigation (Piano tab) ───────────────────────────────────
-  // Reads/writes any month's snapshot. The CURRENT month keeps its existing path
-  // (also mirrors meta/budget); OTHER months write ONLY budgetHistory/{month}, so
-  // navigating/editing a past or future month never disturbs the current month.
-
-  /** The budget values for `month` (live mirror for the current month). */
-  const valuesForMonth = useCallback((month: string): BudgetState => {
-    if (month === currentMonth) return budgetRef.current;
-    const snap = historyRef.current.find(m => m.month === month);
-    return snap ? monthlyToBudgetState(snap) : EMPTY_VALUES;
-  }, [currentMonth]);
-
-  const statusForMonth = useCallback((month: string): MonthlyBudget['status'] =>
-    month === currentMonth
-      ? (monthlyRef.current?.status ?? 'missing')
-      : (historyRef.current.find(m => m.month === month)?.status ?? 'missing'),
-  [currentMonth]);
-
-  const sourceForMonth = useCallback((month: string): MonthlyBudget['source'] | undefined =>
-    month === currentMonth
-      ? monthlyRef.current?.source
-      : historyRef.current.find(m => m.month === month)?.source,
-  [currentMonth]);
-
-  /** Apply a values change to `month`'s snapshot (current month also mirrors). */
-  const updateMonth = useCallback((month: string, mutate: (prev: BudgetState) => BudgetState) => {
-    if (!user) return;
-    if (month === currentMonth) { update(mutate); return; }
-    const next = mutate(valuesForMonth(month));
-    const snap = historyRef.current.find(m => m.month === month) ?? null;
-    const base = snap ?? initMonthlyBudget({
-      month,
-      previous: historyRef.current.find(m => m.month === prevMonthKey(month)) ?? null,
-    });
-    const updated = applyMonthlyBudgetEdit(base, valuesOf(next));
-    setHistory(h => [...h.filter(m => m.month !== month), updated].sort((a, b) => b.month.localeCompare(a.month)));
-    setDoc(monthlyDoc(user, month), updated).catch(() => { /* non-fatal */ });
-  }, [user, currentMonth, update, valuesForMonth]);
-
-  const setSavingsTargetFor = useCallback((month: string, n: number) => {
-    updateMonth(month, prev => ({ ...prev, savingsTarget: Math.max(0, Math.round(n)) }));
-  }, [updateMonth]);
-
-  const setCategoryBudgetFor = useCallback((month: string, catId: string, n: number) => {
-    updateMonth(month, prev => {
-      const categoryBudgets = { ...prev.categoryBudgets };
-      if (n > 0) categoryBudgets[catId] = Math.round(n); else delete categoryBudgets[catId];
-      return { ...prev, categoryBudgets };
-    });
-  }, [updateMonth]);
-
-  const setIncomeBudgetFor = useCallback((month: string, catId: string, n: number) => {
-    updateMonth(month, prev => {
-      const incomeBudgets = { ...prev.incomeBudgets };
-      if (n > 0) incomeBudgets[catId] = Math.round(n); else delete incomeBudgets[catId];
-      return { ...prev, incomeBudgets };
-    });
-  }, [updateMonth]);
-
-  const setInvestmentBudgetFor = useCallback((month: string, catId: string, n: number) => {
-    updateMonth(month, prev => {
-      const investmentBudgets = { ...prev.investmentBudgets };
-      if (n > 0) investmentBudgets[catId] = Math.round(n); else delete investmentBudgets[catId];
-      return { ...prev, investmentBudgets };
-    });
-  }, [updateMonth]);
-
-  const resetAllFor = useCallback((month: string) => {
-    updateMonth(month, prev => ({
-      ...prev, categoryBudgets: {}, incomeBudgets: {}, investmentBudgets: {}, suggestionAccepted: false,
-    }));
-  }, [updateMonth]);
-
-  /** Confirm an arbitrary month's budget. */
-  const confirmMonth = useCallback((month: string) => {
-    if (!user) return;
-    if (month === currentMonth) { confirmCurrentMonth(); return; }
-    const snap = historyRef.current.find(m => m.month === month) ?? null;
-    const base = snap ?? initMonthlyBudget({
-      month, previous: historyRef.current.find(m => m.month === prevMonthKey(month)) ?? null,
-    });
-    const confirmed = confirmMonthlyBudget(base);
-    setHistory(h => [...h.filter(m => m.month !== month), confirmed].sort((a, b) => b.month.localeCompare(a.month)));
-    setDoc(monthlyDoc(user, month), confirmed).catch(() => { /* non-fatal */ });
-  }, [user, currentMonth, confirmCurrentMonth]);
-
-  /** Re-copy the previous month's values into an arbitrary (unconfirmed) month. */
-  const copyPrevInto = useCallback((month: string) => {
-    if (!user) return;
-    if (month === currentMonth) { copyFromPreviousMonth(); return; }
-    const previous = historyRef.current.find(m => m.month === prevMonthKey(month)) ?? null;
-    if (!previous) return;
-    const created = initMonthlyBudget({ month, previous });
-    setHistory(h => [...h.filter(m => m.month !== month), created].sort((a, b) => b.month.localeCompare(a.month)));
-    setDoc(monthlyDoc(user, month), created).catch(() => { /* non-fatal */ });
-  }, [user, currentMonth, copyFromPreviousMonth]);
-
-  const hasBudget =
-    budget.suggestionAccepted ||
-    Object.keys(budget.categoryBudgets).length > 0 ||
-    Object.keys(budget.incomeBudgets).length > 0 ||
-    Object.keys(budget.investmentBudgets).length > 0;
-
+    },e=>{if(active)setState(s=>({...s,loading:false,error:e.message}));});
+    return ()=>{active=false;unsub();};
+  },[uid,currentMonth,attempt]);
+  // UID tagging prevents even a first render from displaying a previous account.
+  const history=state.uid===uid?state.history:[];
+  const monthly=history.find(m=>m.month===currentMonth)??null;
+  const budget=monthly?monthlyToBudgetState(monthly):EMPTY;
+  const report=useCallback((promise:Promise<unknown>)=>{
+    void promise.catch(e=>setState(s=>s.uid===uid?{...s,error:String(e.message??e)}:s));
+  },[uid]);
+  const change=(month:string,edit:(b:BudgetState)=>BudgetState,action:'edit'|'copy'|'confirm'='edit')=>{
+    if(uid)report(editLegacyBudget(db,uid,month,edit,new Date(),action));
+  };
+  const setAmount=(month:string,field:'categoryBudgets'|'incomeBudgets'|'investmentBudgets',id:string,n:number)=>change(month,b=>{
+    const map={...b[field]};if(n>0)map[id]=Math.round(n);else delete map[id];return {...b,[field]:map};
+  });
+  const reset=(b:BudgetState)=>({...b,categoryBudgets:{},incomeBudgets:{},investmentBudgets:{},suggestionAccepted:false});
+  const saveMonthlyBudget=useCallback(async(month:string,draft:MonthlyBudget,expectedRevision:number|null)=>{
+    if(!uid)throw new Error('Accedi per salvare il piano.');
+    return persist(db,uid,month,draft,expectedRevision);
+  },[uid]);
   return {
-    budget,
-    setSavingsTarget, setCategoryBudget, setIncomeBudget, setInvestmentBudget,
-    acceptSuggestion, resetAll, hasBudget,
-    // Monthly extensions
-    currentMonth,
-    monthly,
-    monthlyStatus: monthly?.status ?? 'missing',
-    monthlySource: monthly?.source,
-    copiedFromMonth: monthly?.copiedFromMonth,
-    budgetHistory: history,
-    confirmCurrentMonth,
-    copyFromPreviousMonth,
-    showBudgetPrompt: shouldShowBudgetSetupPrompt(monthly),
-    // Arbitrary-month navigation (Piano tab)
-    valuesForMonth, statusForMonth, sourceForMonth,
-    setSavingsTargetFor, setCategoryBudgetFor, setIncomeBudgetFor, setInvestmentBudgetFor,
-    resetAllFor, confirmMonth, copyPrevInto,
+    budget,currentMonth,monthly,monthlyStatus:monthly?.status??'missing',monthlySource:monthly?.source,
+    retry:()=>setAttempt(n=>n+1),
+    copiedFromMonth:monthly?.copiedFromMonth,budgetHistory:history,
+    loading:state.uid!==uid||state.loading,error:state.uid===uid?state.error:null,fromCache:state.fromCache,saveMonthlyBudget,
+    hasBudget:budget.suggestionAccepted||Object.keys(budget.categoryBudgets).length>0||Object.keys(budget.incomeBudgets).length>0||Object.keys(budget.investmentBudgets).length>0,
+    showBudgetPrompt:shouldShowBudgetSetupPrompt(monthly),
+    valuesForMonth:(m:string)=>{const p=history.find(p=>p.month===m);return p?monthlyToBudgetState(p):EMPTY;},
+    statusForMonth:(m:string)=>history.find(p=>p.month===m)?.status??'missing',
+    sourceForMonth:(m:string)=>history.find(p=>p.month===m)?.source,
+    setSavingsTarget:(n:number)=>change(currentMonth,b=>({...b,savingsTarget:Math.max(0,Math.round(n))})),
+    setCategoryBudget:(id:string,n:number)=>setAmount(currentMonth,'categoryBudgets',id,n),
+    setIncomeBudget:(id:string,n:number)=>setAmount(currentMonth,'incomeBudgets',id,n),
+    setInvestmentBudget:(id:string,n:number)=>setAmount(currentMonth,'investmentBudgets',id,n),
+    acceptSuggestion:(suggested:Record<string,number>,target:number)=>change(currentMonth,b=>({...b,categoryBudgets:suggested,savingsTarget:Math.max(0,Math.round(target)),suggestionAccepted:true})),
+    resetAll:()=>change(currentMonth,reset),
+    confirmCurrentMonth:()=>change(currentMonth,b=>b,'confirm'),
+    copyFromPreviousMonth:()=>change(currentMonth,b=>b,'copy'),
+    setSavingsTargetFor:(m:string,n:number)=>change(m,b=>({...b,savingsTarget:Math.max(0,Math.round(n))})),
+    setCategoryBudgetFor:(m:string,id:string,n:number)=>setAmount(m,'categoryBudgets',id,n),
+    setIncomeBudgetFor:(m:string,id:string,n:number)=>setAmount(m,'incomeBudgets',id,n),
+    setInvestmentBudgetFor:(m:string,id:string,n:number)=>setAmount(m,'investmentBudgets',id,n),
+    resetAllFor:(m:string)=>change(m,reset),
+    confirmMonth:(m:string)=>change(m,b=>b,'confirm'),
+    copyPrevInto:(m:string)=>change(m,b=>b,'copy'),
   };
 }

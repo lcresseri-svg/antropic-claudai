@@ -15,7 +15,8 @@
 import { readFileSync } from 'node:fs';
 import { resolve } from 'node:path';
 import { fileURLToPath } from 'node:url';
-import { beforeAll, afterAll, beforeEach, describe, it } from 'vitest';
+import { beforeAll, afterAll, beforeEach, describe, it, expect } from 'vitest';
+import { ensureMonthlyBudget, saveMonthlyBudget, editLegacyBudget, revisionOf } from '../sunny/src/features/budget/monthlyBudgetStore';
 import {
   initializeTestEnvironment, assertSucceeds, assertFails,
   type RulesTestEnvironment,
@@ -35,8 +36,10 @@ const validTxn = (over: Record<string, unknown> = {}) => ({
 const here = fileURLToPath(new URL('.', import.meta.url));
 
 beforeAll(async () => {
+  if (!/^(127\.0\.0\.1|localhost):\d+$/.test(process.env.FIRESTORE_EMULATOR_HOST ?? ''))
+    throw new Error('Rules tests require a local Firestore emulator.');
   env = await initializeTestEnvironment({
-    projectId: 'sunny-test',
+    projectId: 'demo-sunny-piano',
     firestore: { rules: readFileSync(resolve(here, '../firestore.rules'), 'utf8') },
   });
 });
@@ -45,6 +48,81 @@ beforeEach(async () => { await env.clearFirestore(); });
 
 const dbOf = (uid: string | null) =>
   (uid ? env.authenticatedContext(uid) : env.unauthenticatedContext()).firestore();
+
+describe('planningV3 validation',()=>{
+  const plan=(v:unknown)=>({month:'2026-10',savingsTarget:0,categoryBudgets:{},incomeBudgets:{},investmentBudgets:{},
+    status:'draft',source:'manual',planningV3:v});
+  const valid={schemaVersion:1,inputsReviewedAt:1,cashInvestmentBudgets:{pension:200,zero:0}};
+  it('accepts explicit zero and owner, denies other uid and invalid fields',async()=>{
+    const db=dbOf(A);
+    await assertSucceeds(setDoc(doc(db,`users/${A}/budgetHistory/2026-10`),plan(valid)));
+    await assertFails(setDoc(doc(db,`users/${B}/budgetHistory/2026-10`),plan(valid)));
+    await assertFails(getDoc(doc(db,`users/${B}/budgetHistory/2026-10`)));
+    for(const bad of [{...valid,schemaVersion:2},{...valid,inputsReviewedAt:-1},{...valid,inputsReviewedAt:Infinity},
+      {...valid,cashInvestmentBudgets:{x:-1}},{...valid,cashInvestmentBudgets:{x:NaN}},{...valid,cashInvestmentBudgets:{x:Infinity}},
+      {...valid,cashInvestmentBudgets:{x:'200'}},{...valid,cashInvestmentBudgets:[]}]){
+      await assertFails(setDoc(doc(db,`users/${A}/budgetHistory/2026-10`),plan(bad)));
+      await assertFails(setDoc(doc(db,`users/${A}/meta/budget`),plan(bad)));
+    }
+  });
+  it('checks every value, including the last of 50 targets',async()=>{
+    const cash=Object.fromEntries(Array.from({length:50},(_,i)=>['c'+i,100]));
+    await assertSucceeds(setDoc(doc(dbOf(A),`users/${A}/budgetHistory/2026-10`),plan({...valid,cashInvestmentBudgets:cash})));
+    cash.c49=-1;
+    await assertFails(setDoc(doc(dbOf(A),`users/${A}/budgetHistory/2026-10`),plan({...valid,cashInvestmentBudgets:cash})));
+  });
+});
+
+describe('production budget repository on real emulator transactions',()=>{
+  it('server rejection cannot claim success or partially change the plan',async()=>{
+    const db=dbOf(A) as any,now=new Date(2026,9,10),path=`users/${A}/budgetHistory/2026-10`;
+    await ensureMonthlyBudget(db,A,now);
+    const base=(await getDoc(doc(db,path))).data() as any;
+    const invalid={...base,savingsTarget:999,planningV3:{schemaVersion:1,inputsReviewedAt:1,cashInvestmentBudgets:{},unknown:true}};
+    await expect(saveMonthlyBudget(db,A,'2026-10',invalid,revisionOf(base),now)).rejects.toThrow();
+    expect((await getDoc(doc(db,path))).data()?.savingsTarget).toBe(0);
+    expect((await getDoc(doc(db,`users/${A}/meta/budget`))).data()?.savingsTarget).toBe(0);
+  },30000);
+  it('normalizes the partial budget legitimately written by onboarding',async()=>{
+    const db=dbOf(A) as any;
+    await setDoc(doc(db,`users/${A}/meta/budget`),{savingsTarget:350});
+    await ensureMonthlyBudget(db,A,new Date(2026,9,10));
+    const result=(await getDoc(doc(db,`users/${A}/budgetHistory/2026-10`))).data()!;
+    expect(result.savingsTarget).toBe(350);
+    expect(result.suggestionAccepted).toBe(false);
+  });
+  it('refreshes current mirror when a preplanned future month becomes current',async()=>{
+    const db=dbOf(A) as any,oct=new Date(2026,9,10);
+    await ensureMonthlyBudget(db,A,oct);
+    const old=(await getDoc(doc(db,`users/${A}/budgetHistory/2026-10`))).data() as any;
+    await saveMonthlyBudget(db,A,'2026-11',{...old,month:'2026-11',savingsTarget:777},null,oct);
+    await ensureMonthlyBudget(db,A,new Date(2026,10,1));
+    expect((await getDoc(doc(db,`users/${A}/meta/budget`))).data()?.savingsTarget).toBe(777);
+    expect((await getDoc(doc(db,`users/${A}/budgetHistory/2026-11`))).data()?.revision).toBe(1);
+  });
+  it('two initializers and two editors cannot overwrite each other; mirror is atomic',async()=>{
+    const db=dbOf(A) as any,now=new Date(2026,9,10);
+    await Promise.all([ensureMonthlyBudget(db,A,now),ensureMonthlyBudget(db,A,now)]);
+    const path=`users/${A}/budgetHistory/2026-10`,mirror=`users/${A}/meta/budget`;
+    const initial=(await getDoc(doc(db,path))).data() as any;
+    expect(initial.revision).toBe(1);
+    const draft={...initial,incomeBudgets:{salary:2400},savingsTarget:400,categoryBudgets:{a:1700},
+      planningV3:{schemaVersion:1 as const,inputsReviewedAt:now.getTime(),cashInvestmentBudgets:{f:200}}};
+    const result=await Promise.allSettled([
+      saveMonthlyBudget(db,A,'2026-10',draft,revisionOf(initial),now),
+      saveMonthlyBudget(db,A,'2026-10',{...draft,savingsTarget:450},revisionOf(initial),now),
+    ]);
+    expect(result.filter(r=>r.status==='fulfilled')).toHaveLength(1);
+    expect(result.filter(r=>r.status==='rejected')).toHaveLength(1);
+    const saved=(await getDoc(doc(db,path))).data()!;
+    expect((await getDoc(doc(db,mirror))).data()?.savingsTarget).toBe(saved.savingsTarget);
+    await saveMonthlyBudget(db,A,'2026-11',{...draft,month:'2026-11'},null,now);
+    expect((await getDoc(doc(db,mirror))).data()?.savingsTarget).toBe(saved.savingsTarget);
+    await editLegacyBudget(db,A,'2026-10',b=>({...b,savingsTarget:250}),now);
+    expect((await getDoc(doc(db,path))).data()?.planningV3.inputsReviewedAt).toBe(0);
+    expect((await getDoc(doc(db,path))).data()?.planningV3.cashInvestmentBudgets).toEqual({f:200});
+  });
+});
 
 describe('per-user isolation', () => {
   it('A cannot read or write B transactions', async () => {

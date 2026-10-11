@@ -8,7 +8,7 @@ try {
   page.on('pageerror',error=>console.error('PAGE ERROR',error.message));
   await page.route('**/*',route=>new URL(route.request().url()).hostname==='127.0.0.1'?route.continue():route.abort());
   const mode=process.argv[2]??'print';
-  const start=async(query='')=>{await page.goto('http://127.0.0.1:4177/ui-preview/index.html?theme=dark&'+query);await page.locator('#preview-writes').waitFor({state:'attached'});};
+  const start=async(query='')=>{await page.goto('http://127.0.0.1:4177/ui-preview/index.html?theme=dark&ui=3&'+query);await page.locator('#preview-writes').waitFor({state:'attached'});};
   const route=async(path)=>{await page.evaluate(path=>{history.pushState({},'',path);dispatchEvent(new PopStateEvent('popstate'));},path);await page.waitForTimeout(350);};
   await start(mode==='category'?'editor':'');
   await page.locator('html[data-ui-version="3.0"]').waitFor();
@@ -31,16 +31,15 @@ try {
     await route('/budget');
     await page.getByRole('heading',{name:'Piano',exact:true}).waitFor();
     await page.getByRole('button',{name:'Mese precedente',exact:true}).click();
-    const month=await page.getByRole('button',{name:'Torna al mese corrente',exact:true}).textContent();
+    const month=await page.getByRole('combobox',{name:'Mese del piano',exact:true}).inputValue();
     const archive=page.getByRole('button',{name:/Riepiloghi mensili/}); await archive.click();
-    const recapRow=page.locator('.ui-family-budget .glass-card').filter({has:archive}).locator('button').nth(1);
+    const recapRow=page.locator('.ui-family-budget .plan-card').filter({has:archive}).locator('button').nth(1);
     const rowText=await recapRow.textContent();
     await recapRow.focus(); await page.keyboard.press('Enter');
     await page.getByRole('button',{name:'Piano',exact:true}).waitFor();
     await page.getByRole('button',{name:'Piano',exact:true}).click();
     await page.getByRole('heading',{name:'Piano',exact:true}).waitFor();
-    assert.equal(await page.getByRole('button',{name:'Torna al mese corrente',exact:true}).count(),1,'Budget returns to the selected historical month');
-    assert.equal(await page.getByRole('button',{name:'Torna al mese corrente',exact:true}).textContent(),month);
+    assert.equal(await page.getByRole('combobox',{name:'Mese del piano',exact:true}).inputValue(),month,'Budget returns to the selected historical month');
     assert.equal(await archive.getAttribute('aria-expanded'),'true','Budget archive expansion survives child navigation');
     await page.waitForTimeout(100);
     assert.equal(await page.evaluate(()=>document.activeElement?.textContent),rowText,'restore the archived recap-row focus');

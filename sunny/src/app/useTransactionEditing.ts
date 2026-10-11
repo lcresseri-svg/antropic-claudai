@@ -40,6 +40,7 @@ export function useTransactionEditing(user: User, tx: Tx) {
   const [seriesDetail, setSeriesDetail] = useState<Transaction | null>(null);
   const [modalOpen, setModalOpen] = useState(false);
   const [defaultType, setDefaultType] = useState<TransactionType | undefined>();
+  const [scheduledDate, setScheduledDate] = useState<string | undefined>();
   // Sheet "Registra storno". `expenseId` = spesa già scelta (dal suo dettaglio);
   // assente = la sheet la fa scegliere (accesso da "+"). `refundEditing` = storno
   // esistente in modifica.
@@ -173,11 +174,13 @@ export function useTransactionEditing(user: User, tx: Tx) {
   };
 
   return {
+    scheduledDate,
+    openScheduledExpense: (date: string) => { setScheduledDate(date); openAddWithType('expense'); },
     editing, seriesEdit, seriesDetail, modalOpen, defaultType,
     projected, recognize, groupTransfers,
     openAdd, openAddWithType, openEdit, startEdit, findTemplate, handleSave,
     refundOpen, refundExpenseId, refundEditing, openRefund, closeRefund, saveRefund,
-    closeModal: () => setModalOpen(false),
+    closeModal: () => { setModalOpen(false); setScheduledDate(undefined); },
     closeSeriesDetail: () => setSeriesDetail(null),
   };
 }

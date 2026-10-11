@@ -20,6 +20,13 @@ export type MonthlyBudgetSource =
   | 'auto_initialized';
 
 export interface MonthlyBudget {
+  revision?: number;
+  planningV3?: {
+    schemaVersion: 1;
+    /** Zero means copied/changed by a legacy writer and not yet reviewed. */
+    inputsReviewedAt: number;
+    cashInvestmentBudgets: Record<string, number>;
+  };
   /** YYYY-MM */
   month: string;
   savingsTarget: number;
@@ -102,23 +109,25 @@ export function initMonthlyBudget(args: InitMonthlyBudgetArgs): MonthlyBudget {
   if (args.previous) {
     return {
       ...base,
-      savingsTarget: args.previous.savingsTarget,
+      savingsTarget: args.previous.savingsTarget ?? 0,
       categoryBudgets: { ...args.previous.categoryBudgets },
       incomeBudgets: { ...args.previous.incomeBudgets },
       investmentBudgets: { ...args.previous.investmentBudgets },
-      suggestionAccepted: args.previous.suggestionAccepted,
+      suggestionAccepted: args.previous.suggestionAccepted ?? false,
       source: 'copied_from_previous_month',
       copiedFromMonth: args.previous.month,
+      ...(args.previous.planningV3 ? { planningV3: { ...args.previous.planningV3, inputsReviewedAt: 0,
+        cashInvestmentBudgets: { ...args.previous.planningV3.cashInvestmentBudgets } } } : {}),
     };
   }
   if (args.legacy) {
     return {
       ...base,
-      savingsTarget: args.legacy.savingsTarget,
+      savingsTarget: args.legacy.savingsTarget ?? 0,
       categoryBudgets: { ...args.legacy.categoryBudgets },
       incomeBudgets: { ...(args.legacy.incomeBudgets ?? {}) },
       investmentBudgets: { ...(args.legacy.investmentBudgets ?? {}) },
-      suggestionAccepted: args.legacy.suggestionAccepted,
+      suggestionAccepted: args.legacy.suggestionAccepted ?? false,
       source: 'copied_from_legacy_budget',
     };
   }
@@ -142,7 +151,10 @@ export function applyMonthlyBudgetEdit(
   now: number = Date.now(),
 ): MonthlyBudget {
   const status: MonthlyBudgetStatus = m.status === 'confirmed' ? 'confirmed' : 'draft';
-  return { ...m, ...patch, status, source: 'manual', updatedAt: now };
+  const changedInputs = (['incomeBudgets', 'savingsTarget', 'investmentBudgets'] as const)
+    .some(k => k in patch && JSON.stringify(patch[k]) !== JSON.stringify(m[k]));
+  return { ...m, ...patch, status, source: 'manual', updatedAt: now,
+    ...(m.planningV3 && changedInputs ? { planningV3: { ...m.planningV3, inputsReviewedAt: 0 } } : {}) };
 }
 
 // ── Prompt logic ────────────────────────────────────────────────────────────────

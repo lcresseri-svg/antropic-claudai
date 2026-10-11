@@ -190,6 +190,9 @@ export function AppRoutes({ user, brand, tx, budget, editing, applePayPayments, 
               <BudgetScreenV2
                 user={user}
                 transactions={tx.transactions}
+                rawTransactions={tx.allTransactions}
+                loading={tx.loading} error={tx.error}
+                onAddScheduled={editing.openScheduledExpense}
                 monthlyIncome={tx.monthlyIncome} monthlyExpenses={tx.monthlyExpenses}
                 monthlyInvestments={tx.monthlyInvestments} categoryTotals={tx.categoryTotals}
               />

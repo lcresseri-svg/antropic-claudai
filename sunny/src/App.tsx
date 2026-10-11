@@ -350,6 +350,8 @@ function Main({ user, onLogOut, onDeleteAccount }: {
       <TransactionModal
         open={editing.modalOpen} editing={editing.editing} groupTransfers={editing.groupTransfers} seriesEdit={editing.seriesEdit}
         defaultType={editing.defaultType} recognize={editing.recognize ?? undefined}
+        initialValues={editing.scheduledDate ? { date: editing.scheduledDate } : undefined}
+        sourceBanner={editing.scheduledDate ? 'Spesa programmata registrata: Salva crea un movimento futuro, non una simulazione.' : undefined}
         transactions={tx.transactions}
         onClose={editing.closeModal}
         onSave={editing.handleSave}
