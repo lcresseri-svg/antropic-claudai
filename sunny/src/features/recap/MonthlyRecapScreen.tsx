@@ -1,5 +1,7 @@
+import {useUiVersion} from '../../shared/providers/UiVersionProvider';
+import {useOriginBack} from '../../shared/hooks/useOriginBack';
 import { useMemo, useState } from 'react';
-import { useParams, useNavigate } from 'react-router-dom';
+import { useParams } from 'react-router-dom';
 import { Transaction } from '../../types';
 import { useSettings } from '../../shared/providers/settings';
 import { formatCurrency } from '../../utils';
@@ -16,7 +18,7 @@ const goodClass = (good: -1 | 0 | 1) => good > 0 ? 'text-green' : good < 0 ? 'te
 
 export function MonthlyRecapScreen({ transactions }: { transactions: Transaction[] }) {
   const { ym = '' } = useParams<{ ym: string }>();
-  const navigate = useNavigate();
+  const back=useOriginBack('/budget');
   const { getCat, getAcc } = useSettings();
 
   const recap = useMemo(
@@ -33,7 +35,7 @@ export function MonthlyRecapScreen({ transactions }: { transactions: Transaction
   if (recap.totals.txCount === 0) {
     return (
       <div className="pb-24">
-        <BackBar onBack={() => navigate('/budget')} onExport={() => setExportOpen(true)} canExport={false} />
+        <BackBar onBack={back} onExport={() => setExportOpen(true)} canExport={false} />
         <div className="glass-card rounded-2xl p-8 text-center text-secondary text-sm">
           Nessun movimento per {recap.label}.
         </div>
@@ -43,7 +45,7 @@ export function MonthlyRecapScreen({ transactions }: { transactions: Transaction
 
   return (
     <div className="pb-24 space-y-4 recap-root">
-      <BackBar onBack={() => navigate('/budget')} onExport={() => setExportOpen(true)} canExport />
+      <BackBar onBack={back} onExport={() => setExportOpen(true)} canExport />
       <RecapExportSheet open={exportOpen} recap={recap} onClose={() => setExportOpen(false)} />
 
       {/* Header */}
@@ -164,11 +166,12 @@ export function MonthlyRecapScreen({ transactions }: { transactions: Transaction
 }
 
 function BackBar({ onBack, onExport, canExport }: { onBack: () => void; onExport: () => void; canExport: boolean }) {
+  const ui3=useUiVersion()==='3.0';
   return (
     <div className="flex items-center justify-between gap-3 no-print">
-      <button onClick={onBack} className="flex items-center gap-1.5 text-sm text-secondary hover:text-primary transition-colors">
+      <button onClick={onBack} aria-label={ui3?"Indietro":undefined} className="flex items-center gap-1.5 text-sm text-secondary hover:text-primary transition-colors">
         <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round"><path d="m15 18-6-6 6-6" /></svg>
-        Piano
+        {ui3?'Indietro':'Piano'}
       </button>
       {canExport && (
         <button onClick={onExport} className="text-[12.5px] font-medium text-gold">

@@ -12,6 +12,10 @@
 // Desktop: due colonne INDIPENDENTI in altezza (come già faceva la vecchia
 // dashboard) — a sinistra hero + Ritmo|Torta, a destra 352px con patrimonio,
 // prossima mossa e ultimi movimenti.
+import { useUiVersion } from '../../shared/providers/UiVersionProvider';
+import { buildMonthRhythm } from './monthRhythm';
+import { AccountBalanceLineChart } from './AccountBalanceLineChart';
+import { formatCurrency } from '../../utils';
 import { useMemo, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { Transaction, ownShare } from '../../types';
@@ -36,6 +40,10 @@ import { WrappedEntryCard } from '../wrapped/WrappedEntryCard';
 import { isFeatureEnabled } from '../../shared/featureRollout';
 
 interface Props {
+  paymentPriority?: React.ReactNode;
+  hasPaymentPriority?: boolean;
+  paymentPriorityCount?: number;
+  onEditTransaction?: (transaction: Transaction) => void;
   greeting?: string;
   netWorth: number;
   liquidity: number;
@@ -68,6 +76,7 @@ interface Props {
 
 export function DashboardV2(p: Props) {
   const navigate = useNavigate();
+  const ui3 = useUiVersion() === '3.0';
   const {
     enableInvestments, getCat, insightDepth, visibleCategories, accounts, categories, includeInvestments,
     cashReserve, homeOrder, saveHomeOrder,
@@ -138,22 +147,24 @@ export function DashboardV2(p: Props) {
     }),
   [p.transactions, p.monthlyIncome, p.monthlyExpenses, p.monthlyInvestments, getCat, insightDepth, visibleCategories, p.portfolio]);
 
-  const nextMove = useMemo(() => pickNextMove(insights), [insights]);
+  const nextMove = useMemo(() => pickNextMove(insights, ui3), [insights, ui3]);
 
   const flow = p.monthlyFlow;
   // TOTALE investito nel mese: quota dai conti + apporti esterni (senza conto)
   // + TFR. Solo la prima toglie liquidità.
   const investedTotal = flow.investedFromAccounts + flow.externalContributions + flow.tfrExcluded;
 
-  const openCategories = p.onSeeCategories ?? (() => navigate('/category-spending'));
+  const openCategories = ui3 ? ()=>navigate('/category-spending',{state:{currentPeriod:true}}) : p.onSeeCategories ?? (() => navigate('/category-spending'));
 
   const hero = (
     <FreeCashHero
+      onOpenAccounts={() => navigate('/account-balance',{state:{currentPeriod:true,includedAccounts:true}})}
+      period={new Intl.DateTimeFormat('it-IT',{month:'long',year:'numeric'}).format(now)}
       freeCash={cash.available} liquidity={p.liquidity} committed={cash.committed}
       reserve={cash.reserve}
       income={flow.cashIn - flow.refundsReceived} expenses={p.monthlyExpenses} invested={investedTotal}
       showInvested={enableInvestments}
-      onOpenIncome={() => navigate('/income')}
+      onOpenIncome={() => navigate('/income',ui3?{state:{currentPeriod:true}}:undefined)}
       onOpenExpenses={openCategories}
       onOpenInvested={enableInvestments ? p.onSeeInvestments : undefined}
     />
@@ -201,7 +212,7 @@ export function DashboardV2(p: Props) {
   const showCommitmentsLink = nextMove?.category === 'forecast'
     && isFeatureEnabled('commitments', { uid: p.userId });
   const nextMoveCard = nextMove
-    ? <NextMoveCard insight={nextMove} onSeeAll={p.onSeeInsights}
+    ? <NextMoveCard priorityCount={insights.filter(i=>i.urgent||i.category==='alert').length} insight={nextMove} onSeeAll={p.onSeeInsights}
         onSeeCommitments={showCommitmentsLink ? () => navigate('/commitments') : undefined} />
     : null;
 
@@ -211,6 +222,54 @@ export function DashboardV2(p: Props) {
     uscite: breakdown,
     mossa: nextMoveCard,
   };
+
+  if (ui3) {
+    const month = buildMonthRhythm({transactions:p.transactions,now});
+    const points = month.days.filter(d=>!d.isFuture).map(d=>({label:String(d.day),value:d.spent}));
+    const upcoming = cash.committedItems.filter(item=>item.date>=localISO(now)&&(new Date(item.date+'T12:00:00').getTime()-now.getTime())/86400000<=7).sort((a,b)=>a.date.localeCompare(b.date));
+    const due=upcoming[0];
+    const dueSoon = due && (new Date(due.date+'T12:00:00').getTime()-now.getTime())/86400000<=7;
+    const priority = p.hasPaymentPriority ? p.paymentPriority : nextMoveCard ?? (dueSoon && isFeatureEnabled('commitments',{uid:p.userId}) ?
+      <section className="liquid-priority"><p className="liquid-eyebrow">Prossima scadenza</p><button onClick={()=>navigate('/commitments')}>{due.description || 'Uscita programmata'} · {formatCurrency(due.amount)}<span>{due.date.split('-').reverse().join('/')} · Vedi impegni ›</span></button></section> : null);
+    const risks=insights.filter(i=>i.urgent||i.category==='alert');
+    const canSeeDue=isFeatureEnabled('commitments',{uid:p.userId});
+    const priorityCount=(p.hasPaymentPriority?(p.paymentPriorityCount||1):0)+risks.length+(canSeeDue?upcoming.length:0);
+    return <div className="liquid-today">
+      <header className="liquid-today-heading"><h1>{p.greeting || 'Oggi'}</h1><button onClick={()=>navigate('/settings')} aria-label="Apri impostazioni">Impostazioni ›</button></header>
+      {p.userId && <div data-liquid-preserve style={{display:'contents'}}><WrappedEntryCard transactions={p.transactions} projected={p.projected??[]} userId={p.userId} onOpen={y=>navigate(`/wrapped/${y}`)}/></div>}
+      {hero}
+      {priority && <div className="liquid-today-priority">{priorityCount>1 ? <details className="liquid-priority-list"><summary>{priorityCount} elementi da rivedere <span>Pagamenti, rischi e scadenze ›</span></summary>
+        {p.hasPaymentPriority && p.paymentPriority}
+        {risks.length>0 && <section><h2>Rischi nelle analisi</h2>{risks.map((risk,i)=><button key={i} onClick={p.onSeeInsights}>{risk.title}<span>Vedi motivazione ›</span></button>)}</section>}
+        {canSeeDue && upcoming.length>0 && <section><h2>Scadenze entro 7 giorni</h2>{upcoming.map((item,i)=><button key={i} onClick={()=>navigate('/commitments')}>{item.description || 'Uscita programmata'} · {formatCurrency(item.amount)}<span>{item.date.split('-').reverse().join('/')} · Vedi impegni ›</span></button>)}</section>}
+      </details> : priority}</div>}
+      <div className="liquid-today-columns">
+        <div>
+          <section className="liquid-month-chart">
+            <div className="liquid-section-heading"><h2>Uscite del mese</h2><button onClick={()=>setRhythmHistoryOpen(true)}>Ritmo e calendario ›</button></div>
+            <p className="liquid-period">{month.monthLabelFull} · spese giornaliere registrate</p>
+            {p.transactions.some(t=>t.type==='expense'&&t.date.startsWith(month.monthKey)&&!isPending(t,localISO(now))) ?
+              <AccountBalanceLineChart points={points} onSelectPoint={index=>navigate(`/transactions?date=${month.monthKey}-${String(index+1).padStart(2,'0')}`)} presentation="bars" title="Spese giornaliere" lastPeriodLabel="oggi" metricLabel="Spesa" formatValue={formatCurrency} height={112}/> : <p className="liquid-empty">Nessuna spesa registrata in questo mese.</p>}
+          </section>
+          <RecentMovementsCard transactions={p.transactions} now={now} onSeeAll={()=>navigate('/transactions')} onOpenTransaction={p.onEditTransaction}/>
+        </div>
+        <div className="liquid-today-secondary">
+          {breakdown}
+          <div className="liquid-overview-links">
+            <button onClick={()=>navigate('/wealth')}>Patrimonio e conti <span>›</span></button>
+            <button onClick={()=>navigate('/budget')}>Margine e obiettivi del Piano <span>›</span></button>
+            <button onClick={()=>navigate(`/recap/${previousMonthKey(now)}`)}>Riepilogo di {previousMonthLabel(now)} <span>›</span></button>
+            <button onClick={p.onSeeInsights}>Tutti i consigli <span>›</span></button>
+          </div>
+          <details className="liquid-progressive"><summary>Personalizza la home</summary><p>L’ordine preferito delle statistiche resta disponibile qui.</p><button onClick={()=>setReorderOpen(true)}>Riordina statistiche</button>
+            {order.filter(id=>id!=='uscite'&&id!=='mossa').map(id=><div key={id}>{blocks[id]}</div>)}
+          </details>
+        </div>
+      </div>
+      <ReorderHomeSheet open={reorderOpen} order={order} onSave={saveHomeOrder} onClose={()=>setReorderOpen(false)}/>
+      <MonthRhythmSheet open={rhythmHistoryOpen} transactions={p.transactions} scheduled={cash.committedItems} now={now} onClose={()=>setRhythmHistoryOpen(false)} onSelectDay={iso=>navigate(`/transactions?date=${iso}`)}/>
+    </div>;
+  }
 
   return (
     <div className="ui-home pb-32 md:pb-6">

@@ -16,4 +16,4 @@ for(const file of execFileSync('rg',['--files','src'],{encoding:'utf8'}).trim().
   ts.forEachChild(node,visit);
  };visit(source);
 }
-const target='../docs/product/ui3-liquid-glass/evidence/controls-source.json';writeFileSync(target,JSON.stringify(rows,null,2));console.log(rows.length,'control declarations, including generated/custom controls:',target);
+const target=process.env.SUNNY_INVENTORY||'../docs/product/ui3-liquid-glass/evidence/controls-source.json';writeFileSync(target,JSON.stringify(rows,null,2));console.log(rows.length,'control declarations, including generated/custom controls:',target);

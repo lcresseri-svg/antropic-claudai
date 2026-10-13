@@ -34,8 +34,8 @@ try {
     const recapRow=page.locator('.ui-family-budget .plan-card').filter({has:archive}).locator('button').nth(1);
     const rowText=await recapRow.textContent();
     await recapRow.focus(); await page.keyboard.press('Enter');
-    await page.getByRole('button',{name:'Piano',exact:true}).waitFor();
-    await page.getByRole('button',{name:'Piano',exact:true}).click();
+    await page.getByRole('button',{name:'Indietro',exact:true}).waitFor();
+    await page.getByRole('button',{name:'Indietro',exact:true}).click();
     await page.getByRole('heading',{name:'Piano',exact:true}).waitFor();
     assert.equal(await page.getByRole('combobox',{name:'Mese del piano',exact:true}).inputValue(),month,'Budget returns to the selected historical month');
     assert.equal(await archive.getAttribute('aria-expanded'),'true','Budget archive expansion survives child navigation');

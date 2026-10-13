@@ -12,6 +12,8 @@ interface Point { label: string; value: number; }
 
 interface Props {
   presentation?: 'line' | 'bars';
+  lastPeriodLabel?: string;
+  onSelectPoint?: (index:number)=>void;
   title?: string; metricLabel?: string; points: Point[];
   formatValue: (v: number) => string;
   color?: string;           // line colour; defaults to the gold accent token
@@ -37,13 +39,13 @@ function smoothPath(pts: { x: number; y: number }[]): string {
   return d;
 }
 
-export function AccountBalanceLineChart({ points, formatValue, title='Saldo per conto', metricLabel='Saldo', color = 'var(--accent)', height = 112, presentation='line' }: Props) {
+export function AccountBalanceLineChart({ points, formatValue, title='Saldo per conto', metricLabel='Saldo', color = 'var(--accent)', height = 112, presentation='line', lastPeriodLabel, onSelectPoint }: Props) {
   const ui3=useUiVersion()==='3.0';
   const bars=ui3&&presentation==='bars';
   const path=(pts:{x:number;y:number}[])=>ui3?pts.map((p,i)=>`${i?'L':'M'} ${p.x} ${p.y}`).join(' '):smoothPath(pts);
   const gradId = useId();
   const values = points.map(p => p.value);
-  const hasData = points.length >= 2;
+  const hasData = points.length >= (bars ? 1 : 2);
 
   if (!hasData) {
     return (
@@ -84,7 +86,7 @@ export function AccountBalanceLineChart({ points, formatValue, title='Saldo per 
         </defs>
 
         {!bars&&<path d={area} fill={`url(#${gradId})`} />}
-        {bars&&values.map((v,i)=><rect data-chart-bar key={i} x={PAD_X+(i+.19)*(W-PAD_X*2)/values.length} y={Math.min(y(v),zeroY)} width={(W-PAD_X*2)/values.length*.62} height={Math.abs(y(v)-zeroY)} rx="2" fill={color}><title>{points[i].label}: {formatValue(v)}</title></rect>)}
+        {bars&&values.map((v,i)=><rect data-chart-bar key={i} role={onSelectPoint?"button":undefined} tabIndex={onSelectPoint?0:undefined} aria-label={onSelectPoint?`${points[i].label}: ${formatValue(v)}. Apri movimenti`:undefined} onClick={onSelectPoint?()=>onSelectPoint(i):undefined} onKeyDown={onSelectPoint?e=>{if(e.key==='Enter'||e.key===' '){e.preventDefault();onSelectPoint(i);}}:undefined} x={PAD_X+(i+.19)*(W-PAD_X*2)/values.length} y={Math.min(y(v),zeroY)} width={(W-PAD_X*2)/values.length*.62} height={Math.abs(y(v)-zeroY)} rx="2" fill={color}><title>{points[i].label}: {formatValue(v)}</title></rect>)}
 
         {/* Zero baseline — only when the range actually crosses zero. */}
         {crossesZero && (
@@ -103,13 +105,13 @@ export function AccountBalanceLineChart({ points, formatValue, title='Saldo per 
       </svg>
 
       <div className="flex justify-between mt-1.5" style={{ paddingLeft: PAD_X, paddingRight: PAD_X }}>
-        {points.map((p, i) => (
+        {points.map((p, i) => ui3 && points.length>7 && i%Math.ceil(points.length/6)!==0 && i!==points.length-1 ? null : (
           <span key={i} className={`text-[9px] text-secondary ${points.length > 7 && i % 2 === 1 ? 'hidden sm:inline' : ''}`}>
             {p.label}
           </span>
         ))}
       </div>
-      <p className="text-[10px] text-secondary/70 text-center mt-1">{metricLabel} {bars?'nell’ultimo mese':'a fine periodo'}: {formatValue(last ? values[values.length - 1] : 0)}</p>
+      <p className="text-[10px] text-secondary/70 text-center mt-1">{metricLabel} {lastPeriodLabel ?? (bars?'nell’ultimo mese':'a fine periodo')}: {formatValue(last ? values[values.length - 1] : 0)}</p>
       <ChartData title={title} columns={['Periodo',metricLabel]} rows={points.map(p=>[p.label,formatValue(p.value)])} scale="Scala ancorata allo zero."/>
     </div>
   );

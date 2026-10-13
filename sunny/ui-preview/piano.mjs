@@ -1,9 +1,10 @@
+import {pathToFileURL} from 'node:url';
 import assert from 'node:assert/strict';
 import {mkdirSync} from 'node:fs';
 import {fileURLToPath} from 'node:url';
 import {chromium,browserOptions} from './browser.mjs';
 const browser=await chromium.launch(browserOptions);
-const output=new URL('../../docs/product/ui3-liquid-glass/evidence/piano-current/',import.meta.url);
+const output=process.env.SUNNY_EVIDENCE?pathToFileURL(process.env.SUNNY_EVIDENCE.replace(/\/$/,'')+'/'):new URL('../../docs/product/ui3-liquid-glass/evidence/piano-current/',import.meta.url);
 mkdirSync(output,{recursive:true});
 const errors=[];
 try {

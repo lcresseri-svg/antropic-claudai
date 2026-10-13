@@ -1,3 +1,5 @@
+import {DataHeadline} from '../../shared/components/DataHeadline';
+import {useUiVersion} from '../../shared/providers/UiVersionProvider';
 // Tab "Patrimonio" — la casa di tutto ciò che prima stava in fondo alla home.
 //
 // La home risponde a "quanto posso spendere?"; questa schermata risponde a
@@ -36,6 +38,7 @@ interface Props {
 }
 
 export function WealthScreen(p: Props) {
+  const ui3=useUiVersion()==='3.0';
   const navigate = useNavigate();
   const { accounts, categories, enableInvestments, includeInvestments } = useSettings();
   const [accMode, setAccMode] = useState<'balance' | 'spending'>('balance');
@@ -99,10 +102,11 @@ export function WealthScreen(p: Props) {
         <div className="flex flex-col gap-3.5 md:gap-4 wide:flex-1 wide:min-w-0">
         {/* Hero: il patrimonio e come si è mosso */}
         <section className="hero-card rounded-[26px] shadow-elev-2 p-[22px] animate-rise-in">
-          <p className="label-caps text-secondary mb-2">Patrimonio netto</p>
+          {ui3 ? <DataHeadline label="Patrimonio netto" value={p.netWorth} period={includeInvestments?'Saldo attuale · liquidità e investimenti inclusi':'Saldo attuale · investimenti esclusi dal totale'}/> : <>          <p className="label-caps text-secondary mb-2">Patrimonio netto</p>
           <p className="balance-num text-[38px] leading-none font-bold text-primary">
             {formatCurrency(p.netWorth)}
           </p>
+</>}
           {wealth.hasHistory && (
             <div className="flex items-center gap-1.5 mt-2.5">
               <span className={`text-[11.5px] font-semibold rounded-full px-2 py-[3px] ${
@@ -126,7 +130,7 @@ export function WealthScreen(p: Props) {
         </section>
 
         {/* Le due componenti del patrimonio */}
-        <div className="grid grid-cols-2 gap-3.5 md:gap-4">
+        <div className="liquid-wealth-splits grid grid-cols-2 gap-3.5 md:gap-4">
           <Split label="Liquidità" value={p.liquidity} pct={share(p.liquidity)}
             onClick={() => navigate('/account-balance')} />
           {enableInvestments && (

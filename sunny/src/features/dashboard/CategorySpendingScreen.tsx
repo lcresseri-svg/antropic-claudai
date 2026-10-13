@@ -1,3 +1,4 @@
+import {useAnalysisPeriod} from '../../shared/hooks/useAnalysisPeriod';
 import { transactionRoute } from '../../shared/transactionRoute';
 // "Categorie" — analytics for how spending breaks down by category over time.
 // Period selector (Mese / 3M / 6M / 12M) + period navigation, a period summary,
@@ -7,7 +8,6 @@ import { transactionRoute } from '../../shared/transactionRoute';
 
 import { useState, useMemo, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { useUiSessionState } from '../../shared/providers/UiVersionProvider';
 import { Transaction } from '../../types';
 import { useSettings } from '../../shared/providers/settings';
 import { formatCurrency, capitalize } from '../../utils';
@@ -31,8 +31,7 @@ const deltaColor = (d: number) => (d > 0 ? 'text-[#E08B8B]' : d < 0 ? 'text-[#7B
 export function CategorySpendingScreen({ transactions, categoryBudgets }: Props) {
   const navigate = useNavigate();
   const { getCat, insightDepth } = useSettings();
-  const [period, setPeriod] = useUiSessionState<PeriodType>('categories.period','1m');
-  const [offset, setOffset] = useUiSessionState('categories.offset',0);
+  const {period,setPeriod,offset,setOffset}=useAnalysisPeriod('categories');
   const [selectedId, setSelectedId] = useState<string | null>(null);
 
   const now = useMemo(() => new Date(), []);

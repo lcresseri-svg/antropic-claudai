@@ -127,8 +127,10 @@ export function AppRoutes({ user, brand, tx, budget, editing, applePayPayments, 
       <Routes>
         <Route path="/" element={
           <div className={`md:mx-auto md:max-w-[720px] ${W.home}`}>
-          {applePayCard}
+          {!ui3 && applePayCard}
           <DashboardV2
+            paymentPriority={applePayCard} paymentPriorityCount={applePayPayments.length} hasPaymentPriority={applePayPayments.length>0 || !!applePayError}
+            onEditTransaction={editing.openEdit}
             greeting={brand}
             netWorth={tx.netWorth} liquidity={tx.liquidity} investmentTotal={tx.investmentTotal}
             monthlyIncome={tx.monthlyIncome} monthlyExpenses={tx.monthlyExpenses}

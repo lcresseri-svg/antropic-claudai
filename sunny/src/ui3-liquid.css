@@ -160,3 +160,57 @@ html:has(.plan-dialog[open]) [data-liquid-ui="true"] .ui3-nav { visibility:hidde
 /* Match the exposed mobile canvas without changing Wrapped's inherited tokens. */
 html:has(.app-shell[data-liquid-ui="true"]), html:has(.app-shell[data-liquid-ui="true"]) body { background-color:#000; }
 html.light:has(.app-shell[data-liquid-ui="true"]), html.light:has(.app-shell[data-liquid-ui="true"]) body { background-color:#fff; }
+
+/* Reference revision: one dominant value, open sections and compact metadata. */
+[data-liquid-ui="true"] .liquid-today { padding-bottom:24px; }
+[data-liquid-ui="true"] .liquid-today-heading { display:flex; align-items:baseline; justify-content:space-between; gap:16px; margin:8px 0 28px; }
+[data-liquid-ui="true"] .liquid-today-heading h1 { font-size:20px; font-weight:600; }
+[data-liquid-ui="true"] .liquid-today-heading button { font-size:13px; color:var(--text-2); min-height:44px; }
+[data-liquid-ui="true"] .liquid-eyebrow { color:var(--text-2); font-size:12px; letter-spacing:.06em; text-transform:uppercase; }
+[data-liquid-ui="true"] .liquid-headline-value { display:block; font-size:clamp(36px,9cqw,48px); line-height:1.15; letter-spacing:-.045em; font-weight:600; overflow-wrap:anywhere; }
+[data-liquid-ui="true"] .liquid-headline-link { display:flex; align-items:center; gap:16px; max-width:100%; margin:8px 0; text-align:left; }
+[data-liquid-ui="true"] .liquid-headline-link > span:last-child { font-size:24px; color:var(--text-2); }
+[data-liquid-ui="true"] .liquid-data-headline > .liquid-headline-value { margin-block:8px; }
+[data-liquid-ui="true"] .liquid-period { color:var(--text-2); font-size:13px; margin-top:8px; }
+[data-liquid-ui="true"] .liquid-balance-detail { margin-top:16px; font-size:14px; color:var(--text-2); }
+[data-liquid-ui="true"] .liquid-balance-detail summary { cursor:pointer; min-height:44px; padding-block:12px; }
+[data-liquid-ui="true"] .liquid-money-rows > div { display:grid; grid-template-columns:minmax(0,1fr) minmax(0,auto); gap:16px; padding:10px 0; border-bottom:1px solid var(--border); }
+[data-liquid-ui="true"] .liquid-money-rows dd { text-align:right; color:var(--text-1); overflow-wrap:anywhere; font-variant-numeric:tabular-nums; }
+[data-liquid-ui="true"] .liquid-balance-detail > p { margin-top:12px; }
+[data-liquid-ui="true"] .liquid-month-summary { border-block:1px solid var(--border); padding:20px 0; margin-top:20px; }
+[data-liquid-ui="true"] .liquid-month-stats { display:flex; flex-wrap:wrap; gap:20px 16px; margin-top:16px; }
+[data-liquid-ui="true"] .liquid-month-stats > * { flex:1 1 5.625rem; min-width:0; }
+[data-liquid-ui="true"] .liquid-month-stats .balance-num { white-space:normal; overflow:visible; overflow-wrap:anywhere; font-size:18px; }
+[data-liquid-ui="true"] .liquid-today-columns { display:grid; grid-template-columns:minmax(0,1fr); gap:24px; }
+[data-liquid-ui="true"] .liquid-today-columns > * { min-width:0; }
+[data-liquid-ui="true"] .liquid-section-heading { display:flex; flex-wrap:wrap; align-items:baseline; justify-content:space-between; gap:12px; }
+[data-liquid-ui="true"] .liquid-section-heading h2 { font-size:16px; font-weight:600; }
+[data-liquid-ui="true"] .liquid-section-heading button { font-size:13px; color:var(--ui-accent-text); min-height:44px; }
+[data-liquid-ui="true"] .liquid-month-chart { padding:20px 0; }
+[data-liquid-ui="true"] .liquid-month-chart .liquid-chart-data { margin-top:0; }
+[data-liquid-ui="true"] .liquid-movement-row { display:flex; align-items:center; gap:10px; width:100%; padding:14px 0; text-align:left; }
+[data-liquid-ui="true"] .liquid-movement-row .balance-num { max-width:48%; white-space:normal; overflow-wrap:anywhere; text-align:right; }
+[data-liquid-ui="true"] .liquid-overview-links { border-top:1px solid var(--border); }
+[data-liquid-ui="true"] .liquid-overview-links button { width:100%; min-height:48px; display:flex; justify-content:space-between; gap:12px; text-align:left; font-size:14px; border-bottom:1px solid var(--border); padding:12px 0; }
+[data-liquid-ui="true"] .liquid-priority { padding:20px 0; border-bottom:1px solid var(--border); }
+[data-liquid-ui="true"] .liquid-priority button { text-align:left; width:100%; padding-top:8px; }
+[data-liquid-ui="true"] .liquid-priority button span { display:block; color:var(--text-2); font-size:13px; margin-top:8px; }
+[data-liquid-ui="true"] .liquid-empty { padding-block:24px; font-size:14px; color:var(--text-2); }
+@container app (min-width:46.5rem) {
+ [data-liquid-ui="true"] .liquid-headline-value { font-size:clamp(48px,6cqw,64px); }
+ [data-liquid-ui="true"] .liquid-today-columns { grid-template-columns:minmax(0,1.4fr) minmax(0,1fr); gap:40px; }
+}
+[data-liquid-ui="true"] .liquid-plan-capacity { display:flex; height:8px; border-radius:4px; overflow:hidden; background:var(--surface-2); margin:24px 0 16px; }
+[data-liquid-ui="true"] .liquid-plan-capacity > span { background:var(--ui-accent); }
+[data-liquid-ui="true"] .liquid-plan-capacity > .liquid-capacity-scheduled { background:repeating-linear-gradient(135deg,var(--ui-accent) 0 2px,var(--surface-2) 2px 5px); }
+[data-liquid-ui="true"] .liquid-wealth-splits { display:flex; flex-wrap:wrap; border-block:1px solid var(--border); gap:24px; padding-block:20px; }
+[data-liquid-ui="true"] .liquid-wealth-splits > button { flex:1 1 140px; min-width:0; border:0; border-radius:0; background:transparent; padding:0; box-shadow:none; }
+[data-liquid-ui="true"] .liquid-wealth-splits .balance-num { overflow-wrap:anywhere; }
+[data-liquid-ui="true"] .liquid-priority-list { padding:16px 0; border-bottom:1px solid var(--border); }
+[data-liquid-ui="true"] .liquid-priority-list summary { min-height:44px; cursor:pointer; font-size:16px; font-weight:600; }
+[data-liquid-ui="true"] .liquid-priority-list summary span { display:block; color:var(--text-2); font-weight:400; font-size:13px; padding-top:6px; }
+[data-liquid-ui="true"] .liquid-priority-list h2 { margin-top:16px; font-size:14px; font-weight:600; }
+[data-liquid-ui="true"] .liquid-priority-list section > button { display:block; text-align:left; width:100%; padding-block:14px; border-bottom:1px solid var(--border); }
+[data-liquid-ui="true"] .liquid-priority-list section > button span { display:block; font-size:13px; color:var(--text-2); margin-top:6px; }
+[data-liquid-ui="true"] [data-chart-bar][role="button"] { cursor:pointer; }
+[data-liquid-ui="true"] [data-chart-bar][role="button"]:focus-visible { outline:2px solid var(--ui-focus); outline-offset:2px; }

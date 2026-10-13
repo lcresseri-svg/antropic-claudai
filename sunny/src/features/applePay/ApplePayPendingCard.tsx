@@ -1,3 +1,4 @@
+import { useUiVersion } from '../../shared/providers/UiVersionProvider';
 import { useState } from 'react';
 import type { ApplePayPendingPayment } from '../../types';
 import { formatDate } from '../../utils';
@@ -20,6 +21,7 @@ function money(amount: number, currency: string): string {
 }
 
 export function ApplePayPendingCard({ payments, loading, error, onReview, onIgnore }: Props) {
+  const ui3 = useUiVersion() === '3.0';
   const { getAcc } = useSettings();
   const [expanded, setExpanded] = useState(false);
   const [confirmIgnore, setConfirmIgnore] = useState<string | null>(null);
@@ -28,7 +30,7 @@ export function ApplePayPendingCard({ payments, loading, error, onReview, onIgno
 
   if (loading && payments.length === 0) return null;
   if (!error && payments.length === 0) return null;
-  const shown = expanded ? payments : payments.slice(0, 4);
+  const shown = expanded ? payments : payments.slice(0, ui3 ? 0 : 4);
 
   const ignore = async (id: string) => {
     if (ignoring) return;
@@ -105,10 +107,10 @@ export function ApplePayPendingCard({ payments, loading, error, onReview, onIgno
         </div>
       )}
 
-      {payments.length > 4 && (
+      {payments.length > (ui3 ? 0 : 4) && (
         <button type="button" onClick={() => setExpanded(v => !v)}
           className="w-full py-2.5 border-t border-divider text-[12px] font-semibold text-gold">
-          {expanded ? 'Mostra meno' : `Mostra tutti (${payments.length})`}
+          {expanded ? 'Mostra meno' : ui3 ? `Rivedi pagamenti (${payments.length})` : `Mostra tutti (${payments.length})`}
         </button>
       )}
       {actionError && (

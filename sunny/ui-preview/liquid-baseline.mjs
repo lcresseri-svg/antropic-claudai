@@ -14,13 +14,13 @@ for(const width of (process.env.SUNNY_WIDTHS||(process.env.SUNNY_MATRIX?'390,768
  for(const route of routes){
   console.log('VISIT',width,theme,route);
   const errors=[];const onError=e=>{errors.push(e.message);console.log('PAGEERROR',e.message);};page.on('pageerror',onError);
-  await page.goto(`http://127.0.0.1:4177/ui-preview/index.html?ui=3&theme=${theme}`);
+  await page.goto(`http://127.0.0.1:${process.env.SUNNY_PORT||4177}/ui-preview/index.html?ui=${process.env.SUNNY_UI||'3'}&theme=${theme}`);
   await page.locator('#preview-writes').waitFor();
-  if(route!=='/')await page.evaluate(r=>{history.pushState({},'',r);dispatchEvent(new PopStateEvent('popstate'));},route);
-  await page.waitForTimeout(650);
+  if(route!=='/'){await page.evaluate(r=>{history.pushState({},'',r);dispatchEvent(new PopStateEvent('popstate'));},route);await page.locator('.liquid-today,.ui-home').waitFor({state:'hidden'});await page.getByRole('status',{name:'Caricamento',exact:true}).waitFor({state:'hidden'});}
+  await page.waitForTimeout(process.env.SUNNY_STABLE?1200:650);
   const controls=await page.locator('button,a,input,select,summary').evaluateAll(els=>els.filter(e=>e.getClientRects().length).map(e=>({tag:e.tagName,label:e.getAttribute('aria-label')||e.innerText||e.getAttribute('placeholder')||e.getAttribute('title'),href:e.getAttribute('href'),disabled:e.disabled??false})));
   const name=route==='/'?'home':route.slice(1).replaceAll('/','-');
-  await page.screenshot({path:`${out}/${name}-${theme}-${width}.png`});
+  await page.screenshot({animations:process.env.SUNNY_STABLE?'disabled':'allow',path:`${out}/${name}-${theme}-${width}.png`});
   results.push({route,theme,width,errors,controls,overflow:await page.evaluate(()=>document.documentElement.scrollWidth>innerWidth||Array.from(document.querySelectorAll('#app-scroll')).some(el=>el.scrollWidth>el.clientWidth+1))});
   page.off('pageerror',onError);
  }
