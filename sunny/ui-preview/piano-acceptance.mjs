@@ -1,8 +1,9 @@
+import {pathToFileURL} from 'node:url';
 import {fileURLToPath} from 'node:url';
 import assert from 'node:assert/strict';
 import {chromium,browserOptions} from './browser.mjs';
 const browser=await chromium.launch(browserOptions);
-const output=new URL('../../docs/product/ui3-liquid-glass/evidence/piano-current/',import.meta.url);
+const output=process.env.SUNNY_EVIDENCE?pathToFileURL(process.env.SUNNY_EVIDENCE.replace(/\/$/,'')+'/'):new URL('../../docs/product/ui3-liquid-glass/evidence/piano-current/',import.meta.url);
 try{
   const page=await browser.newPage({viewport:{width:1440,height:1000},reducedMotion:'reduce'});
   const errors=[];page.on('pageerror',e=>errors.push(e.message));

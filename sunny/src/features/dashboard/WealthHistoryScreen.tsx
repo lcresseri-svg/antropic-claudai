@@ -1,3 +1,4 @@
+import {useOriginBack} from '../../shared/hooks/useOriginBack';
 import { ProgressiveSection } from '../../shared/components/ProgressiveSection';
 // "Andamento patrimonio" — how total wealth moves over time, split into its two
 // components (liquidity + investments). Unlike the dashboard's net worth (which
@@ -38,6 +39,7 @@ const DOT = {
 
 export function WealthHistoryScreen({ transactions }: Props) {
   const navigate = useNavigate();
+  const back=useOriginBack('/wealth');
   const ui3 = useUiVersion() === '3.0';
   // FULL lists (incl. archived): archived accounts/categories still carry
   // balance history — same source useTransactions feeds netWorth from.
@@ -62,8 +64,8 @@ export function WealthHistoryScreen({ transactions }: Props) {
       {/* Header */}
       <div className="flex items-center gap-3 mb-1">
         <button
-          onClick={() => ui3 ? navigate('/wealth') : navigate(-1)}
-          aria-label="Torna indietro"
+          onClick={() => ui3 ? back() : navigate(-1)}
+          aria-label={ui3?"Indietro":"Torna indietro"}
           className={ui3 ? 'ui-back' : 'w-9 h-9 rounded-2xl bg-elevated flex items-center justify-center text-secondary active:scale-95 transition-transform flex-shrink-0'}
         >
           {ui3 ? '‹ Indietro' : <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">

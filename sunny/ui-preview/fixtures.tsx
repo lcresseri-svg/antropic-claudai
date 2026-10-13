@@ -25,6 +25,9 @@ export const transactions: Transaction[] = params.has('empty') ? [] : params.has
   ...Array.from({length:10},(_,j) => ({id:`expense-${i}-${j}`,type:'expense' as const, amount: 24.9+j*5.4, category: j%2?'spesa':'ristoranti', account:'conto_corrente',date:iso(-i,j+1),description:j%2?'Spesa settimanale':'Caffè e pranzo',createdAt:0})),
   { id: `invest-${i}`, type: 'investment' as const, amount: 350, category: 'azioni_etf', account: 'conto_corrente', date: iso(-i,3), description: 'PAC ETF', createdAt: 0 },
 ]).flat();
+if(params.has('manyPriorities')) {
+  for(let i=1;i<=2;i++) transactions.push({id:`due-${i}`,type:'expense',amount:120,category:'casa',account:'conto_corrente',date:iso(0,now.getDate()+i),description:`Scadenza test ${i}`});
+}
 if(params.has('manyCategories')) {
   for(let i=0;i<12;i++) {
     const id=`many-${i}`;

@@ -1,4 +1,4 @@
-import { useNavigate, useLocation } from 'react-router-dom';
+import { useNavigate } from 'react-router-dom';
 import { useEffect, useRef } from 'react';
 import { ArcLogo } from '../shared/components/ArcLogo';
 import { useUiVersion } from '../shared/providers/UiVersionProvider';
@@ -22,7 +22,6 @@ interface Props {
 /** Mobile-only header — in-flow (shrink-0) so it doesn't trigger iOS viewport resize. */
 export function AppHeader({ brand, monthLine, loading, isSettings, settingsOpen, onToggleSettings, onImport, aiEnabled, showCommitments }: Props) {
   const navigate = useNavigate();
-  const {pathname}=useLocation();
   const version = useUiVersion();
   const menu = useRef<HTMLDivElement>(null);
   useEffect(() => {
@@ -38,7 +37,7 @@ export function AppHeader({ brand, monthLine, loading, isSettings, settingsOpen,
     <div className="relative ml-auto">
       <button id="ui3-more-trigger" aria-expanded={settingsOpen} aria-controls="ui3-quick-menu" onClick={() => onToggleSettings(!settingsOpen)} className="ui3-more">Altro <span aria-hidden>⋯</span></button>
       {settingsOpen && <div ref={menu} id="ui3-quick-menu" className="ui3-quick-menu glass-elevated">
-        {showCommitments && ['/wealth','/commitments'].includes(pathname) && <button onClick={()=>{navigate('/commitments');onToggleSettings(false);}}>Impegni</button>}
+        {showCommitments && <button onClick={()=>{navigate('/commitments');onToggleSettings(false);}}>Impegni</button>}
         <button onClick={() => { navigate('/insights'); onToggleSettings(false); }}>Consigli</button>
         {aiEnabled && <button onClick={() => { navigate('/ai-coach'); onToggleSettings(false); }}>AI Coach</button>}
         <button onClick={() => { onImport(); onToggleSettings(false); }}>Importa CSV</button>

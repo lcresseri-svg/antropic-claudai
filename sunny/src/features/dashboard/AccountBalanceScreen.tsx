@@ -1,3 +1,4 @@
+import {useAnalysisPeriod} from '../../shared/hooks/useAnalysisPeriod';
 import { transactionRoute } from '../../shared/transactionRoute';
 // "Saldo per conto" — analytics for how the cash balance of each liquidity
 // account moves over time. Speculare a CategorySpendingScreen, but centred on a
@@ -6,8 +7,8 @@ import { transactionRoute } from '../../shared/transactionRoute';
 // account opens a detail sheet. Investment accounts are excluded.
 
 import { useState, useMemo, useEffect } from 'react';
-import { useNavigate } from 'react-router-dom';
-import { useUiSessionState } from '../../shared/providers/UiVersionProvider';
+import { useNavigate, useLocation } from 'react-router-dom';
+import { useUiVersion } from '../../shared/providers/UiVersionProvider';
 import { Transaction } from '../../types';
 import { useSettings } from '../../shared/providers/settings';
 import { formatCurrency, capitalize, formatDateFull } from '../../utils';
@@ -25,9 +26,10 @@ const tone = (d: number) => (d > 0.005 ? 'text-green' : d < -0.005 ? 'text-red' 
 
 export function AccountBalanceScreen({ transactions }: Props) {
   const navigate = useNavigate();
+  const location=useLocation();
+  const includedSnapshot=useUiVersion()==='3.0'&&location.state?.includedAccounts===true;
   const { accounts, insightDepth } = useSettings();
-  const [period, setPeriod] = useUiSessionState<PeriodType>('accounts.period','1m');
-  const [offset, setOffset] = useUiSessionState('accounts.offset',0);
+  const {period,setPeriod,offset,setOffset}=useAnalysisPeriod('accounts');
   const [selectedId, setSelectedId] = useState<string | null>(null);
 
   const now = useMemo(() => new Date(), []);
@@ -35,7 +37,7 @@ export function AccountBalanceScreen({ transactions }: Props) {
   const range = useMemo(() => getPeriodRange(period, offset, now, historyStart), [period, offset, now, historyStart]);
 
   // Cash accounts only (investment accounts aren't liquidity).
-  const cashAccounts = useMemo(() => accounts.filter(a => !a.isInvestment), [accounts]);
+  const cashAccounts = useMemo(() => accounts.filter(a => includedSnapshot || !a.isInvestment), [accounts,includedSnapshot]);
   const includedCashAccounts = useMemo(
     () => cashAccounts.filter(a => !a.excludeFromNetWorth),
     [cashAccounts],

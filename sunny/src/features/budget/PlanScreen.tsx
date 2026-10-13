@@ -4,7 +4,7 @@ import { useNavigate } from 'react-router-dom';
 import { Transaction, ownShare } from '../../types';
 import { useBudget } from '../../shared/hooks/useBudget';
 import { useSettings } from '../../shared/providers/settings';
-import { useUiSessionState } from '../../shared/providers/UiVersionProvider';
+import { useUiSessionState, useUiVersion } from '../../shared/providers/UiVersionProvider';
 import { isFeatureEnabled } from '../../shared/featureRollout';
 import { CoachEntryCard } from '../aiCoach/CoachEntryCard';
 import { listRecapMonths } from '../recap/monthlyRecap';
@@ -21,6 +21,7 @@ const monthLabel=(m:string)=>new Date(Number(m.slice(0,4)),Number(m.slice(5))-1,
 const states={unlimited:'Senza limite',within:'Nei limiti','spent-over':'Limite superato','committed-over':'Con il programmato','forecast-risk':'Rischio stimato'};
 interface Props {user:User;transactions:Transaction[];loading?:boolean;error?:string|null;onAddScheduled?:(date:string)=>void}
 export function PlanScreen(p:Props) {
+  const ui3=useUiVersion()==='3.0';
   const store=useBudget(p.user),settings=useSettings(),now=usePlanCalendar(),navigate=useNavigate();
   const current=monthKeyOf(now);
   const [month,setMonth]=useUiSessionState('budget.month',current);
@@ -64,6 +65,10 @@ export function PlanScreen(p:Props) {
               <p className="plan-hero-description">{view.period==='past'?'Dopo le spese registrate e gli obiettivi del mese.':'Per le spese non programmate, dopo gli obiettivi.'}</p>
               {view.M<0&&<p className="plan-negative">Mancano {money(-view.M)} al tuo piano.</p>}
               {view.pendingIncome>0&&<p className="plan-notice">Entrate attese {view.period==='past'?'non incassate':'ancora da incassare'}: <strong>{money(view.pendingIncome)}</strong>. Il margine dipende dal loro arrivo.</p>}
+              {ui3 && view.P!==null && view.P>0 && <div className="liquid-plan-capacity" role="img" aria-label={`Capacità per le spese ${money(view.P)}; speso ${money(view.A)}; programmato ${money(view.C)}; margine ${money(view.M)}`}>
+                <span style={{width:`${Math.min(100,Math.max(0,view.A/view.P*100))}%`}}/>
+                <span className="liquid-capacity-scheduled" style={{width:`${Math.min(Math.max(0,100-Math.max(0,view.A/view.P*100)),Math.max(0,view.C/view.P*100))}%`}}/>
+              </div>}
               <div className="plan-hero-stats">
                 <div><span className="label-caps">Per le spese</span><strong className="balance-num">{money(view.P)}</strong></div>
                 <div><span className="label-caps">Speso</span><strong className="balance-num">{money(view.A)}</strong></div>

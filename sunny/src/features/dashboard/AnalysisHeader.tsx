@@ -5,8 +5,8 @@
 // Sta qui e non in ognuna delle quattro perché erano quattro header diversi
 // per la stessa identica cosa.
 
-import { useNavigate, useLocation } from 'react-router-dom';
-import { useUiVersion, useUiNavigationMemory } from '../../shared/providers/UiVersionProvider';
+import {useOriginBack} from '../../shared/hooks/useOriginBack';
+import { useUiVersion } from '../../shared/providers/UiVersionProvider';
 
 interface Props {
   title: string;
@@ -18,14 +18,13 @@ interface Props {
 }
 
 export function AnalysisHeader({ title, subtitle, backTo = '/', action }: Props) {
-  const navigate = useNavigate();
-  const location=useLocation(),memory=useUiNavigationMemory();
+  const back=useOriginBack(backTo);
   const ui3 = useUiVersion() === '3.0';
   return (
     <div className="ui-analysis-header h-14 flex items-center gap-3">
-      <button type="button" onClick={() => { const origin=memory?.get(`origin:${location.key}`); if(ui3&&typeof origin==='string'&&/^\/(?!\/)/.test(origin)) navigate(-1); else navigate(backTo); }} aria-label="Indietro"
+      <button type="button" onClick={back} aria-label="Indietro"
         className={ui3 ? 'ui-back' : 'w-[34px] h-[34px] rounded-xl glass-card flex items-center justify-center text-secondary hover:text-primary transition-colors flex-none'}>
-        {ui3 ? '‹ Indietro' : <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round">
+        {ui3 ? '‹' : <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round">
           <path d="M15 18l-6-6 6-6" />
         </svg>}
       </button>

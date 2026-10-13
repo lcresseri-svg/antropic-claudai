@@ -7,7 +7,7 @@ try{for(const theme of ['light','dark']){
  await page.route('**/*',r=>new URL(r.request().url()).hostname==='127.0.0.1'?r.continue():r.abort());
  await page.goto(`http://127.0.0.1:4177/ui-preview/index.html?ui=3&theme=${theme}`);await page.locator('#preview-writes').waitFor();
  const route=async r=>{await page.evaluate(r=>{history.pushState({},'',r);dispatchEvent(new PopStateEvent('popstate'));},r);};
- await route('/income');await page.locator('[data-chart-bar]').first().waitFor();assert.equal(await page.locator('[data-chart-bar]').count(),12);
+ await route('/income');await page.getByRole('heading',{name:'Entrate',exact:true}).waitFor();await page.locator('[data-chart-bar]').first().waitFor();assert.equal(await page.locator('[data-chart-bar]').count(),12);
  await page.getByText('Vedi dati · Entrate',{exact:true}).click();assert.equal(await page.locator('tbody tr').count(),12);await page.screenshot({path:`${out}/income-${theme}.png`});
  await route('/wealth-history');await page.getByRole('button',{name:'Nascondi Liquidità'}).waitFor();assert.equal(await page.locator('[data-wealth-series]').count(),2);
  await page.getByRole('button',{name:'Nascondi Liquidità'}).click();assert.equal(await page.locator('[data-wealth-series="liq"]').count(),0);

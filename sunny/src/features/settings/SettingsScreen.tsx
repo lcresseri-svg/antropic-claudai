@@ -1,3 +1,4 @@
+import {useOriginBack} from '../../shared/hooks/useOriginBack';
 import { useState, useEffect, useLayoutEffect, useRef, Children, isValidElement, ReactNode } from 'react';
 import { useNavigate, useLocation } from 'react-router-dom';
 import { User } from 'firebase/auth';
@@ -48,6 +49,7 @@ function reorder<T>(arr: T[], from: number, to: number): T[] {
 
 export function SettingsScreen({ user, transactions, budgetExport, onImport, onLogOut, onDeleteAll, onDeleteAccount }: Props) {
   const navigate = useNavigate();
+  const back=useOriginBack('/');
   const ui3 = useUiVersion() === '3.0';
   const location = useLocation();
   const { categories, accounts, visibleCategories, visibleAccounts, theme, includeInvestments, enableInvestments, enableBudget, insightDepth, aiEnabled, aiCoachWidgetEnabled, detailedInvestments, cashReserve, saveCategories, restoreCategory, saveAccounts, saveTheme, saveIncludeInvestments, saveEnableInvestments, saveEnableBudget, saveInsightDepth, saveAiEnabled, saveAiCoachWidgetEnabled, saveCashReserve } = useSettings();
@@ -415,13 +417,14 @@ export function SettingsScreen({ user, transactions, budgetExport, onImport, onL
       {(sub === 'menu' || ui3) && (
         <SettingsPane menu>
           <div className="flex items-center gap-2">
-            <button onClick={() => ui3 ? navigate('/') : navigate(-1 as any)} aria-label="Indietro"
+            <button onClick={() => ui3 ? back() : navigate(-1 as any)} aria-label="Indietro"
               className={ui3 ? 'ui-back' : 'w-9 h-9 -ml-2 flex items-center justify-center text-secondary active:text-primary'}>
               {ui3 ? '‹ Indietro' : <ChevronLeft />}
             </button>
             <h1 className="text-2xl font-bold text-primary tracking-[-0.03em] flex-1">Impostazioni</h1>
           </div>
 
+          {ui3 && <h2 className="liquid-eyebrow">Account</h2>}
           {/* Profilo */}
           <div className="glass-card rounded-[20px] shadow-elev-1 p-4 flex items-center gap-3.5">
             {user.photoURL
@@ -450,9 +453,15 @@ export function SettingsScreen({ user, transactions, budgetExport, onImport, onL
               troppo. Le voci che portano davvero da qualche parte tengono il
               chevron. */}
           <div className="space-y-5 wide:grid wide:grid-cols-2 wide:gap-5 wide:space-y-0 wide:items-start">
-              <MenuSection title="Come si comporta l'app" query={menuQuery}>
-                <SwitchRow icon="🌙" color="#8B8B8B" label="Tema scuro" sub="Chiaro o scuro"
-                  on={theme === 'dark'} onToggle={() => saveTheme(theme === 'dark' ? 'light' : 'dark')} />
+              {ui3 && <MenuSection title="Aspetto" query={menuQuery}>
+                <SwitchRow icon="🌙" color="#8B8B8B" label="Tema scuro" sub="Chiaro o scuro" on={theme==='dark'} onToggle={()=>saveTheme(theme==='dark'?'light':'dark')}/>
+              </MenuSection>}
+              {ui3 && <MenuSection title="Conti e categorie" query={menuQuery}>
+                <Row icon="🗂️" color="#6FA8DC" label="Conti e categorie" sub="Saldi, emoji e ordine" onClick={()=>enterSub('gestione')}/>
+              </MenuSection>}
+              <MenuSection title={ui3?'Funzioni':"Come si comporta l'app"} query={menuQuery}>
+                {!ui3 && <SwitchRow icon="🌙" color="#8B8B8B" label="Tema scuro" sub="Chiaro o scuro"
+                  on={theme === 'dark'} onToggle={() => saveTheme(theme === 'dark' ? 'light' : 'dark')} />}
                 <SwitchRow icon="🎯" color="#E6B95C" label="Piano e budget" sub="Limiti di spesa e previsioni"
                   on={enableBudget} onToggle={() => saveEnableBudget(!enableBudget)} />
                 {isAdmin && (
@@ -476,8 +485,8 @@ export function SettingsScreen({ user, transactions, budgetExport, onImport, onL
                   sub="Quanti dettagli negli insight" value={DEPTH_LABEL[insightDepth]} onClick={() => enterSub('avanzate')} />
               </MenuSection>
 
-              <MenuSection title="I tuoi dati" query={menuQuery}>
-                <Row icon="🗂️" color="#6FA8DC" label="Conti e categorie" sub="Saldi, icone, ordine" onClick={() => enterSub('gestione')} />
+              <MenuSection title={ui3?"Dati":"I tuoi dati"} query={menuQuery}>
+                {!ui3 && <Row icon="🗂️" color="#6FA8DC" label="Conti e categorie" sub="Saldi, icone, ordine" onClick={() => enterSub('gestione')} />}
                 <Row icon="💾" color="#8A9270" label="Importa, esporta, elimina" sub="CSV, backup, cancellazione" onClick={() => enterSub('dati')} />
                 <Row icon="⚡" color="#E6B95C" label="Comandi rapidi e Apple Pay" sub="Automazioni iPhone" onClick={() => enterSub('shortcut')} />
               </MenuSection>

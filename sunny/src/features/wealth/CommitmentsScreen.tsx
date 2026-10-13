@@ -1,3 +1,4 @@
+import {useUiVersion} from '../../shared/providers/UiVersionProvider';
 // Impegni (flag `commitments`): abbonamenti, rate e ricorrenti con il loro
 // costo mensile equivalente, le prossime scadenze e i residui.
 //
@@ -31,6 +32,7 @@ const DAY_MS = 86_400_000;
 
 export function CommitmentsScreen({ transactions }: Props) {
   const navigate = useNavigate();
+  const ui3=useUiVersion()==='3.0';
   const todayISO = useMemo(() => new Date().toISOString().slice(0, 10), []);
   const c = useMemo(() => buildCommitments(transactions, todayISO), [transactions, todayISO]);
 
@@ -62,18 +64,19 @@ export function CommitmentsScreen({ transactions }: Props) {
   return (
     <div className="pb-32 md:pb-6">
       <AnalysisHeader title="Impegni" subtitle="Quanto del mese è già deciso" backTo="/wealth" />
-      <PageHead title="Impegni" subtitle="Quanto del mese è già deciso, prima che tu decida qualcosa" />
+      {!ui3 && <PageHead title="Impegni" subtitle="Quanto del mese è già deciso, prima che tu decida qualcosa" />}
 
       <div className="flex flex-col wide:flex-row gap-3.5 md:gap-4 wide:items-start">
         <div className="flex flex-col gap-3.5 md:gap-4 wide:flex-1 wide:min-w-0">
 
           {/* Hero: il costo fisso e cosa si porta via */}
           <section className="hero-card rounded-[26px] shadow-elev-2 p-[22px] animate-rise-in">
-            <p className="label-caps text-secondary mb-2">Costo fisso mensile</p>
+            <p className="label-caps text-secondary mb-2">{ui3?'Costo mensile equivalente':'Costo fisso mensile'}</p>
             <p className="balance-num text-[36px] md:text-[56px] md:leading-[0.95] leading-none font-bold text-primary">
               {formatCurrency(c.fixedMonthlyCost)}
               <span className="text-[17px] font-semibold text-secondary ml-1">/mese</span>
             </p>
+            {ui3 && <p className="liquid-period">Frequenze normalizzate al mese; gli addebiti reali sono nelle prossime scadenze.</p>}
             {incomeShare !== null && c.fixedMonthlyCost > 0 && (
               <p className="text-[12.5px] text-secondary leading-relaxed mt-2.5">
                 Il <span className="font-semibold text-primary">{Math.round(incomeShare * 100)}%</span> delle

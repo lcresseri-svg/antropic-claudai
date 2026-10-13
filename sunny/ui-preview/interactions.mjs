@@ -53,10 +53,17 @@ try {
   assert.equal(await page.locator('#ui3-quick-menu').getByRole('button',{name:'AI Coach'}).count(),0);
   await page.keyboard.press('Escape'); assert.equal(await page.locator('#ui3-quick-menu').count(),0);
   await start();
-  const fingerprint=()=>page.locator('main').evaluate(el=>({numbers:[...el.querySelectorAll('.balance-num')].map(n=>n.textContent),paths:[...el.querySelectorAll('svg path')].map(n=>[n.getAttribute('d'),n.getAttribute('fill'),n.getAttribute('stroke')])}));
-  const ui3=await fingerprint(); await start('ui=2'); const ui2=await fingerprint();
+  // UI3 intentionally changes the hero metric and chart geometry. Compare
+  // the same financial quantities, not the number/order of decorative paths.
+  const normalized=s=>s.replace(/\s/g,'');
+  const ui3Free=normalized(await page.locator('.liquid-money-rows dd').last().textContent());
+  const monthValues=async()=>Promise.all(['entrate','uscite','investito'].map(async label=>normalized(await page.getByRole('button',{name:`Analizza ${label}`,includeHidden:true}).first().locator('.balance-num').textContent())));
+  const ui3Month=await monthValues();
+  await start('ui=2');
   assert.equal(await page.locator('html').getAttribute('data-ui-version'),'2.0');
-  assert.deepEqual(ui3,ui2,'same fixture: original financial labels and SVG geometry');
+  const ui2Free=normalized(await page.locator('.ui-free-cash-layout > div:first-child > .balance-num').textContent());
+  assert.equal(ui3Free,ui2Free,'free cash remains available without changing its calculation');
+  assert.deepEqual(await monthValues(),ui3Month,'month values are unchanged');
   await start('editor&notices');
   assert.equal(await page.getByRole('dialog').count(),1);
   assert.equal(await page.getByRole('dialog',{name:'Avviso di prova'}).count(),0,'editor defers release and push notices');

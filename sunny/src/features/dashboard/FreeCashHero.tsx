@@ -8,9 +8,13 @@
 //
 // Unica card con `shadow-elev-2` della schermata: è la regola del redesign.
 
+import { useUiVersion } from '../../shared/providers/UiVersionProvider';
+import { DataHeadline } from '../../shared/components/DataHeadline';
 import { formatCurrency } from '../../utils';
 
 interface Props {
+  onOpenAccounts?: () => void;
+  period?: string;
   /** liquidità − impegni entro fine mese − deposito di sicurezza. */
   freeCash: number;
   liquidity: number;
@@ -42,6 +46,7 @@ function splitAmount(value: number): { head: string; tail: string } {
 }
 
 export function FreeCashHero(p: Props) {
+  const ui3 = useUiVersion() === '3.0';
   const { head, tail } = splitAmount(p.freeCash);
   const reserve = p.reserve ?? 0;
   // "Libera" ha senso solo se qualcosa è stato messo da parte: senza impegni e
@@ -57,6 +62,24 @@ export function FreeCashHero(p: Props) {
   // rappresentare: l'anello resta vuoto invece di mostrare una percentuale finta.
   const ratio = p.liquidity > 0 ? Math.min(1, Math.max(0, p.freeCash / p.liquidity)) : 0;
   const pct = Math.round(ratio * 100);
+
+  if (ui3) return <section className="liquid-balance-overview">
+    <DataHeadline label="Liquidità sui conti inclusi" value={p.liquidity} period="Saldo attuale · conti inclusi nel patrimonio" onOpen={p.onOpenAccounts}/>
+    <details className="liquid-balance-detail">
+      <summary>Impegni e deposito di sicurezza</summary>
+      <dl className="liquid-money-rows">
+        <div><dt>Liquidità</dt><dd>{formatCurrency(p.liquidity)}</dd></div>
+        <div><dt>Uscite programmate entro fine mese</dt><dd>{formatCurrency(p.committed)}</dd></div>
+        <div><dt>Deposito di sicurezza</dt><dd>{formatCurrency(reserve)}</dd></div>
+        <div><dt>Liquidità libera stimata</dt><dd>{formatCurrency(p.freeCash)}</dd></div>
+      </dl>
+      <p>Non è il margine del Piano. Il saldo non sottrae gli impegni futuri; la liquidità libera li considera insieme al deposito.</p>
+    </details>
+    <div className="liquid-month-summary">
+      <p className="liquid-eyebrow">{p.period ?? 'Questo mese'} · registrato</p>
+      <MonthStats {...p} className="liquid-month-stats" size="sm"/>
+    </div>
+  </section>;
 
   return (
     <section className="ui-free-cash hero-card rounded-[26px] shadow-elev-2 p-[22px] md:px-7 md:py-[26px] animate-rise-in">

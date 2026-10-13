@@ -1,20 +1,21 @@
+import {pathToFileURL} from 'node:url';
 import assert from 'node:assert/strict';
 import {mkdirSync} from 'node:fs';
 import {fileURLToPath} from 'node:url';
 import {chromium,browserOptions} from './browser.mjs';
 const browser=await chromium.launch(browserOptions);
-const output=new URL('../../docs/product/ui3-liquid-glass/evidence/piano-style-current/',import.meta.url);
+const output=process.env.SUNNY_EVIDENCE?pathToFileURL(process.env.SUNNY_EVIDENCE.replace(/\/$/,'')+'/'):new URL('../../docs/product/ui3-liquid-glass/evidence/piano-style-current/',import.meta.url);
 mkdirSync(output,{recursive:true});
 try {
   const page=await browser.newPage({viewport:{width:390,height:900},reducedMotion:'reduce'});
   await page.clock.install({time:new Date('2026-10-10T12:00:00')});
   await page.route('**/*',r=>new URL(r.request().url()).hostname==='127.0.0.1'?r.continue():r.abort());
-  const surface=el=>{const s=getComputedStyle(el);return {background:s.backgroundImage,color:s.backgroundColor,shadow:s.boxShadow,border:s.borderTopColor};};
+  const surface=el=>{const s=getComputedStyle(el);return {background:s.backgroundImage,color:s.backgroundColor,shadow:s.boxShadow,border:parseFloat(s.borderTopWidth)>0?s.borderTopColor:'none'};};
   for(const theme of ['dark','light']) {
     await page.setViewportSize({width:390,height:900});
     await page.goto('http://127.0.0.1:4177/ui-preview/index.html?pianoCase&theme='+theme);
-    await page.locator('.ui-free-cash').waitFor();
-    const homeSurface=await page.locator('.ui-free-cash').evaluate(surface);
+    await page.locator('.liquid-balance-overview').waitFor();
+    const homeSurface=await page.locator('.liquid-balance-overview').evaluate(surface);
     await page.screenshot({path:fileURLToPath(new URL('home-'+theme+'.png',output))});
     await page.getByRole('link',{name:'Piano',exact:true}).first().click();
     await page.locator('.plan-summary').waitFor();
