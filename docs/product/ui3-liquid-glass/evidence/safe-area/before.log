@@ -1,0 +1,17 @@
+PASS light [ 0, 0 ] category { top: 12, bottom: 840, safeTop: 12, safeBottom: 840 }
+PASS light [ 0, 0 ] account { top: 12, bottom: 840, safeTop: 12, safeBottom: 840 }
+node:internal/modules/run_main:107
+    triggerUncaughtException(
+    ^
+
+AssertionError [ERR_ASSERTION]: category light: top clipped {"top":-10,"bottom":818,"safeTop":59,"safeBottom":818}
+    at file:///workspace/antropic-claudai/sunny/ui-preview/liquid-safe-area.mjs:17:10 {
+  generatedMessage: false,
+  code: 'ERR_ASSERTION',
+  actual: false,
+  expected: true,
+  operator: '==',
+  diff: 'simple'
+}
+
+Node.js v24.19.0
