@@ -25,6 +25,13 @@ export const transactions: Transaction[] = params.has('empty') ? [] : params.has
   ...Array.from({length:10},(_,j) => ({id:`expense-${i}-${j}`,type:'expense' as const, amount: 24.9+j*5.4, category: j%2?'spesa':'ristoranti', account:'conto_corrente',date:iso(-i,j+1),description:j%2?'Spesa settimanale':'Caffè e pranzo',createdAt:0})),
   { id: `invest-${i}`, type: 'investment' as const, amount: 350, category: 'azioni_etf', account: 'conto_corrente', date: iso(-i,3), description: 'PAC ETF', createdAt: 0 },
 ]).flat();
+if(params.has('manyCategories')) {
+  for(let i=0;i<12;i++) {
+    const id=`many-${i}`;
+    categories.push({id,label:i===0?'Finanziamento auto con descrizione molto lunga':'Categoria '+i,icon:'',color:'#7CA5C9',kind:'expense'});
+    transactions.push({id,type:'expense',amount:300-i*17.31,category:id,account:'conto_corrente',date:iso(0,1),description:'Prova molte categorie'});
+  }
+}
 if(params.has('categoryForecast')){
   for(let i=1;i<=6;i++)for(const [category,amount] of [['spesa',1600],['casa',100],['trasporti',75]] as const)
     transactions.push({id:`forecast-${category}-${i}`,type:'expense',amount,category,account:'conto_corrente',date:iso(-i,25),description:'Storico di test forecast'});

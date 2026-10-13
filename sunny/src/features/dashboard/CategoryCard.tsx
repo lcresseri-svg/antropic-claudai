@@ -35,7 +35,7 @@ export function CategoryCard({ categoryTotals, onClick }: Props) {
         </p>
         <span className="text-[13px] font-semibold balance-num text-primary">{formatCurrency(total)}</span>
       </div>
-      <div className="flex items-center gap-5">
+      <div className="liquid-donut-layout flex items-center gap-5">
         {/* Same donut size as InvestmentSummaryCard so the two charts match. */}
         <Donut segments={segments} centerLabel="Spese" size={132} />
         <ul className="flex-1 space-y-2.5 min-w-0">

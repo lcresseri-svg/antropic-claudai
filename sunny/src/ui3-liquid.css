@@ -1,19 +1,19 @@
 /* Liquid Glass only opts in on app shell and explicit portal surfaces.
  * Root tokens and the Wrapped route remain the baseline. */
 [data-liquid-ui="true"] {
- --bg:#050608; --surface-1:#101216; --surface-2:#171A20;
+ --bg:#000000; --surface-1:#080808; --surface-2:#101010;
  --text-1:#F7F8FA; --text-2:#AFB6C2; --text-3:#AFB6C2;
  --border:#2D333D; --border-strong:#657080;
- --c-bg:5 6 8; --c-surface:16 18 22; --c-card:16 18 22;
- --c-card-hover:29 33 40; --c-elevated:23 26 32;
+ --c-bg:0 0 0; --c-surface:8 8 8; --c-card:8 8 8;
+ --c-card-hover:24 24 24; --c-elevated:16 16 16;
  --c-primary:247 248 250; --c-secondary:175 182 194; --c-tertiary:175 182 194;
  --c-divider:45 51 61; --c-divider-strong:101 112 128;
  --ui-accent:#F2C46D; --ui-on-accent:#241704; --ui-accent-text:#F4C66A;
- --ui-soft:#171A20; --ui-glass:rgb(5 6 8 / .76); --ui-focus:#8EB8FF;
- --liquid-panel:rgb(16 18 22 / .96); --liquid-edge:rgb(255 255 255 / .16);
+ --ui-soft:#101010; --ui-glass:rgb(0 0 0 / .92); --ui-focus:#8EB8FF;
+ --liquid-panel:rgb(8 8 8 / .98); --liquid-edge:rgb(255 255 255 / .16);
  --ui-shadow:0 16px 48px rgb(0 0 0 / .22); --elev-1:0 3px 18px rgb(0 0 0 / .08); --elev-2:var(--ui-shadow);
  --hero-bg:var(--surface-1); --hero-border-top:var(--border); --modal-hdr-bg:var(--surface-1);
- --accent-surface:linear-gradient(145deg,#242015,#101216);
+ --accent-surface:linear-gradient(145deg,#17140D,#080808);
  --ui-motion-sheet:260ms; color-scheme:dark;
 }
 html.light [data-liquid-ui="true"] {
@@ -146,3 +146,17 @@ html:has(.plan-dialog[open]) [data-liquid-ui="true"] .ui3-nav { visibility:hidde
 [data-liquid-ui="true"] .liquid-movements-header { flex-wrap:wrap; height:auto; min-height:56px; }
 [data-liquid-ui="true"] .liquid-movements-header > h1 { min-width:0; overflow-wrap:anywhere; }
 [data-liquid-ui="true"] .liquid-movements-header > .flex-none button { width:44px; height:44px; }
+
+/* A value list replaces both the ring and its legend. It must own the row. */
+[data-liquid-ui="true"] .liquid-donut-layout { min-width:0; flex-wrap:wrap; }
+[data-liquid-ui="true"] .liquid-donut-layout > ul { min-width:min(180px,100%); }
+[data-liquid-ui="true"] .liquid-donut-layout:has(> .liquid-composition) { display:block; }
+[data-liquid-ui="true"] .liquid-composition + ul { display:none; }
+[data-liquid-ui="true"] .liquid-composition { min-width:0; font-size:14px; }
+[data-liquid-ui="true"] .liquid-composition > div { display:grid; grid-template-columns:minmax(0,1fr) minmax(0,auto); align-items:baseline; }
+[data-liquid-ui="true"] .liquid-composition dt { min-width:0; overflow-wrap:anywhere; color:var(--text-2); }
+[data-liquid-ui="true"] .liquid-composition dd { min-width:0; text-align:right; overflow-wrap:anywhere; font-variant-numeric:tabular-nums; }
+
+/* Match the exposed mobile canvas without changing Wrapped's inherited tokens. */
+html:has(.app-shell[data-liquid-ui="true"]), html:has(.app-shell[data-liquid-ui="true"]) body { background-color:#000; }
+html.light:has(.app-shell[data-liquid-ui="true"]), html.light:has(.app-shell[data-liquid-ui="true"]) body { background-color:#fff; }

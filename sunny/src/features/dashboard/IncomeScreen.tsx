@@ -169,7 +169,7 @@ export function IncomeScreen({ transactions }: Props) {
           {composition.length > 0 && (
             <div className="glass-card rounded-2xl p-5 mb-3">
               <p className="label-caps text-secondary mb-4">Da dove arrivano</p>
-              <div className="flex items-center gap-5 flex-wrap">
+              <div className="liquid-donut-layout flex items-center gap-5 flex-wrap">
                 <Donut
                   segments={composition.map(seg => ({
                     label: seg.categoryId === '__other__' ? 'Altre' : getCat(seg.categoryId).label,

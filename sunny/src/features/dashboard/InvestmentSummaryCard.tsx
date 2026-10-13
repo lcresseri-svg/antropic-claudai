@@ -33,7 +33,7 @@ export function InvestmentSummaryCard({ investmentByCategory, total, onClick }: 
       </div>
       {/* Niente colonna percentuali: su 390px si mangiava il nome della
           categoria ("A…"), e la proporzione la dice già l'arco della torta. */}
-      <div className="flex items-center gap-4">
+      <div className="liquid-donut-layout flex items-center gap-4">
         <Donut segments={segments} centerLabel="Investito" size={118} />
         <ul className="flex-1 space-y-2.5 min-w-0">
           {segments.slice(0, 6).map(s => (
