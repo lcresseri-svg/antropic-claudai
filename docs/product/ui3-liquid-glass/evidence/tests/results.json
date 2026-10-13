@@ -1,0 +1,138 @@
+[
+  {
+    "job": [
+      "liquid-dismiss.mjs"
+    ],
+    "code": 0
+  },
+  {
+    "job": [
+      "liquid-bulk.mjs"
+    ],
+    "code": 0
+  },
+  {
+    "job": [
+      "liquid-details.mjs"
+    ],
+    "code": 0
+  },
+  {
+    "job": [
+      "liquid-onboarding.mjs"
+    ],
+    "code": 0
+  },
+  {
+    "job": [
+      "check.mjs",
+      "dialog"
+    ],
+    "code": 0
+  },
+  {
+    "job": [
+      "check.mjs",
+      "draft"
+    ],
+    "code": 0
+  },
+  {
+    "job": [
+      "check.mjs",
+      "keypad"
+    ],
+    "code": 0
+  },
+  {
+    "job": [
+      "check.mjs",
+      "failure"
+    ],
+    "code": 0
+  },
+  {
+    "job": [
+      "check.mjs",
+      "backdrop"
+    ],
+    "code": 0
+  },
+  {
+    "job": [
+      "interactions.mjs"
+    ],
+    "code": 0
+  },
+  {
+    "job": [
+      "accessibility.mjs"
+    ],
+    "code": 0
+  },
+  {
+    "job": [
+      "regressions.mjs",
+      "print"
+    ],
+    "code": 0
+  },
+  {
+    "job": [
+      "regressions.mjs",
+      "settings"
+    ],
+    "code": 0
+  },
+  {
+    "job": [
+      "regressions.mjs",
+      "category"
+    ],
+    "code": 0
+  },
+  {
+    "job": [
+      "regressions.mjs",
+      "budget"
+    ],
+    "code": 0
+  },
+  {
+    "job": [
+      "regressions.mjs",
+      "investment"
+    ],
+    "code": 0
+  },
+  {
+    "job": [
+      "piano.mjs"
+    ],
+    "code": 0
+  },
+  {
+    "job": [
+      "piano-acceptance.mjs"
+    ],
+    "code": 0
+  },
+  {
+    "job": [
+      "piano-review.mjs"
+    ],
+    "code": 0
+  },
+  {
+    "job": [
+      "piano-style.mjs"
+    ],
+    "code": 0
+  },
+  {
+    "job": [
+      "piano-category-forecast.mjs"
+    ],
+    "code": 0
+  }
+]

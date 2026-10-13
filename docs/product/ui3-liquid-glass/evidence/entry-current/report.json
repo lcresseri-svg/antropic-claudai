@@ -1,0 +1,346 @@
+[
+  {
+    "ui": "2",
+    "theme": "light",
+    "styles": [
+      {
+        "tag": "DIV",
+        "color": "rgb(23, 20, 15)",
+        "background": "rgba(0, 0, 0, 0) linear-gradient(150deg, rgb(251, 243, 222) 0%, rgb(255, 253, 249) 100%) repeat scroll 0% 0% / auto padding-box border-box",
+        "border": "1px solid rgba(196, 151, 44, 0.22)",
+        "font": "",
+        "shadow": "rgba(0, 0, 0, 0) 0px 0px 0px 0px, rgba(0, 0, 0, 0) 0px 0px 0px 0px, rgba(26, 23, 20, 0.4) 0px 8px 22px -18px"
+      },
+      {
+        "tag": "DIV",
+        "color": "rgb(23, 20, 15)",
+        "background": "rgba(0, 0, 0, 0) none repeat scroll 0% 0% / auto padding-box border-box",
+        "border": "0px solid rgb(229, 231, 235)",
+        "font": "",
+        "shadow": "none"
+      },
+      {
+        "tag": "SPAN",
+        "color": "rgb(196, 151, 44)",
+        "background": "rgba(196, 151, 44, 0.14) none repeat scroll 0% 0% / auto padding-box border-box",
+        "border": "0px solid rgb(229, 231, 235)",
+        "font": "",
+        "shadow": "none"
+      },
+      {
+        "tag": "SPAN",
+        "color": "rgb(196, 151, 44)",
+        "background": "rgba(0, 0, 0, 0) none repeat scroll 0% 0% / auto padding-box border-box",
+        "border": "0px solid rgb(229, 231, 235)",
+        "font": "",
+        "shadow": "none"
+      },
+      {
+        "tag": "H2",
+        "color": "rgb(23, 20, 15)",
+        "background": "rgba(0, 0, 0, 0) none repeat scroll 0% 0% / auto padding-box border-box",
+        "border": "0px solid rgb(229, 231, 235)",
+        "font": "",
+        "shadow": "none"
+      },
+      {
+        "tag": "SPAN",
+        "color": "rgb(196, 151, 44)",
+        "background": "rgba(0, 0, 0, 0) none repeat scroll 0% 0% / auto padding-box border-box",
+        "border": "0px solid rgb(229, 231, 235)",
+        "font": "",
+        "shadow": "none"
+      },
+      {
+        "tag": "P",
+        "color": "rgb(100, 95, 84)",
+        "background": "rgba(0, 0, 0, 0) none repeat scroll 0% 0% / auto padding-box border-box",
+        "border": "0px solid rgb(229, 231, 235)",
+        "font": "",
+        "shadow": "none"
+      },
+      {
+        "tag": "DIV",
+        "color": "rgb(23, 20, 15)",
+        "background": "rgba(0, 0, 0, 0) none repeat scroll 0% 0% / auto padding-box border-box",
+        "border": "0px solid rgb(229, 231, 235)",
+        "font": "",
+        "shadow": "none"
+      },
+      {
+        "tag": "BUTTON",
+        "color": "rgb(23, 20, 15)",
+        "background": "rgba(0, 0, 0, 0) linear-gradient(160deg, rgb(238, 191, 74), rgb(196, 151, 44)) repeat scroll 0% 0% / auto padding-box border-box",
+        "border": "0px solid rgb(229, 231, 235)",
+        "font": "",
+        "shadow": "rgba(196, 151, 44, 0.7) 0px 6px 18px -6px"
+      },
+      {
+        "tag": "BUTTON",
+        "color": "rgb(168, 162, 150)",
+        "background": "rgba(0, 0, 0, 0) none repeat scroll 0% 0% / auto padding-box border-box",
+        "border": "0px solid rgb(229, 231, 235)",
+        "font": "",
+        "shadow": "none"
+      }
+    ]
+  },
+  {
+    "ui": "2",
+    "theme": "dark",
+    "styles": [
+      {
+        "tag": "DIV",
+        "color": "rgb(242, 236, 216)",
+        "background": "rgba(0, 0, 0, 0) linear-gradient(150deg, rgb(26, 23, 20) 0%, rgb(14, 13, 12) 100%) repeat scroll 0% 0% / auto padding-box border-box",
+        "border": "1px solid rgba(240, 190, 77, 0.22)",
+        "font": "",
+        "shadow": "rgba(0, 0, 0, 0) 0px 0px 0px 0px, rgba(0, 0, 0, 0) 0px 0px 0px 0px, rgba(0, 0, 0, 0.85) 0px 10px 26px -16px"
+      },
+      {
+        "tag": "DIV",
+        "color": "rgb(242, 236, 216)",
+        "background": "rgba(0, 0, 0, 0) none repeat scroll 0% 0% / auto padding-box border-box",
+        "border": "0px solid rgb(229, 231, 235)",
+        "font": "",
+        "shadow": "none"
+      },
+      {
+        "tag": "SPAN",
+        "color": "rgb(240, 190, 77)",
+        "background": "rgba(240, 190, 77, 0.14) none repeat scroll 0% 0% / auto padding-box border-box",
+        "border": "0px solid rgb(229, 231, 235)",
+        "font": "",
+        "shadow": "none"
+      },
+      {
+        "tag": "SPAN",
+        "color": "rgb(240, 190, 77)",
+        "background": "rgba(0, 0, 0, 0) none repeat scroll 0% 0% / auto padding-box border-box",
+        "border": "0px solid rgb(229, 231, 235)",
+        "font": "",
+        "shadow": "none"
+      },
+      {
+        "tag": "H2",
+        "color": "rgb(242, 236, 216)",
+        "background": "rgba(0, 0, 0, 0) none repeat scroll 0% 0% / auto padding-box border-box",
+        "border": "0px solid rgb(229, 231, 235)",
+        "font": "",
+        "shadow": "none"
+      },
+      {
+        "tag": "SPAN",
+        "color": "rgb(240, 190, 77)",
+        "background": "rgba(0, 0, 0, 0) none repeat scroll 0% 0% / auto padding-box border-box",
+        "border": "0px solid rgb(229, 231, 235)",
+        "font": "",
+        "shadow": "none"
+      },
+      {
+        "tag": "P",
+        "color": "rgb(170, 164, 152)",
+        "background": "rgba(0, 0, 0, 0) none repeat scroll 0% 0% / auto padding-box border-box",
+        "border": "0px solid rgb(229, 231, 235)",
+        "font": "",
+        "shadow": "none"
+      },
+      {
+        "tag": "DIV",
+        "color": "rgb(242, 236, 216)",
+        "background": "rgba(0, 0, 0, 0) none repeat scroll 0% 0% / auto padding-box border-box",
+        "border": "0px solid rgb(229, 231, 235)",
+        "font": "",
+        "shadow": "none"
+      },
+      {
+        "tag": "BUTTON",
+        "color": "rgb(9, 9, 9)",
+        "background": "rgba(0, 0, 0, 0) linear-gradient(160deg, rgb(247, 203, 69), rgb(240, 190, 77)) repeat scroll 0% 0% / auto padding-box border-box",
+        "border": "0px solid rgb(229, 231, 235)",
+        "font": "",
+        "shadow": "rgba(240, 190, 77, 0.7) 0px 6px 18px -6px"
+      },
+      {
+        "tag": "BUTTON",
+        "color": "rgb(110, 105, 89)",
+        "background": "rgba(0, 0, 0, 0) none repeat scroll 0% 0% / auto padding-box border-box",
+        "border": "0px solid rgb(229, 231, 235)",
+        "font": "",
+        "shadow": "none"
+      }
+    ]
+  },
+  {
+    "ui": "3",
+    "theme": "light",
+    "styles": [
+      {
+        "tag": "DIV",
+        "color": "rgb(35, 37, 36)",
+        "background": "rgba(0, 0, 0, 0) linear-gradient(145deg, rgb(249, 234, 208), rgb(255, 254, 250)) repeat scroll 0% 0% / auto padding-box border-box",
+        "border": "1px solid rgba(196, 151, 44, 0.22)",
+        "font": "",
+        "shadow": "rgba(0, 0, 0, 0) 0px 0px 0px 0px, rgba(0, 0, 0, 0) 0px 0px 0px 0px, rgba(81, 67, 50, 0.05) 0px 6px 20px 0px"
+      },
+      {
+        "tag": "DIV",
+        "color": "rgb(35, 37, 36)",
+        "background": "rgba(0, 0, 0, 0) none repeat scroll 0% 0% / auto padding-box border-box",
+        "border": "0px solid rgb(229, 231, 235)",
+        "font": "",
+        "shadow": "none"
+      },
+      {
+        "tag": "SPAN",
+        "color": "rgb(128, 85, 26)",
+        "background": "rgba(196, 151, 44, 0.14) none repeat scroll 0% 0% / auto padding-box border-box",
+        "border": "0px solid rgb(229, 231, 235)",
+        "font": "",
+        "shadow": "none"
+      },
+      {
+        "tag": "SPAN",
+        "color": "rgb(128, 85, 26)",
+        "background": "rgba(0, 0, 0, 0) none repeat scroll 0% 0% / auto padding-box border-box",
+        "border": "0px solid rgb(229, 231, 235)",
+        "font": "",
+        "shadow": "none"
+      },
+      {
+        "tag": "H2",
+        "color": "rgb(35, 37, 36)",
+        "background": "rgba(0, 0, 0, 0) none repeat scroll 0% 0% / auto padding-box border-box",
+        "border": "0px solid rgb(229, 231, 235)",
+        "font": "",
+        "shadow": "none"
+      },
+      {
+        "tag": "SPAN",
+        "color": "rgb(128, 85, 26)",
+        "background": "rgba(0, 0, 0, 0) none repeat scroll 0% 0% / auto padding-box border-box",
+        "border": "0px solid rgb(229, 231, 235)",
+        "font": "",
+        "shadow": "none"
+      },
+      {
+        "tag": "P",
+        "color": "rgb(105, 108, 101)",
+        "background": "rgba(0, 0, 0, 0) none repeat scroll 0% 0% / auto padding-box border-box",
+        "border": "0px solid rgb(229, 231, 235)",
+        "font": "",
+        "shadow": "none"
+      },
+      {
+        "tag": "DIV",
+        "color": "rgb(35, 37, 36)",
+        "background": "rgba(0, 0, 0, 0) none repeat scroll 0% 0% / auto padding-box border-box",
+        "border": "0px solid rgb(229, 231, 235)",
+        "font": "",
+        "shadow": "none"
+      },
+      {
+        "tag": "BUTTON",
+        "color": "rgb(78, 53, 24)",
+        "background": "rgb(237, 194, 123) none repeat scroll 0% 0% / auto padding-box border-box",
+        "border": "0px solid rgb(229, 231, 235)",
+        "font": "",
+        "shadow": "rgba(81, 67, 50, 0.1) 0px 4px 14px 0px"
+      },
+      {
+        "tag": "BUTTON",
+        "color": "rgb(105, 108, 101)",
+        "background": "rgba(0, 0, 0, 0) none repeat scroll 0% 0% / auto padding-box border-box",
+        "border": "0px solid rgb(229, 231, 235)",
+        "font": "",
+        "shadow": "none"
+      }
+    ]
+  },
+  {
+    "ui": "3",
+    "theme": "dark",
+    "styles": [
+      {
+        "tag": "DIV",
+        "color": "rgb(245, 243, 235)",
+        "background": "rgba(0, 0, 0, 0) linear-gradient(145deg, rgb(48, 43, 34), rgb(28, 34, 35)) repeat scroll 0% 0% / auto padding-box border-box",
+        "border": "1px solid rgba(240, 190, 77, 0.22)",
+        "font": "",
+        "shadow": "rgba(0, 0, 0, 0) 0px 0px 0px 0px, rgba(0, 0, 0, 0) 0px 0px 0px 0px, rgba(0, 0, 0, 0.12) 0px 6px 20px 0px"
+      },
+      {
+        "tag": "DIV",
+        "color": "rgb(245, 243, 235)",
+        "background": "rgba(0, 0, 0, 0) none repeat scroll 0% 0% / auto padding-box border-box",
+        "border": "0px solid rgb(229, 231, 235)",
+        "font": "",
+        "shadow": "none"
+      },
+      {
+        "tag": "SPAN",
+        "color": "rgb(242, 200, 119)",
+        "background": "rgba(240, 190, 77, 0.14) none repeat scroll 0% 0% / auto padding-box border-box",
+        "border": "0px solid rgb(229, 231, 235)",
+        "font": "",
+        "shadow": "none"
+      },
+      {
+        "tag": "SPAN",
+        "color": "rgb(242, 200, 119)",
+        "background": "rgba(0, 0, 0, 0) none repeat scroll 0% 0% / auto padding-box border-box",
+        "border": "0px solid rgb(229, 231, 235)",
+        "font": "",
+        "shadow": "none"
+      },
+      {
+        "tag": "H2",
+        "color": "rgb(245, 243, 235)",
+        "background": "rgba(0, 0, 0, 0) none repeat scroll 0% 0% / auto padding-box border-box",
+        "border": "0px solid rgb(229, 231, 235)",
+        "font": "",
+        "shadow": "none"
+      },
+      {
+        "tag": "SPAN",
+        "color": "rgb(242, 200, 119)",
+        "background": "rgba(0, 0, 0, 0) none repeat scroll 0% 0% / auto padding-box border-box",
+        "border": "0px solid rgb(229, 231, 235)",
+        "font": "",
+        "shadow": "none"
+      },
+      {
+        "tag": "P",
+        "color": "rgb(179, 182, 177)",
+        "background": "rgba(0, 0, 0, 0) none repeat scroll 0% 0% / auto padding-box border-box",
+        "border": "0px solid rgb(229, 231, 235)",
+        "font": "",
+        "shadow": "none"
+      },
+      {
+        "tag": "DIV",
+        "color": "rgb(245, 243, 235)",
+        "background": "rgba(0, 0, 0, 0) none repeat scroll 0% 0% / auto padding-box border-box",
+        "border": "0px solid rgb(229, 231, 235)",
+        "font": "",
+        "shadow": "none"
+      },
+      {
+        "tag": "BUTTON",
+        "color": "rgb(45, 40, 28)",
+        "background": "rgb(242, 200, 119) none repeat scroll 0% 0% / auto padding-box border-box",
+        "border": "0px solid rgb(229, 231, 235)",
+        "font": "",
+        "shadow": "rgba(81, 67, 50, 0.1) 0px 4px 14px 0px"
+      },
+      {
+        "tag": "BUTTON",
+        "color": "rgb(179, 182, 177)",
+        "background": "rgba(0, 0, 0, 0) none repeat scroll 0% 0% / auto padding-box border-box",
+        "border": "0px solid rgb(229, 231, 235)",
+        "font": "",
+        "shadow": "none"
+      }
+    ]
+  }
+]

@@ -1,0 +1,68 @@
+[
+  {
+    "file": "entry-ui2-dark.png",
+    "equal": true,
+    "baselineSize": [
+      358,
+      217
+    ],
+    "currentSize": [
+      358,
+      217
+    ],
+    "diffBounds": null,
+    "interiorEqual": true
+  },
+  {
+    "file": "entry-ui2-light.png",
+    "equal": true,
+    "baselineSize": [
+      358,
+      217
+    ],
+    "currentSize": [
+      358,
+      217
+    ],
+    "diffBounds": null,
+    "interiorEqual": true
+  },
+  {
+    "file": "entry-ui3-dark.png",
+    "equal": false,
+    "baselineSize": [
+      358,
+      218
+    ],
+    "currentSize": [
+      358,
+      218
+    ],
+    "diffBounds": [
+      0,
+      0,
+      358,
+      218
+    ],
+    "interiorEqual": true
+  },
+  {
+    "file": "entry-ui3-light.png",
+    "equal": false,
+    "baselineSize": [
+      358,
+      218
+    ],
+    "currentSize": [
+      358,
+      218
+    ],
+    "diffBounds": [
+      0,
+      0,
+      358,
+      218
+    ],
+    "interiorEqual": true
+  }
+]

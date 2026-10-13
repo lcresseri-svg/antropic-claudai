@@ -1,0 +1,180 @@
+[
+  {
+    "theme": "light",
+    "contrast": [
+      {
+        "selector": ".ui3-month-line",
+        "foreground": [
+          94,
+          101,
+          112
+        ],
+        "background": [
+          255,
+          255,
+          255
+        ],
+        "ratio": 5.880081180600564
+      },
+      {
+        "selector": ".ui3-nav-link[aria-current]",
+        "foreground": [
+          21,
+          22,
+          25
+        ],
+        "background": [
+          247,
+          249,
+          252
+        ],
+        "ratio": 17.15428689407377
+      },
+      {
+        "selector": ".ui3-add",
+        "foreground": [
+          36,
+          23,
+          4
+        ],
+        "background": [
+          242,
+          196,
+          109
+        ],
+        "ratio": 10.749582525861946
+      },
+      {
+        "selector": ".ui3-more",
+        "foreground": [
+          21,
+          22,
+          25
+        ],
+        "background": [
+          247,
+          249,
+          252
+        ],
+        "ratio": 17.15428689407377
+      },
+      {
+        "selector": ".ui-free-cash .text-secondary",
+        "foreground": [
+          94,
+          101,
+          112
+        ],
+        "background": [
+          255,
+          255,
+          255
+        ],
+        "ratio": 5.880081180600564
+      },
+      {
+        "selector": ".ui-free-cash .text-gold",
+        "foreground": [
+          165,
+          102,
+          10
+        ],
+        "background": [
+          255,
+          255,
+          255
+        ],
+        "ratio": 4.661696316220166
+      }
+    ]
+  },
+  {
+    "theme": "dark",
+    "contrast": [
+      {
+        "selector": ".ui3-month-line",
+        "foreground": [
+          175,
+          182,
+          194
+        ],
+        "background": [
+          5,
+          6,
+          8
+        ],
+        "ratio": 9.935220191948549
+      },
+      {
+        "selector": ".ui3-nav-link[aria-current]",
+        "foreground": [
+          247,
+          248,
+          250
+        ],
+        "background": [
+          23,
+          26,
+          32
+        ],
+        "ratio": 16.399549479462454
+      },
+      {
+        "selector": ".ui3-add",
+        "foreground": [
+          36,
+          23,
+          4
+        ],
+        "background": [
+          242,
+          196,
+          109
+        ],
+        "ratio": 10.749582525861946
+      },
+      {
+        "selector": ".ui3-more",
+        "foreground": [
+          247,
+          248,
+          250
+        ],
+        "background": [
+          23,
+          26,
+          32
+        ],
+        "ratio": 16.399549479462454
+      },
+      {
+        "selector": ".ui-free-cash .text-secondary",
+        "foreground": [
+          175,
+          182,
+          194
+        ],
+        "background": [
+          5,
+          6,
+          8
+        ],
+        "ratio": 9.935220191948549
+      },
+      {
+        "selector": ".ui-free-cash .text-gold",
+        "foreground": [
+          244,
+          198,
+          106
+        ],
+        "background": [
+          5,
+          6,
+          8
+        ],
+        "ratio": 12.675923976342158
+      }
+    ]
+  }
+]
