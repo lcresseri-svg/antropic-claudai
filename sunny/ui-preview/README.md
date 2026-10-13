@@ -30,3 +30,5 @@ Suite aggiuntive: `liquid-details.mjs`, `liquid-onboarding.mjs`, `liquid-stress.
 Nuovi scenari locali: `onboarding`, `login`, `import`, `failBulk`. `onboardingMemory&slowIo` simula soltanto scritture in memoria per verificare avanzamento e doppio tap, non inoltra chiamate a Firebase. Le altre scritture remote sono bloccate.
 
 La consegna UI3 e gli screenshot sono in `docs/product/ui3-liquid-glass/`; gli script Piano scrivono ora in questa directory senza sovrascrivere le prove storiche.
+
+Verifica overflow mobile: `node ui-preview/with-server.mjs liquid-mobile-overflow.mjs` usa `manyCategories` (15 categorie di spesa), entrambi i temi e larghezze 320/390/430. Il controllo misura lo scroller interno `#app-scroll`, non solo il documento. Per la matrice rotte si può impostare `SUNNY_WIDTHS=320,390,430`.

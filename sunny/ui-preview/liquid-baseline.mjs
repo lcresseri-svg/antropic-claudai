@@ -7,7 +7,7 @@ const out=process.env.SUNNY_EVIDENCE||'/workspace/ui3-baseline';await mkdir(out,
 const defaultRoutes=['/','/wealth','/budget','/transactions','/investments','/income','/category-spending','/account-balance','/wealth-history','/settings','/insights','/ai-coach','/wealth-v2','/commitments','/monthly-plan','/forecast-v3','/metrics','/recap/2026-09','/wrapped/2026'];
 const routes=process.env.SUNNY_ROUTES?JSON.parse(process.env.SUNNY_ROUTES):defaultRoutes;
 const results=[];
-for(const width of (process.env.SUNNY_MATRIX?'390,768,1440':'390').split(',').map(Number))for(const theme of ['light','dark']){
+for(const width of (process.env.SUNNY_WIDTHS||(process.env.SUNNY_MATRIX?'390,768,1440':'390')).split(',').map(Number))for(const theme of ['light','dark']){
  const page=await browser.newPage({viewport:{width,height:width===1440?900:844}});
  await page.clock.install({time:new Date('2026-10-12T10:00:00Z')});
  await page.route('**/*',r=>new URL(r.request().url()).hostname==='127.0.0.1'?r.continue():r.abort());
@@ -21,7 +21,7 @@ for(const width of (process.env.SUNNY_MATRIX?'390,768,1440':'390').split(',').ma
   const controls=await page.locator('button,a,input,select,summary').evaluateAll(els=>els.filter(e=>e.getClientRects().length).map(e=>({tag:e.tagName,label:e.getAttribute('aria-label')||e.innerText||e.getAttribute('placeholder')||e.getAttribute('title'),href:e.getAttribute('href'),disabled:e.disabled??false})));
   const name=route==='/'?'home':route.slice(1).replaceAll('/','-');
   await page.screenshot({path:`${out}/${name}-${theme}-${width}.png`});
-  results.push({route,theme,width,errors,controls,overflow:await page.evaluate(()=>document.documentElement.scrollWidth>innerWidth)});
+  results.push({route,theme,width,errors,controls,overflow:await page.evaluate(()=>document.documentElement.scrollWidth>innerWidth||Array.from(document.querySelectorAll('#app-scroll')).some(el=>el.scrollWidth>el.clientWidth+1))});
   page.off('pageerror',onError);
  }
  await page.close();

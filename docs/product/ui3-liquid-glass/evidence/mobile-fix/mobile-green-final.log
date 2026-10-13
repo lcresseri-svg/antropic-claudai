@@ -1,0 +1,66 @@
+PASS {
+  width: 320,
+  theme: 'light',
+  scrollWidth: 320,
+  color: 'rgb(255, 255, 255)',
+  visibleLegends: 0,
+  rows: 6,
+  detailHasTail: true,
+  errors: [],
+  pass: true
+}
+PASS {
+  width: 320,
+  theme: 'dark',
+  scrollWidth: 320,
+  color: 'rgb(0, 0, 0)',
+  visibleLegends: 0,
+  rows: 6,
+  detailHasTail: true,
+  errors: [],
+  pass: true
+}
+PASS {
+  width: 390,
+  theme: 'light',
+  scrollWidth: 390,
+  color: 'rgb(255, 255, 255)',
+  visibleLegends: 0,
+  rows: 6,
+  detailHasTail: true,
+  errors: [],
+  pass: true
+}
+PASS {
+  width: 390,
+  theme: 'dark',
+  scrollWidth: 390,
+  color: 'rgb(0, 0, 0)',
+  visibleLegends: 0,
+  rows: 6,
+  detailHasTail: true,
+  errors: [],
+  pass: true
+}
+PASS {
+  width: 430,
+  theme: 'light',
+  scrollWidth: 430,
+  color: 'rgb(255, 255, 255)',
+  visibleLegends: 0,
+  rows: 6,
+  detailHasTail: true,
+  errors: [],
+  pass: true
+}
+PASS {
+  width: 430,
+  theme: 'dark',
+  scrollWidth: 430,
+  color: 'rgb(0, 0, 0)',
+  visibleLegends: 0,
+  rows: 6,
+  detailHasTail: true,
+  errors: [],
+  pass: true
+}

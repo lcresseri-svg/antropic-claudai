@@ -1,0 +1,54 @@
+FAIL {
+  width: 320,
+  theme: 'light',
+  scrollWidth: 389,
+  color: 'rgb(255, 255, 255)',
+  visibleLegends: 0,
+  errors: [],
+  pass: false
+}
+FAIL {
+  width: 320,
+  theme: 'dark',
+  scrollWidth: 389,
+  color: 'rgb(5, 6, 8)',
+  visibleLegends: 0,
+  errors: [],
+  pass: false
+}
+FAIL {
+  width: 390,
+  theme: 'light',
+  scrollWidth: 459,
+  color: 'rgb(255, 255, 255)',
+  visibleLegends: 0,
+  errors: [],
+  pass: false
+}
+FAIL {
+  width: 390,
+  theme: 'dark',
+  scrollWidth: 459,
+  color: 'rgb(5, 6, 8)',
+  visibleLegends: 0,
+  errors: [],
+  pass: false
+}
+FAIL {
+  width: 430,
+  theme: 'light',
+  scrollWidth: 499,
+  color: 'rgb(255, 255, 255)',
+  visibleLegends: 0,
+  errors: [],
+  pass: false
+}
+FAIL {
+  width: 430,
+  theme: 'dark',
+  scrollWidth: 499,
+  color: 'rgb(5, 6, 8)',
+  visibleLegends: 0,
+  errors: [],
+  pass: false
+}

@@ -3,6 +3,7 @@
 // resto. Sostituisce la CategoryCard sulla home (che elencava fino a sei voci
 // senza mai chiudere la coda).
 
+import { useUiVersion } from '../../shared/providers/UiVersionProvider';
 import { Donut } from './Donut';
 import { formatCurrency } from '../../utils';
 import { useSettings } from '../../shared/providers/settings';
@@ -18,21 +19,23 @@ const TOP_N = 4;
 
 export function SpendingBreakdownCard({ categoryTotals, onSeeAll }: Props) {
   const { getCat } = useSettings();
+  const ui3 = useUiVersion() === '3.0';
   const entries = Object.entries(categoryTotals)
     .filter(([, v]) => v > 0)
     .sort(([, a], [, b]) => b - a);
   if (entries.length === 0) return null;
 
-  // La torta resta a grana fine (una fetta per categoria): a collassare è solo
-  // la legenda, altrimenti la coda sparirebbe anche dal grafico.
+  // UI2 retains its detailed ring. UI3 groups the tail in both the chart
+  // and legend; the complete category list remains available through Tutte.
   const segments = entries.map(([id, value]) => {
     const c = getCat(id);
     return { label: c.label, value, color: c.color };
   });
 
-  const rest = segments.slice(TOP_N);
+  const visibleCount = ui3 ? 5 : TOP_N;
+  const rest = segments.slice(visibleCount);
   const legend = [
-    ...segments.slice(0, TOP_N),
+    ...segments.slice(0, visibleCount),
     ...(rest.length > 0
       ? [{
           label: `Altre ${rest.length}`,
@@ -51,8 +54,8 @@ export function SpendingBreakdownCard({ categoryTotals, onSeeAll }: Props) {
           Tutte ›
         </button>
       </div>
-      <div className="flex items-center gap-[18px]">
-        <Donut segments={segments} centerLabel="Uscite" size={124} />
+      <div className="liquid-donut-layout flex items-center gap-[18px]">
+        <Donut segments={ui3 ? legend : segments} centerLabel="Uscite" size={124} />
         <ul className="flex-1 min-w-0 flex flex-col gap-[11px]">
           {legend.map(s => (
             <li key={s.label} className="flex items-center gap-2.5 min-w-0">

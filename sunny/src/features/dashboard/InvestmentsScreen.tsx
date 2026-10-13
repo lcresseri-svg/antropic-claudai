@@ -361,7 +361,7 @@ export function InvestmentsScreen({ investmentByCategory, investmentTotal, month
       {showFundDonut && (
         <div className="glass-card rounded-2xl p-5">
           <p className="label-caps text-secondary mb-4">Allocazione per tipo di fondo</p>
-          <div className="flex items-center gap-5 flex-wrap">
+          <div className="liquid-donut-layout flex items-center gap-5 flex-wrap">
             <Donut segments={fundSegments} centerLabel="Investito" size={140} />
             <ul className="flex-1 space-y-3 min-w-[180px]">
               {FUND_TYPE_ORDER.filter(ft => fundAlloc.byType[ft] > 0).map(ft => {
