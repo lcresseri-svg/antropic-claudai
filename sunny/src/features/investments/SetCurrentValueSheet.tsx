@@ -7,7 +7,7 @@ interface Props {
   open: boolean;
   category: CategoryDef | null;
   deposited: number; // versato netto della categoria
-  onSave: (value: number) => void;
+  onSave: (value: number) => void | Promise<void>;
   onClose: () => void;
   onBack?: () => void;
 }
@@ -22,9 +22,11 @@ interface Props {
  */
 export function SetCurrentValueSheet({ open, category, deposited, onSave, onClose, onBack }: Props) {
   const [value, setValue] = useState('');
+  const [saving,setSaving]=useState(false);
+  const [error,setError]=useState('');
 
   useEffect(() => {
-    if (open) setValue(category?.currentValue != null ? String(category.currentValue) : '');
+    if (open) { setValue(category?.currentValue != null ? String(category.currentValue) : ''); setError(''); }
   }, [open, category]);
 
   if (!category) return null;
@@ -33,15 +35,17 @@ export function SetCurrentValueSheet({ open, category, deposited, onSave, onClos
   const delta = touched ? parsed - deposited : null;
   const pct = delta != null && deposited > 0 ? (delta / deposited) * 100 : null;
 
-  const submit = (e: React.FormEvent) => {
+  const submit = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (parsed < 0) return;
-    onSave(parsed);
-    onClose();
+    if (saving || parsed < 0) return;
+    setSaving(true);setError('');
+    try { await onSave(parsed); onClose(); }
+    catch { setError('Salvataggio non riuscito. I dati sono ancora qui: riprova.'); }
+    finally { setSaving(false); }
   };
 
   return (
-    <SheetShell open={open} onClose={onClose} onBack={onBack}
+    <SheetShell saving={saving} draftSignature={value} open={open} onClose={onClose} onBack={onBack}
       title={`Controvalore · ${category.label}`}
       subtitle={category.lastValueUpdate
         ? `Ultimo aggiornamento: ${formatDate(category.lastValueUpdate)}`
@@ -77,9 +81,10 @@ export function SetCurrentValueSheet({ open, category, deposited, onSave, onClos
           resta quella di prima e il mese non registra né entrate né uscite.
         </EffectCard>
 
-        <button type="submit"
+        {error && <p role="alert" className="text-red">{error}</p>}
+        <button type="submit" disabled={saving}
           className="w-full py-3.5 rounded-2xl cta-gold-fill text-[14px] font-semibold transition-transform active:scale-[0.98]">
-          Salva controvalore
+          {saving?'Salvataggio…':'Salva controvalore'}
         </button>
       </form>
     </SheetShell>

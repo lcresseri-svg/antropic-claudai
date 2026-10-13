@@ -1,3 +1,4 @@
+import { useUiVersion } from '../../shared/providers/UiVersionProvider';
 // Scaffold dell'onboarding.
 //
 // I pallini dicevano "sei a un certo punto di qualcosa" senza dire di cosa né
@@ -22,6 +23,7 @@ export const STEP_META = [
 interface Props {
   step: number;
   totalSteps: number;
+  onBack?: () => void;
   onSkip?: () => void;
   /** Il CTA del passo: sta qui perché è sticky sul fondo, non nel contenuto. */
   footer?: ReactNode;
@@ -38,16 +40,17 @@ function remainingLabel(step: number, total: number): string {
   return `mancano ${left} passi`;
 }
 
-export function OnboardingLayout({ step, totalSteps, onSkip, footer, children }: Props) {
+export function OnboardingLayout({ step, totalSteps, onBack, onSkip, footer, children }: Props) {
+  const ui3=useUiVersion()==='3.0';
   const meta = STEP_META[step];
   return (
-    <div className="fixed inset-0 flex flex-col overflow-hidden" style={{ background: 'rgb(var(--c-bg))' }}>
+    <div data-liquid-ui={ui3?'true':undefined} className="fixed inset-0 flex flex-col overflow-hidden" style={{ background: 'rgb(var(--c-bg))' }}>
       <div className="flex items-center justify-between px-6 pt-safe-top pt-6 flex-shrink-0">
-        <ArcLogo size={28} />
+        {onBack?<button type="button" onClick={onBack} className="ui-back" aria-label="Passaggio precedente">‹ Indietro</button>:<ArcLogo size={28} />}
         {onSkip && (
           <button onClick={onSkip}
             className="text-[13px] text-tertiary hover:text-primary transition-colors py-1 px-2 -mr-2">
-            Salta
+            Salta configurazione
           </button>
         )}
       </div>

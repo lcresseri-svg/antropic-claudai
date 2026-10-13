@@ -1,3 +1,5 @@
+import { ChartData } from '../../shared/components/ChartData';
+import { useUiVersion } from '../../shared/providers/UiVersionProvider';
 // Responsive SVG line chart for an account's BALANCE over time.
 // Unlike CategoryTrendLineChart the value can be negative (e.g. a credit card),
 // so the Y domain always includes zero and a faint baseline is drawn at 0 when
@@ -9,7 +11,8 @@ import { useId } from 'react';
 interface Point { label: string; value: number; }
 
 interface Props {
-  points: Point[];
+  presentation?: 'line' | 'bars';
+  title?: string; metricLabel?: string; points: Point[];
   formatValue: (v: number) => string;
   color?: string;           // line colour; defaults to the gold accent token
   height?: number;          // px, drawing area height
@@ -34,7 +37,10 @@ function smoothPath(pts: { x: number; y: number }[]): string {
   return d;
 }
 
-export function AccountBalanceLineChart({ points, formatValue, color = 'var(--accent)', height = 112 }: Props) {
+export function AccountBalanceLineChart({ points, formatValue, title='Saldo per conto', metricLabel='Saldo', color = 'var(--accent)', height = 112, presentation='line' }: Props) {
+  const ui3=useUiVersion()==='3.0';
+  const bars=ui3&&presentation==='bars';
+  const path=(pts:{x:number;y:number}[])=>ui3?pts.map((p,i)=>`${i?'L':'M'} ${p.x} ${p.y}`).join(' '):smoothPath(pts);
   const gradId = useId();
   const values = points.map(p => p.value);
   const hasData = points.length >= 2;
@@ -42,7 +48,7 @@ export function AccountBalanceLineChart({ points, formatValue, color = 'var(--ac
   if (!hasData) {
     return (
       <div className="flex items-center justify-center text-center text-secondary text-[11px] px-4" style={{ height }}>
-        Appena avrai più movimenti, Sunny potrà mostrarti l'andamento del saldo.
+        {ui3?'Appena avrai più movimenti, Sunny potrà mostrarti l’andamento.':"Appena avrai più movimenti, Sunny potrà mostrarti l’andamento del saldo."}
       </div>
     );
   }
@@ -56,7 +62,7 @@ export function AccountBalanceLineChart({ points, formatValue, color = 'var(--ac
   const y = (v: number) => PAD_TOP + (1 - (v - lo) / span) * plotH;
 
   const coords = values.map((v, i) => ({ x: x(i), y: y(v) }));
-  const line = smoothPath(coords);
+  const line = path(coords);
   const zeroY = y(0);
   const crossesZero = lo < 0 && hi > 0;
 
@@ -77,7 +83,8 @@ export function AccountBalanceLineChart({ points, formatValue, color = 'var(--ac
           </linearGradient>
         </defs>
 
-        <path d={area} fill={`url(#${gradId})`} />
+        {!bars&&<path d={area} fill={`url(#${gradId})`} />}
+        {bars&&values.map((v,i)=><rect data-chart-bar key={i} x={PAD_X+(i+.19)*(W-PAD_X*2)/values.length} y={Math.min(y(v),zeroY)} width={(W-PAD_X*2)/values.length*.62} height={Math.abs(y(v)-zeroY)} rx="2" fill={color}><title>{points[i].label}: {formatValue(v)}</title></rect>)}
 
         {/* Zero baseline — only when the range actually crosses zero. */}
         {crossesZero && (
@@ -86,11 +93,11 @@ export function AccountBalanceLineChart({ points, formatValue, color = 'var(--ac
             style={{ stroke: 'var(--border-strong)' }} strokeWidth="1" />
         )}
 
-        <path d={line} fill="none" vectorEffect="non-scaling-stroke"
-          style={{ stroke: color }} strokeWidth="1.75" strokeLinecap="round" strokeLinejoin="round" />
+        {!bars&&<path d={line} fill="none" vectorEffect="non-scaling-stroke"
+          style={{ stroke: color }} strokeWidth="1.75" strokeLinecap="round" strokeLinejoin="round" />}
 
         {/* Min / max / endpoint markers. */}
-        {coords.map((c, i) => (i === minIdx || i === maxIdx || i === coords.length - 1) && (
+        {!bars&&coords.map((c, i) => (i === minIdx || i === maxIdx || i === coords.length - 1) && (
           <circle key={i} cx={c.x} cy={c.y} r={2.6} fill={color} vectorEffect="non-scaling-stroke" />
         ))}
       </svg>
@@ -102,7 +109,8 @@ export function AccountBalanceLineChart({ points, formatValue, color = 'var(--ac
           </span>
         ))}
       </div>
-      <p className="text-[10px] text-secondary/70 text-center mt-1">Saldo a fine periodo: {formatValue(last ? values[values.length - 1] : 0)}</p>
+      <p className="text-[10px] text-secondary/70 text-center mt-1">{metricLabel} {bars?'nell’ultimo mese':'a fine periodo'}: {formatValue(last ? values[values.length - 1] : 0)}</p>
+      <ChartData title={title} columns={['Periodo',metricLabel]} rows={points.map(p=>[p.label,formatValue(p.value)])} scale="Scala ancorata allo zero."/>
     </div>
   );
 }

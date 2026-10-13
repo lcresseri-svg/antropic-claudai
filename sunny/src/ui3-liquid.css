@@ -1,0 +1,148 @@
+/* Liquid Glass only opts in on app shell and explicit portal surfaces.
+ * Root tokens and the Wrapped route remain the baseline. */
+[data-liquid-ui="true"] {
+ --bg:#050608; --surface-1:#101216; --surface-2:#171A20;
+ --text-1:#F7F8FA; --text-2:#AFB6C2; --text-3:#AFB6C2;
+ --border:#2D333D; --border-strong:#657080;
+ --c-bg:5 6 8; --c-surface:16 18 22; --c-card:16 18 22;
+ --c-card-hover:29 33 40; --c-elevated:23 26 32;
+ --c-primary:247 248 250; --c-secondary:175 182 194; --c-tertiary:175 182 194;
+ --c-divider:45 51 61; --c-divider-strong:101 112 128;
+ --ui-accent:#F2C46D; --ui-on-accent:#241704; --ui-accent-text:#F4C66A;
+ --ui-soft:#171A20; --ui-glass:rgb(5 6 8 / .76); --ui-focus:#8EB8FF;
+ --liquid-panel:rgb(16 18 22 / .96); --liquid-edge:rgb(255 255 255 / .16);
+ --ui-shadow:0 16px 48px rgb(0 0 0 / .22); --elev-1:0 3px 18px rgb(0 0 0 / .08); --elev-2:var(--ui-shadow);
+ --hero-bg:var(--surface-1); --hero-border-top:var(--border); --modal-hdr-bg:var(--surface-1);
+ --accent-surface:linear-gradient(145deg,#242015,#101216);
+ --ui-motion-sheet:260ms; color-scheme:dark;
+}
+html.light [data-liquid-ui="true"] {
+ --bg:#FFFFFF; --surface-1:#FFFFFF; --surface-2:#F7F9FC;
+ --text-1:#151619; --text-2:#5E6570; --text-3:#5E6570;
+ --border:#DBE0E7; --border-strong:#85909F;
+ --c-bg:255 255 255; --c-surface:255 255 255; --c-card:255 255 255;
+ --c-card-hover:242 245 249; --c-elevated:247 249 252;
+ --c-primary:21 22 25; --c-secondary:94 101 112; --c-tertiary:94 101 112;
+ --c-divider:219 224 231; --c-divider-strong:133 144 159;
+ --ui-accent:#F2C46D; --ui-on-accent:#241704; --ui-accent-text:#A5660A;
+ --ui-soft:#F7F9FC; --ui-glass:rgb(255 255 255 / .80); --ui-focus:#245CCC;
+ --liquid-panel:rgb(255 255 255 / .96); --liquid-edge:rgb(255 255 255 / .9);
+ --ui-shadow:0 16px 48px rgb(30 43 66 / .09); --elev-1:0 3px 18px rgb(30 43 66 / .04);
+ --accent-surface:linear-gradient(145deg,#FFFAEF,#FFFFFF); color-scheme:light;
+}
+[data-liquid-ui="true"] [data-liquid-preserve] {
+  color:var(--text-1);
+  --bg: #111516; --surface-1: #1C2223; --surface-2: #22292A;
+  --text-1: #F5F3EB; --text-2: #B3B6B1; --text-3: #B3B6B1;
+  --border: #343B3A; --border-strong: #646E6A;
+  --c-bg: 17 21 22; --c-surface: 28 34 35; --c-card: 28 34 35;
+  --c-card-hover: 39 47 48; --c-elevated: 34 41 42;
+  --c-primary: 245 243 235; --c-secondary: 179 182 177; --c-tertiary: 179 182 177;
+  --c-divider: 52 59 58; --c-divider-strong: 100 110 106;
+  --ui-accent: #F2C877; --ui-on-accent: #2D281C; --ui-accent-text: #F2C877;
+  --ui-soft: #272F30; --ui-glass: rgba(28,34,35,.96); --ui-focus: #A4C2FF;
+  --ui-shadow: 0 12px 36px rgba(0,0,0,.25);
+  --elev-1: 0 6px 20px rgba(0,0,0,.12); --elev-2: var(--ui-shadow);
+  --hero-bg: var(--surface-1); --hero-border-top: var(--border);
+  --modal-hdr-bg: var(--surface-1);
+  --accent-surface: linear-gradient(145deg,#302B22,#1C2223);
+  --ui-nav-width: 0px; --ui-gutter: 16px;
+  --ui-motion-press: 60ms; --ui-motion-feedback: 120ms; --ui-motion-exit: 160ms;
+  --ui-motion-nav: 220ms; --ui-motion-enter: 260ms; --ui-motion-sheet: 320ms;
+  color-scheme: dark;
+ }
+html.light [data-liquid-ui="true"] [data-liquid-preserve] {
+  color:var(--text-1);
+  --bg: #F8F6EF; --surface-1: #FFFEFA; --surface-2: #FFFEFA;
+  --text-1: #232524; --text-2: #696C65; --text-3: #696C65;
+  --border: #DEDED5; --border-strong: #868C80;
+  --c-bg: 248 246 239; --c-surface: 255 254 250; --c-card: 255 254 250;
+  --c-card-hover: 237 234 226; --c-elevated: 255 254 250;
+  --c-primary: 35 37 36; --c-secondary: 105 108 101; --c-tertiary: 105 108 101;
+  --c-divider: 222 222 213; --c-divider-strong: 134 140 128;
+  --ui-accent: #EDC27B; --ui-on-accent: #4E3518; --ui-accent-text: #80551A;
+  --ui-soft: #EDEAE2; --ui-glass: rgba(255,254,250,.96); --ui-focus: #496CBD;
+  --ui-shadow: 0 12px 36px rgba(81,67,50,.09);
+  --elev-1: 0 6px 20px rgba(81,67,50,.05);
+  --accent-surface: linear-gradient(145deg,#F9EAD0,#FFFEFA);
+  color-scheme: light;
+ }
+[data-liquid-ui="true"] :is(.ui3-nav,.ui3-header,.ui3-quick-menu) { background:var(--ui-glass); border-color:var(--liquid-edge); box-shadow:inset 0 1px 0 var(--liquid-edge),var(--ui-shadow); backdrop-filter:blur(22px); }
+[data-liquid-ui="true"][data-ui-dialog], [data-liquid-ui="true"].plan-dialog { background:var(--liquid-panel); border:1px solid var(--liquid-edge); box-shadow:inset 0 1px 0 var(--liquid-edge),var(--ui-shadow); backdrop-filter:blur(20px); }
+[data-liquid-ui="true"] :is(.glass-card,.hero-card):not([data-liquid-preserve] *) { background:var(--surface-1); backdrop-filter:none; }
+[data-liquid-ui="true"] .glass-card:not([data-liquid-preserve] *) { box-shadow:none; }
+[data-liquid-ui="true"] :is(.ui3-nav-link,.ui3-add,.ui3-month-line) { font-size:12px; }
+[data-liquid-ui="true"] .plan-hero-stats span { font-size:12px; }
+[data-liquid-ui="true"] :is(.plan-status,.plan-state,.plan-caption,.plan-category-list small,.plan-explainer,.plan-forecast-over) { font-size:12px; }
+[data-liquid-ui="true"] .plan-number { font-size:clamp(36px,6vw,64px); }
+[data-liquid-ui="true"] .plan-dialog-body .sunny-discard { color:var(--text-1); }
+html[data-ui-modal-open="true"] [data-liquid-ui="true"] .ui3-nav { visibility:hidden; }
+@media (max-width:639px) {
+ [data-liquid-ui="true"] .ui3-nav { bottom:max(8px,env(safe-area-inset-bottom)); border-radius:26px; padding-bottom:8px; }
+ [data-liquid-ui="true"] .ui3-nav-link { font-size:11px; }
+}
+@supports not (backdrop-filter:blur(1px)) {
+ [data-liquid-ui="true"] :is(.ui3-nav,.ui3-header,.ui3-quick-menu),[data-liquid-ui="true"][data-ui-dialog],[data-liquid-ui="true"].plan-dialog { background:var(--surface-1); }
+}
+@media (prefers-reduced-transparency:reduce),(forced-colors:active) {
+ [data-liquid-ui="true"] :is(.ui3-nav,.ui3-header,.ui3-quick-menu),[data-liquid-ui="true"][data-ui-dialog],[data-liquid-ui="true"].plan-dialog { background:var(--surface-1); backdrop-filter:none; }
+}
+@media (prefers-reduced-motion:reduce) {
+ [data-liquid-ui="true"] :is(.animate-rise-in,.animate-sheet-up,.animate-scale-in) { animation:none; transform:none; }
+}
+[data-liquid-ui="true"] .liquid-chart-data { margin-top:12px; color:var(--text-2); font-size:13px; }
+[data-liquid-ui="true"] .liquid-chart-data summary { cursor:pointer; min-height:44px; display:flex; align-items:center; color:var(--ui-accent-text); }
+[data-liquid-ui="true"] .liquid-chart-data > div { overflow:auto; max-height:320px; border:1px solid var(--border); border-radius:12px; }
+[data-liquid-ui="true"] .liquid-chart-data table { width:100%; border-collapse:collapse; font-variant-numeric:tabular-nums; }
+[data-liquid-ui="true"] .liquid-chart-data :is(th,td,caption) { padding:10px; text-align:right; white-space:nowrap; }
+[data-liquid-ui="true"] .liquid-chart-data th:first-child { text-align:left; }
+[data-liquid-ui="true"] .liquid-chart-data tr { border-bottom:1px solid var(--border); }
+/* Product direction, 12 October: open pages and horizontal divisions.
+   Raised materials belong to controls and temporary layers, not every section. */
+[data-liquid-ui="true"] .app-main :is(section,article,div).glass-card:not([data-liquid-preserve] *):not([data-ui-dialog] *):not([data-ui-dialog]),
+[data-liquid-ui="true"] .app-main .hero-card:not([data-liquid-preserve] *):not([data-ui-dialog] *) {
+ background:transparent; border:0; border-top:1px solid var(--border); border-radius:0;
+ box-shadow:none; backdrop-filter:none; padding-inline:0; padding-block:24px;
+}
+[data-liquid-ui="true"] .app-main :is(.hero-card,.ui-free-cash):not([data-liquid-preserve] *):not([data-ui-dialog] *) { border-top:0; padding-top:12px; }
+[data-liquid-ui="true"] .app-main :is(.accent-card):not([data-liquid-preserve] *):not([data-ui-dialog] *) { background:transparent; border:0; border-top:1px solid var(--border); border-radius:0; box-shadow:none; padding-inline:0; }
+[data-liquid-ui="true"] .ui-home-primary { gap:0; }
+[data-liquid-ui="true"] .ui-free-cash-layout > div:first-child > .balance-num { font-size:clamp(40px,11cqw,72px); font-weight:600; letter-spacing:-.055em; }
+[data-liquid-ui="true"] .ui-free-cash-ring { width:72px; height:72px; }
+[data-liquid-ui="true"] .ui-free-cash-mobile-stats { padding-top:20px; margin-top:24px; }
+[data-liquid-ui="true"] .ui-home-greeting { margin-bottom:28px; align-items:center; }
+[data-liquid-ui="true"] .ui-home-greeting > div > p:first-child { font-size:20px; }
+[data-liquid-ui="true"] .ui-home-greeting > button { border:0; background:transparent; box-shadow:none; padding-inline:0; font-size:12px; }
+[data-liquid-ui="true"] .plan-layout { gap:32px; }
+[data-liquid-ui="true"] :is(.plan-sidebar,.plan-main) { gap:0; }
+[data-liquid-ui="true"] .plan-number { font-weight:600; letter-spacing:-.055em; }
+[data-liquid-ui="true"] .plan-cushion { padding-inline:0; background:transparent; border-radius:0; }
+[data-liquid-ui="true"] .piano-page .plan-hero-detail { border:0; border-radius:0; padding-inline:0; text-align:left; color:var(--ui-accent-text); }
+[data-liquid-ui="true"] .piano-page .plan-cash-note { margin:0; }
+[data-liquid-ui="true"] .app-main .plan-card > h2 { margin-bottom:16px; font-size:18px; }
+[data-liquid-ui="true"] .app-main .plan-card:has(>.plan-section-heading) { padding-top:24px; }
+[data-liquid-ui="true"] .app-main .ui-settings-menu .glass-card { padding-block:8px; }
+@container app (min-width:46.5rem) {
+ [data-liquid-ui="true"] .ui-home-layout { display:grid; grid-template-columns:repeat(2,minmax(0,1fr)); column-gap:40px; row-gap:0; }
+ [data-liquid-ui="true"] :is(.ui-home-primary,.ui-home-support) { display:contents; }
+ [data-liquid-ui="true"] .ui-home-primary > .ui-free-cash { grid-column:1/-1; }
+ [data-liquid-ui="true"] .ui-home-charts { display:grid; grid-template-columns:repeat(2,minmax(0,1fr)); grid-column:1/-1; gap:40px; }
+ [data-liquid-ui="true"] .ui-home-support > :first-child { grid-column:1/-1; }
+ [data-liquid-ui="true"] .ui-free-cash-ring { width:96px; height:96px; }
+ [data-liquid-ui="true"] .ui-wealth-layout { gap:40px; }
+ [data-liquid-ui="true"] .ui-free-cash-layout > div:first-child > .balance-num { font-size:72px; }
+}
+html:has(.plan-dialog[open]) [data-liquid-ui="true"] .ui3-nav { visibility:hidden; }
+@media print {
+ [data-liquid-ui="true"] { --bg:#fff; --surface-1:#fff; --surface-2:#fff; --text-1:#17140f; --text-2:#403d37; --c-bg:255 255 255; --c-card:255 255 255; --c-elevated:255 255 255; --c-primary:23 20 15; --c-secondary:64 61 55; color:#17140f; background:#fff; }
+}
+[data-liquid-ui="true"] .liquid-progressive { border-top:1px solid var(--border); margin-block:16px; }
+[data-liquid-ui="true"] .liquid-progressive > summary { min-height:48px; cursor:pointer; padding-block:12px; font-size:14px; color:var(--text-2); }
+[data-liquid-ui="true"] .ui-free-cash-mobile-stats > * { flex:1 1 max-content; min-width:max-content; }
+
+/* Keep controls reachable when text grows in narrow viewports. */
+[data-liquid-ui="true"] .liquid-chart-legend { flex-wrap:wrap; gap:8px 16px; }
+[data-liquid-ui="true"] .ui-settings h1 { min-width:0; overflow-wrap:anywhere; }
+[data-liquid-ui="true"] .liquid-movements-header { flex-wrap:wrap; height:auto; min-height:56px; }
+[data-liquid-ui="true"] .liquid-movements-header > h1 { min-width:0; overflow-wrap:anywhere; }
+[data-liquid-ui="true"] .liquid-movements-header > .flex-none button { width:44px; height:44px; }

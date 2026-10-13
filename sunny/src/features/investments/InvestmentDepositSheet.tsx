@@ -124,7 +124,7 @@ export function InvestmentDepositSheet({ open, preselectCategory, onSave, onClos
     : 'Versa';
 
   return (
-    <SheetShell open={open} title="Versa" onClose={onClose} onBack={onBack}>
+    <SheetShell draftSignature={JSON.stringify([category,amount,date,account,fee,tfr,notes,isRecurring,recurringRule,recurringUntil,spreadChoice,spreadCustom])} saving={saving} open={open} title="Versa" onClose={onClose} onBack={onBack}>
       <form onSubmit={submit} className="space-y-3 sm:space-y-4">
         <Field label="Categoria">
           <div className="grid grid-cols-2 sm:grid-cols-3 gap-2">

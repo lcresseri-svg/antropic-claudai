@@ -46,3 +46,6 @@ export function useUiSessionState<T>(key: string, initial: T | (() => T)): [T, D
   useLayoutEffect(() => { if(version==='3.0') session?.set(key,value); },[session,version,key,value]);
   return [value,setValue];
 }
+
+/** User-scoped navigation memory; never persisted across account switches. */
+export const useUiNavigationMemory = () => useContext(SessionContext);

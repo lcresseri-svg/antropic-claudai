@@ -1,3 +1,4 @@
+import { readTransactionRange } from '../../shared/transactionRoute';
 import { useState, useMemo, useEffect } from 'react';
 import { useSearchParams } from 'react-router-dom';
 import { useUiSessionState } from '../../shared/providers/UiVersionProvider';
@@ -23,8 +24,8 @@ interface Props {
   projected?: Transaction[]; // virtual future occurrences — display only
   onEdit: (tx: Transaction) => void;
   onDelete: (id: string) => void;
-  onBulkUpdate: (ids: string[], patch: TransactionPatch) => void;
-  onBulkDelete: (ids: string[]) => void;
+  onBulkUpdate: (ids: string[], patch: TransactionPatch) => void | Promise<void>;
+  onBulkDelete: (ids: string[]) => void | Promise<void>;
   onAdd: () => void;
 }
 
@@ -79,8 +80,12 @@ export function TransactionList({ transactions, projected = [], onEdit, onDelete
   const { categories, accounts, getAcc, getCat, theme } = useSettings();
   // Optional category filter driven by the URL (?cat=<id>) — set when arriving
   // from the "Vedi tutti i movimenti" CTA of the Categorie analytics screen.
-  // TODO: also honour a ?period= param to scope the list to a specific window.
   const [searchParams, setSearchParams] = useSearchParams();
+  const explicitRange=readTransactionRange(searchParams);
+  const rangeFrom=explicitRange?.from,rangeTo=explicitRange?.to;
+  const queryType=searchParams.get('type');
+  const initialType:TransactionType|'all'=queryType&&queryType in TYPE_META?queryType as TransactionType:'all';
+  const viewKey=searchParams.toString();
   const catFilter = searchParams.get('cat');
   const clearCatFilter = () => setSearchParams(p => { p.delete('cat'); return p; }, { replace: true });
   // Optional investment-position filter (?investment=<categoryId>) — set by the
@@ -102,21 +107,22 @@ export function TransactionList({ transactions, projected = [], onEdit, onDelete
   // giorno tappato mostra esattamente i movimenti che hanno riempito la cella.
   const dateFilter = searchParams.get('date');
   const clearDateFilter = () => setSearchParams(p => { p.delete('date'); return p; }, { replace: true });
-  const [search, setSearch] = useUiSessionState('transactions.search','');
+  const [search, setSearch] = useUiSessionState(`transactions.search:${viewKey}`,'');
   // La ricerca non è più una barra sempre presente: è un'icona che si apre.
-  const [searchOpen, setSearchOpen] = useUiSessionState('transactions.searchOpen',false);
-  const [typeFilter, setTypeFilter] = useUiSessionState<TransactionType | 'all'>('transactions.type','all');
+  const [searchOpen, setSearchOpen] = useUiSessionState(`transactions.searchOpen:${viewKey}`,false);
+  const [typeFilter, setTypeFilter] = useUiSessionState<TransactionType | 'all'>(`transactions.type:${viewKey}`,initialType);
   // Per giorno è la vista di default: è come si guarda il mese in corso.
-  const [groupMode, setGroupMode] = useUiSessionState<GroupMode>('transactions.group','day');
-  const [sortKey, setSortKey] = useUiSessionState<SortKey>('transactions.sort','date');
-  const [sortDir, setSortDir] = useUiSessionState<SortDir>('transactions.direction','desc');
-  const [period, setPeriod] = useUiSessionState<PeriodFilter>('transactions.period','all');
-  const [projView, setProjView] = useUiSessionState<ProjView>('transactions.projected',PROJ_DEFAULT);
+  const [groupMode, setGroupMode] = useUiSessionState<GroupMode>(`transactions.group:${viewKey}`,'day');
+  const [sortKey, setSortKey] = useUiSessionState<SortKey>(`transactions.sort:${viewKey}`,'date');
+  const [sortDir, setSortDir] = useUiSessionState<SortDir>(`transactions.direction:${viewKey}`,'desc');
+  const [period, setPeriod] = useUiSessionState<PeriodFilter>(`transactions.period:${viewKey}`,'all');
+  const [projView, setProjView] = useUiSessionState<ProjView>(`transactions.projected:${viewKey}`,PROJ_DEFAULT);
   const [filterOpen, setFilterOpen] = useState(false);
   const [collapsed, setCollapsed] = useState<Set<string>>(new Set());
   const [selectMode, setSelectMode] = useState(false);
   const [selected, setSelected] = useState<Set<string>>(new Set());
   const [picker, setPicker] = useState<'category' | 'account' | null>(null);
+  const [bulkBusy,setBulkBusy]=useState(false),[bulkError,setBulkError]=useState('');
   const [confirmDelete, setConfirmDelete] = useState(false);
 
   // Series display support for the rows: instances don't carry the recurring
@@ -158,7 +164,7 @@ export function TransactionList({ transactions, projected = [], onEdit, onDelete
   const filtered = useMemo(() => {
     const q = search.trim().toLowerCase();
     const now = new Date();
-    const cutoff = periodCutoff(period, now);
+    const cutoff = explicitRange ? null : periodCutoff(period, now);
     const projCut = projectedCutoffISO(projView, now);
 
     // Future-dated one-off "previsti" are real documents that live in
@@ -205,6 +211,8 @@ export function TransactionList({ transactions, projected = [], onEdit, onDelete
       .filter(t => !accFilter || t.account === accFilter || t.toAccount === accFilter)
       .filter(t => !seriesFilter || t.seriesId === seriesFilter || t.id === seriesFilter)
       .filter(t => !dateFilter || t.date === dateFilter)
+      .filter(t => !rangeFrom || t.date >= rangeFrom)
+      .filter(t => !rangeTo || t.date <= rangeTo)
       .filter(t => !cutoff || new Date(t.date) >= cutoff)
       .filter(matches)
       .sort((a, b) => {
@@ -219,7 +227,7 @@ export function TransactionList({ transactions, projected = [], onEdit, onDelete
         }
         return sortDir === 'desc' ? diff : -diff;
       });
-  }, [transactions, projected, projView, typeFilter, period, search, sortKey, sortDir, categories, accounts, catFilter, accFilter, seriesFilter, investFilter, dateFilter]);
+  }, [transactions, projected, projView, typeFilter, period, search, sortKey, sortDir, categories, accounts, catFilter, accFilter, seriesFilter, investFilter, dateFilter, rangeFrom, rangeTo]);
 
   // Human name for the active series filter pill ("Serie: Netflix").
   const seriesFilterLabel = seriesFilter
@@ -315,7 +323,7 @@ export function TransactionList({ transactions, projected = [], onEdit, onDelete
     });
   };
 
-  const exitSelect = () => { setSelectMode(false); setSelected(new Set()); setConfirmDelete(false); };
+  const exitSelect = () => { if(bulkBusy)return;setBulkError('');setSelectMode(false); setSelected(new Set()); setConfirmDelete(false); };
 
   const usedTypes = TYPE_ORDER.filter(t => transactions.some(tx => tx.type === t));
   // There are forecasts to govern if we have recurring projections OR any
@@ -323,11 +331,16 @@ export function TransactionList({ transactions, projected = [], onEdit, onDelete
   const hasUpcoming = projected.length > 0 || transactions.some(t => isPending(t, TODAY_ISO));
   const ids = [...selected];
 
-  const applyPatch = (patch: TransactionPatch) => {
-    onBulkUpdate(ids, patch);
-    setPicker(null);
-    exitSelect();
+  const runBulk = async (action:()=>void|Promise<void>) => {
+    if(bulkBusy)return;
+    setBulkBusy(true);setBulkError('');
+    try { await action();setPicker(null);setSelectMode(false);setSelected(new Set());setConfirmDelete(false); }
+    catch(e){setBulkError((e as Error).message||'Operazione non riuscita. La selezione è conservata: riprova.');}
+    finally{setBulkBusy(false);}
   };
+  const applyPatch = (patch: TransactionPatch) => { void runBulk(()=>onBulkUpdate(ids, patch)); };
+  const selectedTypes=new Set(transactions.filter(t=>selected.has(t.id)).map(t=>t.type));
+  const categoryOptions=categories.filter(c=>!c.archived&&selectedTypes.size===1&&selectedTypes.has(c.kind));
 
   const filterActive = period !== 'all' || sortKey !== 'date' || sortDir !== 'desc' || projView !== PROJ_DEFAULT || groupMode !== 'day';
   const periodLabel = PERIOD_OPTS.find(o => o.value === period)!.label;
@@ -337,9 +350,9 @@ export function TransactionList({ transactions, projected = [], onEdit, onDelete
     : [['desc', 'Più recenti'], ['asc', 'Meno recenti']];
 
   return (
-    <div className="pb-28">
+    <div className="pb-28" aria-busy={bulkBusy} onClickCapture={e=>{if(bulkBusy){e.preventDefault();e.stopPropagation();}}}>
       {/* Header 56px — titolo, ricerca a icona, selezione multipla */}
-      <div className="h-14 flex items-center gap-2">
+      <div className="liquid-movements-header h-14 flex items-center gap-2">
         {searchOpen ? (
           <div className="relative flex-1">
             <svg className="absolute left-3.5 top-1/2 -translate-y-1/2 text-secondary" width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
@@ -493,7 +506,7 @@ export function TransactionList({ transactions, projected = [], onEdit, onDelete
       </div>
 
       {/* Filtri attivi — pill rimovibili */}
-        {(period !== 'all' || projView !== PROJ_DEFAULT || catFilter || accFilter || seriesFilter || investFilter) && (
+        {(period !== 'all' || projView !== PROJ_DEFAULT || catFilter || accFilter || seriesFilter || investFilter || dateFilter || explicitRange) && (
           <div className="flex flex-wrap gap-2">
             {investFilter && (
               <button onClick={clearInvestFilter}
@@ -513,6 +526,7 @@ export function TransactionList({ transactions, projected = [], onEdit, onDelete
                 </svg>
               </button>
             )}
+            {explicitRange&&<button className="px-3 py-2 rounded-full bg-elevated text-sm" onClick={()=>setSearchParams(p=>{p.delete('from');p.delete('to');return p;},{replace:true})} aria-label="Azzera periodo">{formatDateFull(explicitRange.from)} – {formatDateFull(explicitRange.to)} ✕</button>}
             {dateFilter && (
               <button onClick={clearDateFilter}
                 className="inline-flex items-center gap-1.5 bg-gold/10 text-gold rounded-full pl-3 pr-2 py-1 text-xs font-medium">
@@ -684,16 +698,18 @@ export function TransactionList({ transactions, projected = [], onEdit, onDelete
         </div>
       )}
 
+      {bulkError&&<p role="alert" className="text-red p-3">{bulkError} Riprova mantenendo la selezione.</p>}
+      {bulkBusy&&<p role="status">Salvataggio in corso…</p>}
       {/* Bulk action bar */}
       {selectMode && selected.size > 0 && (
         <div className="fixed bottom-0 inset-x-0 z-40 p-3 safe-bottom animate-sheet-up">
           <div className="max-w-2xl mx-auto bg-elevated/95 backdrop-blur rounded-2xl shadow-float p-3 flex items-center gap-2">
             <span className="text-sm font-semibold text-primary px-2 whitespace-nowrap">{selected.size} sel.</span>
             <div className="flex-1 flex gap-2 justify-end">
-              <BarBtn onClick={() => setPicker('category')}>Categoria</BarBtn>
+              <BarBtn onClick={() => selectedTypes.size!==1?setBulkError('Seleziona movimenti dello stesso tipo per cambiare categoria.'):setPicker('category')}>Categoria</BarBtn>
               <BarBtn onClick={() => setPicker('account')}>Conto</BarBtn>
               {confirmDelete
-                ? <BarBtn danger onClick={() => { onBulkDelete(ids); exitSelect(); }}>Conferma ({selected.size})</BarBtn>
+                ? <BarBtn danger onClick={() => { void runBulk(()=>onBulkDelete(ids)); }}>Conferma ({selected.size})</BarBtn>
                 : <BarBtn danger onClick={() => setConfirmDelete(true)}>Elimina</BarBtn>
               }
             </div>
@@ -703,7 +719,7 @@ export function TransactionList({ transactions, projected = [], onEdit, onDelete
 
       <OptionSheet
         open={picker === 'category'} title="Sposta in categoria"
-        options={categories}
+        options={categoryOptions}
         onPick={id => applyPatch({ category: id })}
         onClose={() => setPicker(null)}
       />

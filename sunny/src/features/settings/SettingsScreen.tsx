@@ -22,6 +22,7 @@ interface Props {
   transactions: Transaction[];
   /** Monthly budget state — included in the GDPR data export when present. */
   budgetExport?: BudgetExportInput;
+  onImport?: () => void;
   onLogOut: () => void;
   onDeleteAll: () => Promise<void>;
   onDeleteAccount: () => Promise<void>;
@@ -45,7 +46,7 @@ function reorder<T>(arr: T[], from: number, to: number): T[] {
   return next;
 }
 
-export function SettingsScreen({ user, transactions, budgetExport, onLogOut, onDeleteAll, onDeleteAccount }: Props) {
+export function SettingsScreen({ user, transactions, budgetExport, onImport, onLogOut, onDeleteAll, onDeleteAccount }: Props) {
   const navigate = useNavigate();
   const ui3 = useUiVersion() === '3.0';
   const location = useLocation();
@@ -631,6 +632,7 @@ export function SettingsScreen({ user, transactions, budgetExport, onLogOut, onD
           <ManageHeader title="Dati" editMode={false} onBack={exitToMenu} onToggleEdit={() => {}} hideEdit />
           <div className="space-y-4 md:max-w-xl">
             <div className="bg-card rounded-2xl divide-y divide-divider">
+              {onImport&&<button type="button" className="w-full text-left p-4 text-primary" onClick={onImport}>Importa un file CSV o Excel ↗</button>}
               <button onClick={exportJson}
                 className="w-full flex items-center gap-3.5 p-4 text-left active:bg-card-hover first:rounded-t-2xl">
                 <span className="w-9 h-9 rounded-full flex items-center justify-center text-base flex-shrink-0" style={{ backgroundColor: '#6FA8DC22' }}>📦</span>

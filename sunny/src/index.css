@@ -1,5 +1,6 @@
 @import url('https://fonts.googleapis.com/css2?family=DM+Serif+Display&display=swap');
 @import './ui-v3.css';
+@import './ui3-liquid.css';
 
 @tailwind base;
 @tailwind components;

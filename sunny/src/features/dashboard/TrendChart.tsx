@@ -1,5 +1,7 @@
+import { ChartData } from '../../shared/components/ChartData';
+import { useUiVersion } from '../../shared/providers/UiVersionProvider';
 import { useState } from 'react';
-import { formatMonthShort, capitalize } from '../../utils';
+import { formatCurrency, formatMonthShort, capitalize } from '../../utils';
 
 interface Props {
   data: { key: string; income: number; expense: number; invest: number }[];
@@ -18,8 +20,9 @@ function toPoints(values: number[], max: number): { x: number; y: number }[] {
   }));
 }
 
-function smoothPath(pts: { x: number; y: number }[]): string {
+function smoothPath(pts: { x: number; y: number }[], linear=false): string {
   if (pts.length < 2) return '';
+  if(linear)return pts.map((p,i)=>`${i?'L':'M'} ${p.x} ${p.y}`).join(' ');
   let d = `M ${pts[0].x} ${pts[0].y}`;
   for (let i = 0; i < pts.length - 1; i++) {
     const p0 = pts[Math.max(i - 1, 0)];
@@ -36,19 +39,19 @@ function smoothPath(pts: { x: number; y: number }[]): string {
   return d;
 }
 
-function areaToBase(pts: { x: number; y: number }[]): string {
+function areaToBase(pts: { x: number; y: number }[],linear=false): string {
   if (pts.length < 2) return '';
-  const line = smoothPath(pts);
+  const line = smoothPath(pts,linear);
   const last = pts[pts.length - 1];
   const first = pts[0];
   return `${line} L ${last.x} ${H} L ${first.x} ${H} Z`;
 }
 
 /** Filled band between a top curve and a bottom curve (both smoothed). */
-function areaBetween(top: { x: number; y: number }[], bottom: { x: number; y: number }[]): string {
+function areaBetween(top: { x: number; y: number }[], bottom: { x: number; y: number }[],linear=false): string {
   if (top.length < 2) return '';
-  const topLine = smoothPath(top);
-  const botReversed = smoothPath([...bottom].reverse()).replace(/^M/, 'L');
+  const topLine = smoothPath(top,linear);
+  const botReversed = smoothPath([...bottom].reverse(),linear).replace(/^M/, 'L');
   return `${topLine} ${botReversed} Z`;
 }
 
@@ -71,6 +74,7 @@ const LEGEND: { key: SeriesKey; label: string }[] = [
 ];
 
 export function TrendChart({ data }: Props) {
+  const ui3=useUiVersion()==='3.0';
   // Each series toggles independently. When BOTH uscite and investimenti are
   // shown, investimenti is STACKED on top of uscite (gold line = uscite +
   // investito = total money going out); when only one of the two is shown it's
@@ -128,21 +132,21 @@ export function TrendChart({ data }: Props) {
 
             {/* Areas — uscite from base, investimenti either as a band on top of
                 uscite (stacked) or from base (standalone), entrate from base. */}
-            {show.expense && <path d={areaToBase(expPts)} fill={FILLS.expense} />}
+            {show.expense && <path d={areaToBase(expPts,ui3)} fill={FILLS.expense} />}
             {show.invest && (stackInvest
-              ? <path d={areaBetween(invTopPts, expPts)} fill={FILLS.invest} />
-              : <path d={areaToBase(invTopPts)} fill={FILLS.invest} />)}
-            {show.income && <path d={areaToBase(incPts)} fill={FILLS.income} />}
+              ? <path d={areaBetween(invTopPts, expPts,ui3)} fill={FILLS.invest} />
+              : <path d={areaToBase(invTopPts,ui3)} fill={FILLS.invest} />)}
+            {show.income && <path d={areaToBase(incPts,ui3)} fill={FILLS.income} />}
 
             {/* Lines */}
             {show.income && (
-              <path d={smoothPath(incPts)} fill="none" vectorEffect="non-scaling-stroke" style={{ stroke: COLORS.income }} strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" />
+              <path d={smoothPath(incPts,ui3)} fill="none" vectorEffect="non-scaling-stroke" style={{ stroke: COLORS.income }} strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" />
             )}
             {show.expense && (
-              <path d={smoothPath(expPts)} fill="none" vectorEffect="non-scaling-stroke" style={{ stroke: COLORS.expense }} strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" />
+              <path d={smoothPath(expPts,ui3)} fill="none" vectorEffect="non-scaling-stroke" style={{ stroke: COLORS.expense }} strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" />
             )}
             {show.invest && (
-              <path d={smoothPath(invTopPts)} fill="none" vectorEffect="non-scaling-stroke" style={{ stroke: COLORS.invest }} strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" strokeDasharray="3 2.5" />
+              <path d={smoothPath(invTopPts,ui3)} fill="none" vectorEffect="non-scaling-stroke" style={{ stroke: COLORS.invest }} strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" strokeDasharray="3 2.5" />
             )}
           </svg>
 
@@ -158,6 +162,7 @@ export function TrendChart({ data }: Props) {
           </div>
         </div>
       )}
+      <ChartData title="Entrate, uscite e investimenti" columns={['Mese','Entrate','Uscite','Investimenti']} rows={data.map(p=>[p.key,formatCurrency(p.income),formatCurrency(p.expense),formatCurrency(p.invest)])} scale="Scala da zero. Con entrambe le serie attive, la linea investimenti include le uscite; la tabella mantiene gli importi separati."/>
     </div>
   );
 }

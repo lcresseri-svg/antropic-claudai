@@ -284,7 +284,7 @@ function Main({ user, onLogOut, onDeleteAccount }: {
   }, [tx.synced]);
 
   return (
-    <div data-ui-version={uiVersion} className={uiVersion === '3.0' ? 'h-full app-shell ui3-shell' : 'h-full md:flex ui-v2'}>
+    <div data-liquid-ui={uiVersion==='3.0'&&!location.pathname.startsWith('/wrapped/')?'true':undefined} data-ui-version={uiVersion} className={uiVersion === '3.0' ? 'h-full app-shell ui3-shell' : 'h-full md:flex ui-v2'}>
       {/* Global backdrop for settings dropdown — outside the header stacking context */}
       {settingsOpen && (!isSettings || uiVersion === '3.0') && (
         <div className="fixed inset-0 z-[35]" onClick={() => setSettingsOpen(false)} />

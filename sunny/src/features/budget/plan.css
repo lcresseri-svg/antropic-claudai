@@ -116,3 +116,10 @@
   .plan-editor footer { bottom:0; }
 }
 @media(prefers-reduced-motion:reduce) {.piano-page *,.plan-dialog * { transition:none!important;animation:none!important;scroll-behavior:auto!important; }}
+
+/* One scroll owner; opening a nested confirmation cannot change the form box. */
+.plan-dialog[open] { display:flex;flex-direction:column;overflow:hidden; }
+.plan-dialog>header { flex-shrink:0; }
+.plan-dialog-body { min-height:0;overflow-y:auto;overscroll-behavior:contain; }
+.plan-dialog .sunny-discard h2 { font-size:20px; }
+.plan-dialog .sunny-discard button:first-child { color:rgb(var(--c-bg)); }

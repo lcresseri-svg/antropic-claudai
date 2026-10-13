@@ -1,3 +1,4 @@
+import { ChartData } from '../../shared/components/ChartData';
 // Andamento del capitale investito negli ultimi 12 mesi.
 //
 // NOTA IMPORTANTE sul perché non ci sono DUE curve. Il design chiedeva
@@ -30,6 +31,7 @@ const PAD_X = 10;
 const PAD_TOP = 12;
 
 export function InvestmentTrendChart({ points, controvalore, height = 120 }: Props) {
+
   if (points.length < 2) return null;
 
   const values = points.map(p => p.versato);
@@ -89,6 +91,7 @@ export function InvestmentTrendChart({ points, controvalore, height = 120 }: Pro
         )}
         <span className="ml-auto text-tertiary">12 mesi</span>
       </div>
+      <ChartData title="Capitale investito" columns={['Mese','Versato']} rows={points.map(p=>[p.key,formatCurrency(p.versato)])} scale="Scala adattata ai valori, non ancorata allo zero. Controvalore disponibile solo per oggi."/>
     </div>
   );
 }

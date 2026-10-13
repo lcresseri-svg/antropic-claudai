@@ -51,7 +51,7 @@ export const DialogSurface = forwardRef<HTMLDivElement, HTMLAttributes<HTMLDivEl
     };
     focusInitial();
     const onKey = (event: KeyboardEvent) => {
-      if (stack[stack.length - 1] !== dialog) return;
+      if (stack[stack.length - 1] !== dialog || dialog.querySelector('[data-discard-confirmation][open]')) return;
       if (event.key === 'Escape') {
         event.preventDefault(); event.stopImmediatePropagation(); dismiss.current();
       } else if (event.key === 'Tab') {
@@ -102,7 +102,7 @@ export const DialogSurface = forwardRef<HTMLDivElement, HTMLAttributes<HTMLDivEl
       target?.focus({ preventScroll: true });
     };
   }, [version, kind]);
-  return <div {...props} ref={ref} role={version === '3.0' ? 'dialog' : props.role}
+  return <div {...props} data-liquid-ui={version==='3.0'?'true':undefined} ref={ref} role={version === '3.0' ? 'dialog' : props.role}
     aria-modal={version === '3.0' ? true : props['aria-modal']}
     aria-label={version === '3.0' ? title : props['aria-label']}
     data-ui-dialog={version === '3.0' ? kind : undefined}>

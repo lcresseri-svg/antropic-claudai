@@ -1,3 +1,5 @@
+import { DiscardConfirmation } from '../../shared/components/DiscardConfirmation';
+import { useUiVersion } from '../../shared/providers/UiVersionProvider';
 import { DialogSurface } from '../../shared/components/DialogSurface';
 import { useState, useRef } from 'react';
 import { useEscapeKey } from '../../shared/hooks/useEscapeKey';
@@ -20,6 +22,8 @@ const PREVIEW_ROWS = 60;
 export function ImportModal({ open, onClose, onImport }: Props) {
   // Imports must never resolve to an archived (soft-deleted) definition.
   const { visibleCategories, visibleAccounts, theme } = useSettings();
+  const ui3=useUiVersion()==='3.0';
+  const [confirmDiscard,setConfirmDiscard]=useState(false);
   const [step, setStep] = useState<Step>('upload');
   const [parsed, setParsed] = useState<Omit<Transaction, 'id'>[]>([]);
   const [errors, setErrors] = useState<string[]>([]);
@@ -55,7 +59,8 @@ export function ImportModal({ open, onClose, onImport }: Props) {
   };
 
   const reset = () => { setStep('upload'); setParsed([]); setErrors([]); setWarnings([]); setImportError(null); };
-  const close = () => { reset(); onClose(); };
+  const discard=()=>{setConfirmDiscard(false);reset();onClose();};
+  const close = () => { if(step==='importing')return;if(ui3&&step==='preview')setConfirmDiscard(true);else discard(); };
 
   const runImport = async () => {
     setImportError(null);
@@ -129,7 +134,7 @@ export function ImportModal({ open, onClose, onImport }: Props) {
     XLSX.writeFile(wb, 'sunny-template.xlsx');
   };
 
-  useEscapeKey(close, open);
+  useEscapeKey(close, open&&!confirmDiscard);
 
   if (!open) return null;
 
@@ -147,13 +152,14 @@ export function ImportModal({ open, onClose, onImport }: Props) {
                 : `${fileName || 'file'} · ${parsed.length + errors.length} righe lette`}
             </p>
           </div>
-          <button onClick={close} className="w-8 h-8 rounded-full bg-elevated flex items-center justify-center text-secondary">✕</button>
+          <button aria-label="Chiudi" onClick={close} className="w-8 h-8 rounded-full bg-elevated flex items-center justify-center text-secondary">✕</button>
         </div>
 
         <div className="flex-1 overflow-y-auto overscroll-contain scrollbar-hide px-6">
           {step === 'upload' && (
             <div className="space-y-3">
               <div
+                role="button" tabIndex={0} aria-label="Scegli file CSV o Excel" onKeyDown={e=>{if(e.key==='Enter'||e.key===' '){e.preventDefault();fileRef.current?.click();}}}
                 onDragOver={e => { e.preventDefault(); setDragging(true); }}
                 onDragLeave={() => setDragging(false)}
                 onDrop={e => { e.preventDefault(); setDragging(false); const f = e.dataTransfer.files[0]; if (f) process(f); }}
@@ -269,6 +275,7 @@ export function ImportModal({ open, onClose, onImport }: Props) {
           )}
           {step === 'done' && <button onClick={close} className="flex-1 py-3.5 rounded-2xl bg-gold text-bg font-semibold">Chiudi</button>}
         </div>
+        {confirmDiscard&&<DiscardConfirmation onContinue={()=>setConfirmDiscard(false)} onDiscard={discard} description="Il file non è stato importato. La preparazione verrà scartata; i movimenti esistenti rimangono invariati."/>}
       </DialogSurface>
     </div>
   );

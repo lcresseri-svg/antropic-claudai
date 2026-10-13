@@ -1,3 +1,4 @@
+import { transactionRoute } from '../../shared/transactionRoute';
 // "Categorie" — analytics for how spending breaks down by category over time.
 // Period selector (Mese / 3M / 6M / 12M) + period navigation, a period summary,
 // a deterministic Sunny insight, a compact composition bar, and a horizontal-bar
@@ -165,7 +166,7 @@ export function CategorySpendingScreen({ transactions, categoryBudgets }: Props)
           now={now}
           depth={insightDepth}
           onClose={() => setSelectedId(null)}
-          onSeeAll={() => navigate(`/transactions?cat=${selected.categoryId}`)}
+          onSeeAll={() => navigate(transactionRoute({cat:selected.categoryId,type:'expense'},range.start,range.end))}
         />
       )}
     </div>

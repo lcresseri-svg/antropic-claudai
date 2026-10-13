@@ -1,3 +1,4 @@
+import { useUiVersion } from '../../shared/providers/UiVersionProvider';
 import { useEffect, useState } from 'react';
 import { User } from 'firebase/auth';
 import { doc, setDoc, serverTimestamp } from 'firebase/firestore';
@@ -59,6 +60,8 @@ const CAT_ORDER: InsightCategory[] = ['alert', 'forecast', 'seasonal', 'trend', 
 
 export function InsightsScreenV2(p: Props) {
   const { getCat, insightDepth, visibleCategories } = useSettings();
+  const ui3=useUiVersion()==='3.0';
+  const [allSuggestions,setAllSuggestions]=useState(false);
   const user = p.user ?? null;
   const [detail, setDetail] = useState<Insight | null>(null);
   const [advancedOpen, setAdvancedOpen] = useState(false);
@@ -114,7 +117,8 @@ export function InsightsScreenV2(p: Props) {
 
   // Group insights into 4 display groups
   const grouped = new Map<DisplayGroup, Insight[]>();
-  for (const ins of insights) {
+  const remaining=insights.filter(i=>i!==shown&&!dismissed.has(i.title));
+  for (const ins of (ui3&&!allSuggestions?remaining.slice(0,3):remaining)) {
     if (ins === shown || dismissed.has(ins.title)) continue;
     const group = CATEGORY_TO_GROUP[ins.category];
     const list = grouped.get(group) ?? [];
@@ -226,6 +230,7 @@ export function InsightsScreenV2(p: Props) {
         })}
       </div>
 
+      {ui3&&remaining.length>3&&<button className="text-gold py-3" aria-expanded={allSuggestions} onClick={()=>setAllSuggestions(v=>!v)}>{allSuggestions?'Mostra meno':`Tutti i consigli (${remaining.length})`}</button>}
       <InsightDetailSheet insight={detail} onClose={() => setDetail(null)} />
     </div>
   );

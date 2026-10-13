@@ -4,16 +4,18 @@ import { db } from '../../../lib/firebase';
 
 interface Props {
   uid: string;
+  onBusyChange?: (busy:boolean)=>void;
   onNext: (target: number | null) => void;
 }
 
 const PRESETS = [100, 300, 500];
 
-export function SavingsTargetStep({ uid, onNext }: Props) {
+export function SavingsTargetStep({ uid, onNext, onBusyChange }: Props) {
   const [selected, setSelected] = useState<number | null>(null);
   const [custom, setCustom] = useState('');
   const [isCustom, setIsCustom] = useState(false);
   const [saving, setSaving] = useState(false);
+  const [error,setError]=useState('');
 
   const effectiveTarget = isCustom
     ? (custom ? parseFloat(custom.replace(',', '.')) || null : null)
@@ -22,13 +24,14 @@ export function SavingsTargetStep({ uid, onNext }: Props) {
   const handleContinue = async () => {
     if (saving) return;
     if (effectiveTarget !== null && effectiveTarget > 0) {
-      setSaving(true);
-      await setDoc(
+      setSaving(true);onBusyChange?.(true);setError('');
+      try { await setDoc(
         doc(db, 'users', uid, 'meta', 'budget'),
         { savingsTarget: effectiveTarget },
         { merge: true },
       );
-      setSaving(false);
+      } catch { setError("Salvataggio non riuscito. Riprova: l’importo è ancora qui."); return; }
+      finally { setSaving(false);onBusyChange?.(false); }
     }
     onNext(effectiveTarget);
   };
@@ -74,7 +77,7 @@ export function SavingsTargetStep({ uid, onNext }: Props) {
               inputMode="decimal"
               value={custom}
               onChange={e => setCustom(e.target.value)}
-              placeholder="Importo personalizzato"
+              aria-label="Importo personalizzato" placeholder="Importo personalizzato"
               className="bg-transparent w-full text-primary text-sm focus:outline-none"
             />
           ) : (
@@ -83,13 +86,14 @@ export function SavingsTargetStep({ uid, onNext }: Props) {
         </button>
 
         <button
-          onClick={() => onNext(null)}
+          disabled={saving} onClick={() => onNext(null)}
           className="w-full py-2.5 px-4 text-sm text-secondary hover:text-primary transition-colors"
         >
           Decido dopo
         </button>
       </div>
 
+      {error&&<p role="alert" className="text-red">{error}</p>}
       {(effectiveTarget !== null && effectiveTarget > 0) && (
         <button
           onClick={handleContinue}

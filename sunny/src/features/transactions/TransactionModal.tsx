@@ -1,3 +1,4 @@
+import { DiscardConfirmation } from '../../shared/components/DiscardConfirmation';
 import { createContext, useContext, useState, useEffect, useLayoutEffect, useMemo, useRef, useCallback } from 'react';
 import { Transaction, TransactionType, TYPE_META, TYPE_ORDER, RecurrenceRule, SeriesMeta, SeriesKind, AccountDef, typeColor, typeOnColor } from '../../types';
 import { formatCurrency, formatDate, guessCategory } from '../../utils';
@@ -606,12 +607,9 @@ export function TransactionModal({ open, editing, groupTransfers = [], seriesEdi
           <span className="w-8 flex-none" aria-hidden />
         </div>
 
-        {confirmDiscard && <div className="ui-discard" role="alert">
-          <h3>Abbandonare il movimento?</h3><p>I dati inseriti non sono ancora stati salvati.</p>
-          <div><button type="button" autoFocus onClick={() => setConfirmDiscard(false)}>Continua a modificare</button><button type="button" onClick={onClose}>Abbandona</button></div>
-        </div>}
+        {confirmDiscard && <DiscardConfirmation onContinue={() => setConfirmDiscard(false)} onDiscard={onClose} />}
         <NumericKeypadContext.Provider value={ui3 ? useKeypad : null}>
-        <form onSubmit={submit} aria-busy={ui3 ? saving : undefined} className={`flex-1 min-h-0 flex flex-col ${confirmDiscard ? 'ui-draft-suspended' : ''}`}>
+        <form onSubmit={submit} aria-busy={ui3 ? saving : undefined} className="flex-1 min-h-0 flex flex-col">
           <div className="flex-1 min-h-0 overflow-y-auto overscroll-contain scrollbar-hide px-5 sm:px-7 pb-4 space-y-3 sm:space-y-4">
           {seriesEdit && (
             <p className="text-[11px] text-secondary bg-elevated rounded-xl px-3 py-2 leading-snug">

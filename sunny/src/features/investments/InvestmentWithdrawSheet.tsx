@@ -97,7 +97,7 @@ export function InvestmentWithdrawSheet({ open, investmentByCategory, preselectC
   };
 
   return (
-    <SheetShell open={open} title="Disinvesti" onClose={onClose} onBack={onBack}>
+    <SheetShell draftSignature={JSON.stringify([category,amount,currentValue,toAccount,fee,feeAccount,date,notes])} saving={saving} open={open} title="Disinvesti" onClose={onClose} onBack={onBack}>
       {investCats.length === 0 ? (
         <p className="text-sm text-secondary py-6 text-center">Nessuna posizione con capitale versato da disinvestire.</p>
       ) : (

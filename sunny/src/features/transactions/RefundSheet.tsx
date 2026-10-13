@@ -98,7 +98,7 @@ export function RefundSheet({ open, transactions, expenseId, editing, onSave, on
   if (!open) return null;
 
   return (
-    <SheetShell open={open} title={editing ? 'Modifica storno' : 'Registra storno'} onClose={onClose}>
+    <SheetShell draftSignature={JSON.stringify([selectedId,amount,date,account,notes])} saving={saving} open={open} title={editing ? 'Modifica storno' : 'Registra storno'} onClose={onClose}>
       {options.length === 0 && !expense ? (
         <div className="py-8 text-center">
           <p className="text-3xl mb-3 opacity-50">↩️</p>

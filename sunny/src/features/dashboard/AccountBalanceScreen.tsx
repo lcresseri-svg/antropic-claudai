@@ -1,3 +1,4 @@
+import { transactionRoute } from '../../shared/transactionRoute';
 // "Saldo per conto" — analytics for how the cash balance of each liquidity
 // account moves over time. Speculare a CategorySpendingScreen, but centred on a
 // STOCK (the balance) rather than a flow. Period selector (Mese / 3M / 6M / 12M)
@@ -180,7 +181,7 @@ export function AccountBalanceScreen({ transactions }: Props) {
           now={now}
           depth={insightDepth}
           onClose={() => setSelectedId(null)}
-          onSeeAll={() => navigate(`/transactions?account=${selected.id}`)}
+          onSeeAll={() => navigate(transactionRoute({account:selected.id},range.start,range.end))}
         />
       )}
     </div>

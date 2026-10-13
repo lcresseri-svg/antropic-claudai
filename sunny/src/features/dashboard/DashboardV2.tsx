@@ -235,9 +235,9 @@ export function DashboardV2(p: Props) {
       <div className="ui-home-layout flex flex-col wide:flex-row gap-3.5 md:gap-4 ultra:gap-6 wide:items-start">
         <div className="ui-home-primary flex flex-col gap-3.5 md:gap-4 wide:flex-1 wide:min-w-0">
           {p.userId && (
-            <WrappedEntryCard
+            <div data-liquid-preserve style={{display:'contents'}}><WrappedEntryCard
               transactions={p.transactions} projected={p.projected ?? []}
-              userId={p.userId} onOpen={y => navigate(`/wrapped/${y}`)} />
+              userId={p.userId} onOpen={y => navigate(`/wrapped/${y}`)} /></div>
           )}
           {hero}
 

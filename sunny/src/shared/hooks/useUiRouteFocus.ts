@@ -1,21 +1,33 @@
 import { useLayoutEffect, useRef } from 'react';
-import { useLocation } from 'react-router-dom';
-import { useUiVersion } from '../providers/UiVersionProvider';
+import { useLocation, useNavigationType } from 'react-router-dom';
+import { useUiVersion, useUiNavigationMemory } from '../providers/UiVersionProvider';
 
 /** Presentation-only memory, owned by the keyed authenticated shell. No storage
  * and no user settings. Known parent routes restore their trigger and scroll. */
 export function useUiRouteFocus() {
-  const { pathname } = useLocation();
+  const { pathname, search, key } = useLocation();
+  const navigationType=useNavigationType();
+  const memory=useUiNavigationMemory();
+  const previous=useRef<{key:string;url:string}|null>(null);
+  const identity=`${key}:${pathname}${search}`;
   const version = useUiVersion();
+  const legacyPath=useRef<string|null>(null);
   const visits = useRef(new Map<string, { top: number; label?: string; href?: string; text?: string }>());
   useLayoutEffect(() => {
+    if(version==='3.0' && navigationType==='PUSH' && previous.current && previous.current.key!==key) memory?.set(`origin:${key}`,previous.current.url);
+    previous.current={key,url:pathname+search};
     const scroller = document.getElementById('app-scroll');
     const main = document.getElementById('page-content');
     if (!scroller || !main) return;
-    if (version !== '3.0') { scroller.scrollTo(0,0); window.scrollTo(0,0); return; }
-    const saved = visits.current.get(pathname);
+    if (version !== '3.0') { if(legacyPath.current!==pathname){scroller.scrollTo(0,0); window.scrollTo(0,0);legacyPath.current=pathname;} return; }
+    legacyPath.current=null;
+    // POP restores the exact entry; an explicit parent link can create a new
+    // entry, so also retain the latest snapshot of the exact URL (query included).
+    const previousVisit=visits.current.get(identity)??visits.current.get(`url:${pathname}${search}`);
+    const saved=previousVisit?{...previousVisit}:undefined;
     const state = saved ?? { top: 0 };
-    visits.current.set(pathname,state);
+    visits.current.set(identity,state);
+    visits.current.set(`url:${pathname}${search}`,state);
     let frame = 0;
     let restored = false;
     const restore = () => {
@@ -42,5 +54,5 @@ export function useUiRouteFocus() {
     };
     scroller.addEventListener('scroll',onScroll); main.addEventListener('focusin',onFocus);
     return () => { cancelAnimationFrame(frame); observer.disconnect(); scroller.removeEventListener('scroll',onScroll); main.removeEventListener('focusin',onFocus); };
-  },[pathname,version]);
+  },[identity,version,memory,navigationType]);
 }

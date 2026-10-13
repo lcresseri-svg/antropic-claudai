@@ -1,3 +1,6 @@
+import { OnboardingScreen } from '../src/features/onboarding/OnboardingScreen';
+import { LoginScreen } from '../src/shared/components/LoginScreen';
+import { ImportModal } from '../src/features/transactions/ImportModal';
 import { useMemo, useState } from 'react';
 import { createRoot } from 'react-dom/client';
 import { BrowserRouter, useLocation, useNavigate } from 'react-router-dom';
@@ -32,6 +35,7 @@ function PreviewShell({uid,onSwitch}:{uid:string;onSwitch:(uid:string)=>void}) {
   const uiVersion=useUiVersion(), settings=useSettings(), budget=useBudget();
   const route=useLocation(),navigate=useNavigate();
   useUiRouteFocus();
+  const [importOpen,setImportOpen]=useState(query.has('import'));
   const [menu,setMenu]=useState(false),[modal,setModal]=useState(query.has('editor') && uid===pilotUid);
   const [editing,setEditing]=useState<Transaction|null>(query.has('edit') ? initialTransactions.find(t=>t.type===(query.get('edit')||'expense'))??null : null),[defaultType,setDefaultType]=useState<TransactionType|undefined>(query.has('generic')?undefined:'expense');
   const [rows,setRows]=useState(initialTransactions),[refund,setRefund]=useState(false);
@@ -48,8 +52,8 @@ function PreviewShell({uid,onSwitch}:{uid:string;onSwitch:(uid:string)=>void}) {
     const trend=Array.from({length:12},(_,i)=>{const d=new Date();d.setMonth(d.getMonth()-11+i);const key=`${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,'0')}`;const flow=aggregateFlow(realized.filter(t=>t.date.startsWith(key)));return {key,income:flow.ordinaryIncome,expense:flow.expenses,invest:flow.investedFromAccounts};});
     const flow=aggregateFlow(month);
     return {loading:false,error:null,synced:true,transactions:rows,allTransactions:rows,accountBalances:balances,investmentByCategory:inv,liquidity,investmentTotal,
-      netWorth:liquidity+(settings.includeInvestments?investmentTotal:0),monthlyIncome:flow.ordinaryIncome,monthlyExpenses:flow.expenses,monthlyInvestments:flow.investedFromAccounts,
-      monthlyFlow:flow,categoryTotals:totals,trend,deleteTransaction:async()=>{},updateTransactions:async()=>{},deleteTransactions:async()=>{},deleteAll:async()=>{}};
+      addTransactions:async(created:Omit<Transaction,'id'>[])=>save([],created),netWorth:liquidity+(settings.includeInvestments?investmentTotal:0),monthlyIncome:flow.ordinaryIncome,monthlyExpenses:flow.expenses,monthlyInvestments:flow.investedFromAccounts,
+      monthlyFlow:flow,categoryTotals:totals,trend,deleteTransaction:async()=>{},updateTransactions:async(ids:string[],patch:Partial<Transaction>)=>{if(query.has('failBulk'))throw Error('Fixture: aggiornamento non riuscito');setRows(r=>r.map(t=>ids.includes(t.id)?{...t,...patch}:t));setWrites(n=>n+1);},deleteTransactions:async(ids:string[])=>{if(query.has('failBulk'))throw Error('Fixture: eliminazione non riuscita');setRows(r=>r.filter(t=>!ids.includes(t.id)));setWrites(n=>n+1);},deleteAll:async()=>{}};
   },[rows,settings.accounts,settings.categories,settings.includeInvestments]);
   const openAdd=()=>{setEditing(null);setDefaultType('expense');setModal(true);};
   const editor={openAdd,openScheduledExpense:(date:string)=>{setScheduledDate(date);openAdd();},openAddWithType:(t:TransactionType)=>{setEditing(null);setDefaultType(t);setModal(true);},openEdit:(t:Transaction)=>{setEditing(t);setModal(true);},projected:[]};
@@ -57,13 +61,17 @@ function PreviewShell({uid,onSwitch}:{uid:string;onSwitch:(uid:string)=>void}) {
     if(query.has('failSave')) throw new Error('Fixture: rete non disponibile');
     setWrites(n=>n+1); setRows(r=>[...r,...created.map((t,i)=>({...t,id:`preview-${Date.now()}-${i}`}))]);
   };
+  const [onboardingDone,setOnboardingDone]=useState(false);
+  const [loginError,setLoginError]=useState<string|null>(null);
+  if(query.has('login')) return <LoginScreen onSignIn={()=>setLoginError('Accesso di prova non riuscito. Riprova.')} error={loginError}/>;
+  if(query.has('onboarding')&&!onboardingDone)return <OnboardingScreen uid={uid} onboarding={{completed:false,version:1,currentStep:0,goals:[],dataMode:null}} updateOnboarding={()=>{}} completeOnboarding={()=>setOnboardingDone(true)} skipOnboarding={()=>setOnboardingDone(true)} onImport={rows=>save([],rows)}/>;
   const isSettings=route.pathname.startsWith('/settings');
-  return <div data-ui-version={uiVersion} className={uiVersion==='3.0'?'h-full app-shell ui3-shell':'h-full md:flex ui-v2'}>
-    {uiVersion==='3.0'?<AdaptiveNav onAdd={openAdd} onImport={()=>{}} aiEnabled={settings.aiEnabled} showCommitments isSettings={isSettings}/>:<SideNav onAdd={openAdd} onImport={()=>{}} aiEnabled={settings.aiEnabled} transactions={rows} showCommitments/>}
+  return <div data-liquid-ui={uiVersion==='3.0'&&!route.pathname.startsWith('/wrapped/')?'true':undefined} data-ui-version={uiVersion} className={uiVersion==='3.0'?'h-full app-shell ui3-shell':'h-full md:flex ui-v2'}>
+    {uiVersion==='3.0'?<AdaptiveNav onAdd={openAdd} onImport={()=>setImportOpen(true)} aiEnabled={settings.aiEnabled} showCommitments isSettings={isSettings}/>:<SideNav onAdd={openAdd} onImport={()=>setImportOpen(true)} aiEnabled={settings.aiEnabled} transactions={rows} showCommitments/>}
     <div className={`app-content flex-1 min-w-0 flex flex-col h-full overflow-hidden ${uiVersion==='2.0'?'md:ml-[220px]':''}`}>
-      <AppHeader brand="Ciao, Luca" monthLine={monthContext()} loading={false} isSettings={isSettings} settingsOpen={menu} onToggleSettings={setMenu} onImport={()=>{}} aiEnabled={settings.aiEnabled} showCommitments/>
+      <AppHeader brand="Ciao, Luca" monthLine={monthContext()} loading={false} isSettings={isSettings} settingsOpen={menu} onToggleSettings={setMenu} onImport={()=>setImportOpen(true)} aiEnabled={settings.aiEnabled} showCommitments/>
       <div id="app-scroll" className="flex-1 overflow-y-auto overscroll-contain"><main id="page-content" tabIndex={-1} className="app-main max-w-2xl mx-auto md:max-w-none px-4 md:px-8 pt-4 md:pt-2 pb-24 md:pb-2">
-        <AppRoutes {...({user:userFor(uid),brand:'Ciao, Luca',tx,budget,editing:editor,applePayPayments:[],applePayLoading:false,applePayError:null,onReviewApplePay(){},onIgnoreApplePay:async()=>{},onLogOut:()=>onSwitch(''),onDeleteAccount:async()=>{},onImport(){}} as any)}/>
+        <AppRoutes {...({user:userFor(uid),brand:'Ciao, Luca',tx,budget,editing:editor,applePayPayments:[],applePayLoading:false,applePayError:null,onReviewApplePay(){},onIgnoreApplePay:async()=>{},onLogOut:()=>onSwitch(''),onDeleteAccount:async()=>{},onImport(){setImportOpen(true);}} as any)}/>
         <div style={{marginTop:40,padding:16,border:'1px dashed var(--border)',fontSize:12}} aria-label="Controlli anteprima locale">
           Dati illustrativi · nessuna connessione al database · scritture simulate: <output id="preview-writes">{writes}</output>
           · Piani salvati in memoria: <output id="preview-plan-writes">{budget.writes}</output>
@@ -73,6 +81,7 @@ function PreviewShell({uid,onSwitch}:{uid:string;onSwitch:(uid:string)=>void}) {
       {uiVersion==='2.0'&&!isSettings&&<BottomNav onAdd={openAdd}/>}
     </div>
     {createPortal(<TransactionModal open={modal} editing={editing} defaultType={defaultType} transactions={rows} sourceBanner={scheduledDate?'Spesa programmata registrata: Salva crea un movimento futuro, non una simulazione.':query.has('applePay')?'Ricevuto da Carta test. Controlla i dati.':undefined} initialValues={scheduledDate?{date:scheduledDate}:query.has('applePay')?{source:'apple_pay',sourceId:'fixture-1',description:'Supermercato',amount:45}:undefined} singleSave={query.has('singleSave')} awaitSave={query.has('awaitSave')} onSave={save} onClose={()=>{setModal(false);setScheduledDate(undefined);}} onRegisterRefund={()=>{setModal(false);setRefund(true);}}/>,document.body)}
+    <ImportModal open={importOpen} onClose={()=>setImportOpen(false)} onImport={rows=>save([],rows)}/>
     <RefundSheet open={refund} transactions={rows} onClose={()=>setRefund(false)} onSave={()=>{}}/>
     <ReleaseDialog open={notice} title="Avviso di prova" onClose={()=>setNotice(false)} bullets={['Solo anteprima locale.']}/>
     <PushPromoSheet open={promo} onClose={()=>setPromo(false)} onGoToSettings={()=>setPromo(false)}/>
