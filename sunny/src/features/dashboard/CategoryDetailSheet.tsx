@@ -233,7 +233,7 @@ export function CategoryDetailSheet({
                 </div>
               )}
             </div>
-            <CategoryTrendLineChart points={chartPoints} color={cat.color} formatValue={formatChart} />
+            <CategoryTrendLineChart metricLabel={metric==='count'?'Movimenti':'Spesa'} unit={metric==='count'?'movimenti':'euro'} points={chartPoints} color={cat.color} formatValue={formatChart} />
           </div>
 
           {/* Sunny note */}

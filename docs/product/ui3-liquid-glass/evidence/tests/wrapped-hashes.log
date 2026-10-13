@@ -1,0 +1,10 @@
+sunny/src/features/wrapped/WrappedEntryCard.tsx: OK
+sunny/src/features/wrapped/WrappedGoalScreen.tsx: OK
+sunny/src/features/wrapped/WrappedScreen.tsx: OK
+sunny/src/features/wrapped/WrappedStories.tsx: OK
+sunny/src/features/wrapped/WrappedSummary.tsx: OK
+sunny/src/features/wrapped/wrappedStorage.ts: OK
+sunny/src/features/wrapped/wrappedWindow.test.ts: OK
+sunny/src/features/wrapped/wrappedWindow.ts: OK
+sunny/src/features/wrapped/yearWrapped.test.ts: OK
+sunny/src/features/wrapped/yearWrapped.ts: OK

@@ -1,3 +1,4 @@
+import { ConfirmationDialog } from '../../../shared/components/DiscardConfirmation';
 // Dati iniziali.
 //
 // L'ordine è invertito rispetto a prima: i dati demo vengono per PRIMI. Sono
@@ -11,20 +12,24 @@ import { writeDemoData } from '../demoData';
 interface Props {
   uid: string;
   accountId: string;
+  existingDemoIds?: string[];
   onNext: (mode: 'manual' | 'csv' | 'demo', demoIds?: string[]) => void;
 }
 
-export function DataSourceStep({ uid, accountId, onNext }: Props) {
+export function DataSourceStep({ uid, accountId, onNext, existingDemoIds }: Props) {
+  const [demoIds,setDemoIds]=useState<string[]|undefined>(existingDemoIds);
+  const [confirmDemo,setConfirmDemo]=useState(false);
+  const [error,setError]=useState('');
   const [loading, setLoading] = useState(false);
 
   const handleDemo = async () => {
     if (loading) return;
-    setLoading(true);
+    setLoading(true);setError('');
     try {
       const ids = await writeDemoData(uid, accountId);
-      onNext('demo', ids);
+      setDemoIds(ids);setLoading(false);setConfirmDemo(false);onNext('demo', ids);
     } catch (err) {
-      console.error('demo data error', err);
+      setError('Impossibile aggiungere i dati di esempio. Riprova.');
       setLoading(false);
     }
   };
@@ -42,8 +47,8 @@ export function DataSourceStep({ uid, accountId, onNext }: Props) {
       </div>
 
       <div className="space-y-2.5">
-        <Card icon="✨" tint="#E6B95C" title="Guarda com'è con dati veri" time="~20 sec"
-          recommended highlighted disabled={loading} onClick={handleDemo}
+        <Card icon="✨" tint="#E6B95C" title="Esplora con dati di esempio" time="~20 sec"
+          recommended highlighted disabled={loading} onClick={()=>demoIds?onNext('demo',demoIds):setConfirmDemo(true)}
           detail={loading
             ? 'Creazione dati in corso…'
             : 'Tre mesi di movimenti realistici: vedi subito previsione, categorie e abbonamenti. Si cancellano con un tocco dalle Impostazioni.'} />
@@ -57,8 +62,10 @@ export function DataSourceStep({ uid, accountId, onNext }: Props) {
           detail="Parti dalla prima spesa. Le altre si aggiungono man mano, anche dallo shortcut su iPhone." />
       </div>
 
+      {error&&<p role="alert" className="text-red">{error}</p>}
+      {confirmDemo&&<ConfirmationDialog title="Aggiungere dati di esempio?" description={error||"Sunny aggiungerà movimenti dimostrativi al tuo account. Restano riconoscibili e rimovibili dalle Impostazioni."} confirmLabel="Aggiungi dati di esempio" onCancel={()=>setConfirmDemo(false)} onConfirm={()=>void handleDemo()} busy={loading}/>}
       <p className="text-[11.5px] text-tertiary text-center leading-relaxed">
-        Niente di questo è definitivo: i dati demo restano riconoscibili e rimovibili.
+        Niente di questo è definitivo: i dati di esempio restano riconoscibili e rimovibili.
       </p>
     </div>
   );
@@ -77,7 +84,7 @@ function Card({ icon, tint, title, time, detail, recommended, highlighted, dimme
         <span className="w-8 h-8 rounded-[11px] flex items-center justify-center text-base flex-none"
           style={{ background: `${tint}29` }}>{icon}</span>
         <div className="min-w-0 flex-1">
-          <div className="flex items-center gap-2">
+          <div className="flex items-center gap-2 flex-wrap">
             <span className="text-[15px] font-semibold text-primary">{title}</span>
             {recommended && (
               <span className="text-[9.5px] font-semibold uppercase tracking-[0.08em] rounded-full px-1.5 py-0.5 flex-none"

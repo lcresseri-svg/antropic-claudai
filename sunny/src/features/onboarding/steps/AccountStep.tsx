@@ -15,12 +15,14 @@ const ACCOUNT_TYPES: { value: string; label: string; icon: string; color: string
 
 export function AccountStep({ onNext }: Props) {
   const { accounts, saveAccounts } = useSettings();
+  const [createdId,setCreatedId]=useState<string|null>(null);
   const [name, setName] = useState('Conto principale');
   const [type, setType] = useState('checking');
   const [balance, setBalance] = useState('');
   const [saving, setSaving] = useState(false);
 
   const handleCreate = () => {
+    if(createdId){onNext(createdId);return;}
     const trimmed = name.trim();
     if (!trimmed || saving) return;
     setSaving(true);
@@ -37,9 +39,10 @@ export function AccountStep({ onNext }: Props) {
     };
 
     saveAccounts([...accounts, newAcc]);
-    onNext(id);
+    setCreatedId(id);setSaving(false);onNext(id);
   };
 
+  if(createdId)return <div className="space-y-4"><h2 className="text-xl">Conto creato: {name}</h2><p>Puoi modificarlo dalle Impostazioni. Tornare avanti non creerà un secondo conto.</p><button type="button" className="cta-gold-fill px-5 py-3 rounded-xl" onClick={()=>onNext(createdId)}>Continua</button></div>;
   return (
     <div className="space-y-6">
       <div className="space-y-2">
@@ -52,7 +55,7 @@ export function AccountStep({ onNext }: Props) {
         <div className="space-y-1.5">
           <label className="text-[11px] font-medium text-secondary uppercase tracking-wider">Nome conto</label>
           <input
-            type="text"
+            type="text" aria-label="Nome conto"
             value={name}
             onChange={e => setName(e.target.value)}
             placeholder="Es. Conto principale"
@@ -89,7 +92,7 @@ export function AccountStep({ onNext }: Props) {
             Saldo attuale <span className="normal-case">(opzionale)</span>
           </label>
           <input
-            type="number"
+            type="number" aria-label="Saldo attuale"
             inputMode="decimal"
             value={balance}
             onChange={e => setBalance(e.target.value)}

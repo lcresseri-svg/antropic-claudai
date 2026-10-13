@@ -1,3 +1,5 @@
+import { ChartData } from '../../shared/components/ChartData';
+import { useUiVersion } from '../../shared/providers/UiVersionProvider';
 // Responsive SVG line chart for a single category's trend over time.
 // Theme-aware (gridlines + labels use design tokens; the line uses the category
 // colour). Smooth but restrained curve — no playful overshoot. Falls back to a
@@ -9,6 +11,8 @@ interface Point { label: string; value: number; }
 
 interface Props {
   points: Point[];
+  metricLabel?: string;
+  unit?: string;
   color: string;            // category colour (hex)
   formatValue: (v: number) => string;
   height?: number;          // px, drawing area height
@@ -41,11 +45,13 @@ function smoothPath(pts: { x: number; y: number }[]): string {
   return d;
 }
 
-export function CategoryTrendLineChart({ points, color, formatValue, height = 96 }: Props) {
+export function CategoryTrendLineChart({ points, color, formatValue, height = 96, metricLabel="Spesa", unit="euro" }: Props) {
+  const ui3=useUiVersion()==='3.0';
+  const path=(pts:{x:number;y:number}[])=>ui3?pts.map((p,i)=>`${i?'L':'M'} ${p.x} ${p.y}`).join(' '):smoothPath(pts);
   const gradId = useId();
   const values = points.map(p => p.value);
   const max = Math.max(1, ...values);
-  const hasData = points.length >= 2 && values.some(v => v > 0);
+  const hasData = points.length >= 2 && (ui3 || values.some(v => v > 0));
 
   if (!hasData) {
     return (
@@ -55,8 +61,9 @@ export function CategoryTrendLineChart({ points, color, formatValue, height = 96
     );
   }
 
-  const coords = buildPoints(values, max, height);
-  const line = smoothPath(coords);
+  const min = ui3 ? Math.min(0, ...values) : 0;
+  const coords = ui3 ? values.map((v,i)=>({x:PAD_X+i/(values.length-1)*(W-PAD_X*2),y:PAD_TOP+(1-(v-min)/(max-min))*(height-PAD_TOP-PAD_BOTTOM)})) : buildPoints(values, max, height);
+  const line = path(coords);
   const area = `${line} L ${coords[coords.length - 1].x} ${height} L ${coords[0].x} ${height} Z`;
   const peakIdx = values.indexOf(Math.max(...values));
 
@@ -93,7 +100,8 @@ export function CategoryTrendLineChart({ points, color, formatValue, height = 96
           </span>
         ))}
       </div>
-      <p className="text-[10px] text-secondary/70 text-center mt-1">Picco: {formatValue(max)}</p>
+      <p className="text-[10px] text-secondary/70 text-center mt-1">Picco: {formatValue(Math.max(...values))}</p>
+      <ChartData title="Andamento categoria" unit={unit} columns={['Periodo',metricLabel]} rows={points.map(p=>[p.label,formatValue(p.value)])} scale="Scala ancorata allo zero."/>
     </div>
   );
 }

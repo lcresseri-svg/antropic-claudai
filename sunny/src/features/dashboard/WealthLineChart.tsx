@@ -1,3 +1,5 @@
+import { ChartData } from '../../shared/components/ChartData';
+import { useUiVersion } from '../../shared/providers/UiVersionProvider';
 // Responsive SVG line chart for the THREE wealth series (total / liquidity /
 // investments) over time. The total is the protagonist: thicker gold line with
 // a light area fill; liquidity and investments are thinner support lines. A
@@ -6,7 +8,7 @@
 // follows the data, and a faint zero baseline appears when the range crosses 0.
 // Pointer/touch hover shows a tooltip with date + all three values.
 
-import { useRef, useState } from 'react';
+import { useRef, useState, useId } from 'react';
 import { WealthPoint } from './wealthAnalytics';
 
 interface Props {
@@ -46,8 +48,14 @@ const fmtDate = (iso: string) => {
 };
 
 export function WealthLineChart({ points, formatValue, height = 190 }: Props) {
+  const ui3=useUiVersion()==='3.0';
+  const path=(pts:{x:number;y:number}[])=>ui3?pts.map((p,i)=>`${i?'L':'M'} ${p.x} ${p.y}`).join(' '):smoothPath(pts);
+  const [showLiquidity,setShowLiquidity]=useState(true);
+  const [showInvestments,setShowInvestments]=useState(true);
+  const gradientId=useId();
   const wrapRef = useRef<HTMLDivElement>(null);
-  const [hover, setHover] = useState<number | null>(null);
+  const [hoverIndex, setHover] = useState<number | null>(null);
+  const hover = hoverIndex !== null && hoverIndex < points.length ? hoverIndex : null;
 
   if (points.length < 2) {
     return (
@@ -75,7 +83,7 @@ export function WealthLineChart({ points, formatValue, height = 190 }: Props) {
   const invPts = coords(p => p.investments);
 
   const baseY = Math.min(y(lo), height - PAD_BOTTOM);
-  const area = `${smoothPath(totPts)} L ${totPts[totPts.length - 1].x} ${baseY} L ${totPts[0].x} ${baseY} Z`;
+  const area = `${path(totPts)} L ${totPts[totPts.length - 1].x} ${baseY} L ${totPts[0].x} ${baseY} Z`;
   const initY = y(initialTotal);
   const crossesZero = lo < 0 && hi > 0;
   const zeroY = y(0);
@@ -100,7 +108,8 @@ export function WealthLineChart({ points, formatValue, height = 190 }: Props) {
   return (
     <div>
       <div
-        ref={wrapRef}
+        ref={wrapRef} tabIndex={ui3?0:undefined} role={ui3?'group':undefined} aria-label={ui3?'Andamento patrimonio: frecce per esplorare i valori':undefined}
+        onKeyDown={e=>{if(ui3&&['ArrowLeft','ArrowRight','Home','End'].includes(e.key)){e.preventDefault();setHover(i=>e.key==='Home'?0:e.key==='End'?points.length-1:Math.max(0,Math.min(points.length-1,(i??0)+(e.key==='ArrowRight'?1:-1))));}}}
         className="relative select-none touch-pan-y"
         onPointerMove={e => setHover(locate(e.clientX))}
         onPointerDown={e => setHover(locate(e.clientX))}
@@ -117,26 +126,26 @@ export function WealthLineChart({ points, formatValue, height = 190 }: Props) {
               <span className="w-2 h-2 rounded-full inline-block" style={{ background: COLORS.total }} />
               Totale {formatValue(hp.total)}
             </p>
-            <p className="text-[11px] text-secondary balance-num flex items-center gap-1.5">
+            {showLiquidity&&<p className="text-[11px] text-secondary balance-num flex items-center gap-1.5">
               <span className="w-2 h-2 rounded-full inline-block" style={{ background: COLORS.liquidity }} />
               Liquidità {formatValue(hp.liquidity)}
-            </p>
-            <p className="text-[11px] text-secondary balance-num flex items-center gap-1.5">
+            </p>}
+            {showInvestments&&<p className="text-[11px] text-secondary balance-num flex items-center gap-1.5">
               <span className="w-2 h-2 rounded-full inline-block" style={{ background: COLORS.investments }} />
               Investimenti {formatValue(hp.investments)}
-            </p>
+            </p>}
           </div>
         )}
 
         <svg viewBox={`0 0 ${W} ${height}`} preserveAspectRatio="none" className="w-full overflow-visible" style={{ height }}>
           <defs>
-            <linearGradient id="wealth-total-fill" x1="0" y1="0" x2="0" y2="1">
+            <linearGradient id={gradientId} x1="0" y1="0" x2="0" y2="1">
               <stop offset="0%" style={{ stopColor: 'var(--accent-gold)', stopOpacity: 0.14 }} />
               <stop offset="100%" style={{ stopColor: 'var(--accent-gold)', stopOpacity: 0 }} />
             </linearGradient>
           </defs>
 
-          <path d={area} fill="url(#wealth-total-fill)" />
+          <path d={area} fill={`url(#${gradientId})`} />
 
           {/* Zero baseline — only when the domain actually crosses zero. */}
           {crossesZero && (
@@ -150,11 +159,11 @@ export function WealthLineChart({ points, formatValue, height = 190 }: Props) {
             style={{ stroke: 'var(--accent-gold)', opacity: 0.35 }} strokeWidth="1" />
 
           {/* Support lines first, protagonist on top. */}
-          <path d={smoothPath(liqPts)} fill="none" vectorEffect="non-scaling-stroke"
-            style={{ stroke: COLORS.liquidity }} strokeWidth="1.25" strokeLinecap="round" strokeLinejoin="round" />
-          <path d={smoothPath(invPts)} fill="none" vectorEffect="non-scaling-stroke"
-            style={{ stroke: COLORS.investments }} strokeWidth="1.25" strokeLinecap="round" strokeLinejoin="round" />
-          <path d={smoothPath(totPts)} fill="none" vectorEffect="non-scaling-stroke"
+          {showLiquidity&&<path data-wealth-series="liq" d={path(liqPts)} fill="none" vectorEffect="non-scaling-stroke"
+            style={{ stroke: COLORS.liquidity }} strokeWidth="1.25" strokeLinecap="round" strokeLinejoin="round" />}
+          {showInvestments&&<path data-wealth-series="inv" d={path(invPts)} fill="none" vectorEffect="non-scaling-stroke"
+            style={{ stroke: COLORS.investments }} strokeWidth="1.25" strokeLinecap="round" strokeLinejoin="round" />}
+          <path d={path(totPts)} fill="none" vectorEffect="non-scaling-stroke"
             style={{ stroke: COLORS.total }} strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" />
 
           {/* Hover guide + markers on all three series. */}
@@ -163,8 +172,8 @@ export function WealthLineChart({ points, formatValue, height = 190 }: Props) {
               <line x1={x(hover)} y1={PAD_TOP} x2={x(hover)} y2={height - PAD_BOTTOM}
                 vectorEffect="non-scaling-stroke" style={{ stroke: 'var(--border-strong)' }} strokeWidth="1" />
               <circle cx={totPts[hover].x} cy={totPts[hover].y} r={3} fill={COLORS.total} vectorEffect="non-scaling-stroke" />
-              <circle cx={liqPts[hover].x} cy={liqPts[hover].y} r={2.4} fill={COLORS.liquidity} vectorEffect="non-scaling-stroke" />
-              <circle cx={invPts[hover].x} cy={invPts[hover].y} r={2.4} fill={COLORS.investments} vectorEffect="non-scaling-stroke" />
+              {showLiquidity&&<circle cx={liqPts[hover].x} cy={liqPts[hover].y} r={2.4} fill={COLORS.liquidity} vectorEffect="non-scaling-stroke" />}
+              {showInvestments&&<circle cx={invPts[hover].x} cy={invPts[hover].y} r={2.4} fill={COLORS.investments} vectorEffect="non-scaling-stroke" />}
             </g>
           )}
 
@@ -184,20 +193,15 @@ export function WealthLineChart({ points, formatValue, height = 190 }: Props) {
       </div>
 
       {/* Legend */}
-      <div className="flex items-center justify-center gap-4 mt-2.5 text-[11px] text-secondary">
+      <div className="liquid-chart-legend flex items-center justify-center gap-4 mt-2.5 text-[11px] text-secondary">
         <span className="flex items-center gap-1.5">
           <span className="w-5 h-[2px] inline-block rounded" style={{ background: COLORS.total }} />
           <span className="font-medium text-primary">Totale</span>
         </span>
-        <span className="flex items-center gap-1.5">
-          <span className="w-5 h-px inline-block" style={{ background: COLORS.liquidity }} />
-          Liquidità
-        </span>
-        <span className="flex items-center gap-1.5">
-          <span className="w-5 h-px inline-block" style={{ background: COLORS.investments }} />
-          Investimenti
-        </span>
+        {ui3?<button type="button" aria-pressed={showLiquidity} aria-label={`${showLiquidity?'Nascondi':'Mostra'} Liquidità`} onClick={()=>setShowLiquidity(v=>!v)} className="flex items-center gap-1.5" style={{minHeight:44,textDecoration:showLiquidity?'none':'line-through'}}><span className="w-5 h-px inline-block" style={{ background: COLORS.liquidity }}/>Liquidità</button>:<span className="flex items-center gap-1.5"><span className="w-5 h-px inline-block" style={{ background: COLORS.liquidity }}/>Liquidità</span>}
+        {ui3?<button type="button" aria-pressed={showInvestments} aria-label={`${showInvestments?'Nascondi':'Mostra'} Investimenti`} onClick={()=>setShowInvestments(v=>!v)} className="flex items-center gap-1.5" style={{minHeight:44,textDecoration:showInvestments?'none':'line-through'}}><span className="w-5 h-px inline-block" style={{ background: COLORS.investments }}/>Investimenti</button>:<span className="flex items-center gap-1.5"><span className="w-5 h-px inline-block" style={{ background: COLORS.investments }}/>Investimenti</span>}
       </div>
+      <ChartData title="Patrimonio" columns={['Data','Totale','Liquidità','Investimenti']} rows={points.map(p=>[fmtDate(p.date),formatValue(p.total),formatValue(p.liquidity),formatValue(p.investments)])} scale="Scala adattata ai valori, non ancorata allo zero. Serie storica sulla base dei versamenti."/>
     </div>
   );
 }

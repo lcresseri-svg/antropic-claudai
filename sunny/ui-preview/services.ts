@@ -15,8 +15,12 @@ export const onSnapshot = (_ref: unknown, next: (snapshot: unknown) => void) => 
 export const getDoc = async () => ({ exists: () => false, data: () => ({}) });
 export const getDocs = async () => ({ docs: [], empty: true, forEach() {} });
 const blocked = async () => { throw new Error('Anteprima locale: nessuna scrittura o chiamata remota consentita.'); };
-export const setDoc = blocked, updateDoc = blocked, deleteDoc = blocked, addDoc = blocked, runTransaction = blocked;
-export const writeBatch = () => ({ set() {}, update() {}, delete() {}, commit: blocked });
+// Explicit in-memory onboarding scenario; never forwards to Firebase.
+export const fixtureWrites={count:0};
+(window as any).__previewServiceWrites=fixtureWrites;
+const localWrite=async()=>{const p=new URLSearchParams(location.search);if(!p.has('onboardingMemory'))return blocked();if(p.has('slowIo'))await new Promise(r=>setTimeout(r,500));fixtureWrites.count++;};
+export const setDoc = localWrite, updateDoc = blocked, deleteDoc = blocked, addDoc = blocked, runTransaction = blocked;
+export const writeBatch = () => ({ set() {}, update() {}, delete() {}, commit: localWrite });
 export const httpsCallable = () => blocked;
 export const logEvent = async () => {};
 export const recordActivity = async () => {};

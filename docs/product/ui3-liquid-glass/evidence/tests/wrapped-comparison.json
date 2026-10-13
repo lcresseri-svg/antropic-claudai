@@ -1,0 +1,338 @@
+[
+  {
+    "file": "dark-00.png",
+    "equal": true,
+    "baselineSize": [
+      390,
+      844
+    ],
+    "currentSize": [
+      390,
+      844
+    ],
+    "diffBounds": null,
+    "interiorEqual": true
+  },
+  {
+    "file": "dark-01.png",
+    "equal": true,
+    "baselineSize": [
+      390,
+      844
+    ],
+    "currentSize": [
+      390,
+      844
+    ],
+    "diffBounds": null,
+    "interiorEqual": true
+  },
+  {
+    "file": "dark-02.png",
+    "equal": true,
+    "baselineSize": [
+      390,
+      844
+    ],
+    "currentSize": [
+      390,
+      844
+    ],
+    "diffBounds": null,
+    "interiorEqual": true
+  },
+  {
+    "file": "dark-03.png",
+    "equal": true,
+    "baselineSize": [
+      390,
+      844
+    ],
+    "currentSize": [
+      390,
+      844
+    ],
+    "diffBounds": null,
+    "interiorEqual": true
+  },
+  {
+    "file": "dark-04.png",
+    "equal": true,
+    "baselineSize": [
+      390,
+      844
+    ],
+    "currentSize": [
+      390,
+      844
+    ],
+    "diffBounds": null,
+    "interiorEqual": true
+  },
+  {
+    "file": "dark-05.png",
+    "equal": true,
+    "baselineSize": [
+      390,
+      844
+    ],
+    "currentSize": [
+      390,
+      844
+    ],
+    "diffBounds": null,
+    "interiorEqual": true
+  },
+  {
+    "file": "dark-06.png",
+    "equal": true,
+    "baselineSize": [
+      390,
+      844
+    ],
+    "currentSize": [
+      390,
+      844
+    ],
+    "diffBounds": null,
+    "interiorEqual": true
+  },
+  {
+    "file": "dark-07.png",
+    "equal": true,
+    "baselineSize": [
+      390,
+      844
+    ],
+    "currentSize": [
+      390,
+      844
+    ],
+    "diffBounds": null,
+    "interiorEqual": true
+  },
+  {
+    "file": "dark-08.png",
+    "equal": true,
+    "baselineSize": [
+      390,
+      844
+    ],
+    "currentSize": [
+      390,
+      844
+    ],
+    "diffBounds": null,
+    "interiorEqual": true
+  },
+  {
+    "file": "dark-09.png",
+    "equal": true,
+    "baselineSize": [
+      390,
+      844
+    ],
+    "currentSize": [
+      390,
+      844
+    ],
+    "diffBounds": null,
+    "interiorEqual": true
+  },
+  {
+    "file": "dark-goal.png",
+    "equal": true,
+    "baselineSize": [
+      390,
+      844
+    ],
+    "currentSize": [
+      390,
+      844
+    ],
+    "diffBounds": null,
+    "interiorEqual": true
+  },
+  {
+    "file": "dark-summary.png",
+    "equal": true,
+    "baselineSize": [
+      390,
+      844
+    ],
+    "currentSize": [
+      390,
+      844
+    ],
+    "diffBounds": null,
+    "interiorEqual": true
+  },
+  {
+    "file": "light-00.png",
+    "equal": true,
+    "baselineSize": [
+      390,
+      844
+    ],
+    "currentSize": [
+      390,
+      844
+    ],
+    "diffBounds": null,
+    "interiorEqual": true
+  },
+  {
+    "file": "light-01.png",
+    "equal": true,
+    "baselineSize": [
+      390,
+      844
+    ],
+    "currentSize": [
+      390,
+      844
+    ],
+    "diffBounds": null,
+    "interiorEqual": true
+  },
+  {
+    "file": "light-02.png",
+    "equal": true,
+    "baselineSize": [
+      390,
+      844
+    ],
+    "currentSize": [
+      390,
+      844
+    ],
+    "diffBounds": null,
+    "interiorEqual": true
+  },
+  {
+    "file": "light-03.png",
+    "equal": true,
+    "baselineSize": [
+      390,
+      844
+    ],
+    "currentSize": [
+      390,
+      844
+    ],
+    "diffBounds": null,
+    "interiorEqual": true
+  },
+  {
+    "file": "light-04.png",
+    "equal": true,
+    "baselineSize": [
+      390,
+      844
+    ],
+    "currentSize": [
+      390,
+      844
+    ],
+    "diffBounds": null,
+    "interiorEqual": true
+  },
+  {
+    "file": "light-05.png",
+    "equal": true,
+    "baselineSize": [
+      390,
+      844
+    ],
+    "currentSize": [
+      390,
+      844
+    ],
+    "diffBounds": null,
+    "interiorEqual": true
+  },
+  {
+    "file": "light-06.png",
+    "equal": true,
+    "baselineSize": [
+      390,
+      844
+    ],
+    "currentSize": [
+      390,
+      844
+    ],
+    "diffBounds": null,
+    "interiorEqual": true
+  },
+  {
+    "file": "light-07.png",
+    "equal": true,
+    "baselineSize": [
+      390,
+      844
+    ],
+    "currentSize": [
+      390,
+      844
+    ],
+    "diffBounds": null,
+    "interiorEqual": true
+  },
+  {
+    "file": "light-08.png",
+    "equal": true,
+    "baselineSize": [
+      390,
+      844
+    ],
+    "currentSize": [
+      390,
+      844
+    ],
+    "diffBounds": null,
+    "interiorEqual": true
+  },
+  {
+    "file": "light-09.png",
+    "equal": true,
+    "baselineSize": [
+      390,
+      844
+    ],
+    "currentSize": [
+      390,
+      844
+    ],
+    "diffBounds": null,
+    "interiorEqual": true
+  },
+  {
+    "file": "light-goal.png",
+    "equal": true,
+    "baselineSize": [
+      390,
+      844
+    ],
+    "currentSize": [
+      390,
+      844
+    ],
+    "diffBounds": null,
+    "interiorEqual": true
+  },
+  {
+    "file": "light-summary.png",
+    "equal": true,
+    "baselineSize": [
+      390,
+      844
+    ],
+    "currentSize": [
+      390,
+      844
+    ],
+    "diffBounds": null,
+    "interiorEqual": true
+  }
+]

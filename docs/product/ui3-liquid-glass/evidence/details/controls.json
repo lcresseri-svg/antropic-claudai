@@ -1,0 +1,3538 @@
+[
+  {
+    "name": "category",
+    "theme": "light",
+    "controls": [
+      {
+        "tag": "A",
+        "label": "Salta al contenuto",
+        "disabled": false
+      },
+      {
+        "tag": "A",
+        "label": "Oggi",
+        "disabled": false
+      },
+      {
+        "tag": "A",
+        "label": "Patrimonio",
+        "disabled": false
+      },
+      {
+        "tag": "A",
+        "label": "Piano",
+        "disabled": false
+      },
+      {
+        "tag": "A",
+        "label": "Movimenti",
+        "disabled": false
+      },
+      {
+        "tag": "BUTTON",
+        "label": "Aggiungi movimento",
+        "disabled": false
+      },
+      {
+        "tag": "BUTTON",
+        "label": "Sunny · Vai a Oggi",
+        "disabled": false
+      },
+      {
+        "tag": "BUTTON",
+        "label": "Altro\n⋯",
+        "disabled": false
+      },
+      {
+        "tag": "BUTTON",
+        "label": "Indietro",
+        "disabled": false
+      },
+      {
+        "tag": "BUTTON",
+        "label": "Mese",
+        "disabled": false
+      },
+      {
+        "tag": "BUTTON",
+        "label": "3M",
+        "disabled": false
+      },
+      {
+        "tag": "BUTTON",
+        "label": "6M",
+        "disabled": false
+      },
+      {
+        "tag": "BUTTON",
+        "label": "12M",
+        "disabled": false
+      },
+      {
+        "tag": "BUTTON",
+        "label": "Quest'anno",
+        "disabled": false
+      },
+      {
+        "tag": "BUTTON",
+        "label": "Da sempre",
+        "disabled": false
+      },
+      {
+        "tag": "BUTTON",
+        "label": "Periodo precedente",
+        "disabled": false
+      },
+      {
+        "tag": "BUTTON",
+        "label": "Ottobre",
+        "disabled": true
+      },
+      {
+        "tag": "BUTTON",
+        "label": "Periodo successivo",
+        "disabled": true
+      },
+      {
+        "tag": "BUTTON",
+        "label": "🏠\nCasa\n0%\n620,00 €\n\n56% del totale · 0% vs prec.",
+        "disabled": false
+      },
+      {
+        "tag": "BUTTON",
+        "label": "🛒\nSpesa\n0%\n259,50 €\n\n23% del totale · 0% vs prec.",
+        "disabled": false
+      },
+      {
+        "tag": "BUTTON",
+        "label": "🍽️\nRistoranti\n0%\n232,50 €\n\n21% del totale · 0% vs prec.",
+        "disabled": false
+      },
+      {
+        "tag": "BUTTON",
+        "label": "Chiudi",
+        "disabled": false
+      },
+      {
+        "tag": "BUTTON",
+        "label": "‹ Indietro",
+        "disabled": false
+      },
+      {
+        "tag": "BUTTON",
+        "label": "Chiudi",
+        "disabled": false
+      },
+      {
+        "tag": "SUMMARY",
+        "label": "Vedi dati · Andamento categoria",
+        "disabled": false
+      },
+      {
+        "tag": "BUTTON",
+        "label": "Vedi tutti i movimenti",
+        "disabled": false
+      }
+    ]
+  },
+  {
+    "name": "category-movements",
+    "theme": "light",
+    "controls": [
+      {
+        "tag": "A",
+        "label": "Salta al contenuto",
+        "disabled": false
+      },
+      {
+        "tag": "A",
+        "label": "Oggi",
+        "disabled": false
+      },
+      {
+        "tag": "A",
+        "label": "Patrimonio",
+        "disabled": false
+      },
+      {
+        "tag": "A",
+        "label": "Piano",
+        "disabled": false
+      },
+      {
+        "tag": "A",
+        "label": "Movimenti",
+        "disabled": false
+      },
+      {
+        "tag": "BUTTON",
+        "label": "Aggiungi movimento",
+        "disabled": false
+      },
+      {
+        "tag": "BUTTON",
+        "label": "Sunny · Vai a Oggi",
+        "disabled": false
+      },
+      {
+        "tag": "BUTTON",
+        "label": "Altro\n⋯",
+        "disabled": false
+      },
+      {
+        "tag": "BUTTON",
+        "label": "Cerca",
+        "disabled": false
+      },
+      {
+        "tag": "BUTTON",
+        "label": "Seleziona",
+        "disabled": false
+      },
+      {
+        "tag": "BUTTON",
+        "label": "Tutte · 1",
+        "disabled": false
+      },
+      {
+        "tag": "BUTTON",
+        "label": "Uscita",
+        "disabled": false
+      },
+      {
+        "tag": "BUTTON",
+        "label": "Entrata",
+        "disabled": false
+      },
+      {
+        "tag": "BUTTON",
+        "label": "Investimento",
+        "disabled": false
+      },
+      {
+        "tag": "BUTTON",
+        "label": "Filtri",
+        "disabled": false
+      },
+      {
+        "tag": "BUTTON",
+        "label": "Azzera periodo",
+        "disabled": false
+      },
+      {
+        "tag": "BUTTON",
+        "label": "🏠 Casa",
+        "disabled": false
+      },
+      {
+        "tag": "BUTTON",
+        "label": "🏠\n\nAffitto\n\nConto Corrente\n\n−620,00 €",
+        "disabled": false
+      }
+    ]
+  },
+  {
+    "name": "account",
+    "theme": "light",
+    "controls": [
+      {
+        "tag": "A",
+        "label": "Salta al contenuto",
+        "disabled": false
+      },
+      {
+        "tag": "A",
+        "label": "Oggi",
+        "disabled": false
+      },
+      {
+        "tag": "A",
+        "label": "Patrimonio",
+        "disabled": false
+      },
+      {
+        "tag": "A",
+        "label": "Piano",
+        "disabled": false
+      },
+      {
+        "tag": "A",
+        "label": "Movimenti",
+        "disabled": false
+      },
+      {
+        "tag": "BUTTON",
+        "label": "Aggiungi movimento",
+        "disabled": false
+      },
+      {
+        "tag": "BUTTON",
+        "label": "Sunny · Vai a Oggi",
+        "disabled": false
+      },
+      {
+        "tag": "BUTTON",
+        "label": "Altro\n⋯",
+        "disabled": false
+      },
+      {
+        "tag": "BUTTON",
+        "label": "Indietro",
+        "disabled": false
+      },
+      {
+        "tag": "BUTTON",
+        "label": "Mese",
+        "disabled": false
+      },
+      {
+        "tag": "BUTTON",
+        "label": "3M",
+        "disabled": false
+      },
+      {
+        "tag": "BUTTON",
+        "label": "6M",
+        "disabled": false
+      },
+      {
+        "tag": "BUTTON",
+        "label": "12M",
+        "disabled": false
+      },
+      {
+        "tag": "BUTTON",
+        "label": "Quest'anno",
+        "disabled": false
+      },
+      {
+        "tag": "BUTTON",
+        "label": "Da sempre",
+        "disabled": false
+      },
+      {
+        "tag": "BUTTON",
+        "label": "Periodo precedente",
+        "disabled": false
+      },
+      {
+        "tag": "BUTTON",
+        "label": "Ottobre",
+        "disabled": true
+      },
+      {
+        "tag": "BUTTON",
+        "label": "Periodo successivo",
+        "disabled": true
+      },
+      {
+        "tag": "BUTTON",
+        "label": "🏦\n\nConto Corrente\n\n+988,00 € nel periodo\n\n16.656,00 €",
+        "disabled": false
+      },
+      {
+        "tag": "BUTTON",
+        "label": "💰\n\nConto Risparmio\n\n2000,00 €",
+        "disabled": false
+      },
+      {
+        "tag": "BUTTON",
+        "label": "💳\n\nCarta di Credito\n\n0,00 €",
+        "disabled": false
+      },
+      {
+        "tag": "BUTTON",
+        "label": "💵\n\nContanti\n\n0,00 €",
+        "disabled": false
+      },
+      {
+        "tag": "BUTTON",
+        "label": "Chiudi",
+        "disabled": false
+      },
+      {
+        "tag": "BUTTON",
+        "label": "‹ Indietro",
+        "disabled": false
+      },
+      {
+        "tag": "BUTTON",
+        "label": "Chiudi",
+        "disabled": false
+      },
+      {
+        "tag": "SUMMARY",
+        "label": "Vedi dati · Saldo per conto",
+        "disabled": false
+      },
+      {
+        "tag": "BUTTON",
+        "label": "Vedi tutti i movimenti",
+        "disabled": false
+      }
+    ]
+  },
+  {
+    "name": "account-movements",
+    "theme": "light",
+    "controls": [
+      {
+        "tag": "A",
+        "label": "Salta al contenuto",
+        "disabled": false
+      },
+      {
+        "tag": "A",
+        "label": "Oggi",
+        "disabled": false
+      },
+      {
+        "tag": "A",
+        "label": "Patrimonio",
+        "disabled": false
+      },
+      {
+        "tag": "A",
+        "label": "Piano",
+        "disabled": false
+      },
+      {
+        "tag": "A",
+        "label": "Movimenti",
+        "disabled": false
+      },
+      {
+        "tag": "BUTTON",
+        "label": "Aggiungi movimento",
+        "disabled": false
+      },
+      {
+        "tag": "BUTTON",
+        "label": "Sunny · Vai a Oggi",
+        "disabled": false
+      },
+      {
+        "tag": "BUTTON",
+        "label": "Altro\n⋯",
+        "disabled": false
+      },
+      {
+        "tag": "BUTTON",
+        "label": "Cerca",
+        "disabled": false
+      },
+      {
+        "tag": "BUTTON",
+        "label": "Seleziona",
+        "disabled": false
+      },
+      {
+        "tag": "BUTTON",
+        "label": "Tutte · 13",
+        "disabled": false
+      },
+      {
+        "tag": "BUTTON",
+        "label": "Uscita",
+        "disabled": false
+      },
+      {
+        "tag": "BUTTON",
+        "label": "Entrata",
+        "disabled": false
+      },
+      {
+        "tag": "BUTTON",
+        "label": "Investimento",
+        "disabled": false
+      },
+      {
+        "tag": "BUTTON",
+        "label": "Filtri",
+        "disabled": false
+      },
+      {
+        "tag": "BUTTON",
+        "label": "Azzera periodo",
+        "disabled": false
+      },
+      {
+        "tag": "BUTTON",
+        "label": "🏦 Conto Corrente",
+        "disabled": false
+      },
+      {
+        "tag": "BUTTON",
+        "label": "🛒\n\nSpesa settimanale\n\nConto Corrente\n\n−73,50 €",
+        "disabled": false
+      },
+      {
+        "tag": "BUTTON",
+        "label": "🍽️\n\nCaffè e pranzo\n\nConto Corrente\n\n−68,10 €",
+        "disabled": false
+      },
+      {
+        "tag": "BUTTON",
+        "label": "🛒\n\nSpesa settimanale\n\nConto Corrente\n\n−62,70 €",
+        "disabled": false
+      },
+      {
+        "tag": "BUTTON",
+        "label": "🍽️\n\nCaffè e pranzo\n\nConto Corrente\n\n−57,30 €",
+        "disabled": false
+      },
+      {
+        "tag": "BUTTON",
+        "label": "🛒\n\nSpesa settimanale\n\nConto Corrente\n\n−51,90 €",
+        "disabled": false
+      },
+      {
+        "tag": "BUTTON",
+        "label": "🍽️\n\nCaffè e pranzo\n\nConto Corrente\n\n−46,50 €",
+        "disabled": false
+      },
+      {
+        "tag": "BUTTON",
+        "label": "🛒\n\nSpesa settimanale\n\nConto Corrente\n\n−41,10 €",
+        "disabled": false
+      },
+      {
+        "tag": "BUTTON",
+        "label": "🍽️\n\nCaffè e pranzo\n\nConto Corrente\n\n−35,70 €",
+        "disabled": false
+      },
+      {
+        "tag": "BUTTON",
+        "label": "📈\n\nPAC ETF\n\nConto Corrente\n\n−350,00 €",
+        "disabled": false
+      },
+      {
+        "tag": "BUTTON",
+        "label": "🏠\n\nAffitto\n\nConto Corrente\n\n−620,00 €",
+        "disabled": false
+      },
+      {
+        "tag": "BUTTON",
+        "label": "🛒\n\nSpesa settimanale\n\nConto Corrente\n\n−30,30 €",
+        "disabled": false
+      },
+      {
+        "tag": "BUTTON",
+        "label": "💼\n\nStipendio\n\nConto Corrente\n\n+2450,00 €",
+        "disabled": false
+      },
+      {
+        "tag": "BUTTON",
+        "label": "🍽️\n\nCaffè e pranzo\n\nConto Corrente\n\n−24,90 €",
+        "disabled": false
+      }
+    ]
+  },
+  {
+    "name": "wealth-history-data",
+    "theme": "light",
+    "controls": [
+      {
+        "tag": "A",
+        "label": "Salta al contenuto",
+        "disabled": false
+      },
+      {
+        "tag": "A",
+        "label": "Oggi",
+        "disabled": false
+      },
+      {
+        "tag": "A",
+        "label": "Patrimonio",
+        "disabled": false
+      },
+      {
+        "tag": "A",
+        "label": "Piano",
+        "disabled": false
+      },
+      {
+        "tag": "A",
+        "label": "Movimenti",
+        "disabled": false
+      },
+      {
+        "tag": "BUTTON",
+        "label": "Aggiungi movimento",
+        "disabled": false
+      },
+      {
+        "tag": "BUTTON",
+        "label": "Sunny · Vai a Oggi",
+        "disabled": false
+      },
+      {
+        "tag": "BUTTON",
+        "label": "Altro\n⋯",
+        "disabled": false
+      },
+      {
+        "tag": "BUTTON",
+        "label": "Torna indietro",
+        "disabled": false
+      },
+      {
+        "tag": "BUTTON",
+        "label": "Mese",
+        "disabled": false
+      },
+      {
+        "tag": "BUTTON",
+        "label": "3M",
+        "disabled": false
+      },
+      {
+        "tag": "BUTTON",
+        "label": "6M",
+        "disabled": false
+      },
+      {
+        "tag": "BUTTON",
+        "label": "1A",
+        "disabled": false
+      },
+      {
+        "tag": "BUTTON",
+        "label": "Quest'anno",
+        "disabled": false
+      },
+      {
+        "tag": "BUTTON",
+        "label": "Da sempre",
+        "disabled": false
+      },
+      {
+        "tag": "BUTTON",
+        "label": "Nascondi Liquidità",
+        "disabled": false
+      },
+      {
+        "tag": "BUTTON",
+        "label": "Nascondi Investimenti",
+        "disabled": false
+      },
+      {
+        "tag": "SUMMARY",
+        "label": "Vedi dati · Patrimonio",
+        "disabled": false
+      },
+      {
+        "tag": "SUMMARY",
+        "label": "Statistiche del patrimonio",
+        "disabled": false
+      }
+    ]
+  },
+  {
+    "name": "investment",
+    "theme": "light",
+    "controls": [
+      {
+        "tag": "A",
+        "label": "Salta al contenuto",
+        "disabled": false
+      },
+      {
+        "tag": "A",
+        "label": "Oggi",
+        "disabled": false
+      },
+      {
+        "tag": "A",
+        "label": "Patrimonio",
+        "disabled": false
+      },
+      {
+        "tag": "A",
+        "label": "Piano",
+        "disabled": false
+      },
+      {
+        "tag": "A",
+        "label": "Movimenti",
+        "disabled": false
+      },
+      {
+        "tag": "BUTTON",
+        "label": "Aggiungi movimento",
+        "disabled": false
+      },
+      {
+        "tag": "BUTTON",
+        "label": "Sunny · Vai a Oggi",
+        "disabled": false
+      },
+      {
+        "tag": "BUTTON",
+        "label": "Altro\n⋯",
+        "disabled": false
+      },
+      {
+        "tag": "BUTTON",
+        "label": "Indietro",
+        "disabled": false
+      },
+      {
+        "tag": "BUTTON",
+        "label": "Menu",
+        "disabled": false
+      },
+      {
+        "tag": "SUMMARY",
+        "label": "Vedi dati · Capitale investito",
+        "disabled": false
+      },
+      {
+        "tag": "BUTTON",
+        "label": "Aggiorna",
+        "disabled": false
+      },
+      {
+        "tag": "BUTTON",
+        "label": "+ Versa",
+        "disabled": false
+      },
+      {
+        "tag": "BUTTON",
+        "label": "↓ Disinvesti",
+        "disabled": false
+      },
+      {
+        "tag": "BUTTON",
+        "label": "Apri dettaglio di Azioni / ETF",
+        "disabled": false
+      },
+      {
+        "tag": "BUTTON",
+        "label": "Apri dettaglio di Crypto",
+        "disabled": false
+      },
+      {
+        "tag": "BUTTON",
+        "label": "Apri dettaglio di Obbligazioni",
+        "disabled": false
+      },
+      {
+        "tag": "BUTTON",
+        "label": "Apri dettaglio di Fondi",
+        "disabled": false
+      },
+      {
+        "tag": "BUTTON",
+        "label": "Operazioni · 12\nApri ›",
+        "disabled": false
+      },
+      {
+        "tag": "BUTTON",
+        "label": "Chiudi",
+        "disabled": false
+      },
+      {
+        "tag": "BUTTON",
+        "label": "‹ Indietro",
+        "disabled": false
+      },
+      {
+        "tag": "BUTTON",
+        "label": "Chiudi",
+        "disabled": false
+      },
+      {
+        "tag": "BUTTON",
+        "label": "+ Versa",
+        "disabled": false
+      },
+      {
+        "tag": "BUTTON",
+        "label": "↓ Disinvesti",
+        "disabled": false
+      },
+      {
+        "tag": "BUTTON",
+        "label": "✎ Controvalore",
+        "disabled": false
+      },
+      {
+        "tag": "SUMMARY",
+        "label": "Vedi dati · Saldo per conto",
+        "disabled": false
+      },
+      {
+        "tag": "BUTTON",
+        "label": "Vedi tutti i movimenti",
+        "disabled": false
+      }
+    ]
+  },
+  {
+    "name": "value",
+    "theme": "light",
+    "controls": [
+      {
+        "tag": "A",
+        "label": "Salta al contenuto",
+        "disabled": false
+      },
+      {
+        "tag": "A",
+        "label": "Oggi",
+        "disabled": false
+      },
+      {
+        "tag": "A",
+        "label": "Patrimonio",
+        "disabled": false
+      },
+      {
+        "tag": "A",
+        "label": "Piano",
+        "disabled": false
+      },
+      {
+        "tag": "A",
+        "label": "Movimenti",
+        "disabled": false
+      },
+      {
+        "tag": "BUTTON",
+        "label": "Aggiungi movimento",
+        "disabled": false
+      },
+      {
+        "tag": "BUTTON",
+        "label": "Sunny · Vai a Oggi",
+        "disabled": false
+      },
+      {
+        "tag": "BUTTON",
+        "label": "Altro\n⋯",
+        "disabled": false
+      },
+      {
+        "tag": "BUTTON",
+        "label": "Indietro",
+        "disabled": false
+      },
+      {
+        "tag": "BUTTON",
+        "label": "Menu",
+        "disabled": false
+      },
+      {
+        "tag": "SUMMARY",
+        "label": "Vedi dati · Capitale investito",
+        "disabled": false
+      },
+      {
+        "tag": "BUTTON",
+        "label": "Aggiorna",
+        "disabled": false
+      },
+      {
+        "tag": "BUTTON",
+        "label": "+ Versa",
+        "disabled": false
+      },
+      {
+        "tag": "BUTTON",
+        "label": "↓ Disinvesti",
+        "disabled": false
+      },
+      {
+        "tag": "BUTTON",
+        "label": "Apri dettaglio di Azioni / ETF",
+        "disabled": false
+      },
+      {
+        "tag": "BUTTON",
+        "label": "Apri dettaglio di Crypto",
+        "disabled": false
+      },
+      {
+        "tag": "BUTTON",
+        "label": "Apri dettaglio di Obbligazioni",
+        "disabled": false
+      },
+      {
+        "tag": "BUTTON",
+        "label": "Apri dettaglio di Fondi",
+        "disabled": false
+      },
+      {
+        "tag": "BUTTON",
+        "label": "Operazioni · 12\nApri ›",
+        "disabled": false
+      },
+      {
+        "tag": "BUTTON",
+        "label": "‹ Indietro",
+        "disabled": false
+      },
+      {
+        "tag": "BUTTON",
+        "label": "Chiudi",
+        "disabled": false
+      },
+      {
+        "tag": "INPUT",
+        "label": "Controvalore attuale",
+        "disabled": false
+      },
+      {
+        "tag": "BUTTON",
+        "label": "Salva controvalore",
+        "disabled": false
+      }
+    ]
+  },
+  {
+    "name": "deposit",
+    "theme": "light",
+    "controls": [
+      {
+        "tag": "A",
+        "label": "Salta al contenuto",
+        "disabled": false
+      },
+      {
+        "tag": "A",
+        "label": "Oggi",
+        "disabled": false
+      },
+      {
+        "tag": "A",
+        "label": "Patrimonio",
+        "disabled": false
+      },
+      {
+        "tag": "A",
+        "label": "Piano",
+        "disabled": false
+      },
+      {
+        "tag": "A",
+        "label": "Movimenti",
+        "disabled": false
+      },
+      {
+        "tag": "BUTTON",
+        "label": "Aggiungi movimento",
+        "disabled": false
+      },
+      {
+        "tag": "BUTTON",
+        "label": "Sunny · Vai a Oggi",
+        "disabled": false
+      },
+      {
+        "tag": "BUTTON",
+        "label": "Altro\n⋯",
+        "disabled": false
+      },
+      {
+        "tag": "BUTTON",
+        "label": "Indietro",
+        "disabled": false
+      },
+      {
+        "tag": "BUTTON",
+        "label": "Menu",
+        "disabled": false
+      },
+      {
+        "tag": "SUMMARY",
+        "label": "Vedi dati · Capitale investito",
+        "disabled": false
+      },
+      {
+        "tag": "BUTTON",
+        "label": "Aggiorna",
+        "disabled": false
+      },
+      {
+        "tag": "BUTTON",
+        "label": "+ Versa",
+        "disabled": false
+      },
+      {
+        "tag": "BUTTON",
+        "label": "↓ Disinvesti",
+        "disabled": false
+      },
+      {
+        "tag": "BUTTON",
+        "label": "Apri dettaglio di Azioni / ETF",
+        "disabled": false
+      },
+      {
+        "tag": "BUTTON",
+        "label": "Apri dettaglio di Crypto",
+        "disabled": false
+      },
+      {
+        "tag": "BUTTON",
+        "label": "Apri dettaglio di Obbligazioni",
+        "disabled": false
+      },
+      {
+        "tag": "BUTTON",
+        "label": "Apri dettaglio di Fondi",
+        "disabled": false
+      },
+      {
+        "tag": "BUTTON",
+        "label": "Operazioni · 12\nApri ›",
+        "disabled": false
+      },
+      {
+        "tag": "BUTTON",
+        "label": "‹ Indietro",
+        "disabled": false
+      },
+      {
+        "tag": "BUTTON",
+        "label": "Chiudi",
+        "disabled": false
+      },
+      {
+        "tag": "BUTTON",
+        "label": "📈\nAzioni / ETF",
+        "disabled": false
+      },
+      {
+        "tag": "BUTTON",
+        "label": "₿\nCrypto",
+        "disabled": false
+      },
+      {
+        "tag": "BUTTON",
+        "label": "🏛️\nObbligazioni",
+        "disabled": false
+      },
+      {
+        "tag": "BUTTON",
+        "label": "🏦\nFondi",
+        "disabled": false
+      },
+      {
+        "tag": "INPUT",
+        "label": "Importo del versamento",
+        "disabled": false
+      },
+      {
+        "tag": "SELECT",
+        "label": "🚫 Senza conto (TFR / datore)\n🏦 Conto Corrente\n💰 Conto Risparmio\n💳 Carta di Credito\n💵 Contanti\n📊 Investimenti",
+        "disabled": false
+      },
+      {
+        "tag": "INPUT",
+        "label": null,
+        "disabled": false
+      },
+      {
+        "tag": "BUTTON",
+        "label": "Commissione\nnessuna",
+        "disabled": false
+      },
+      {
+        "tag": "BUTTON",
+        "label": "Distribuzione statistica\nnessuna",
+        "disabled": false
+      },
+      {
+        "tag": "BUTTON",
+        "label": "Ricorrente\n\nSi ripete nel tempo — es. un PAC mensile",
+        "disabled": false
+      },
+      {
+        "tag": "BUTTON",
+        "label": "Nota\nnessuna",
+        "disabled": false
+      },
+      {
+        "tag": "BUTTON",
+        "label": "Versa",
+        "disabled": false
+      }
+    ]
+  },
+  {
+    "name": "withdraw",
+    "theme": "light",
+    "controls": [
+      {
+        "tag": "A",
+        "label": "Salta al contenuto",
+        "disabled": false
+      },
+      {
+        "tag": "A",
+        "label": "Oggi",
+        "disabled": false
+      },
+      {
+        "tag": "A",
+        "label": "Patrimonio",
+        "disabled": false
+      },
+      {
+        "tag": "A",
+        "label": "Piano",
+        "disabled": false
+      },
+      {
+        "tag": "A",
+        "label": "Movimenti",
+        "disabled": false
+      },
+      {
+        "tag": "BUTTON",
+        "label": "Aggiungi movimento",
+        "disabled": false
+      },
+      {
+        "tag": "BUTTON",
+        "label": "Sunny · Vai a Oggi",
+        "disabled": false
+      },
+      {
+        "tag": "BUTTON",
+        "label": "Altro\n⋯",
+        "disabled": false
+      },
+      {
+        "tag": "BUTTON",
+        "label": "Indietro",
+        "disabled": false
+      },
+      {
+        "tag": "BUTTON",
+        "label": "Menu",
+        "disabled": false
+      },
+      {
+        "tag": "SUMMARY",
+        "label": "Vedi dati · Capitale investito",
+        "disabled": false
+      },
+      {
+        "tag": "BUTTON",
+        "label": "Aggiorna",
+        "disabled": false
+      },
+      {
+        "tag": "BUTTON",
+        "label": "+ Versa",
+        "disabled": false
+      },
+      {
+        "tag": "BUTTON",
+        "label": "↓ Disinvesti",
+        "disabled": false
+      },
+      {
+        "tag": "BUTTON",
+        "label": "Apri dettaglio di Azioni / ETF",
+        "disabled": false
+      },
+      {
+        "tag": "BUTTON",
+        "label": "Apri dettaglio di Crypto",
+        "disabled": false
+      },
+      {
+        "tag": "BUTTON",
+        "label": "Apri dettaglio di Obbligazioni",
+        "disabled": false
+      },
+      {
+        "tag": "BUTTON",
+        "label": "Apri dettaglio di Fondi",
+        "disabled": false
+      },
+      {
+        "tag": "BUTTON",
+        "label": "Operazioni · 12\nApri ›",
+        "disabled": false
+      },
+      {
+        "tag": "BUTTON",
+        "label": "‹ Indietro",
+        "disabled": false
+      },
+      {
+        "tag": "BUTTON",
+        "label": "Chiudi",
+        "disabled": false
+      },
+      {
+        "tag": "SELECT",
+        "label": "📈 Azioni / ETF",
+        "disabled": false
+      },
+      {
+        "tag": "INPUT",
+        "label": "0,00",
+        "disabled": false
+      },
+      {
+        "tag": "INPUT",
+        "label": "0,00",
+        "disabled": false
+      },
+      {
+        "tag": "SELECT",
+        "label": "🏦 Conto Corrente\n💰 Conto Risparmio\n💳 Carta di Credito\n💵 Contanti\n📊 Investimenti",
+        "disabled": false
+      },
+      {
+        "tag": "INPUT",
+        "label": "0,00",
+        "disabled": false
+      },
+      {
+        "tag": "SELECT",
+        "label": "Stesso conto di destinazione\n🏦 Conto Corrente\n💰 Conto Risparmio\n💳 Carta di Credito\n💵 Contanti\n📊 Investimenti",
+        "disabled": false
+      },
+      {
+        "tag": "INPUT",
+        "label": null,
+        "disabled": false
+      },
+      {
+        "tag": "INPUT",
+        "label": null,
+        "disabled": false
+      },
+      {
+        "tag": "BUTTON",
+        "label": "Disinvesti ↓",
+        "disabled": false
+      }
+    ]
+  },
+  {
+    "name": "settings-generali",
+    "theme": "light",
+    "controls": [
+      {
+        "tag": "A",
+        "label": "Salta al contenuto",
+        "disabled": false
+      },
+      {
+        "tag": "BUTTON",
+        "label": "Sunny · Vai a Oggi",
+        "disabled": false
+      },
+      {
+        "tag": "BUTTON",
+        "label": "Altro\n⋯",
+        "disabled": false
+      },
+      {
+        "tag": "BUTTON",
+        "label": "Indietro",
+        "disabled": false
+      },
+      {
+        "tag": "BUTTON",
+        "label": "Tema scuro",
+        "disabled": false
+      },
+      {
+        "tag": "BUTTON",
+        "label": "Gestione investimenti",
+        "disabled": false
+      },
+      {
+        "tag": "BUTTON",
+        "label": "Includi investito nel patrimonio",
+        "disabled": false
+      },
+      {
+        "tag": "BUTTON",
+        "label": "Gestione budget",
+        "disabled": false
+      },
+      {
+        "tag": "BUTTON",
+        "label": "Suggerimenti AI",
+        "disabled": false
+      },
+      {
+        "tag": "BUTTON",
+        "label": "AI Coach",
+        "disabled": false
+      },
+      {
+        "tag": "BUTTON",
+        "label": "Minimal",
+        "disabled": false
+      },
+      {
+        "tag": "BUTTON",
+        "label": "Media",
+        "disabled": false
+      },
+      {
+        "tag": "BUTTON",
+        "label": "Smanettone",
+        "disabled": false
+      }
+    ]
+  },
+  {
+    "name": "settings-gestione",
+    "theme": "light",
+    "controls": [
+      {
+        "tag": "A",
+        "label": "Salta al contenuto",
+        "disabled": false
+      },
+      {
+        "tag": "BUTTON",
+        "label": "Sunny · Vai a Oggi",
+        "disabled": false
+      },
+      {
+        "tag": "BUTTON",
+        "label": "Altro\n⋯",
+        "disabled": false
+      },
+      {
+        "tag": "BUTTON",
+        "label": "Indietro",
+        "disabled": false
+      },
+      {
+        "tag": "BUTTON",
+        "label": "🏦\nGestisci conti\nSaldi iniziali, ordine",
+        "disabled": false
+      },
+      {
+        "tag": "BUTTON",
+        "label": "🏷️\nGestisci categorie\nIcone, colori, tipo",
+        "disabled": false
+      }
+    ]
+  },
+  {
+    "name": "settings-accounts",
+    "theme": "light",
+    "controls": [
+      {
+        "tag": "A",
+        "label": "Salta al contenuto",
+        "disabled": false
+      },
+      {
+        "tag": "BUTTON",
+        "label": "Sunny · Vai a Oggi",
+        "disabled": false
+      },
+      {
+        "tag": "BUTTON",
+        "label": "Altro\n⋯",
+        "disabled": false
+      },
+      {
+        "tag": "BUTTON",
+        "label": "Indietro",
+        "disabled": false
+      },
+      {
+        "tag": "BUTTON",
+        "label": "Riordina",
+        "disabled": false
+      },
+      {
+        "tag": "BUTTON",
+        "label": "+ Aggiungi conto",
+        "disabled": false
+      }
+    ]
+  },
+  {
+    "name": "settings-categories",
+    "theme": "light",
+    "controls": [
+      {
+        "tag": "A",
+        "label": "Salta al contenuto",
+        "disabled": false
+      },
+      {
+        "tag": "BUTTON",
+        "label": "Sunny · Vai a Oggi",
+        "disabled": false
+      },
+      {
+        "tag": "BUTTON",
+        "label": "Altro\n⋯",
+        "disabled": false
+      },
+      {
+        "tag": "BUTTON",
+        "label": "Indietro",
+        "disabled": false
+      },
+      {
+        "tag": "BUTTON",
+        "label": "Riordina",
+        "disabled": false
+      },
+      {
+        "tag": "BUTTON",
+        "label": "+ Aggiungi uscita",
+        "disabled": false
+      },
+      {
+        "tag": "BUTTON",
+        "label": "+ Aggiungi entrata",
+        "disabled": false
+      },
+      {
+        "tag": "BUTTON",
+        "label": "+ Aggiungi investimento",
+        "disabled": false
+      },
+      {
+        "tag": "SUMMARY",
+        "label": "Categorie archiviate (0)",
+        "disabled": false
+      }
+    ]
+  },
+  {
+    "name": "settings-dati",
+    "theme": "light",
+    "controls": [
+      {
+        "tag": "A",
+        "label": "Salta al contenuto",
+        "disabled": false
+      },
+      {
+        "tag": "BUTTON",
+        "label": "Sunny · Vai a Oggi",
+        "disabled": false
+      },
+      {
+        "tag": "BUTTON",
+        "label": "Altro\n⋯",
+        "disabled": false
+      },
+      {
+        "tag": "BUTTON",
+        "label": "Indietro",
+        "disabled": false
+      },
+      {
+        "tag": "BUTTON",
+        "label": "Importa un file CSV o Excel ↗",
+        "disabled": false
+      },
+      {
+        "tag": "BUTTON",
+        "label": "📦\n\nEsporta JSON\n\nTransazioni, categorie e conti\n\n↓",
+        "disabled": false
+      },
+      {
+        "tag": "BUTTON",
+        "label": "📄\n\nEsporta CSV\n\nApribile in Excel o Fogli Google\n\n↓",
+        "disabled": false
+      },
+      {
+        "tag": "BUTTON",
+        "label": "🗑\n\nElimina transazioni\n\nCategorie e conti restano",
+        "disabled": false
+      },
+      {
+        "tag": "BUTTON",
+        "label": "⚠️\n\nElimina account\n\nTutti i dati verranno rimossi",
+        "disabled": false
+      }
+    ]
+  },
+  {
+    "name": "settings-info",
+    "theme": "light",
+    "controls": [
+      {
+        "tag": "A",
+        "label": "Salta al contenuto",
+        "disabled": false
+      },
+      {
+        "tag": "BUTTON",
+        "label": "Sunny · Vai a Oggi",
+        "disabled": false
+      },
+      {
+        "tag": "BUTTON",
+        "label": "Altro\n⋯",
+        "disabled": false
+      },
+      {
+        "tag": "BUTTON",
+        "label": "Indietro",
+        "disabled": false
+      }
+    ]
+  },
+  {
+    "name": "settings-versioni",
+    "theme": "light",
+    "controls": [
+      {
+        "tag": "A",
+        "label": "Salta al contenuto",
+        "disabled": false
+      },
+      {
+        "tag": "BUTTON",
+        "label": "Sunny · Vai a Oggi",
+        "disabled": false
+      },
+      {
+        "tag": "BUTTON",
+        "label": "Altro\n⋯",
+        "disabled": false
+      },
+      {
+        "tag": "BUTTON",
+        "label": "Indietro",
+        "disabled": false
+      }
+    ]
+  },
+  {
+    "name": "settings-investimenti",
+    "theme": "light",
+    "controls": [
+      {
+        "tag": "A",
+        "label": "Salta al contenuto",
+        "disabled": false
+      },
+      {
+        "tag": "BUTTON",
+        "label": "Sunny · Vai a Oggi",
+        "disabled": false
+      },
+      {
+        "tag": "BUTTON",
+        "label": "Altro\n⋯",
+        "disabled": false
+      },
+      {
+        "tag": "BUTTON",
+        "label": "Indietro",
+        "disabled": false
+      },
+      {
+        "tag": "BUTTON",
+        "label": "Gestione investimenti",
+        "disabled": false
+      },
+      {
+        "tag": "BUTTON",
+        "label": "Includi investito nel patrimonio",
+        "disabled": false
+      }
+    ]
+  },
+  {
+    "name": "settings-aspetto",
+    "theme": "light",
+    "controls": [
+      {
+        "tag": "A",
+        "label": "Salta al contenuto",
+        "disabled": false
+      },
+      {
+        "tag": "BUTTON",
+        "label": "Sunny · Vai a Oggi",
+        "disabled": false
+      },
+      {
+        "tag": "BUTTON",
+        "label": "Altro\n⋯",
+        "disabled": false
+      },
+      {
+        "tag": "BUTTON",
+        "label": "Indietro",
+        "disabled": false
+      },
+      {
+        "tag": "BUTTON",
+        "label": "Tema scuro",
+        "disabled": false
+      }
+    ]
+  },
+  {
+    "name": "settings-budget",
+    "theme": "light",
+    "controls": [
+      {
+        "tag": "A",
+        "label": "Salta al contenuto",
+        "disabled": false
+      },
+      {
+        "tag": "BUTTON",
+        "label": "Sunny · Vai a Oggi",
+        "disabled": false
+      },
+      {
+        "tag": "BUTTON",
+        "label": "Altro\n⋯",
+        "disabled": false
+      },
+      {
+        "tag": "BUTTON",
+        "label": "Indietro",
+        "disabled": false
+      },
+      {
+        "tag": "BUTTON",
+        "label": "Gestione budget",
+        "disabled": false
+      }
+    ]
+  },
+  {
+    "name": "settings-ai",
+    "theme": "light",
+    "controls": [
+      {
+        "tag": "A",
+        "label": "Salta al contenuto",
+        "disabled": false
+      },
+      {
+        "tag": "BUTTON",
+        "label": "Sunny · Vai a Oggi",
+        "disabled": false
+      },
+      {
+        "tag": "BUTTON",
+        "label": "Altro\n⋯",
+        "disabled": false
+      },
+      {
+        "tag": "BUTTON",
+        "label": "Indietro",
+        "disabled": false
+      },
+      {
+        "tag": "BUTTON",
+        "label": "Suggerimenti AI",
+        "disabled": false
+      }
+    ]
+  },
+  {
+    "name": "settings-notifiche",
+    "theme": "light",
+    "controls": [
+      {
+        "tag": "A",
+        "label": "Salta al contenuto",
+        "disabled": false
+      },
+      {
+        "tag": "BUTTON",
+        "label": "Sunny · Vai a Oggi",
+        "disabled": false
+      },
+      {
+        "tag": "BUTTON",
+        "label": "Altro\n⋯",
+        "disabled": false
+      },
+      {
+        "tag": "BUTTON",
+        "label": "Indietro",
+        "disabled": false
+      }
+    ]
+  },
+  {
+    "name": "settings-avanzate",
+    "theme": "light",
+    "controls": [
+      {
+        "tag": "A",
+        "label": "Salta al contenuto",
+        "disabled": false
+      },
+      {
+        "tag": "BUTTON",
+        "label": "Sunny · Vai a Oggi",
+        "disabled": false
+      },
+      {
+        "tag": "BUTTON",
+        "label": "Altro\n⋯",
+        "disabled": false
+      },
+      {
+        "tag": "BUTTON",
+        "label": "Indietro",
+        "disabled": false
+      },
+      {
+        "tag": "BUTTON",
+        "label": "AI Coach",
+        "disabled": false
+      },
+      {
+        "tag": "BUTTON",
+        "label": "Minimal",
+        "disabled": false
+      },
+      {
+        "tag": "BUTTON",
+        "label": "Media",
+        "disabled": false
+      },
+      {
+        "tag": "BUTTON",
+        "label": "Smanettone",
+        "disabled": false
+      }
+    ]
+  },
+  {
+    "name": "settings-riserva",
+    "theme": "light",
+    "controls": [
+      {
+        "tag": "A",
+        "label": "Salta al contenuto",
+        "disabled": false
+      },
+      {
+        "tag": "BUTTON",
+        "label": "Sunny · Vai a Oggi",
+        "disabled": false
+      },
+      {
+        "tag": "BUTTON",
+        "label": "Altro\n⋯",
+        "disabled": false
+      },
+      {
+        "tag": "BUTTON",
+        "label": "Indietro",
+        "disabled": false
+      },
+      {
+        "tag": "INPUT",
+        "label": null,
+        "disabled": false
+      },
+      {
+        "tag": "BUTTON",
+        "label": "Nessuno",
+        "disabled": false
+      },
+      {
+        "tag": "BUTTON",
+        "label": "500 €",
+        "disabled": false
+      },
+      {
+        "tag": "BUTTON",
+        "label": "1000 €",
+        "disabled": false
+      },
+      {
+        "tag": "BUTTON",
+        "label": "2000 €",
+        "disabled": false
+      }
+    ]
+  },
+  {
+    "name": "category",
+    "theme": "dark",
+    "controls": [
+      {
+        "tag": "A",
+        "label": "Salta al contenuto",
+        "disabled": false
+      },
+      {
+        "tag": "A",
+        "label": "Oggi",
+        "disabled": false
+      },
+      {
+        "tag": "A",
+        "label": "Patrimonio",
+        "disabled": false
+      },
+      {
+        "tag": "A",
+        "label": "Piano",
+        "disabled": false
+      },
+      {
+        "tag": "A",
+        "label": "Movimenti",
+        "disabled": false
+      },
+      {
+        "tag": "BUTTON",
+        "label": "Aggiungi movimento",
+        "disabled": false
+      },
+      {
+        "tag": "BUTTON",
+        "label": "Sunny · Vai a Oggi",
+        "disabled": false
+      },
+      {
+        "tag": "BUTTON",
+        "label": "Altro\n⋯",
+        "disabled": false
+      },
+      {
+        "tag": "BUTTON",
+        "label": "Indietro",
+        "disabled": false
+      },
+      {
+        "tag": "BUTTON",
+        "label": "Mese",
+        "disabled": false
+      },
+      {
+        "tag": "BUTTON",
+        "label": "3M",
+        "disabled": false
+      },
+      {
+        "tag": "BUTTON",
+        "label": "6M",
+        "disabled": false
+      },
+      {
+        "tag": "BUTTON",
+        "label": "12M",
+        "disabled": false
+      },
+      {
+        "tag": "BUTTON",
+        "label": "Quest'anno",
+        "disabled": false
+      },
+      {
+        "tag": "BUTTON",
+        "label": "Da sempre",
+        "disabled": false
+      },
+      {
+        "tag": "BUTTON",
+        "label": "Periodo precedente",
+        "disabled": false
+      },
+      {
+        "tag": "BUTTON",
+        "label": "Ottobre",
+        "disabled": true
+      },
+      {
+        "tag": "BUTTON",
+        "label": "Periodo successivo",
+        "disabled": true
+      },
+      {
+        "tag": "BUTTON",
+        "label": "🏠\nCasa\n0%\n620,00 €\n\n56% del totale · 0% vs prec.",
+        "disabled": false
+      },
+      {
+        "tag": "BUTTON",
+        "label": "🛒\nSpesa\n0%\n259,50 €\n\n23% del totale · 0% vs prec.",
+        "disabled": false
+      },
+      {
+        "tag": "BUTTON",
+        "label": "🍽️\nRistoranti\n0%\n232,50 €\n\n21% del totale · 0% vs prec.",
+        "disabled": false
+      },
+      {
+        "tag": "BUTTON",
+        "label": "Chiudi",
+        "disabled": false
+      },
+      {
+        "tag": "BUTTON",
+        "label": "‹ Indietro",
+        "disabled": false
+      },
+      {
+        "tag": "BUTTON",
+        "label": "Chiudi",
+        "disabled": false
+      },
+      {
+        "tag": "SUMMARY",
+        "label": "Vedi dati · Andamento categoria",
+        "disabled": false
+      },
+      {
+        "tag": "BUTTON",
+        "label": "Vedi tutti i movimenti",
+        "disabled": false
+      }
+    ]
+  },
+  {
+    "name": "category-movements",
+    "theme": "dark",
+    "controls": [
+      {
+        "tag": "A",
+        "label": "Salta al contenuto",
+        "disabled": false
+      },
+      {
+        "tag": "A",
+        "label": "Oggi",
+        "disabled": false
+      },
+      {
+        "tag": "A",
+        "label": "Patrimonio",
+        "disabled": false
+      },
+      {
+        "tag": "A",
+        "label": "Piano",
+        "disabled": false
+      },
+      {
+        "tag": "A",
+        "label": "Movimenti",
+        "disabled": false
+      },
+      {
+        "tag": "BUTTON",
+        "label": "Aggiungi movimento",
+        "disabled": false
+      },
+      {
+        "tag": "BUTTON",
+        "label": "Sunny · Vai a Oggi",
+        "disabled": false
+      },
+      {
+        "tag": "BUTTON",
+        "label": "Altro\n⋯",
+        "disabled": false
+      },
+      {
+        "tag": "BUTTON",
+        "label": "Cerca",
+        "disabled": false
+      },
+      {
+        "tag": "BUTTON",
+        "label": "Seleziona",
+        "disabled": false
+      },
+      {
+        "tag": "BUTTON",
+        "label": "Tutte · 1",
+        "disabled": false
+      },
+      {
+        "tag": "BUTTON",
+        "label": "Uscita",
+        "disabled": false
+      },
+      {
+        "tag": "BUTTON",
+        "label": "Entrata",
+        "disabled": false
+      },
+      {
+        "tag": "BUTTON",
+        "label": "Investimento",
+        "disabled": false
+      },
+      {
+        "tag": "BUTTON",
+        "label": "Filtri",
+        "disabled": false
+      },
+      {
+        "tag": "BUTTON",
+        "label": "Azzera periodo",
+        "disabled": false
+      },
+      {
+        "tag": "BUTTON",
+        "label": "🏠 Casa",
+        "disabled": false
+      },
+      {
+        "tag": "BUTTON",
+        "label": "🏠\n\nAffitto\n\nConto Corrente\n\n−620,00 €",
+        "disabled": false
+      }
+    ]
+  },
+  {
+    "name": "account",
+    "theme": "dark",
+    "controls": [
+      {
+        "tag": "A",
+        "label": "Salta al contenuto",
+        "disabled": false
+      },
+      {
+        "tag": "A",
+        "label": "Oggi",
+        "disabled": false
+      },
+      {
+        "tag": "A",
+        "label": "Patrimonio",
+        "disabled": false
+      },
+      {
+        "tag": "A",
+        "label": "Piano",
+        "disabled": false
+      },
+      {
+        "tag": "A",
+        "label": "Movimenti",
+        "disabled": false
+      },
+      {
+        "tag": "BUTTON",
+        "label": "Aggiungi movimento",
+        "disabled": false
+      },
+      {
+        "tag": "BUTTON",
+        "label": "Sunny · Vai a Oggi",
+        "disabled": false
+      },
+      {
+        "tag": "BUTTON",
+        "label": "Altro\n⋯",
+        "disabled": false
+      },
+      {
+        "tag": "BUTTON",
+        "label": "Indietro",
+        "disabled": false
+      },
+      {
+        "tag": "BUTTON",
+        "label": "Mese",
+        "disabled": false
+      },
+      {
+        "tag": "BUTTON",
+        "label": "3M",
+        "disabled": false
+      },
+      {
+        "tag": "BUTTON",
+        "label": "6M",
+        "disabled": false
+      },
+      {
+        "tag": "BUTTON",
+        "label": "12M",
+        "disabled": false
+      },
+      {
+        "tag": "BUTTON",
+        "label": "Quest'anno",
+        "disabled": false
+      },
+      {
+        "tag": "BUTTON",
+        "label": "Da sempre",
+        "disabled": false
+      },
+      {
+        "tag": "BUTTON",
+        "label": "Periodo precedente",
+        "disabled": false
+      },
+      {
+        "tag": "BUTTON",
+        "label": "Ottobre",
+        "disabled": true
+      },
+      {
+        "tag": "BUTTON",
+        "label": "Periodo successivo",
+        "disabled": true
+      },
+      {
+        "tag": "BUTTON",
+        "label": "🏦\n\nConto Corrente\n\n+988,00 € nel periodo\n\n16.656,00 €",
+        "disabled": false
+      },
+      {
+        "tag": "BUTTON",
+        "label": "💰\n\nConto Risparmio\n\n2000,00 €",
+        "disabled": false
+      },
+      {
+        "tag": "BUTTON",
+        "label": "💳\n\nCarta di Credito\n\n0,00 €",
+        "disabled": false
+      },
+      {
+        "tag": "BUTTON",
+        "label": "💵\n\nContanti\n\n0,00 €",
+        "disabled": false
+      },
+      {
+        "tag": "BUTTON",
+        "label": "Chiudi",
+        "disabled": false
+      },
+      {
+        "tag": "BUTTON",
+        "label": "‹ Indietro",
+        "disabled": false
+      },
+      {
+        "tag": "BUTTON",
+        "label": "Chiudi",
+        "disabled": false
+      },
+      {
+        "tag": "SUMMARY",
+        "label": "Vedi dati · Saldo per conto",
+        "disabled": false
+      },
+      {
+        "tag": "BUTTON",
+        "label": "Vedi tutti i movimenti",
+        "disabled": false
+      }
+    ]
+  },
+  {
+    "name": "account-movements",
+    "theme": "dark",
+    "controls": [
+      {
+        "tag": "A",
+        "label": "Salta al contenuto",
+        "disabled": false
+      },
+      {
+        "tag": "A",
+        "label": "Oggi",
+        "disabled": false
+      },
+      {
+        "tag": "A",
+        "label": "Patrimonio",
+        "disabled": false
+      },
+      {
+        "tag": "A",
+        "label": "Piano",
+        "disabled": false
+      },
+      {
+        "tag": "A",
+        "label": "Movimenti",
+        "disabled": false
+      },
+      {
+        "tag": "BUTTON",
+        "label": "Aggiungi movimento",
+        "disabled": false
+      },
+      {
+        "tag": "BUTTON",
+        "label": "Sunny · Vai a Oggi",
+        "disabled": false
+      },
+      {
+        "tag": "BUTTON",
+        "label": "Altro\n⋯",
+        "disabled": false
+      },
+      {
+        "tag": "BUTTON",
+        "label": "Cerca",
+        "disabled": false
+      },
+      {
+        "tag": "BUTTON",
+        "label": "Seleziona",
+        "disabled": false
+      },
+      {
+        "tag": "BUTTON",
+        "label": "Tutte · 13",
+        "disabled": false
+      },
+      {
+        "tag": "BUTTON",
+        "label": "Uscita",
+        "disabled": false
+      },
+      {
+        "tag": "BUTTON",
+        "label": "Entrata",
+        "disabled": false
+      },
+      {
+        "tag": "BUTTON",
+        "label": "Investimento",
+        "disabled": false
+      },
+      {
+        "tag": "BUTTON",
+        "label": "Filtri",
+        "disabled": false
+      },
+      {
+        "tag": "BUTTON",
+        "label": "Azzera periodo",
+        "disabled": false
+      },
+      {
+        "tag": "BUTTON",
+        "label": "🏦 Conto Corrente",
+        "disabled": false
+      },
+      {
+        "tag": "BUTTON",
+        "label": "🛒\n\nSpesa settimanale\n\nConto Corrente\n\n−73,50 €",
+        "disabled": false
+      },
+      {
+        "tag": "BUTTON",
+        "label": "🍽️\n\nCaffè e pranzo\n\nConto Corrente\n\n−68,10 €",
+        "disabled": false
+      },
+      {
+        "tag": "BUTTON",
+        "label": "🛒\n\nSpesa settimanale\n\nConto Corrente\n\n−62,70 €",
+        "disabled": false
+      },
+      {
+        "tag": "BUTTON",
+        "label": "🍽️\n\nCaffè e pranzo\n\nConto Corrente\n\n−57,30 €",
+        "disabled": false
+      },
+      {
+        "tag": "BUTTON",
+        "label": "🛒\n\nSpesa settimanale\n\nConto Corrente\n\n−51,90 €",
+        "disabled": false
+      },
+      {
+        "tag": "BUTTON",
+        "label": "🍽️\n\nCaffè e pranzo\n\nConto Corrente\n\n−46,50 €",
+        "disabled": false
+      },
+      {
+        "tag": "BUTTON",
+        "label": "🛒\n\nSpesa settimanale\n\nConto Corrente\n\n−41,10 €",
+        "disabled": false
+      },
+      {
+        "tag": "BUTTON",
+        "label": "🍽️\n\nCaffè e pranzo\n\nConto Corrente\n\n−35,70 €",
+        "disabled": false
+      },
+      {
+        "tag": "BUTTON",
+        "label": "📈\n\nPAC ETF\n\nConto Corrente\n\n−350,00 €",
+        "disabled": false
+      },
+      {
+        "tag": "BUTTON",
+        "label": "🏠\n\nAffitto\n\nConto Corrente\n\n−620,00 €",
+        "disabled": false
+      },
+      {
+        "tag": "BUTTON",
+        "label": "🛒\n\nSpesa settimanale\n\nConto Corrente\n\n−30,30 €",
+        "disabled": false
+      },
+      {
+        "tag": "BUTTON",
+        "label": "💼\n\nStipendio\n\nConto Corrente\n\n+2450,00 €",
+        "disabled": false
+      },
+      {
+        "tag": "BUTTON",
+        "label": "🍽️\n\nCaffè e pranzo\n\nConto Corrente\n\n−24,90 €",
+        "disabled": false
+      }
+    ]
+  },
+  {
+    "name": "wealth-history-data",
+    "theme": "dark",
+    "controls": [
+      {
+        "tag": "A",
+        "label": "Salta al contenuto",
+        "disabled": false
+      },
+      {
+        "tag": "A",
+        "label": "Oggi",
+        "disabled": false
+      },
+      {
+        "tag": "A",
+        "label": "Patrimonio",
+        "disabled": false
+      },
+      {
+        "tag": "A",
+        "label": "Piano",
+        "disabled": false
+      },
+      {
+        "tag": "A",
+        "label": "Movimenti",
+        "disabled": false
+      },
+      {
+        "tag": "BUTTON",
+        "label": "Aggiungi movimento",
+        "disabled": false
+      },
+      {
+        "tag": "BUTTON",
+        "label": "Sunny · Vai a Oggi",
+        "disabled": false
+      },
+      {
+        "tag": "BUTTON",
+        "label": "Altro\n⋯",
+        "disabled": false
+      },
+      {
+        "tag": "BUTTON",
+        "label": "Torna indietro",
+        "disabled": false
+      },
+      {
+        "tag": "BUTTON",
+        "label": "Mese",
+        "disabled": false
+      },
+      {
+        "tag": "BUTTON",
+        "label": "3M",
+        "disabled": false
+      },
+      {
+        "tag": "BUTTON",
+        "label": "6M",
+        "disabled": false
+      },
+      {
+        "tag": "BUTTON",
+        "label": "1A",
+        "disabled": false
+      },
+      {
+        "tag": "BUTTON",
+        "label": "Quest'anno",
+        "disabled": false
+      },
+      {
+        "tag": "BUTTON",
+        "label": "Da sempre",
+        "disabled": false
+      },
+      {
+        "tag": "BUTTON",
+        "label": "Nascondi Liquidità",
+        "disabled": false
+      },
+      {
+        "tag": "BUTTON",
+        "label": "Nascondi Investimenti",
+        "disabled": false
+      },
+      {
+        "tag": "SUMMARY",
+        "label": "Vedi dati · Patrimonio",
+        "disabled": false
+      },
+      {
+        "tag": "SUMMARY",
+        "label": "Statistiche del patrimonio",
+        "disabled": false
+      }
+    ]
+  },
+  {
+    "name": "investment",
+    "theme": "dark",
+    "controls": [
+      {
+        "tag": "A",
+        "label": "Salta al contenuto",
+        "disabled": false
+      },
+      {
+        "tag": "A",
+        "label": "Oggi",
+        "disabled": false
+      },
+      {
+        "tag": "A",
+        "label": "Patrimonio",
+        "disabled": false
+      },
+      {
+        "tag": "A",
+        "label": "Piano",
+        "disabled": false
+      },
+      {
+        "tag": "A",
+        "label": "Movimenti",
+        "disabled": false
+      },
+      {
+        "tag": "BUTTON",
+        "label": "Aggiungi movimento",
+        "disabled": false
+      },
+      {
+        "tag": "BUTTON",
+        "label": "Sunny · Vai a Oggi",
+        "disabled": false
+      },
+      {
+        "tag": "BUTTON",
+        "label": "Altro\n⋯",
+        "disabled": false
+      },
+      {
+        "tag": "BUTTON",
+        "label": "Indietro",
+        "disabled": false
+      },
+      {
+        "tag": "BUTTON",
+        "label": "Menu",
+        "disabled": false
+      },
+      {
+        "tag": "SUMMARY",
+        "label": "Vedi dati · Capitale investito",
+        "disabled": false
+      },
+      {
+        "tag": "BUTTON",
+        "label": "Aggiorna",
+        "disabled": false
+      },
+      {
+        "tag": "BUTTON",
+        "label": "+ Versa",
+        "disabled": false
+      },
+      {
+        "tag": "BUTTON",
+        "label": "↓ Disinvesti",
+        "disabled": false
+      },
+      {
+        "tag": "BUTTON",
+        "label": "Apri dettaglio di Azioni / ETF",
+        "disabled": false
+      },
+      {
+        "tag": "BUTTON",
+        "label": "Apri dettaglio di Crypto",
+        "disabled": false
+      },
+      {
+        "tag": "BUTTON",
+        "label": "Apri dettaglio di Obbligazioni",
+        "disabled": false
+      },
+      {
+        "tag": "BUTTON",
+        "label": "Apri dettaglio di Fondi",
+        "disabled": false
+      },
+      {
+        "tag": "BUTTON",
+        "label": "Operazioni · 12\nApri ›",
+        "disabled": false
+      },
+      {
+        "tag": "BUTTON",
+        "label": "Chiudi",
+        "disabled": false
+      },
+      {
+        "tag": "BUTTON",
+        "label": "‹ Indietro",
+        "disabled": false
+      },
+      {
+        "tag": "BUTTON",
+        "label": "Chiudi",
+        "disabled": false
+      },
+      {
+        "tag": "BUTTON",
+        "label": "+ Versa",
+        "disabled": false
+      },
+      {
+        "tag": "BUTTON",
+        "label": "↓ Disinvesti",
+        "disabled": false
+      },
+      {
+        "tag": "BUTTON",
+        "label": "✎ Controvalore",
+        "disabled": false
+      },
+      {
+        "tag": "SUMMARY",
+        "label": "Vedi dati · Saldo per conto",
+        "disabled": false
+      },
+      {
+        "tag": "BUTTON",
+        "label": "Vedi tutti i movimenti",
+        "disabled": false
+      }
+    ]
+  },
+  {
+    "name": "value",
+    "theme": "dark",
+    "controls": [
+      {
+        "tag": "A",
+        "label": "Salta al contenuto",
+        "disabled": false
+      },
+      {
+        "tag": "A",
+        "label": "Oggi",
+        "disabled": false
+      },
+      {
+        "tag": "A",
+        "label": "Patrimonio",
+        "disabled": false
+      },
+      {
+        "tag": "A",
+        "label": "Piano",
+        "disabled": false
+      },
+      {
+        "tag": "A",
+        "label": "Movimenti",
+        "disabled": false
+      },
+      {
+        "tag": "BUTTON",
+        "label": "Aggiungi movimento",
+        "disabled": false
+      },
+      {
+        "tag": "BUTTON",
+        "label": "Sunny · Vai a Oggi",
+        "disabled": false
+      },
+      {
+        "tag": "BUTTON",
+        "label": "Altro\n⋯",
+        "disabled": false
+      },
+      {
+        "tag": "BUTTON",
+        "label": "Indietro",
+        "disabled": false
+      },
+      {
+        "tag": "BUTTON",
+        "label": "Menu",
+        "disabled": false
+      },
+      {
+        "tag": "SUMMARY",
+        "label": "Vedi dati · Capitale investito",
+        "disabled": false
+      },
+      {
+        "tag": "BUTTON",
+        "label": "Aggiorna",
+        "disabled": false
+      },
+      {
+        "tag": "BUTTON",
+        "label": "+ Versa",
+        "disabled": false
+      },
+      {
+        "tag": "BUTTON",
+        "label": "↓ Disinvesti",
+        "disabled": false
+      },
+      {
+        "tag": "BUTTON",
+        "label": "Apri dettaglio di Azioni / ETF",
+        "disabled": false
+      },
+      {
+        "tag": "BUTTON",
+        "label": "Apri dettaglio di Crypto",
+        "disabled": false
+      },
+      {
+        "tag": "BUTTON",
+        "label": "Apri dettaglio di Obbligazioni",
+        "disabled": false
+      },
+      {
+        "tag": "BUTTON",
+        "label": "Apri dettaglio di Fondi",
+        "disabled": false
+      },
+      {
+        "tag": "BUTTON",
+        "label": "Operazioni · 12\nApri ›",
+        "disabled": false
+      },
+      {
+        "tag": "BUTTON",
+        "label": "‹ Indietro",
+        "disabled": false
+      },
+      {
+        "tag": "BUTTON",
+        "label": "Chiudi",
+        "disabled": false
+      },
+      {
+        "tag": "INPUT",
+        "label": "Controvalore attuale",
+        "disabled": false
+      },
+      {
+        "tag": "BUTTON",
+        "label": "Salva controvalore",
+        "disabled": false
+      }
+    ]
+  },
+  {
+    "name": "deposit",
+    "theme": "dark",
+    "controls": [
+      {
+        "tag": "A",
+        "label": "Salta al contenuto",
+        "disabled": false
+      },
+      {
+        "tag": "A",
+        "label": "Oggi",
+        "disabled": false
+      },
+      {
+        "tag": "A",
+        "label": "Patrimonio",
+        "disabled": false
+      },
+      {
+        "tag": "A",
+        "label": "Piano",
+        "disabled": false
+      },
+      {
+        "tag": "A",
+        "label": "Movimenti",
+        "disabled": false
+      },
+      {
+        "tag": "BUTTON",
+        "label": "Aggiungi movimento",
+        "disabled": false
+      },
+      {
+        "tag": "BUTTON",
+        "label": "Sunny · Vai a Oggi",
+        "disabled": false
+      },
+      {
+        "tag": "BUTTON",
+        "label": "Altro\n⋯",
+        "disabled": false
+      },
+      {
+        "tag": "BUTTON",
+        "label": "Indietro",
+        "disabled": false
+      },
+      {
+        "tag": "BUTTON",
+        "label": "Menu",
+        "disabled": false
+      },
+      {
+        "tag": "SUMMARY",
+        "label": "Vedi dati · Capitale investito",
+        "disabled": false
+      },
+      {
+        "tag": "BUTTON",
+        "label": "Aggiorna",
+        "disabled": false
+      },
+      {
+        "tag": "BUTTON",
+        "label": "+ Versa",
+        "disabled": false
+      },
+      {
+        "tag": "BUTTON",
+        "label": "↓ Disinvesti",
+        "disabled": false
+      },
+      {
+        "tag": "BUTTON",
+        "label": "Apri dettaglio di Azioni / ETF",
+        "disabled": false
+      },
+      {
+        "tag": "BUTTON",
+        "label": "Apri dettaglio di Crypto",
+        "disabled": false
+      },
+      {
+        "tag": "BUTTON",
+        "label": "Apri dettaglio di Obbligazioni",
+        "disabled": false
+      },
+      {
+        "tag": "BUTTON",
+        "label": "Apri dettaglio di Fondi",
+        "disabled": false
+      },
+      {
+        "tag": "BUTTON",
+        "label": "Operazioni · 12\nApri ›",
+        "disabled": false
+      },
+      {
+        "tag": "BUTTON",
+        "label": "‹ Indietro",
+        "disabled": false
+      },
+      {
+        "tag": "BUTTON",
+        "label": "Chiudi",
+        "disabled": false
+      },
+      {
+        "tag": "BUTTON",
+        "label": "📈\nAzioni / ETF",
+        "disabled": false
+      },
+      {
+        "tag": "BUTTON",
+        "label": "₿\nCrypto",
+        "disabled": false
+      },
+      {
+        "tag": "BUTTON",
+        "label": "🏛️\nObbligazioni",
+        "disabled": false
+      },
+      {
+        "tag": "BUTTON",
+        "label": "🏦\nFondi",
+        "disabled": false
+      },
+      {
+        "tag": "INPUT",
+        "label": "Importo del versamento",
+        "disabled": false
+      },
+      {
+        "tag": "SELECT",
+        "label": "🚫 Senza conto (TFR / datore)\n🏦 Conto Corrente\n💰 Conto Risparmio\n💳 Carta di Credito\n💵 Contanti\n📊 Investimenti",
+        "disabled": false
+      },
+      {
+        "tag": "INPUT",
+        "label": null,
+        "disabled": false
+      },
+      {
+        "tag": "BUTTON",
+        "label": "Commissione\nnessuna",
+        "disabled": false
+      },
+      {
+        "tag": "BUTTON",
+        "label": "Distribuzione statistica\nnessuna",
+        "disabled": false
+      },
+      {
+        "tag": "BUTTON",
+        "label": "Ricorrente\n\nSi ripete nel tempo — es. un PAC mensile",
+        "disabled": false
+      },
+      {
+        "tag": "BUTTON",
+        "label": "Nota\nnessuna",
+        "disabled": false
+      },
+      {
+        "tag": "BUTTON",
+        "label": "Versa",
+        "disabled": false
+      }
+    ]
+  },
+  {
+    "name": "withdraw",
+    "theme": "dark",
+    "controls": [
+      {
+        "tag": "A",
+        "label": "Salta al contenuto",
+        "disabled": false
+      },
+      {
+        "tag": "A",
+        "label": "Oggi",
+        "disabled": false
+      },
+      {
+        "tag": "A",
+        "label": "Patrimonio",
+        "disabled": false
+      },
+      {
+        "tag": "A",
+        "label": "Piano",
+        "disabled": false
+      },
+      {
+        "tag": "A",
+        "label": "Movimenti",
+        "disabled": false
+      },
+      {
+        "tag": "BUTTON",
+        "label": "Aggiungi movimento",
+        "disabled": false
+      },
+      {
+        "tag": "BUTTON",
+        "label": "Sunny · Vai a Oggi",
+        "disabled": false
+      },
+      {
+        "tag": "BUTTON",
+        "label": "Altro\n⋯",
+        "disabled": false
+      },
+      {
+        "tag": "BUTTON",
+        "label": "Indietro",
+        "disabled": false
+      },
+      {
+        "tag": "BUTTON",
+        "label": "Menu",
+        "disabled": false
+      },
+      {
+        "tag": "SUMMARY",
+        "label": "Vedi dati · Capitale investito",
+        "disabled": false
+      },
+      {
+        "tag": "BUTTON",
+        "label": "Aggiorna",
+        "disabled": false
+      },
+      {
+        "tag": "BUTTON",
+        "label": "+ Versa",
+        "disabled": false
+      },
+      {
+        "tag": "BUTTON",
+        "label": "↓ Disinvesti",
+        "disabled": false
+      },
+      {
+        "tag": "BUTTON",
+        "label": "Apri dettaglio di Azioni / ETF",
+        "disabled": false
+      },
+      {
+        "tag": "BUTTON",
+        "label": "Apri dettaglio di Crypto",
+        "disabled": false
+      },
+      {
+        "tag": "BUTTON",
+        "label": "Apri dettaglio di Obbligazioni",
+        "disabled": false
+      },
+      {
+        "tag": "BUTTON",
+        "label": "Apri dettaglio di Fondi",
+        "disabled": false
+      },
+      {
+        "tag": "BUTTON",
+        "label": "Operazioni · 12\nApri ›",
+        "disabled": false
+      },
+      {
+        "tag": "BUTTON",
+        "label": "‹ Indietro",
+        "disabled": false
+      },
+      {
+        "tag": "BUTTON",
+        "label": "Chiudi",
+        "disabled": false
+      },
+      {
+        "tag": "SELECT",
+        "label": "📈 Azioni / ETF",
+        "disabled": false
+      },
+      {
+        "tag": "INPUT",
+        "label": "0,00",
+        "disabled": false
+      },
+      {
+        "tag": "INPUT",
+        "label": "0,00",
+        "disabled": false
+      },
+      {
+        "tag": "SELECT",
+        "label": "🏦 Conto Corrente\n💰 Conto Risparmio\n💳 Carta di Credito\n💵 Contanti\n📊 Investimenti",
+        "disabled": false
+      },
+      {
+        "tag": "INPUT",
+        "label": "0,00",
+        "disabled": false
+      },
+      {
+        "tag": "SELECT",
+        "label": "Stesso conto di destinazione\n🏦 Conto Corrente\n💰 Conto Risparmio\n💳 Carta di Credito\n💵 Contanti\n📊 Investimenti",
+        "disabled": false
+      },
+      {
+        "tag": "INPUT",
+        "label": null,
+        "disabled": false
+      },
+      {
+        "tag": "INPUT",
+        "label": null,
+        "disabled": false
+      },
+      {
+        "tag": "BUTTON",
+        "label": "Disinvesti ↓",
+        "disabled": false
+      }
+    ]
+  },
+  {
+    "name": "settings-generali",
+    "theme": "dark",
+    "controls": [
+      {
+        "tag": "A",
+        "label": "Salta al contenuto",
+        "disabled": false
+      },
+      {
+        "tag": "BUTTON",
+        "label": "Sunny · Vai a Oggi",
+        "disabled": false
+      },
+      {
+        "tag": "BUTTON",
+        "label": "Altro\n⋯",
+        "disabled": false
+      },
+      {
+        "tag": "BUTTON",
+        "label": "Indietro",
+        "disabled": false
+      },
+      {
+        "tag": "BUTTON",
+        "label": "Tema scuro",
+        "disabled": false
+      },
+      {
+        "tag": "BUTTON",
+        "label": "Gestione investimenti",
+        "disabled": false
+      },
+      {
+        "tag": "BUTTON",
+        "label": "Includi investito nel patrimonio",
+        "disabled": false
+      },
+      {
+        "tag": "BUTTON",
+        "label": "Gestione budget",
+        "disabled": false
+      },
+      {
+        "tag": "BUTTON",
+        "label": "Suggerimenti AI",
+        "disabled": false
+      },
+      {
+        "tag": "BUTTON",
+        "label": "AI Coach",
+        "disabled": false
+      },
+      {
+        "tag": "BUTTON",
+        "label": "Minimal",
+        "disabled": false
+      },
+      {
+        "tag": "BUTTON",
+        "label": "Media",
+        "disabled": false
+      },
+      {
+        "tag": "BUTTON",
+        "label": "Smanettone",
+        "disabled": false
+      }
+    ]
+  },
+  {
+    "name": "settings-gestione",
+    "theme": "dark",
+    "controls": [
+      {
+        "tag": "A",
+        "label": "Salta al contenuto",
+        "disabled": false
+      },
+      {
+        "tag": "BUTTON",
+        "label": "Sunny · Vai a Oggi",
+        "disabled": false
+      },
+      {
+        "tag": "BUTTON",
+        "label": "Altro\n⋯",
+        "disabled": false
+      },
+      {
+        "tag": "BUTTON",
+        "label": "Indietro",
+        "disabled": false
+      },
+      {
+        "tag": "BUTTON",
+        "label": "🏦\nGestisci conti\nSaldi iniziali, ordine",
+        "disabled": false
+      },
+      {
+        "tag": "BUTTON",
+        "label": "🏷️\nGestisci categorie\nIcone, colori, tipo",
+        "disabled": false
+      }
+    ]
+  },
+  {
+    "name": "settings-accounts",
+    "theme": "dark",
+    "controls": [
+      {
+        "tag": "A",
+        "label": "Salta al contenuto",
+        "disabled": false
+      },
+      {
+        "tag": "BUTTON",
+        "label": "Sunny · Vai a Oggi",
+        "disabled": false
+      },
+      {
+        "tag": "BUTTON",
+        "label": "Altro\n⋯",
+        "disabled": false
+      },
+      {
+        "tag": "BUTTON",
+        "label": "Indietro",
+        "disabled": false
+      },
+      {
+        "tag": "BUTTON",
+        "label": "Riordina",
+        "disabled": false
+      },
+      {
+        "tag": "BUTTON",
+        "label": "+ Aggiungi conto",
+        "disabled": false
+      }
+    ]
+  },
+  {
+    "name": "settings-categories",
+    "theme": "dark",
+    "controls": [
+      {
+        "tag": "A",
+        "label": "Salta al contenuto",
+        "disabled": false
+      },
+      {
+        "tag": "BUTTON",
+        "label": "Sunny · Vai a Oggi",
+        "disabled": false
+      },
+      {
+        "tag": "BUTTON",
+        "label": "Altro\n⋯",
+        "disabled": false
+      },
+      {
+        "tag": "BUTTON",
+        "label": "Indietro",
+        "disabled": false
+      },
+      {
+        "tag": "BUTTON",
+        "label": "Riordina",
+        "disabled": false
+      },
+      {
+        "tag": "BUTTON",
+        "label": "+ Aggiungi uscita",
+        "disabled": false
+      },
+      {
+        "tag": "BUTTON",
+        "label": "+ Aggiungi entrata",
+        "disabled": false
+      },
+      {
+        "tag": "BUTTON",
+        "label": "+ Aggiungi investimento",
+        "disabled": false
+      },
+      {
+        "tag": "SUMMARY",
+        "label": "Categorie archiviate (0)",
+        "disabled": false
+      }
+    ]
+  },
+  {
+    "name": "settings-dati",
+    "theme": "dark",
+    "controls": [
+      {
+        "tag": "A",
+        "label": "Salta al contenuto",
+        "disabled": false
+      },
+      {
+        "tag": "BUTTON",
+        "label": "Sunny · Vai a Oggi",
+        "disabled": false
+      },
+      {
+        "tag": "BUTTON",
+        "label": "Altro\n⋯",
+        "disabled": false
+      },
+      {
+        "tag": "BUTTON",
+        "label": "Indietro",
+        "disabled": false
+      },
+      {
+        "tag": "BUTTON",
+        "label": "Importa un file CSV o Excel ↗",
+        "disabled": false
+      },
+      {
+        "tag": "BUTTON",
+        "label": "📦\n\nEsporta JSON\n\nTransazioni, categorie e conti\n\n↓",
+        "disabled": false
+      },
+      {
+        "tag": "BUTTON",
+        "label": "📄\n\nEsporta CSV\n\nApribile in Excel o Fogli Google\n\n↓",
+        "disabled": false
+      },
+      {
+        "tag": "BUTTON",
+        "label": "🗑\n\nElimina transazioni\n\nCategorie e conti restano",
+        "disabled": false
+      },
+      {
+        "tag": "BUTTON",
+        "label": "⚠️\n\nElimina account\n\nTutti i dati verranno rimossi",
+        "disabled": false
+      }
+    ]
+  },
+  {
+    "name": "settings-info",
+    "theme": "dark",
+    "controls": [
+      {
+        "tag": "A",
+        "label": "Salta al contenuto",
+        "disabled": false
+      },
+      {
+        "tag": "BUTTON",
+        "label": "Sunny · Vai a Oggi",
+        "disabled": false
+      },
+      {
+        "tag": "BUTTON",
+        "label": "Altro\n⋯",
+        "disabled": false
+      },
+      {
+        "tag": "BUTTON",
+        "label": "Indietro",
+        "disabled": false
+      }
+    ]
+  },
+  {
+    "name": "settings-versioni",
+    "theme": "dark",
+    "controls": [
+      {
+        "tag": "A",
+        "label": "Salta al contenuto",
+        "disabled": false
+      },
+      {
+        "tag": "BUTTON",
+        "label": "Sunny · Vai a Oggi",
+        "disabled": false
+      },
+      {
+        "tag": "BUTTON",
+        "label": "Altro\n⋯",
+        "disabled": false
+      },
+      {
+        "tag": "BUTTON",
+        "label": "Indietro",
+        "disabled": false
+      }
+    ]
+  },
+  {
+    "name": "settings-investimenti",
+    "theme": "dark",
+    "controls": [
+      {
+        "tag": "A",
+        "label": "Salta al contenuto",
+        "disabled": false
+      },
+      {
+        "tag": "BUTTON",
+        "label": "Sunny · Vai a Oggi",
+        "disabled": false
+      },
+      {
+        "tag": "BUTTON",
+        "label": "Altro\n⋯",
+        "disabled": false
+      },
+      {
+        "tag": "BUTTON",
+        "label": "Indietro",
+        "disabled": false
+      },
+      {
+        "tag": "BUTTON",
+        "label": "Gestione investimenti",
+        "disabled": false
+      },
+      {
+        "tag": "BUTTON",
+        "label": "Includi investito nel patrimonio",
+        "disabled": false
+      }
+    ]
+  },
+  {
+    "name": "settings-aspetto",
+    "theme": "dark",
+    "controls": [
+      {
+        "tag": "A",
+        "label": "Salta al contenuto",
+        "disabled": false
+      },
+      {
+        "tag": "BUTTON",
+        "label": "Sunny · Vai a Oggi",
+        "disabled": false
+      },
+      {
+        "tag": "BUTTON",
+        "label": "Altro\n⋯",
+        "disabled": false
+      },
+      {
+        "tag": "BUTTON",
+        "label": "Indietro",
+        "disabled": false
+      },
+      {
+        "tag": "BUTTON",
+        "label": "Tema scuro",
+        "disabled": false
+      }
+    ]
+  },
+  {
+    "name": "settings-budget",
+    "theme": "dark",
+    "controls": [
+      {
+        "tag": "A",
+        "label": "Salta al contenuto",
+        "disabled": false
+      },
+      {
+        "tag": "BUTTON",
+        "label": "Sunny · Vai a Oggi",
+        "disabled": false
+      },
+      {
+        "tag": "BUTTON",
+        "label": "Altro\n⋯",
+        "disabled": false
+      },
+      {
+        "tag": "BUTTON",
+        "label": "Indietro",
+        "disabled": false
+      },
+      {
+        "tag": "BUTTON",
+        "label": "Gestione budget",
+        "disabled": false
+      }
+    ]
+  },
+  {
+    "name": "settings-ai",
+    "theme": "dark",
+    "controls": [
+      {
+        "tag": "A",
+        "label": "Salta al contenuto",
+        "disabled": false
+      },
+      {
+        "tag": "BUTTON",
+        "label": "Sunny · Vai a Oggi",
+        "disabled": false
+      },
+      {
+        "tag": "BUTTON",
+        "label": "Altro\n⋯",
+        "disabled": false
+      },
+      {
+        "tag": "BUTTON",
+        "label": "Indietro",
+        "disabled": false
+      },
+      {
+        "tag": "BUTTON",
+        "label": "Suggerimenti AI",
+        "disabled": false
+      }
+    ]
+  },
+  {
+    "name": "settings-notifiche",
+    "theme": "dark",
+    "controls": [
+      {
+        "tag": "A",
+        "label": "Salta al contenuto",
+        "disabled": false
+      },
+      {
+        "tag": "BUTTON",
+        "label": "Sunny · Vai a Oggi",
+        "disabled": false
+      },
+      {
+        "tag": "BUTTON",
+        "label": "Altro\n⋯",
+        "disabled": false
+      },
+      {
+        "tag": "BUTTON",
+        "label": "Indietro",
+        "disabled": false
+      }
+    ]
+  },
+  {
+    "name": "settings-avanzate",
+    "theme": "dark",
+    "controls": [
+      {
+        "tag": "A",
+        "label": "Salta al contenuto",
+        "disabled": false
+      },
+      {
+        "tag": "BUTTON",
+        "label": "Sunny · Vai a Oggi",
+        "disabled": false
+      },
+      {
+        "tag": "BUTTON",
+        "label": "Altro\n⋯",
+        "disabled": false
+      },
+      {
+        "tag": "BUTTON",
+        "label": "Indietro",
+        "disabled": false
+      },
+      {
+        "tag": "BUTTON",
+        "label": "AI Coach",
+        "disabled": false
+      },
+      {
+        "tag": "BUTTON",
+        "label": "Minimal",
+        "disabled": false
+      },
+      {
+        "tag": "BUTTON",
+        "label": "Media",
+        "disabled": false
+      },
+      {
+        "tag": "BUTTON",
+        "label": "Smanettone",
+        "disabled": false
+      }
+    ]
+  },
+  {
+    "name": "settings-riserva",
+    "theme": "dark",
+    "controls": [
+      {
+        "tag": "A",
+        "label": "Salta al contenuto",
+        "disabled": false
+      },
+      {
+        "tag": "BUTTON",
+        "label": "Sunny · Vai a Oggi",
+        "disabled": false
+      },
+      {
+        "tag": "BUTTON",
+        "label": "Altro\n⋯",
+        "disabled": false
+      },
+      {
+        "tag": "BUTTON",
+        "label": "Indietro",
+        "disabled": false
+      },
+      {
+        "tag": "INPUT",
+        "label": null,
+        "disabled": false
+      },
+      {
+        "tag": "BUTTON",
+        "label": "Nessuno",
+        "disabled": false
+      },
+      {
+        "tag": "BUTTON",
+        "label": "500 €",
+        "disabled": false
+      },
+      {
+        "tag": "BUTTON",
+        "label": "1000 €",
+        "disabled": false
+      },
+      {
+        "tag": "BUTTON",
+        "label": "2000 €",
+        "disabled": false
+      }
+    ]
+  }
+]

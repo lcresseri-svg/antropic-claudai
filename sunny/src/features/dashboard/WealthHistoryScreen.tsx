@@ -1,3 +1,4 @@
+import { ProgressiveSection } from '../../shared/components/ProgressiveSection';
 // "Andamento patrimonio" — how total wealth moves over time, split into its two
 // components (liquidity + investments). Unlike the dashboard's net worth (which
 // honours the includeInvestments preference), HERE investments are ALWAYS part
@@ -189,6 +190,7 @@ export function WealthHistoryScreen({ transactions }: Props) {
           </div>
         </div>
 
+        <ProgressiveSection title="Statistiche del patrimonio">
         {/* Period statistics (total) */}
         <div className="glass-card rounded-2xl p-5">
           <p className="label-caps text-secondary mb-4">Statistiche periodo</p>
@@ -209,6 +211,7 @@ export function WealthHistoryScreen({ transactions }: Props) {
           </div>
         </div>
 
+        </ProgressiveSection>
         {/* Component statistics */}
         <div className="glass-card rounded-2xl p-5">
           <p className="label-caps text-secondary mb-4">Componenti</p>

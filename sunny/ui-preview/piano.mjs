@@ -1,11 +1,9 @@
-import {createRequire} from 'node:module';
 import assert from 'node:assert/strict';
 import {mkdirSync} from 'node:fs';
 import {fileURLToPath} from 'node:url';
-const require=createRequire(process.env.SUNNY_NODE_PACKAGES+'/package.json');
-const {chromium}=require('playwright');
-const browser=await chromium.launch({headless:true,channel:'msedge'});
-const output=new URL('../../docs/product/piano-evidence/',import.meta.url);
+import {chromium,browserOptions} from './browser.mjs';
+const browser=await chromium.launch(browserOptions);
+const output=new URL('../../docs/product/ui3-liquid-glass/evidence/piano-current/',import.meta.url);
 mkdirSync(output,{recursive:true});
 const errors=[];
 try {
@@ -43,7 +41,7 @@ try {
   const original=await savings.inputValue();
   await savings.fill('');
   await dialog.getByRole('button',{name:'Annulla',exact:true}).click();
-  await dialog.getByRole('button',{name:'Scarta',exact:true}).click();
+  await dialog.getByRole('button',{name:'Scarta modifiche',exact:true}).click();
   assert.equal(await page.locator('#preview-plan-writes').textContent(),'0');
   await edit.click();await dialog.getByRole('button',{name:'2. Obiettivi',exact:true}).click();
   assert.equal(await savings.inputValue(),original);

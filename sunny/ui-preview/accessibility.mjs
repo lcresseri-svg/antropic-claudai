@@ -1,15 +1,13 @@
-import { createRequire } from 'node:module';
 import { writeFile } from 'node:fs/promises';
 import assert from 'node:assert/strict';
-const require=createRequire(process.env.SUNNY_NODE_PACKAGES+'/package.json');
-const {chromium}=require('playwright');
-const browser=await chromium.launch({headless:true,channel:'msedge'});
+import {chromium,browserOptions} from './browser.mjs';
+const browser=await chromium.launch(browserOptions);
 const page=await browser.newPage({viewport:{width:390,height:844}});
 const results=[];
 await page.route('**/*',route=>new URL(route.request().url()).hostname==='127.0.0.1'?route.continue():route.abort());
 try {
   for(const theme of ['light','dark']) {
-    await page.goto(`http://127.0.0.1:4177/ui-preview/index.html?theme=${theme}`);
+    await page.goto(`http://127.0.0.1:4177/ui-preview/index.html?ui=3&theme=${theme}`);
     await page.locator('.ui-free-cash').waitFor();await page.waitForTimeout(350);
     const contrast=await page.evaluate(()=>{
       const rgb=s=>s.match(/[\d.]+/g)?.map(Number)??[0,0,0,0];

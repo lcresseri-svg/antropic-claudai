@@ -1,3 +1,6 @@
+import { useDraftDismiss } from '../../shared/hooks/useDraftDismiss';
+import { DiscardConfirmation } from '../../shared/components/DiscardConfirmation';
+import { useUiVersion } from '../../shared/providers/UiVersionProvider';
 import { DialogSurface } from '../../shared/components/DialogSurface';
 import { useState, useEffect } from 'react';
 import { User } from 'firebase/auth';
@@ -20,21 +23,23 @@ export function FeedbackSheet({ open, user, onClose }: Props) {
     if (open) { setType('idea'); setText(''); reset(); }
   }, [open, reset]);
 
-  useEscapeKey(onClose, open);
+  const ui3=useUiVersion()==='3.0';
+  const dismiss=useDraftDismiss({open,signature:JSON.stringify([type,text]),saving:submitting,onClose});
+  const requestClose=()=>{if(done||!ui3)onClose();else dismiss.requestDismiss();};
+  useEscapeKey(requestClose, open&&!dismiss.confirm);
   if (!open) return null;
 
   return (
     <div className="fixed inset-0 z-[60] flex items-end sm:items-center justify-center p-3"
-      onClick={e => { if (e.target === e.currentTarget) onClose(); }}>
+      onClick={e => { if (e.target === e.currentTarget) requestClose(); }}>
       <div className="absolute inset-0 bg-black/70 backdrop-blur-md animate-fade-in-fast" />
-      <DialogSurface title={'Feedback'} onDismiss={onClose} kind="detail" className="relative w-full max-w-md sm:max-w-[460px] glass-elevated rounded-[26px] shadow-float animate-sheet-up sm:animate-scale-in max-h-[85dvh] flex flex-col">
+      <DialogSurface onInputCapture={dismiss.capture} onChangeCapture={dismiss.capture} onPointerDownCapture={dismiss.capture} onKeyDownCapture={dismiss.capture} title={'Feedback'} onDismiss={requestClose} kind="detail" className="relative w-full max-w-md sm:max-w-[460px] glass-elevated rounded-[26px] shadow-float animate-sheet-up sm:animate-scale-in max-h-[85dvh] flex flex-col">
 
         {/* Header */}
         <div className="flex items-center justify-between px-6 pt-6 pb-3 shrink-0">
           <h3 className="text-base font-semibold text-primary">Lascia un feedback</h3>
           <button type="button" aria-label="Chiudi"
-            onPointerDown={e => { e.preventDefault(); onClose(); }}
-            onClick={onClose}
+            onClick={requestClose}
             className="w-10 h-10 -mr-1.5 rounded-full bg-elevated flex items-center justify-center text-secondary text-base active:scale-90 transition-transform">✕</button>
         </div>
 
@@ -44,7 +49,7 @@ export function FeedbackSheet({ open, user, onClose }: Props) {
               <p className="text-4xl mb-3">🙏</p>
               <p className="text-sm font-semibold text-primary mb-1">Grazie!</p>
               <p className="text-[13px] text-secondary">Il tuo feedback è stato inviato.</p>
-              <button onClick={onClose}
+              <button onClick={requestClose}
                 className="w-full mt-6 py-3 rounded-xl glass-cta-gold text-sm font-semibold">
                 Chiudi
               </button>
@@ -92,6 +97,7 @@ export function FeedbackSheet({ open, user, onClose }: Props) {
             </>
           )}
         </div>
+        {ui3&&dismiss.confirm&&<DiscardConfirmation onContinue={dismiss.continueEditing} onDiscard={onClose}/>}
       </DialogSurface>
     </div>
   );

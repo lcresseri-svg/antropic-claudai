@@ -1,0 +1,14 @@
+Re-optimizing dependencies because vite config has changed
+
+  VITE v5.4.21  ready in 152 ms
+
+  ➜  Local:   http://127.0.0.1:4177/
+light [ '', "Imposta l'obiettivo 2027" ]
+dark [ '', "Imposta l'obiettivo 2027" ]
+PASS Wrapped stories, summary, goal, close and editor cleanup
+6:23:15 PM [vite] ✨ new dependencies optimized: firebase/messaging, xlsx, firebase/app, firebase/app-check
+6:23:15 PM [vite] ✨ optimized dependencies changed. reloading
+PASS entry 2 light
+PASS entry 2 dark
+PASS entry 3 light
+PASS entry 3 dark

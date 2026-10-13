@@ -1,3 +1,4 @@
+import { useUiVersion } from '../providers/UiVersionProvider';
 // Primo avvio.
 //
 // Le rassicurazioni stanno SOPRA il CTA, non sotto: erano una microscritta in
@@ -14,12 +15,13 @@ interface Props {
 const PROMISES = [
   'Nessun collegamento bancario richiesto',
   'Dati sincronizzati e protetti',
-  'Puoi partire da dati demo',
+  'Puoi partire da dati di esempio',
 ];
 
 export function LoginScreen({ onSignIn, error }: Props) {
+  const ui3=useUiVersion()==='3.0';
   return (
-    <div className="min-h-screen bg-bg flex flex-col items-center justify-center px-8 animate-fade-in">
+    <div data-liquid-ui={ui3?'true':undefined} className="min-h-screen bg-bg flex flex-col items-center justify-center px-8 animate-fade-in">
       <div className="w-full max-w-[420px] flex-1 flex flex-col items-center justify-center text-center">
         <ArcMark />
         <h1 className="font-serif text-[42px] md:text-[46px] text-primary mt-8 leading-none">Sunny</h1>
@@ -49,7 +51,7 @@ export function LoginScreen({ onSignIn, error }: Props) {
           Continua con Google
         </button>
 
-        {error && <p className="text-xs text-red text-center leading-relaxed">{error}</p>}
+        {error && <p role="alert" className="text-xs text-red text-center leading-relaxed">{error}</p>}
 
         <p className="text-center text-[11.5px] text-tertiary leading-relaxed">
           Serve solo per sincronizzare i tuoi dati fra i dispositivi.

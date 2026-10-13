@@ -1,3 +1,4 @@
+import { DiscardConfirmation } from '../../shared/components/DiscardConfirmation';
 import { useEffect, useState } from 'react';
 import { CategoryDef, Transaction, ownShare } from '../../types';
 import { MonthlyBudget, initMonthlyBudget, prevMonthKey } from './monthlyBudget';
@@ -129,11 +130,11 @@ export function PlanEditor(p:Props) {
         <button onClick={()=>{setRevision(revisionOf(p.plan));setError('');setMessage('Piano aggiornato ricaricato. Confronta Prima e Anteprima: il prossimo salvataggio applicherà la tua bozza.');}}>Ricarica piano</button></div>}
       {storageError&&<p role="alert">Memoria locale non disponibile: lascia aperto l’editor per non perdere la bozza.</p>}
       {message&&<p role="status">{message}</p>}
-      {exit?<div className="plan-notice"><p>Scartare le modifiche non salvate?</p><button onClick={()=>setExit(false)}>Continua a modificare</button><button onClick={()=>{try{localStorage.removeItem(key);}catch{}p.onClose();}}>Scarta</button></div>:
       <footer><button disabled={busy} onClick={close}>Annulla</button><button className={candidate?.status==='confirmed'?'plan-primary cta-gold-fill':''} disabled={busy} onClick={()=>void save(false)}>{candidate?.status==='confirmed'?'Salva modifiche':'Salva bozza'}</button>
-        {step<2?<button onClick={()=>setStep(step+1)}>Avanti</button>:!historical&&draft.base.status!=='confirmed'&&<button className="plan-primary cta-gold-fill" disabled={busy||!candidate} onClick={()=>void save(true)}>Conferma piano</button>}</footer>}
+        {step<2?<button onClick={()=>setStep(step+1)}>Avanti</button>:!historical&&draft.base.status!=='confirmed'&&<button className="plan-primary cta-gold-fill" disabled={busy||!candidate} onClick={()=>void save(true)}>Conferma piano</button>}</footer>
       {busy&&<p role="status">Salvataggio in corso… La bozza resta qui fino alla conferma del server.</p>}
     </fieldset></div>
+    {exit&&<DiscardConfirmation onContinue={()=>setExit(false)} description="La bozza locale di questo mese sarà eliminata. Il piano già salvato rimane invariato." onDiscard={()=>{try{localStorage.removeItem(key);}catch{}p.onClose();}}/>}
   </PlanDialog>;
 }
 function PlanChanges({before,after,categories}:{before:MonthlyBudget;after:MonthlyBudget;categories:CategoryDef[]}) {

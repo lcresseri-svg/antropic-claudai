@@ -52,7 +52,7 @@ interface SettingsValue {
   saveCashReserve: (v: number) => void;
   saveHomeOrder: (order: string[]) => void;
   /** Update an investment category's manually-entered market value (+ timestamp). */
-  saveCurrentValue: (categoryId: string, value: number) => void;
+  saveCurrentValue: (categoryId: string, value: number) => Promise<void>;
 }
 
 const SettingsContext = createContext<SettingsValue | null>(null);
@@ -258,12 +258,12 @@ export function SettingsProvider({ user, children }: { user: User | null; childr
 
   const detailedInvestments = canUseDetailedInvestments(user);
 
-  const saveCurrentValue = useCallback((categoryId: string, value: number) => {
+  const saveCurrentValue = useCallback(async (categoryId: string, value: number) => {
     const next = categories.map(c => c.id === categoryId
       ? { ...c, currentValue: value, lastValueUpdate: new Date().toISOString().slice(0, 10) }
       : c);
+    if (user) await setDoc(settingsRef(), { categories: next }, MERGE);
     setCategories(next);
-    if (user) setDoc(settingsRef(), { categories: next }, MERGE);
   }, [categories, user, settingsRef]);
 
   // System categories (realized gain/loss) resolve for display everywhere but

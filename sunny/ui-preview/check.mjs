@@ -1,12 +1,10 @@
-import { createRequire } from 'node:module';
 import assert from 'node:assert/strict';
-const require=createRequire(process.env.SUNNY_NODE_PACKAGES+'/package.json');
-const {chromium}=require('playwright');
-const browser=await chromium.launch({headless:true,channel:'msedge'});
+import {chromium,browserOptions} from './browser.mjs';
+const browser=await chromium.launch(browserOptions);
 const page=await browser.newPage({viewport:{width:390,height:844}});
 const errors=[]; page.on('pageerror',e=>errors.push(e.message));
 await page.route('**/*',route=>new URL(route.request().url()).hostname==='127.0.0.1'?route.continue():route.abort());
-await page.goto('http://127.0.0.1:4177/ui-preview/index.html?theme=light&editor');
+await page.goto('http://127.0.0.1:4177/ui-preview/index.html?ui=3&theme=light&editor');
 await page.getByRole('button',{name:'Chiudi',exact:true}).waitFor();
 assert.equal(errors.length,0,errors.join('\n'));
 const mode=process.argv[2]??'dialog';
@@ -26,7 +24,7 @@ if(mode==='draft') {
   assert.notEqual(await page.evaluate(()=>document.activeElement?.getAttribute('placeholder')),'Spesa','description opening must not autofocus');
   const description=page.getByRole('textbox').filter({hasNot:page.locator('[aria-label="Importo"]')});
   await page.getByRole('button',{name:'Chiudi',exact:true}).click();
-  await page.getByRole('button',{name:'Abbandona',exact:true}).click();
+  await page.getByRole('button',{name:'Scarta modifiche',exact:true}).click();
   assert.equal(await page.getByRole('dialog').count(),0);
   assert.equal(await page.locator('[inert]').count(),0);
   await page.getByRole('button',{name:'Utente normale test',exact:true}).click();
@@ -45,7 +43,7 @@ if(mode==='keypad') {
   assert.equal(await page.locator('#preview-writes').textContent(),'1');
 }
 if(mode==='failure') {
-  await page.goto('http://127.0.0.1:4177/ui-preview/index.html?theme=light&editor&awaitSave&singleSave&failSave');
+  await page.goto('http://127.0.0.1:4177/ui-preview/index.html?ui=3&theme=light&editor&awaitSave&singleSave&failSave');
   await page.getByRole('textbox',{name:'Importo',exact:true}).fill('100');
   await page.getByRole('button',{name:'Aggiungi uscita',exact:true}).click();
   await page.getByRole('button',{name:'Riprova',exact:true}).waitFor();

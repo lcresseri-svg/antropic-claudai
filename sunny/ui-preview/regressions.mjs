@@ -1,14 +1,12 @@
-import { createRequire } from 'node:module';
 import assert from 'node:assert/strict';
-const require=createRequire(process.env.SUNNY_NODE_PACKAGES+'/package.json');
-const {chromium}=require('playwright');
-const browser=await chromium.launch({headless:true,channel:'msedge'});
+import {chromium,browserOptions} from './browser.mjs';
+const browser=await chromium.launch(browserOptions);
 try {
   const page=await browser.newPage({viewport:{width:1440,height:900}});
   page.on('pageerror',error=>console.error('PAGE ERROR',error.message));
   await page.route('**/*',route=>new URL(route.request().url()).hostname==='127.0.0.1'?route.continue():route.abort());
   const mode=process.argv[2]??'print';
-  const start=async(query='')=>{await page.goto('http://127.0.0.1:4177/ui-preview/index.html?theme=dark&ui=3&'+query);await page.locator('#preview-writes').waitFor({state:'attached'});};
+  const start=async(query='')=>{await page.goto('http://127.0.0.1:4177/ui-preview/index.html?ui=3&theme=dark&ui=3&'+query);await page.locator('#preview-writes').waitFor({state:'attached'});};
   const route=async(path)=>{await page.evaluate(path=>{history.pushState({},'',path);dispatchEvent(new PopStateEvent('popstate'));},path);await page.waitForTimeout(350);};
   await start(mode==='category'?'editor':'');
   await page.locator('html[data-ui-version="3.0"]').waitFor();

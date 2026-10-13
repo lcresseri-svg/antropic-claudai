@@ -1,5 +1,6 @@
+import { useUiVersion } from '../shared/providers/UiVersionProvider';
 import { lazy, Suspense, useMemo } from 'react';
-import { Routes, Route, Navigate, useNavigate } from 'react-router-dom';
+import { Routes, Route, Navigate, useNavigate, useLocation } from 'react-router-dom';
 import type { User } from 'firebase/auth';
 import { useSettings } from '../shared/providers/settings';
 import { useTransactions } from '../shared/hooks/useTransactions';
@@ -91,6 +92,8 @@ interface AppRoutesProps {
 
 export function AppRoutes({ user, brand, tx, budget, editing, applePayPayments, applePayLoading, applePayError, onReviewApplePay, onIgnoreApplePay, onLogOut, onDeleteAccount, onImport }: AppRoutesProps) {
   const navigate = useNavigate();
+  const location=useLocation();
+  const ui3=useUiVersion()==='3.0';
   const {
     visibleCategories, visibleAccounts, categories, includeInvestments,
     enableInvestments, enableBudget, aiEnabled, insightDepth,
@@ -206,7 +209,7 @@ export function AppRoutes({ user, brand, tx, budget, editing, applePayPayments, 
             {applePayCard}
             {/* Il titolo sta dentro la lista, nell'header da 56px insieme a
                 ricerca e selezione multipla. */}
-            <TransactionList
+            <TransactionList key={ui3?location.key:undefined}
               transactions={tx.transactions} projected={editing.projected}
               onEdit={editing.openEdit} onDelete={tx.deleteTransaction}
               onBulkUpdate={tx.updateTransactions} onBulkDelete={tx.deleteTransactions}
@@ -216,7 +219,7 @@ export function AppRoutes({ user, brand, tx, budget, editing, applePayPayments, 
         } />
         <Route path="/settings/*" element={
           <div className={page(W.settings)}>
-            <SettingsScreen user={user} transactions={tx.transactions}
+            <SettingsScreen onImport={onImport} user={user} transactions={tx.transactions}
               budgetExport={{ currentMonth: budget.currentMonth, current: budget.monthly, history: budget.budgetHistory, legacy: budget.budget }}
               onLogOut={onLogOut} onDeleteAll={tx.deleteAll} onDeleteAccount={onDeleteAccount} />
           </div>

@@ -1,8 +1,6 @@
-import {createRequire} from 'node:module';
 import assert from 'node:assert/strict';
-const require=createRequire(process.env.SUNNY_NODE_PACKAGES+'/package.json');
-const {chromium}=require('playwright');
-const browser=await chromium.launch({headless:true,channel:'msedge'});
+import {chromium,browserOptions} from './browser.mjs';
+const browser=await chromium.launch(browserOptions);
 try{
   const page=await browser.newPage({viewport:{width:1440,height:1000}});
   await page.route('**/*',r=>new URL(r.request().url()).hostname==='127.0.0.1'?r.continue():r.abort());

@@ -1,0 +1,54 @@
+
+> sunny-finance@0.1.0 test
+> vitest run --run
+
+8:39:55 PM [vite] warning: `esbuild` option was specified by "vite:react-babel" plugin. This option is deprecated, please use `oxc` instead.
+8:39:55 PM [vite] warning: `optimizeDeps.esbuildOptions` option was specified by "vite:react-babel" plugin. This option is deprecated, please use `optimizeDeps.rolldownOptions` instead.
+Both esbuild and oxc options were set. oxc options will be used and esbuild options will be ignored. The following esbuild options were set: `{ jsx: 'automatic', jsxImportSource: undefined }`
+
+ RUN  v4.1.7 /workspace/antropic-claudai/sunny
+
+ ❯ src/features/forecast/forecastBehaviorV3.test.ts (33 tests | 1 failed) 149ms
+     × M9b: det + var decomposition exact (±2 rounding) for clean deterministic+variable fixture 8ms
+ ❯ src/features/recap/recapExport.test.ts (7 tests | 1 failed) 36ms
+     × chiude con la data di generazione in formato italiano 5ms
+
+⎯⎯⎯⎯⎯⎯⎯ Failed Tests 2 ⎯⎯⎯⎯⎯⎯⎯
+
+ FAIL  src/features/forecast/forecastBehaviorV3.test.ts > C — mutation tests > M9b: det + var decomposition exact (±2 rounding) for clean deterministic+variable fixture
+AssertionError: expected 200 to be less than or equal to 2
+ ❯ src/features/forecast/forecastBehaviorV3.test.ts:713:52
+    711|       // 'v' is rare_variable → variableRemaining flows through predic…
+    712|       const decomposedSum = snap.deterministicFutureError + snap.varia…
+    713|       expect(Math.abs(decomposedSum - snap.error)).toBeLessThanOrEqual…
+       |                                                    ^
+    714|     }
+    715|   });
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[1/2]⎯
+
+ FAIL  src/features/recap/recapExport.test.ts > recapToText > chiude con la data di generazione in formato italiano
+AssertionError: expected false to be true // Object.is equality
+
+- Expected
++ Received
+
+- true
++ false
+
+ ❯ src/features/recap/recapExport.test.ts:77:66
+     75|   it('chiude con la data di generazione in formato italiano', () => {
+     76|     const t = recapToText(build());
+     77|     expect(t.trim().endsWith('Generato da Sunny il 15/06/2026')).toBe(…
+       |                                                                  ^
+     78|   });
+     79|
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[2/2]⎯
+
+
+ Test Files  2 failed | 64 passed | 1 skipped (67)
+      Tests  2 failed | 825 passed | 5 skipped (832)
+   Start at  20:39:55
+   Duration  18.72s (transform 2.07s, setup 0ms, import 4.65s, tests 1.89s, environment 10ms)
+

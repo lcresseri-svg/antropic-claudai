@@ -1,3 +1,5 @@
+import { ProgressiveSection } from '../../shared/components/ProgressiveSection';
+import { transactionRoute } from '../../shared/transactionRoute';
 // Analisi ENTRATE — speculare a CategorySpendingScreen (stessi controlli di
 // periodo, stessa impaginazione, stessi helper di aggregazione), ma centrata su
 // da dove arrivano i soldi e quanto è stabile il reddito.
@@ -132,6 +134,7 @@ export function IncomeScreen({ transactions }: Props) {
             </div>
           </div>
 
+          <ProgressiveSection title="Statistiche delle entrate">
           {/* KPI */}
           <div className="grid grid-cols-2 md:grid-cols-4 gap-2 mb-3">
             <Kpi label="Media netta al mese" value={formatCurrency(stats.monthlyAverage)} />
@@ -149,12 +152,13 @@ export function IncomeScreen({ transactions }: Props) {
             </div>
           )}
 
+          </ProgressiveSection>
           {/* Andamento: per "Da sempre" usa tutto lo storico disponibile. */}
           <div className="glass-card rounded-2xl p-5 mb-3">
             <p className="label-caps text-secondary mb-3">
               Andamento entrate · {period === 'all' ? 'da sempre' : '12 mesi'}
             </p>
-            <AccountBalanceLineChart
+            <AccountBalanceLineChart presentation="bars" title="Entrate" metricLabel="Entrate"
               points={trend}
               formatValue={formatCurrency}
               color="var(--accent-green)"
@@ -234,6 +238,7 @@ export function IncomeScreen({ transactions }: Props) {
                       )}
                     </div>
                   </div>
+                  <button type="button" className="text-gold text-sm py-2" onClick={()=>navigate(transactionRoute({cat:c.categoryId,type:'income'},range.start,range.end))}>Vedi movimenti · {getCat(c.categoryId).label} ›</button>
                   <div className="mt-2.5 h-[6px] rounded-full overflow-hidden" style={{ backgroundColor: 'rgba(255,255,255,0.05)' }}>
                     <div className="h-full rounded-full"
                       style={{ width: `${Math.min(100, c.percentageOfTotal)}%`, backgroundColor: getCat(c.categoryId).color }} />

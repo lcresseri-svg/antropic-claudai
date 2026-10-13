@@ -1,10 +1,8 @@
-import { createRequire } from 'node:module';
 import { mkdir, writeFile } from 'node:fs/promises';
 import assert from 'node:assert/strict';
 import { fileURLToPath } from 'node:url';
-const require=createRequire(process.env.SUNNY_NODE_PACKAGES+'/package.json');
-const {chromium}=require('playwright');
-const browser=await chromium.launch({headless:true,channel:'msedge'});
+import {chromium,browserOptions} from './browser.mjs';
+const browser=await chromium.launch(browserOptions);
 const out=new URL('./artifacts/',import.meta.url); await mkdir(out,{recursive:true});
 const errors=[],results=[];
 const sizes=[[320,568],[360,800],[390,844],[430,932],[639,800],[640,800],[744,800],[834,1194],[1194,834],[1279,900],[1280,900],[1440,900],[1920,1080],[2560,1440],[1194,500],[1440,599],[1440,600]];
@@ -14,7 +12,7 @@ await page.route('**/*',route=>new URL(route.request().url()).hostname==='127.0.
 try {
   for(const [width,height] of sizes) {
     await page.setViewportSize({width,height});
-    await page.goto('http://127.0.0.1:4177/ui-preview/index.html?theme=light');
+    await page.goto('http://127.0.0.1:4177/ui-preview/index.html?ui=3&theme=light');
     await page.locator('.ui-free-cash').waitFor();
     const layout=await page.evaluate(()=>{
       const nav=document.querySelector('.ui3-nav'), main=document.querySelector('#app-scroll');
@@ -32,7 +30,7 @@ try {
   for(const [width,height,name] of [[390,844,'phone'],[834,1194,'tablet'],[1440,900,'desktop']]) {
     await page.setViewportSize({width,height});
     for(const theme of ['light','dark']) for(const ui of ['2','3']) {
-      await page.goto(`http://127.0.0.1:4177/ui-preview/index.html?theme=${theme}&ui=${ui}`);
+      await page.goto(`http://127.0.0.1:4177/ui-preview/index.html?ui=3&theme=${theme}&ui=${ui}`);
       await page.locator('#preview-writes').waitFor();
       assert.equal(await page.locator('html').getAttribute('data-ui-version'),ui+'.0');
       await page.waitForTimeout(350);
@@ -44,7 +42,7 @@ try {
   const routes=['/wealth','/budget','/transactions','/investments','/income','/category-spending','/account-balance','/wealth-history','/settings','/insights','/ai-coach','/wealth-v2','/commitments','/monthly-plan','/forecast-v3','/metrics',`/recap/${recap}`,`/wrapped/${new Date().getFullYear()}`];
   for(const route of routes) for(const [width,height] of [[390,844],[834,1194],[1440,900]]) {
     await page.setViewportSize({width,height});
-    await page.goto('http://127.0.0.1:4177/ui-preview/index.html?theme=light');
+    await page.goto('http://127.0.0.1:4177/ui-preview/index.html?ui=3&theme=light');
     await page.locator('#preview-writes').waitFor();
     await page.evaluate(route=>{history.pushState({},'',route+'?theme=light');dispatchEvent(new PopStateEvent('popstate'));},route);
     await page.locator('#preview-writes').waitFor();

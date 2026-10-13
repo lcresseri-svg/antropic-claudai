@@ -1,0 +1,188 @@
+RUN liquid-import.mjs
+PASS import light success one write
+PASS import light failure retains preview
+PASS import dark success one write
+PASS import dark failure retains preview
+RUN liquid-stress.mjs
+PASS / empty light
+PASS /wealth empty light
+PASS /budget empty light
+PASS /transactions empty light
+PASS /category-spending empty light
+PASS /account-balance empty light
+PASS /income empty light
+PASS /settings empty light
+PASS / edgeCategories light
+PASS /wealth edgeCategories light
+PASS /budget edgeCategories light
+PASS /transactions edgeCategories light
+PASS /category-spending edgeCategories light
+PASS /account-balance edgeCategories light
+PASS /income edgeCategories light
+PASS /settings edgeCategories light
+PASS / empty dark
+PASS /wealth empty dark
+PASS /budget empty dark
+PASS /transactions empty dark
+PASS /category-spending empty dark
+PASS /account-balance empty dark
+PASS /income empty dark
+PASS /settings empty dark
+PASS / edgeCategories dark
+PASS /wealth edgeCategories dark
+PASS /budget edgeCategories dark
+PASS /transactions edgeCategories dark
+PASS /category-spending edgeCategories dark
+PASS /account-balance edgeCategories dark
+PASS /income edgeCategories dark
+PASS /settings edgeCategories dark
+RUN liquid-details.mjs
+PASS details light : category/account context, wealth keyboard period change, investment hierarchy, settings sections
+PASS details dark : category/account context, wealth keyboard period change, investment hierarchy, settings sections
+RUN liquid-baseline.mjs
+VISIT 390 light /income
+VISIT 390 light /wealth
+VISIT 390 light /wealth-history
+VISIT 390 dark /income
+VISIT 390 dark /wealth
+VISIT 390 dark /wealth-history
+VISIT 768 light /income
+VISIT 768 light /wealth
+VISIT 768 light /wealth-history
+VISIT 768 dark /income
+VISIT 768 dark /wealth
+VISIT 768 dark /wealth-history
+VISIT 1440 light /income
+VISIT 1440 light /wealth
+VISIT 1440 light /wealth-history
+VISIT 1440 dark /income
+VISIT 1440 dark /wealth
+VISIT 1440 dark /wealth-history
+[
+  {
+    "route": "/income",
+    "theme": "light",
+    "errors": [],
+    "controls": 27,
+    "overflow": false
+  },
+  {
+    "route": "/wealth",
+    "theme": "light",
+    "errors": [],
+    "controls": 24,
+    "overflow": false
+  },
+  {
+    "route": "/wealth-history",
+    "theme": "light",
+    "errors": [],
+    "controls": 25,
+    "overflow": false
+  },
+  {
+    "route": "/income",
+    "theme": "dark",
+    "errors": [],
+    "controls": 27,
+    "overflow": false
+  },
+  {
+    "route": "/wealth",
+    "theme": "dark",
+    "errors": [],
+    "controls": 24,
+    "overflow": false
+  },
+  {
+    "route": "/wealth-history",
+    "theme": "dark",
+    "errors": [],
+    "controls": 25,
+    "overflow": false
+  },
+  {
+    "route": "/income",
+    "theme": "light",
+    "errors": [],
+    "controls": 28,
+    "overflow": false
+  },
+  {
+    "route": "/wealth",
+    "theme": "light",
+    "errors": [],
+    "controls": 25,
+    "overflow": false
+  },
+  {
+    "route": "/wealth-history",
+    "theme": "light",
+    "errors": [],
+    "controls": 26,
+    "overflow": false
+  },
+  {
+    "route": "/income",
+    "theme": "dark",
+    "errors": [],
+    "controls": 28,
+    "overflow": false
+  },
+  {
+    "route": "/wealth",
+    "theme": "dark",
+    "errors": [],
+    "controls": 25,
+    "overflow": false
+  },
+  {
+    "route": "/wealth-history",
+    "theme": "dark",
+    "errors": [],
+    "controls": 26,
+    "overflow": false
+  },
+  {
+    "route": "/income",
+    "theme": "light",
+    "errors": [],
+    "controls": 31,
+    "overflow": false
+  },
+  {
+    "route": "/wealth",
+    "theme": "light",
+    "errors": [],
+    "controls": 29,
+    "overflow": false
+  },
+  {
+    "route": "/wealth-history",
+    "theme": "light",
+    "errors": [],
+    "controls": 29,
+    "overflow": false
+  },
+  {
+    "route": "/income",
+    "theme": "dark",
+    "errors": [],
+    "controls": 31,
+    "overflow": false
+  },
+  {
+    "route": "/wealth",
+    "theme": "dark",
+    "errors": [],
+    "controls": 29,
+    "overflow": false
+  },
+  {
+    "route": "/wealth-history",
+    "theme": "dark",
+    "errors": [],
+    "controls": 29,
+    "overflow": false
+  }
+]

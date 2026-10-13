@@ -1,0 +1,914 @@
+VISIT 390 light /
+VISIT 390 light /wealth
+VISIT 390 light /budget
+VISIT 390 light /transactions
+VISIT 390 light /investments
+VISIT 390 light /income
+VISIT 390 light /category-spending
+VISIT 390 light /account-balance
+VISIT 390 light /wealth-history
+VISIT 390 light /settings
+VISIT 390 light /insights
+VISIT 390 light /ai-coach
+VISIT 390 light /wealth-v2
+VISIT 390 light /commitments
+VISIT 390 light /monthly-plan
+VISIT 390 light /forecast-v3
+VISIT 390 light /metrics
+VISIT 390 light /recap/2026-09
+VISIT 390 light /wrapped/2026
+VISIT 390 dark /
+VISIT 390 dark /wealth
+VISIT 390 dark /budget
+VISIT 390 dark /transactions
+VISIT 390 dark /investments
+VISIT 390 dark /income
+VISIT 390 dark /category-spending
+VISIT 390 dark /account-balance
+VISIT 390 dark /wealth-history
+VISIT 390 dark /settings
+VISIT 390 dark /insights
+VISIT 390 dark /ai-coach
+VISIT 390 dark /wealth-v2
+VISIT 390 dark /commitments
+VISIT 390 dark /monthly-plan
+VISIT 390 dark /forecast-v3
+VISIT 390 dark /metrics
+VISIT 390 dark /recap/2026-09
+VISIT 390 dark /wrapped/2026
+VISIT 768 light /
+VISIT 768 light /wealth
+VISIT 768 light /budget
+VISIT 768 light /transactions
+VISIT 768 light /investments
+VISIT 768 light /income
+VISIT 768 light /category-spending
+VISIT 768 light /account-balance
+VISIT 768 light /wealth-history
+VISIT 768 light /settings
+VISIT 768 light /insights
+VISIT 768 light /ai-coach
+VISIT 768 light /wealth-v2
+VISIT 768 light /commitments
+VISIT 768 light /monthly-plan
+VISIT 768 light /forecast-v3
+VISIT 768 light /metrics
+VISIT 768 light /recap/2026-09
+VISIT 768 light /wrapped/2026
+VISIT 768 dark /
+VISIT 768 dark /wealth
+VISIT 768 dark /budget
+VISIT 768 dark /transactions
+VISIT 768 dark /investments
+VISIT 768 dark /income
+VISIT 768 dark /category-spending
+VISIT 768 dark /account-balance
+VISIT 768 dark /wealth-history
+VISIT 768 dark /settings
+VISIT 768 dark /insights
+VISIT 768 dark /ai-coach
+VISIT 768 dark /wealth-v2
+VISIT 768 dark /commitments
+VISIT 768 dark /monthly-plan
+VISIT 768 dark /forecast-v3
+VISIT 768 dark /metrics
+VISIT 768 dark /recap/2026-09
+VISIT 768 dark /wrapped/2026
+VISIT 1440 light /
+VISIT 1440 light /wealth
+VISIT 1440 light /budget
+VISIT 1440 light /transactions
+VISIT 1440 light /investments
+VISIT 1440 light /income
+VISIT 1440 light /category-spending
+VISIT 1440 light /account-balance
+VISIT 1440 light /wealth-history
+VISIT 1440 light /settings
+VISIT 1440 light /insights
+VISIT 1440 light /ai-coach
+VISIT 1440 light /wealth-v2
+VISIT 1440 light /commitments
+VISIT 1440 light /monthly-plan
+VISIT 1440 light /forecast-v3
+VISIT 1440 light /metrics
+VISIT 1440 light /recap/2026-09
+VISIT 1440 light /wrapped/2026
+VISIT 1440 dark /
+VISIT 1440 dark /wealth
+VISIT 1440 dark /budget
+VISIT 1440 dark /transactions
+VISIT 1440 dark /investments
+VISIT 1440 dark /income
+VISIT 1440 dark /category-spending
+VISIT 1440 dark /account-balance
+VISIT 1440 dark /wealth-history
+VISIT 1440 dark /settings
+VISIT 1440 dark /insights
+VISIT 1440 dark /ai-coach
+VISIT 1440 dark /wealth-v2
+VISIT 1440 dark /commitments
+VISIT 1440 dark /monthly-plan
+VISIT 1440 dark /forecast-v3
+VISIT 1440 dark /metrics
+VISIT 1440 dark /recap/2026-09
+VISIT 1440 dark /wrapped/2026
+[
+  {
+    "route": "/",
+    "theme": "light",
+    "errors": [],
+    "controls": 57,
+    "overflow": false
+  },
+  {
+    "route": "/wealth",
+    "theme": "light",
+    "errors": [],
+    "controls": 22,
+    "overflow": false
+  },
+  {
+    "route": "/budget",
+    "theme": "light",
+    "errors": [],
+    "controls": 35,
+    "overflow": false
+  },
+  {
+    "route": "/transactions",
+    "theme": "light",
+    "errors": [],
+    "controls": 177,
+    "overflow": false
+  },
+  {
+    "route": "/investments",
+    "theme": "light",
+    "errors": [],
+    "controls": 25,
+    "overflow": false
+  },
+  {
+    "route": "/income",
+    "theme": "light",
+    "errors": [],
+    "controls": 27,
+    "overflow": false
+  },
+  {
+    "route": "/category-spending",
+    "theme": "light",
+    "errors": [],
+    "controls": 27,
+    "overflow": false
+  },
+  {
+    "route": "/account-balance",
+    "theme": "light",
+    "errors": [],
+    "controls": 28,
+    "overflow": false
+  },
+  {
+    "route": "/wealth-history",
+    "theme": "light",
+    "errors": [],
+    "controls": 23,
+    "overflow": false
+  },
+  {
+    "route": "/settings",
+    "theme": "light",
+    "errors": [],
+    "controls": 32,
+    "overflow": false
+  },
+  {
+    "route": "/insights",
+    "theme": "light",
+    "errors": [],
+    "controls": 22,
+    "overflow": false
+  },
+  {
+    "route": "/ai-coach",
+    "theme": "light",
+    "errors": [],
+    "controls": 18,
+    "overflow": false
+  },
+  {
+    "route": "/wealth-v2",
+    "theme": "light",
+    "errors": [],
+    "controls": 28,
+    "overflow": false
+  },
+  {
+    "route": "/commitments",
+    "theme": "light",
+    "errors": [],
+    "controls": 15,
+    "overflow": false
+  },
+  {
+    "route": "/monthly-plan",
+    "theme": "light",
+    "errors": [],
+    "controls": 17,
+    "overflow": false
+  },
+  {
+    "route": "/forecast-v3",
+    "theme": "light",
+    "errors": [],
+    "controls": 35,
+    "overflow": false
+  },
+  {
+    "route": "/metrics",
+    "theme": "light",
+    "errors": [],
+    "controls": 14,
+    "overflow": false
+  },
+  {
+    "route": "/recap/2026-09",
+    "theme": "light",
+    "errors": [],
+    "controls": 17,
+    "overflow": false
+  },
+  {
+    "route": "/wrapped/2026",
+    "theme": "light",
+    "errors": [],
+    "controls": 15,
+    "overflow": false
+  },
+  {
+    "route": "/",
+    "theme": "dark",
+    "errors": [],
+    "controls": 57,
+    "overflow": false
+  },
+  {
+    "route": "/wealth",
+    "theme": "dark",
+    "errors": [],
+    "controls": 22,
+    "overflow": false
+  },
+  {
+    "route": "/budget",
+    "theme": "dark",
+    "errors": [],
+    "controls": 35,
+    "overflow": false
+  },
+  {
+    "route": "/transactions",
+    "theme": "dark",
+    "errors": [],
+    "controls": 177,
+    "overflow": false
+  },
+  {
+    "route": "/investments",
+    "theme": "dark",
+    "errors": [],
+    "controls": 25,
+    "overflow": false
+  },
+  {
+    "route": "/income",
+    "theme": "dark",
+    "errors": [],
+    "controls": 27,
+    "overflow": false
+  },
+  {
+    "route": "/category-spending",
+    "theme": "dark",
+    "errors": [],
+    "controls": 27,
+    "overflow": false
+  },
+  {
+    "route": "/account-balance",
+    "theme": "dark",
+    "errors": [],
+    "controls": 28,
+    "overflow": false
+  },
+  {
+    "route": "/wealth-history",
+    "theme": "dark",
+    "errors": [],
+    "controls": 23,
+    "overflow": false
+  },
+  {
+    "route": "/settings",
+    "theme": "dark",
+    "errors": [],
+    "controls": 32,
+    "overflow": false
+  },
+  {
+    "route": "/insights",
+    "theme": "dark",
+    "errors": [],
+    "controls": 22,
+    "overflow": false
+  },
+  {
+    "route": "/ai-coach",
+    "theme": "dark",
+    "errors": [],
+    "controls": 18,
+    "overflow": false
+  },
+  {
+    "route": "/wealth-v2",
+    "theme": "dark",
+    "errors": [],
+    "controls": 28,
+    "overflow": false
+  },
+  {
+    "route": "/commitments",
+    "theme": "dark",
+    "errors": [],
+    "controls": 15,
+    "overflow": false
+  },
+  {
+    "route": "/monthly-plan",
+    "theme": "dark",
+    "errors": [],
+    "controls": 17,
+    "overflow": false
+  },
+  {
+    "route": "/forecast-v3",
+    "theme": "dark",
+    "errors": [],
+    "controls": 35,
+    "overflow": false
+  },
+  {
+    "route": "/metrics",
+    "theme": "dark",
+    "errors": [],
+    "controls": 14,
+    "overflow": false
+  },
+  {
+    "route": "/recap/2026-09",
+    "theme": "dark",
+    "errors": [],
+    "controls": 17,
+    "overflow": false
+  },
+  {
+    "route": "/wrapped/2026",
+    "theme": "dark",
+    "errors": [],
+    "controls": 15,
+    "overflow": false
+  },
+  {
+    "route": "/",
+    "theme": "light",
+    "errors": [],
+    "controls": 58,
+    "overflow": false
+  },
+  {
+    "route": "/wealth",
+    "theme": "light",
+    "errors": [],
+    "controls": 23,
+    "overflow": false
+  },
+  {
+    "route": "/budget",
+    "theme": "light",
+    "errors": [],
+    "controls": 36,
+    "overflow": false
+  },
+  {
+    "route": "/transactions",
+    "theme": "light",
+    "errors": [],
+    "controls": 178,
+    "overflow": false
+  },
+  {
+    "route": "/investments",
+    "theme": "light",
+    "errors": [],
+    "controls": 26,
+    "overflow": false
+  },
+  {
+    "route": "/income",
+    "theme": "light",
+    "errors": [],
+    "controls": 28,
+    "overflow": false
+  },
+  {
+    "route": "/category-spending",
+    "theme": "light",
+    "errors": [],
+    "controls": 28,
+    "overflow": false
+  },
+  {
+    "route": "/account-balance",
+    "theme": "light",
+    "errors": [],
+    "controls": 29,
+    "overflow": false
+  },
+  {
+    "route": "/wealth-history",
+    "theme": "light",
+    "errors": [],
+    "controls": 24,
+    "overflow": false
+  },
+  {
+    "route": "/settings",
+    "theme": "light",
+    "errors": [],
+    "controls": 38,
+    "overflow": false
+  },
+  {
+    "route": "/insights",
+    "theme": "light",
+    "errors": [],
+    "controls": 23,
+    "overflow": false
+  },
+  {
+    "route": "/ai-coach",
+    "theme": "light",
+    "errors": [],
+    "controls": 19,
+    "overflow": false
+  },
+  {
+    "route": "/wealth-v2",
+    "theme": "light",
+    "errors": [],
+    "controls": 29,
+    "overflow": false
+  },
+  {
+    "route": "/commitments",
+    "theme": "light",
+    "errors": [],
+    "controls": 16,
+    "overflow": false
+  },
+  {
+    "route": "/monthly-plan",
+    "theme": "light",
+    "errors": [],
+    "controls": 18,
+    "overflow": false
+  },
+  {
+    "route": "/forecast-v3",
+    "theme": "light",
+    "errors": [],
+    "controls": 36,
+    "overflow": false
+  },
+  {
+    "route": "/metrics",
+    "theme": "light",
+    "errors": [],
+    "controls": 15,
+    "overflow": false
+  },
+  {
+    "route": "/recap/2026-09",
+    "theme": "light",
+    "errors": [],
+    "controls": 18,
+    "overflow": false
+  },
+  {
+    "route": "/wrapped/2026",
+    "theme": "light",
+    "errors": [],
+    "controls": 16,
+    "overflow": false
+  },
+  {
+    "route": "/",
+    "theme": "dark",
+    "errors": [],
+    "controls": 58,
+    "overflow": false
+  },
+  {
+    "route": "/wealth",
+    "theme": "dark",
+    "errors": [],
+    "controls": 23,
+    "overflow": false
+  },
+  {
+    "route": "/budget",
+    "theme": "dark",
+    "errors": [],
+    "controls": 36,
+    "overflow": false
+  },
+  {
+    "route": "/transactions",
+    "theme": "dark",
+    "errors": [],
+    "controls": 178,
+    "overflow": false
+  },
+  {
+    "route": "/investments",
+    "theme": "dark",
+    "errors": [],
+    "controls": 26,
+    "overflow": false
+  },
+  {
+    "route": "/income",
+    "theme": "dark",
+    "errors": [],
+    "controls": 28,
+    "overflow": false
+  },
+  {
+    "route": "/category-spending",
+    "theme": "dark",
+    "errors": [],
+    "controls": 28,
+    "overflow": false
+  },
+  {
+    "route": "/account-balance",
+    "theme": "dark",
+    "errors": [],
+    "controls": 29,
+    "overflow": false
+  },
+  {
+    "route": "/wealth-history",
+    "theme": "dark",
+    "errors": [],
+    "controls": 24,
+    "overflow": false
+  },
+  {
+    "route": "/settings",
+    "theme": "dark",
+    "errors": [],
+    "controls": 38,
+    "overflow": false
+  },
+  {
+    "route": "/insights",
+    "theme": "dark",
+    "errors": [],
+    "controls": 23,
+    "overflow": false
+  },
+  {
+    "route": "/ai-coach",
+    "theme": "dark",
+    "errors": [],
+    "controls": 19,
+    "overflow": false
+  },
+  {
+    "route": "/wealth-v2",
+    "theme": "dark",
+    "errors": [],
+    "controls": 29,
+    "overflow": false
+  },
+  {
+    "route": "/commitments",
+    "theme": "dark",
+    "errors": [],
+    "controls": 16,
+    "overflow": false
+  },
+  {
+    "route": "/monthly-plan",
+    "theme": "dark",
+    "errors": [],
+    "controls": 18,
+    "overflow": false
+  },
+  {
+    "route": "/forecast-v3",
+    "theme": "dark",
+    "errors": [],
+    "controls": 36,
+    "overflow": false
+  },
+  {
+    "route": "/metrics",
+    "theme": "dark",
+    "errors": [],
+    "controls": 15,
+    "overflow": false
+  },
+  {
+    "route": "/recap/2026-09",
+    "theme": "dark",
+    "errors": [],
+    "controls": 18,
+    "overflow": false
+  },
+  {
+    "route": "/wrapped/2026",
+    "theme": "dark",
+    "errors": [],
+    "controls": 16,
+    "overflow": false
+  },
+  {
+    "route": "/",
+    "theme": "light",
+    "errors": [],
+    "controls": 61,
+    "overflow": false
+  },
+  {
+    "route": "/wealth",
+    "theme": "light",
+    "errors": [],
+    "controls": 27,
+    "overflow": false
+  },
+  {
+    "route": "/budget",
+    "theme": "light",
+    "errors": [],
+    "controls": 39,
+    "overflow": false
+  },
+  {
+    "route": "/transactions",
+    "theme": "light",
+    "errors": [],
+    "controls": 181,
+    "overflow": false
+  },
+  {
+    "route": "/investments",
+    "theme": "light",
+    "errors": [],
+    "controls": 29,
+    "overflow": false
+  },
+  {
+    "route": "/income",
+    "theme": "light",
+    "errors": [],
+    "controls": 31,
+    "overflow": false
+  },
+  {
+    "route": "/category-spending",
+    "theme": "light",
+    "errors": [],
+    "controls": 31,
+    "overflow": false
+  },
+  {
+    "route": "/account-balance",
+    "theme": "light",
+    "errors": [],
+    "controls": 32,
+    "overflow": false
+  },
+  {
+    "route": "/wealth-history",
+    "theme": "light",
+    "errors": [],
+    "controls": 27,
+    "overflow": false
+  },
+  {
+    "route": "/settings",
+    "theme": "light",
+    "errors": [],
+    "controls": 41,
+    "overflow": false
+  },
+  {
+    "route": "/insights",
+    "theme": "light",
+    "errors": [],
+    "controls": 26,
+    "overflow": false
+  },
+  {
+    "route": "/ai-coach",
+    "theme": "light",
+    "errors": [],
+    "controls": 22,
+    "overflow": false
+  },
+  {
+    "route": "/wealth-v2",
+    "theme": "light",
+    "errors": [],
+    "controls": 32,
+    "overflow": false
+  },
+  {
+    "route": "/commitments",
+    "theme": "light",
+    "errors": [],
+    "controls": 20,
+    "overflow": false
+  },
+  {
+    "route": "/monthly-plan",
+    "theme": "light",
+    "errors": [],
+    "controls": 21,
+    "overflow": false
+  },
+  {
+    "route": "/forecast-v3",
+    "theme": "light",
+    "errors": [],
+    "controls": 39,
+    "overflow": false
+  },
+  {
+    "route": "/metrics",
+    "theme": "light",
+    "errors": [],
+    "controls": 18,
+    "overflow": false
+  },
+  {
+    "route": "/recap/2026-09",
+    "theme": "light",
+    "errors": [],
+    "controls": 21,
+    "overflow": false
+  },
+  {
+    "route": "/wrapped/2026",
+    "theme": "light",
+    "errors": [],
+    "controls": 19,
+    "overflow": false
+  },
+  {
+    "route": "/",
+    "theme": "dark",
+    "errors": [],
+    "controls": 61,
+    "overflow": false
+  },
+  {
+    "route": "/wealth",
+    "theme": "dark",
+    "errors": [],
+    "controls": 27,
+    "overflow": false
+  },
+  {
+    "route": "/budget",
+    "theme": "dark",
+    "errors": [],
+    "controls": 39,
+    "overflow": false
+  },
+  {
+    "route": "/transactions",
+    "theme": "dark",
+    "errors": [],
+    "controls": 181,
+    "overflow": false
+  },
+  {
+    "route": "/investments",
+    "theme": "dark",
+    "errors": [],
+    "controls": 29,
+    "overflow": false
+  },
+  {
+    "route": "/income",
+    "theme": "dark",
+    "errors": [],
+    "controls": 31,
+    "overflow": false
+  },
+  {
+    "route": "/category-spending",
+    "theme": "dark",
+    "errors": [],
+    "controls": 31,
+    "overflow": false
+  },
+  {
+    "route": "/account-balance",
+    "theme": "dark",
+    "errors": [],
+    "controls": 32,
+    "overflow": false
+  },
+  {
+    "route": "/wealth-history",
+    "theme": "dark",
+    "errors": [],
+    "controls": 27,
+    "overflow": false
+  },
+  {
+    "route": "/settings",
+    "theme": "dark",
+    "errors": [],
+    "controls": 41,
+    "overflow": false
+  },
+  {
+    "route": "/insights",
+    "theme": "dark",
+    "errors": [],
+    "controls": 26,
+    "overflow": false
+  },
+  {
+    "route": "/ai-coach",
+    "theme": "dark",
+    "errors": [],
+    "controls": 22,
+    "overflow": false
+  },
+  {
+    "route": "/wealth-v2",
+    "theme": "dark",
+    "errors": [],
+    "controls": 32,
+    "overflow": false
+  },
+  {
+    "route": "/commitments",
+    "theme": "dark",
+    "errors": [],
+    "controls": 20,
+    "overflow": false
+  },
+  {
+    "route": "/monthly-plan",
+    "theme": "dark",
+    "errors": [],
+    "controls": 21,
+    "overflow": false
+  },
+  {
+    "route": "/forecast-v3",
+    "theme": "dark",
+    "errors": [],
+    "controls": 39,
+    "overflow": false
+  },
+  {
+    "route": "/metrics",
+    "theme": "dark",
+    "errors": [],
+    "controls": 18,
+    "overflow": false
+  },
+  {
+    "route": "/recap/2026-09",
+    "theme": "dark",
+    "errors": [],
+    "controls": 21,
+    "overflow": false
+  },
+  {
+    "route": "/wrapped/2026",
+    "theme": "dark",
+    "errors": [],
+    "controls": 19,
+    "overflow": false
+  }
+]

@@ -1,10 +1,8 @@
-import {createRequire} from 'node:module';
 import {fileURLToPath} from 'node:url';
 import assert from 'node:assert/strict';
-const require=createRequire(process.env.SUNNY_NODE_PACKAGES+'/package.json');
-const {chromium}=require('playwright');
-const browser=await chromium.launch({headless:true,channel:'msedge'});
-const output=new URL('../../docs/product/piano-evidence/',import.meta.url);
+import {chromium,browserOptions} from './browser.mjs';
+const browser=await chromium.launch(browserOptions);
+const output=new URL('../../docs/product/ui3-liquid-glass/evidence/piano-current/',import.meta.url);
 try{
   const page=await browser.newPage({viewport:{width:1440,height:1000},reducedMotion:'reduce'});
   const errors=[];page.on('pageerror',e=>errors.push(e.message));

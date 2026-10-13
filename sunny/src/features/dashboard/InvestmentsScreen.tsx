@@ -448,7 +448,7 @@ export function InvestmentsScreen({ investmentByCategory, investmentTotal, month
         open={!!valueCat}
         category={valueCat}
         deposited={valueCat ? (investmentByCategory[valueCat.id] ?? 0) : 0}
-        onSave={v => { if (valueCat) saveCurrentValue(valueCat.id, v); }}
+        onSave={v => { if (valueCat) return saveCurrentValue(valueCat.id, v); }}
         onClose={() => { setValueCat(null); if(ui3) {setDetailCat(null);detailAction.current=null;} }}
         onBack={ui3 && detailCat ? () => setValueCat(null) : undefined}
       />

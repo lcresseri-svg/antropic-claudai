@@ -1,3 +1,4 @@
+import { useUiVersion } from '../../shared/providers/UiVersionProvider';
 import { formatCurrency } from '../../utils';
 
 export interface Segment {
@@ -27,6 +28,8 @@ function arc(cx: number, cy: number, oR: number, iR: number, start: number, end:
 }
 
 export function Donut({ segments, centerLabel, size = 140 }: Props) {
+  const ui3=useUiVersion()==='3.0';
+  if(ui3&&(segments.some(s=>s.value<0)||segments.length>5))return <dl className="space-y-2 w-full" aria-label={centerLabel??'Composizione'}>{segments.map((s,i)=><div className="flex justify-between gap-3" key={i}><dt>{s.icon} {s.label}</dt><dd>{formatCurrency(s.value)}</dd></div>)}</dl>;
   const total = segments.reduce((s, x) => s + x.value, 0);
   // Thin ring: oR=90 iR=74 → 16px wide (premium minimal)
   const cx = 100, cy = 100, oR = 90, iR = 74, GAP = 0.025;
