@@ -1,6 +1,6 @@
 # Anteprima locale Sunny
 
-Piano usa ora la UI corrente ed è indipendente da UI3. `ui=3` abilita solo nella preview il vecchio pilot per le verifiche di compatibilità; il resolver di produzione non cambia.
+Piano usa ora la UI corrente ed è indipendente da UI3. `ui=3` forza il pilot nella preview per le verifiche di compatibilità. Dal 13 ottobre 2026 il resolver di produzione abilita UI3 per il solo admin già presente nella lista pilot; gli altri utenti restano in UI2.
 
 Verifiche Piano: `node ui-preview/piano.mjs`, `node ui-preview/piano-acceptance.mjs`, `node ui-preview/piano-review.mjs`. Richiedono il server qui sotto, un browser Playwright e `SUNNY_NODE_PACKAGES` come gli altri script. Screenshot sintetici in `docs/product/piano-evidence/`; risultati e limiti in `docs/product/2026-10-10-piano-implementation-results.md`.
 
@@ -16,7 +16,7 @@ Le verifiche desktop emulate non certificano Safari/iPad reali, VoiceOver/NVDA o
 
 ## Revisione Liquid Glass — preview admin
 
-Avviare con `ui=3&theme=light` oppure `ui=3&theme=dark`. L’admin sintetico è il solo utente ammesso a UI3; `user=normal` resta UI2. Il resolver di produzione resta disabilitato.
+Avviare con `ui=3&theme=light` oppure `ui=3&theme=dark`. L’admin sintetico è il solo utente ammesso a UI3; `user=normal` resta UI2. Senza parametro `ui`, la preview segue il resolver di produzione: UI3 per l’admin pilot, UI2 per gli altri utenti.
 
 Per Linux impostare `SUNNY_BROWSER=/usr/bin/chromium` e `SUNNY_NODE_PACKAGES` alla directory che contiene Playwright (in questo ambiente `/workspace/cloud-setup/node_modules`). Senza `SUNNY_BROWSER` resta il canale Edge degli script storici.
 

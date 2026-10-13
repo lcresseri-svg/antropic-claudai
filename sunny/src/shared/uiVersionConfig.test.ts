@@ -7,6 +7,11 @@ const config: UiVersionConfig = {
 };
 
 describe('UI version visibility, independent of feature authorization', () => {
+  it('enables the production pilot only for the authorized admin', () => {
+    expect(resolveUiVersion(pilot)).toBe('3.0');
+    expect(resolveUiVersion({ uid: 'ordinary' })).toBe('2.0');
+    expect(resolveUiVersion(null)).toBe('2.0');
+  });
   it('gives only the listed admin the pilot interface', () => {
     expect(resolveUiVersion(pilot, config)).toBe('3.0');
     expect(resolveUiVersion({ uid: 'ordinary' }, config)).toBe('2.0');
