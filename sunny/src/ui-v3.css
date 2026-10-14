@@ -262,3 +262,9 @@ html[data-ui-version="3.0"][data-ui-modal-open] :is(.ui3-nav,.ui3-header,.ui3-qu
   [data-ui-version="3.0"] :is(.ui-wealth-layout,.ui-settings) { display: block !important; }
   [data-ui-version="3.0"] .ui-settings:not([data-settings-sub="menu"]) .ui-settings-menu { display: none; }
 }
+
+/* Native keyboards resize the visual viewport, not CSS height media queries.
+   Keep one scroll owner so fixed editor chrome cannot crush the fields. */
+[data-ui-version="3.0"] .ui-dialog-overlay[data-ui-compact-viewport="true"] > [data-ui-dialog] { overflow-y: auto; }
+[data-ui-version="3.0"] .ui-dialog-overlay[data-ui-compact-viewport="true"] > [data-ui-dialog="editor"] form { flex: none; min-height: 0; }
+[data-ui-version="3.0"] .ui-dialog-overlay[data-ui-compact-viewport="true"] > [data-ui-dialog="editor"] form > .overflow-y-auto { flex: none; overflow-y: visible; }
