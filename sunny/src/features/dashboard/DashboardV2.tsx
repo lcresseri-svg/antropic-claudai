@@ -204,7 +204,7 @@ export function DashboardV2(p: Props) {
   );
 
   const breakdown = (
-    <SpendingBreakdownCard categoryTotals={currentMonthCategoryTotals} onSeeAll={openCategories} />
+    <SpendingBreakdownCard categoryTotals={currentMonthCategoryTotals} onSeeAll={openCategories} onOpenCategory={id=>navigate('/category-spending',{state:{currentPeriod:true,category:id}})} />
   );
 
   // Il link agli impegni compare solo quando l'insight in evidenza parla di
@@ -235,7 +235,7 @@ export function DashboardV2(p: Props) {
     const canSeeDue=isFeatureEnabled('commitments',{uid:p.userId});
     const priorityCount=(p.hasPaymentPriority?(p.paymentPriorityCount||1):0)+risks.length+(canSeeDue?upcoming.length:0);
     return <div className="liquid-today">
-      <header className="liquid-today-heading"><h1>{p.greeting || 'Oggi'}</h1><button onClick={()=>navigate('/settings')} aria-label="Apri impostazioni">Impostazioni ›</button></header>
+      <header className="liquid-today-heading"><h1>{p.greeting || 'Oggi'}</h1></header>
       {p.userId && <div data-liquid-preserve style={{display:'contents'}}><WrappedEntryCard transactions={p.transactions} projected={p.projected??[]} userId={p.userId} onOpen={y=>navigate(`/wrapped/${y}`)}/></div>}
       {hero}
       {priority && <div className="liquid-today-priority">{priorityCount>1 ? <details className="liquid-priority-list"><summary>{priorityCount} elementi da rivedere <span>Pagamenti, rischi e scadenze ›</span></summary>
@@ -244,27 +244,25 @@ export function DashboardV2(p: Props) {
         {canSeeDue && upcoming.length>0 && <section><h2>Scadenze entro 7 giorni</h2>{upcoming.map((item,i)=><button key={i} onClick={()=>navigate('/commitments')}>{item.description || 'Uscita programmata'} · {formatCurrency(item.amount)}<span>{item.date.split('-').reverse().join('/')} · Vedi impegni ›</span></button>)}</section>}
       </details> : priority}</div>}
       <div className="liquid-today-columns">
+        <div>{breakdown}</div>
         <div>
           <section className="liquid-month-chart">
             <div className="liquid-section-heading"><h2>Uscite del mese</h2><button onClick={()=>setRhythmHistoryOpen(true)}>Ritmo e calendario ›</button></div>
-            <p className="liquid-period">{month.monthLabelFull} · spese giornaliere registrate</p>
+            <p className="liquid-period">{month.monthLabelFull} · giorno per giorno</p>
             {p.transactions.some(t=>t.type==='expense'&&t.date.startsWith(month.monthKey)&&!isPending(t,localISO(now))) ?
               <AccountBalanceLineChart points={points} onSelectPoint={index=>navigate(`/transactions?date=${month.monthKey}-${String(index+1).padStart(2,'0')}`)} presentation="bars" title="Spese giornaliere" lastPeriodLabel="oggi" metricLabel="Spesa" formatValue={formatCurrency} height={112}/> : <p className="liquid-empty">Nessuna spesa registrata in questo mese.</p>}
           </section>
-          <RecentMovementsCard transactions={p.transactions} now={now} onSeeAll={()=>navigate('/transactions')} onOpenTransaction={p.onEditTransaction}/>
+
         </div>
-        <div className="liquid-today-secondary">
-          {breakdown}
+      </div>
+      <div className="liquid-today-secondary">
           <div className="liquid-overview-links">
-            <button onClick={()=>navigate('/wealth')}>Patrimonio e conti <span>›</span></button>
-            <button onClick={()=>navigate('/budget')}>Margine e obiettivi del Piano <span>›</span></button>
             <button onClick={()=>navigate(`/recap/${previousMonthKey(now)}`)}>Riepilogo di {previousMonthLabel(now)} <span>›</span></button>
             <button onClick={p.onSeeInsights}>Tutti i consigli <span>›</span></button>
           </div>
-          <details className="liquid-progressive"><summary>Personalizza la home</summary><p>L’ordine preferito delle statistiche resta disponibile qui.</p><button onClick={()=>setReorderOpen(true)}>Riordina statistiche</button>
+          <details className="liquid-progressive"><summary>Altre statistiche</summary><button onClick={()=>setReorderOpen(true)}>Riordina statistiche</button>
             {order.filter(id=>id!=='uscite'&&id!=='mossa').map(id=><div key={id}>{blocks[id]}</div>)}
           </details>
-        </div>
       </div>
       <ReorderHomeSheet open={reorderOpen} order={order} onSave={saveHomeOrder} onClose={()=>setReorderOpen(false)}/>
       <MonthRhythmSheet open={rhythmHistoryOpen} transactions={p.transactions} scheduled={cash.committedItems} now={now} onClose={()=>setRhythmHistoryOpen(false)} onSelectDay={iso=>navigate(`/transactions?date=${iso}`)}/>

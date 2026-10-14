@@ -1,3 +1,6 @@
+import { useState } from 'react';
+import { PlanDialog } from '../budget/PlanDialog';
+import '../budget/plan.css';
 // Card hero della home: "quanto posso spendere?".
 //
 // Il numero grande NON è la liquidità, è la liquidità LIBERA: quello che resta
@@ -47,6 +50,7 @@ function splitAmount(value: number): { head: string; tail: string } {
 
 export function FreeCashHero(p: Props) {
   const ui3 = useUiVersion() === '3.0';
+  const [infoOpen,setInfoOpen]=useState(false);
   const { head, tail } = splitAmount(p.freeCash);
   const reserve = p.reserve ?? 0;
   // "Libera" ha senso solo se qualcosa è stato messo da parte: senza impegni e
@@ -64,19 +68,23 @@ export function FreeCashHero(p: Props) {
   const pct = Math.round(ratio * 100);
 
   if (ui3) return <section className="liquid-balance-overview">
-    <DataHeadline label="Liquidità sui conti inclusi" value={p.liquidity} period="Saldo attuale · conti inclusi nel patrimonio" onOpen={p.onOpenAccounts}/>
-    <details className="liquid-balance-detail">
-      <summary>Impegni e deposito di sicurezza</summary>
+    <div className="liquid-saldo-heading">
+      <DataHeadline label="Saldo" value={p.liquidity} onOpen={p.onOpenAccounts}/>
+      <button type="button" className="liquid-info-button" aria-label="Informazioni sul saldo" onClick={()=>setInfoOpen(true)}>ⓘ</button>
+    </div>
+    {infoOpen && <PlanDialog title="Informazioni sul saldo" onClose={()=>setInfoOpen(false)}>
       <dl className="liquid-money-rows">
-        <div><dt>Liquidità</dt><dd>{formatCurrency(p.liquidity)}</dd></div>
+        <div><dt>Saldo</dt><dd>{formatCurrency(p.liquidity)}</dd></div>
         <div><dt>Uscite programmate entro fine mese</dt><dd>{formatCurrency(p.committed)}</dd></div>
         <div><dt>Deposito di sicurezza</dt><dd>{formatCurrency(reserve)}</dd></div>
         <div><dt>Liquidità libera stimata</dt><dd>{formatCurrency(p.freeCash)}</dd></div>
       </dl>
-      <p>Non è il margine del Piano. Il saldo non sottrae gli impegni futuri; la liquidità libera li considera insieme al deposito.</p>
-    </details>
+      <p>Il saldo considera i conti che hai scelto per il patrimonio. Non sottrae gli impegni futuri; la liquidità libera considera anche le uscite programmate e il deposito.</p>
+      <p>Non è il margine del Piano, che dipende dalle entrate e dagli obiettivi del mese.</p>
+      <button type="button" onClick={()=>{setInfoOpen(false);p.onOpenAccounts?.();}}>Vedi conti ›</button>
+    </PlanDialog>}
     <div className="liquid-month-summary">
-      <p className="liquid-eyebrow">{p.period ?? 'Questo mese'} · registrato</p>
+      <p className="liquid-eyebrow">{p.period ?? 'Questo mese'}</p>
       <MonthStats {...p} className="liquid-month-stats" size="sm"/>
     </div>
   </section>;

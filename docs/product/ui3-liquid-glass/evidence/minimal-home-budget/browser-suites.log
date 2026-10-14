@@ -1,0 +1,61 @@
+RUN liquid-dismiss.mjs
+PASS liquid-dismiss.mjs
+RUN liquid-bulk.mjs
+PASS liquid-bulk.mjs
+RUN liquid-charts.mjs
+PASS liquid-charts.mjs
+RUN liquid-import.mjs
+PASS liquid-import.mjs
+RUN liquid-details.mjs
+PASS liquid-details.mjs
+RUN liquid-onboarding.mjs
+PASS liquid-onboarding.mjs
+RUN check.mjs-dialog
+PASS check.mjs-dialog
+RUN check.mjs-draft
+PASS check.mjs-draft
+RUN check.mjs-keypad
+PASS check.mjs-keypad
+RUN check.mjs-failure
+PASS check.mjs-failure
+RUN check.mjs-backdrop
+PASS check.mjs-backdrop
+RUN interactions.mjs
+PASS interactions.mjs
+RUN accessibility.mjs
+PASS accessibility.mjs
+RUN regressions.mjs-print
+PASS regressions.mjs-print
+RUN regressions.mjs-settings
+PASS regressions.mjs-settings
+RUN regressions.mjs-category
+FAIL regressions.mjs-category i-dialog-kind="editor" class="fixed inset-0 z-50 flex items-end sm:items-center justify-center px-3 pt-[max(0.75rem,env(safe-area-inset-top))] pb-[max(0.75rem,env(safe-area-inset-bottom))] ui-dialog-overlay">…</div> subtree intercepts pointer events',
+    '    - retrying click action',
+    '      - waiting 100ms',
+    '    58 × waiting for element to be visible, enabled and stable',
+    '       - element is visible, enabled and stable',
+    '       - scrolling into view if needed',
+    '       - done scrolling',
+    '       - <div class="absolute inset-0 bg-black/60 backdrop-blur-sm animate-fade-in-fast"></div> from <div data-ui-dialog-kind="editor" class="fixed inset-0 z-50 flex items-end sm:items-center justify-center px-3 pt-[max(0.75rem,env(safe-area-inset-top))] pb-[max(0.75rem,env(safe-area-inset-bottom))] ui-dialog-overlay">…</div> subtree intercepts pointer events',
+    '     - retrying click action',
+    '       - waiting 500ms'
+  ],
+  name: 'TimeoutError'
+}
+
+Node.js v24.19.0
+
+RUN regressions.mjs-budget
+PASS regressions.mjs-budget
+RUN regressions.mjs-investment
+PASS regressions.mjs-investment
+RUN piano.mjs
+PASS piano.mjs
+RUN piano-acceptance.mjs
+PASS piano-acceptance.mjs
+RUN piano-review.mjs
+PASS piano-review.mjs
+RUN piano-style.mjs
+PASS piano-style.mjs
+RUN piano-category-forecast.mjs
+PASS piano-category-forecast.mjs

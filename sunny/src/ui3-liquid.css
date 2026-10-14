@@ -214,3 +214,22 @@ html.light:has(.app-shell[data-liquid-ui="true"]), html.light:has(.app-shell[dat
 [data-liquid-ui="true"] .liquid-priority-list section > button span { display:block; font-size:13px; color:var(--text-2); margin-top:6px; }
 [data-liquid-ui="true"] [data-chart-bar][role="button"] { cursor:pointer; }
 [data-liquid-ui="true"] [data-chart-bar][role="button"]:focus-visible { outline:2px solid var(--ui-focus); outline-offset:2px; }
+/* Minimal home: comparable category rows and secondary detail controls. */
+[data-liquid-ui="true"] .liquid-saldo-heading { display:flex; align-items:flex-start; justify-content:space-between; gap:12px; }
+[data-liquid-ui="true"] .liquid-saldo-heading .liquid-data-headline { min-width:0; }
+[data-liquid-ui="true"] .liquid-info-button { flex-shrink:0; min-width:44px; min-height:44px; color:var(--text-2); font-size:22px; }
+[data-liquid-ui="true"] .liquid-spending { padding:20px 0; }
+[data-liquid-ui="true"] .liquid-spending h2 { font-size:16px; font-weight:600; }
+[data-liquid-ui="true"] .liquid-spending-row { width:100%; text-align:left; padding:14px 0; border-bottom:1px solid var(--border); }
+[data-liquid-ui="true"] .liquid-spending-label { display:grid; grid-template-columns:24px minmax(0,1fr) minmax(0,auto); gap:10px; align-items:baseline; font-size:14px; }
+[data-liquid-ui="true"] .liquid-spending-label strong { text-align:right; overflow-wrap:anywhere; }
+[data-liquid-ui="true"] .liquid-spending-meter { display:flex; align-items:center; gap:12px; margin-top:9px; padding-left:34px; font-size:12px; color:var(--text-2); }
+[data-liquid-ui="true"] .liquid-spending-track { flex:1; height:4px; background:var(--surface-2); border-radius:2px; overflow:hidden; }
+[data-liquid-ui="true"] .liquid-spending-track > span { display:block; height:100%; background:var(--ui-accent); }
+[data-liquid-ui="true"] .liquid-month-summary { margin-top:12px; }
+[data-liquid-ui="true"] .liquid-month-stats .balance-num { font-size:clamp(20px,3cqw,28px); }
+[data-liquid-ui="true"] .liquid-overview-links { display:flex; flex-wrap:wrap; column-gap:24px; }
+[data-liquid-ui="true"] .liquid-overview-links button { flex:1 1 220px; }
+[data-liquid-ui="true"] .plan-limit-picker > button { display:flex; justify-content:space-between; gap:16px; width:100%; min-height:52px; padding:12px 0; border-bottom:1px solid var(--border); text-align:left; }
+[data-liquid-ui="true"] .plan-limit-picker > button > span:last-child { font-size:13px; color:var(--text-2); }
+[data-liquid-ui="true"] .plan-category-list .plan-category-edit { width:auto; min-height:44px; padding:8px 0; color:var(--ui-accent-text); font-size:13px; }

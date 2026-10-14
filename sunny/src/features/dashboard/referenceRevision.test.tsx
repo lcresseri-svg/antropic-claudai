@@ -13,13 +13,15 @@ describe('reference revision financial hierarchy',()=>{
   const html=renderToStaticMarkup(<AccountBalanceLineChart presentation="bars" lastPeriodLabel="oggi" points={[{label:'1',value:35}]} formatValue={v=>`${v} €`} onSelectPoint={()=>{}}/>);
   expect(html).toContain('role="button"');expect(html).toContain('tabindex="0"');expect(html).toContain('oggi');expect(html).not.toContain('NaN');
  });
- it('labels the UI3 hero as account liquidity and keeps free cash in its detail',()=>{
+ it('keeps Saldo prominent and moves explanations behind a dedicated control',()=>{
   state.version='3.0';
   const html=renderToStaticMarkup(<FreeCashHero {...props}/>);
-  expect(html).toContain('Liquidità sui conti inclusi');
-  expect(html).toContain('<details');
-  expect(html.indexOf('1000')).toBeLessThan(html.indexOf('700'));
-  expect(html).toContain('Non è il margine del Piano');
+  expect(html).toContain('Saldo');
+  expect(html).toContain('Informazioni sul saldo');
+  expect(html).not.toContain('Liquidità sui conti inclusi');
+  expect(html).not.toContain('conti inclusi nel patrimonio');
+  expect(html).not.toContain('registrato');
+  expect(html).not.toContain('Impegni e deposito di sicurezza');
  });
  it('keeps UI2 free cash presentation',()=>{
   state.version='2.0';

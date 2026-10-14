@@ -7,7 +7,8 @@ import { transactionRoute } from '../../shared/transactionRoute';
 // side panel on desktop). Information density follows the global insightDepth.
 
 import { useState, useMemo, useEffect } from 'react';
-import { useNavigate } from 'react-router-dom';
+import { useNavigate, useLocation } from 'react-router-dom';
+import { useUiVersion } from '../../shared/providers/UiVersionProvider';
 import { Transaction } from '../../types';
 import { useSettings } from '../../shared/providers/settings';
 import { formatCurrency, capitalize } from '../../utils';
@@ -29,7 +30,8 @@ const OTHER_COLOR = '#6B6B6B';
 const deltaColor = (d: number) => (d > 0 ? 'text-[#E08B8B]' : d < 0 ? 'text-[#7B9E87]' : 'text-secondary');
 
 export function CategorySpendingScreen({ transactions, categoryBudgets }: Props) {
-  const navigate = useNavigate();
+  const navigate = useNavigate(),location=useLocation();
+  const ui3=useUiVersion()==='3.0';
   const { getCat, insightDepth } = useSettings();
   const {period,setPeriod,offset,setOffset}=useAnalysisPeriod('categories');
   const [selectedId, setSelectedId] = useState<string | null>(null);
@@ -47,6 +49,7 @@ export function CategorySpendingScreen({ transactions, categoryBudgets }: Props)
 
   // Changing the window closes any open detail.
   useEffect(() => { setSelectedId(null); }, [period, offset]);
+  useEffect(() => { if(ui3&&typeof location.state?.category==='string')setSelectedId(location.state.category); }, [location.key]);
 
   const selected = selectedId ? agg.categories.find(c => c.categoryId === selectedId) ?? null : null;
   const showDelta = insightDepth !== 'minimal' && period !== 'all';
