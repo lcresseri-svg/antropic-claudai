@@ -56,7 +56,9 @@ try {
   // UI3 intentionally changes the hero metric and chart geometry. Compare
   // the same financial quantities, not the number/order of decorative paths.
   const normalized=s=>s.replace(/\s/g,'');
+  await page.getByRole('button',{name:'Informazioni sul saldo',exact:true}).click();
   const ui3Free=normalized(await page.locator('.liquid-money-rows dd').last().textContent());
+  await page.keyboard.press('Escape');
   const monthValues=async()=>Promise.all(['entrate','uscite','investito'].map(async label=>normalized(await page.getByRole('button',{name:`Analizza ${label}`,includeHidden:true}).first().locator('.balance-num').textContent())));
   const ui3Month=await monthValues();
   await start('ui=2');

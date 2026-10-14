@@ -572,7 +572,7 @@ export function TransactionModal({ open, editing, groupTransfers = [], seriesEdi
           The CARD ITSELF never scrolls: it's a fixed mask (header + footer)
           around an internal scrolling window (the form fields). overscroll-contain
           stops the scroll from chaining to the page when the window hits its end. */}
-      <DialogSurface title={title ?? (seriesEdit ? 'Modifica serie' : editing ? 'Modifica movimento' : `Nuova ${TYPE_META[type].label.toLowerCase()}`)} onDismiss={requestClose} kind="editor"
+      <DialogSurface title={title ?? (seriesEdit ? 'Modifica serie' : editing ? 'Modifica movimento' : `Nuova ${TYPE_META[type].label.toLowerCase()}`)} onDismiss={requestClose} kind="editor" showEditorTitle={!quickMode && availableTypes.length > 1}
         data-keypad={ui3 ? String(useKeypad) : undefined} data-text-input={ui3 ? String(textInputActive) : undefined}
         onChangeCapture={ui3 ? captureDraft : undefined}
         onPointerDownCapture={ui3 ? captureDraft : undefined} onKeyDownCapture={ui3 ? e => {

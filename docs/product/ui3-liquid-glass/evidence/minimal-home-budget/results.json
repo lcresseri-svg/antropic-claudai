@@ -1,0 +1,40 @@
+[
+  {
+    "theme": "light",
+    "width": 390,
+    "pass": true
+  },
+  {
+    "theme": "light",
+    "width": 834,
+    "pass": true
+  },
+  {
+    "theme": "light",
+    "width": 1440,
+    "pass": true
+  },
+  {
+    "theme": "dark",
+    "width": 390,
+    "pass": true
+  },
+  {
+    "theme": "dark",
+    "width": 834,
+    "pass": true
+  },
+  {
+    "theme": "dark",
+    "width": 1440,
+    "pass": true
+  },
+  {
+    "mode": "failSave",
+    "pass": true
+  },
+  {
+    "mode": "conflict",
+    "pass": true
+  }
+]

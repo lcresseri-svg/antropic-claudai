@@ -1,0 +1,86 @@
+[
+  {
+    "file": "home-dark-390.png",
+    "changedPixels": 0,
+    "maxChannelDifference": 0,
+    "bbox": null
+  },
+  {
+    "file": "commitments-dark-390.png",
+    "changedPixels": 0,
+    "maxChannelDifference": 0,
+    "bbox": null
+  },
+  {
+    "file": "settings-dark-390.png",
+    "changedPixels": 0,
+    "maxChannelDifference": 0,
+    "bbox": null,
+    "baseline": "main 25ac19c; animations disabled on both sides"
+  },
+  {
+    "file": "budget-light-390.png",
+    "changedPixels": 0,
+    "maxChannelDifference": 0,
+    "bbox": null
+  },
+  {
+    "file": "home-light-390.png",
+    "changedPixels": 18,
+    "maxChannelDifference": 7,
+    "bbox": [
+      41,
+      500,
+      58,
+      531
+    ]
+  },
+  {
+    "file": "wealth-light-390.png",
+    "changedPixels": 0,
+    "maxChannelDifference": 0,
+    "bbox": null
+  },
+  {
+    "file": "settings-light-390.png",
+    "changedPixels": 0,
+    "maxChannelDifference": 0,
+    "bbox": null,
+    "baseline": "main 25ac19c; animations disabled on both sides"
+  },
+  {
+    "file": "commitments-light-390.png",
+    "changedPixels": 0,
+    "maxChannelDifference": 0,
+    "bbox": null
+  },
+  {
+    "file": "budget-dark-390.png",
+    "changedPixels": 0,
+    "maxChannelDifference": 0,
+    "bbox": null
+  },
+  {
+    "file": "wealth-dark-390.png",
+    "changedPixels": 28,
+    "maxChannelDifference": 9,
+    "bbox": [
+      41,
+      298,
+      349,
+      374
+    ]
+  },
+  {
+    "file": "transactions-dark-390.png",
+    "changedPixels": 0,
+    "maxChannelDifference": 0,
+    "bbox": null
+  },
+  {
+    "file": "transactions-light-390.png",
+    "changedPixels": 0,
+    "maxChannelDifference": 0,
+    "bbox": null
+  }
+]

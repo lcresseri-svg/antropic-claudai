@@ -10,8 +10,8 @@ const focusables = (root: HTMLElement) => Array.from(root.querySelectorAll<HTMLE
 /** Same DOM surface in UI2. UI3 owns focus, background inertness and visible
  * viewport within this scope, never save semantics or a second form instance. */
 export const DialogSurface = forwardRef<HTMLDivElement, HTMLAttributes<HTMLDivElement> & {
-  title: string; onDismiss: () => void; onBack?: () => void; kind?: 'editor' | 'detail' | 'import' | 'notice';
-}>(function DialogSurface({ title, onDismiss, onBack, kind = 'detail', ...props }, forwardedRef) {
+  showEditorTitle?: boolean; title: string; onDismiss: () => void; onBack?: () => void; kind?: 'editor' | 'detail' | 'import' | 'notice';
+}>(function DialogSurface({ title, onDismiss, onBack, kind = 'detail', showEditorTitle = true, ...props }, forwardedRef) {
   const version = useUiVersion();
   useUiNoticeBlock(kind!=='notice');
   const ref = useRef<HTMLDivElement>(null);
@@ -80,6 +80,7 @@ export const DialogSurface = forwardRef<HTMLDivElement, HTMLAttributes<HTMLDivEl
     const updateViewport = () => {
       cancelAnimationFrame(frame);
       frame = requestAnimationFrame(() => {
+        overlay.dataset.uiCompactViewport = String((viewport?.height ?? window.innerHeight) < 600);
         overlay.style.setProperty('--ui-visible-height', `${viewport?.height ?? window.innerHeight}px`);
         overlay.style.setProperty('--ui-visible-top', `${viewport?.offsetTop ?? 0}px`);
       });
@@ -107,7 +108,7 @@ export const DialogSurface = forwardRef<HTMLDivElement, HTMLAttributes<HTMLDivEl
     aria-label={version === '3.0' ? title : props['aria-label']}
     data-ui-dialog={version === '3.0' ? kind : undefined}>
     {version === '3.0' && kind === 'detail' && <div className="ui-dialog-parent"><button type="button" className="ui-back" onClick={onBack ?? onDismiss}>‹ Indietro</button></div>}
-    {version === '3.0' && kind === 'editor' && <h2 className="ui-dialog-editor-title">{title}</h2>}
+    {version === '3.0' && kind === 'editor' && showEditorTitle && <h2 className="ui-dialog-editor-title">{title}</h2>}
     {props.children}
   </div>;
 });

@@ -10,7 +10,7 @@ describe('home spending overview',()=>{
   state.version='3.0';
   const categoryTotals=Object.fromEntries(Array.from({length:12},(_,i)=>[`Category ${i+1}`,120-i*10]));
   const html=renderToStaticMarkup(<SpendingBreakdownCard categoryTotals={categoryTotals} onSeeAll={()=>{}}/>);
-  expect((html.match(/<dt>/g)||[]).length).toBe(6);
+  expect((html.match(/class="liquid-spending-row"/g)||[]).length).toBe(6);
   expect(html).toContain('Altre 7');
   expect(html).toContain(formatCurrency(280));
   expect(html).not.toContain('Category 6<');

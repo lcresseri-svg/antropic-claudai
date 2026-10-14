@@ -35,6 +35,7 @@ export function PlanScreen(p:Props) {
   const [archive,setArchive]=useUiSessionState('budget.archive',false);
   const [transfer,setTransfer]=useState<PlanCategory|null>(null);
   const [saved,setSaved]=useState(false);
+  const [pickLimit,setPickLimit]=useState(false);
   const edit=(section:PlanEditorSection='income',category?:string)=>{setSaved(false);setEditor({section,category});};
   const rows=view.categories.filter(c=>!reviewOnly||['spent-over','committed-over','forecast-risk'].includes(c.state));
   const category=view.categories.find(c=>c.id===detail);
@@ -100,9 +101,9 @@ export function PlanScreen(p:Props) {
             <small>Speso {money(c.spent)} · Programmato {money(c.scheduled)} · Limite {c.limit===null?'non impostato':money(c.limit)}</small>
             <CategoryForecast category={c} period={view.period}/>
             <span className={`plan-state plan-state-${c.state}`}>{states[c.state]}</span>
-          </button></li>)}</ul>
+          </button>{ui3&&<button className="plan-category-edit" aria-label={`${c.limit===null?'Imposta':'Modifica'} limite ${c.label}`} onClick={()=>edit('expenses',c.id)}>{c.limit===null?'Imposta limite':'Modifica limite'}</button>}</li>)}</ul>
           {rows.length>5&&<button onClick={()=>setAll(!all)}>{all?'Mostra meno':'Mostra tutte'}</button>}
-          <button onClick={()=>edit('expenses')}>Modifica limiti</button>
+          <button onClick={()=>ui3?setPickLimit(true):edit('expenses')}>{ui3?'Imposta un limite':'Modifica limiti'}</button>
         </section>
         <section className="plan-card glass-card shadow-elev-1"><h2>{view.period==='past'?'Scadenze del mese':'Prossime spese'}</h2>
           {view.upcoming.length?upcoming(view.upcoming.slice(0,allDue?undefined:3)):<p>Nessuna spesa ancora programmata in questo mese.</p>}
@@ -134,6 +135,7 @@ export function PlanScreen(p:Props) {
     {transfer&&<PlanTransfer view={view} target={transfer} onClose={()=>setTransfer(null)} onApply={(limits)=>{
       setEditor({section:'expenses',category:transfer.id,initialPlan:{...(plan??initMonthlyBudget({month})),categoryBudgets:limits}});setTransfer(null);
     }}/>}
+    {pickLimit&&<PlanDialog title="Scegli categoria" onClose={()=>setPickLimit(false)}><div className="plan-limit-picker">{settings.categories.filter(c=>c.kind==='expense'&&!c.archived).map(c=><button key={c.id} onClick={()=>{setPickLimit(false);edit('expenses',c.id);}}><span>{c.icon} {c.label}</span><span>{plan?.categoryBudgets[c.id]?'Modifica limite':'Imposta limite'} ›</span></button>)}</div></PlanDialog>}
     {editor&&<PlanEditor key={p.user.uid+month} uid={p.user.uid} month={month} plan={plan} previous={store.budgetHistory.find(b=>b.month===prevMonthKey(month))}
       categories={settings.categories} transactions={p.transactions} now={now} section={editor.section} focusCategory={editor.category} initialPlan={editor.initialPlan}
       onClose={()=>setEditor(null)} onSave={async(...args)=>{const next=await store.saveMonthlyBudget(...args);setSaved(true);return next;}}/>}

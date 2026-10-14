@@ -1,0 +1,46 @@
+
+> sunny-finance@0.1.0 build
+> tsc && vite build
+
+vite v5.4.21 building for production...
+transforming...
+✓ 295 modules transformed.
+rendering chunks...
+computing gzip size...
+dist/index.html                                   3.74 kB │ gzip:   1.46 kB
+dist/assets/index-DR0BUgsQ.css                  111.32 kB │ gzip:  21.30 kB
+dist/assets/ProgressiveSection-BlyxjXrx.js        0.24 kB │ gzip:   0.21 kB
+dist/assets/useOriginBack-FLIOBzwA.js             0.25 kB │ gzip:   0.22 kB
+dist/assets/transactionRoute-Ax3GhU9Z.js          0.43 kB │ gzip:   0.31 kB
+dist/assets/PageHead-B3ONpoaq.js                  0.50 kB │ gzip:   0.31 kB
+dist/assets/useFeedback-C9OKWbqd.js               0.71 kB │ gzip:   0.47 kB
+dist/assets/AnalysisHeader-C5I23tbR.js            0.98 kB │ gzip:   0.58 kB
+dist/assets/OutflowInfo-b6NqyQtm.js               1.78 kB │ gzip:   0.97 kB
+dist/assets/PeriodControls-g5dhGgGq.js            2.27 kB │ gzip:   1.08 kB
+dist/assets/forecastService-CcgjudzP.js           3.30 kB │ gzip:   1.42 kB
+dist/assets/MetricsScreen-BnXJXBxN.js             4.40 kB │ gzip:   1.67 kB
+dist/assets/WealthLineChart-IB83oXFi.js           7.11 kB │ gzip:   2.63 kB
+dist/assets/CommitmentsScreen-D_HaYKWl.js         9.04 kB │ gzip:   2.98 kB
+dist/assets/IncomeScreen-DWKSRyI9.js              9.39 kB │ gzip:   3.04 kB
+dist/assets/MonthlyPlanScreen-C1Eu8AJs.js         9.52 kB │ gzip:   3.21 kB
+dist/assets/WealthScreen-DoE0g4qo.js             10.27 kB │ gzip:   3.45 kB
+dist/assets/WealthHistoryScreen-DVdl2bny.js      10.36 kB │ gzip:   2.76 kB
+dist/assets/MonthlyRecapScreen-l3qC7kz-.js       11.84 kB │ gzip:   4.11 kB
+dist/assets/InsightsScreenV2-BMY9Opga.js         12.51 kB │ gzip:   4.65 kB
+dist/assets/AccountBalanceScreen-uWJbhupa.js     13.76 kB │ gzip:   5.02 kB
+dist/assets/WealthV2Screen-iMnjGEUh.js           15.69 kB │ gzip:   4.86 kB
+dist/assets/CategorySpendingScreen-CgLOygl3.js   18.73 kB │ gzip:   6.00 kB
+dist/assets/WrappedScreen-_UOb642h.js            23.37 kB │ gzip:   7.50 kB
+dist/assets/forecastEngineV3-CQOrkluz.js         24.81 kB │ gzip:   8.46 kB
+dist/assets/TransactionList-DHXK_ime.js          29.09 kB │ gzip:   8.57 kB
+dist/assets/AICoachScreen-b4to9XJL.js            32.03 kB │ gzip:  11.11 kB
+dist/assets/InvestmentsScreen-D37Ko4pa.js        49.19 kB │ gzip:  14.69 kB
+dist/assets/SettingsScreen-DK8u3Sym.js           66.46 kB │ gzip:  19.06 kB
+dist/assets/BudgetScreenV2-DysQSRgv.js           75.62 kB │ gzip:  22.39 kB
+dist/assets/ForecastV3Screen-CWmFf3rJ.js         91.59 kB │ gzip:  25.16 kB
+dist/assets/firebase-auth-CS9chG8H.js           111.87 kB │ gzip:  22.84 kB
+dist/assets/react-D7rv8Q1m.js                   140.87 kB │ gzip:  45.26 kB
+dist/assets/xlsx-D_0l8YDs.js                    429.03 kB │ gzip: 143.08 kB
+dist/assets/firebase-firestore-Jkbbo_xy.js      434.47 kB │ gzip: 108.24 kB
+dist/assets/index-Cn5IFJ7h.js                   497.37 kB │ gzip: 149.83 kB
+✓ built in 7.34s

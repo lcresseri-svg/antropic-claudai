@@ -22,7 +22,7 @@ try {
     const more=page.getByRole('button',{name:'altre ›',exact:true});
     await more.click(); await page.getByRole('button',{name:'‹ Indietro',exact:true}).click();
     assert.equal(await more.evaluate(el=>el===document.activeElement),true,'category Back restores its trigger, not BODY');
-    await more.click(); await page.getByRole('button',{name:/Casa/}).first().click();
+    await more.click(); await page.getByRole('dialog').getByRole('button',{name:/Casa/}).first().click();
     assert.equal(await more.evaluate(el=>el===document.activeElement),true,'choosing a category also returns focus to the picker trigger');
   }
   if(mode==='budget') {

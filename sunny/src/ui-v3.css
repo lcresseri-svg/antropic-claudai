@@ -185,7 +185,8 @@ html[data-ui-version="3.0"] body { transition: none; }
 html[data-ui-version="3.0"] .ui-dialog-overlay { top: var(--ui-visible-top,0px); bottom: auto; height: var(--ui-visible-height,100dvh); padding: max(12px,env(safe-area-inset-top)) max(12px,env(safe-area-inset-right)) max(12px,env(safe-area-inset-bottom)) max(12px,env(safe-area-inset-left)); }
 html[data-ui-version="3.0"] [class*="backdrop-blur"] { backdrop-filter: none; }
 html[data-ui-version="3.0"][data-ui-modal-open] :is(.ui3-nav,.ui3-header,.ui3-quick-menu) { backdrop-filter: none; }
-[data-ui-version="3.0"] [data-ui-dialog] { border-radius: 32px; max-height: calc(var(--ui-visible-height,100dvh) - 24px); box-shadow: var(--ui-shadow); animation: ui3-reveal 260ms cubic-bezier(.22,1,.36,1); }
+/* The overlay content box already excludes safe-area padding on every side. */
+[data-ui-version="3.0"] [data-ui-dialog] { border-radius: 32px; max-height: 100%; box-shadow: var(--ui-shadow); animation: ui3-reveal 260ms cubic-bezier(.22,1,.36,1); }
 [data-ui-version="3.0"] [data-ui-dialog] :is(button,input,select) { min-height: 44px; min-width: 44px; }
 [data-ui-version="3.0"] [data-ui-dialog] .scrollbar-hide { scrollbar-width: auto; }
 [data-ui-version="3.0"] [data-ui-dialog] .scrollbar-hide::-webkit-scrollbar { display: initial; }
@@ -261,3 +262,9 @@ html[data-ui-version="3.0"][data-ui-modal-open] :is(.ui3-nav,.ui3-header,.ui3-qu
   [data-ui-version="3.0"] :is(.ui-wealth-layout,.ui-settings) { display: block !important; }
   [data-ui-version="3.0"] .ui-settings:not([data-settings-sub="menu"]) .ui-settings-menu { display: none; }
 }
+
+/* Native keyboards resize the visual viewport, not CSS height media queries.
+   Keep one scroll owner so fixed editor chrome cannot crush the fields. */
+[data-ui-version="3.0"] .ui-dialog-overlay[data-ui-compact-viewport="true"] > [data-ui-dialog] { overflow-y: auto; }
+[data-ui-version="3.0"] .ui-dialog-overlay[data-ui-compact-viewport="true"] > [data-ui-dialog="editor"] form { flex: none; min-height: 0; }
+[data-ui-version="3.0"] .ui-dialog-overlay[data-ui-compact-viewport="true"] > [data-ui-dialog="editor"] form > .overflow-y-auto { flex: none; overflow-y: visible; }
