@@ -127,14 +127,14 @@ export function AccountBalanceScreen({ transactions }: Props) {
 
           {/* Una card per conto: la variazione del periodo va SOTTO il nome,
               non in fila con il saldo — sono due cose diverse. */}
-          <div className="space-y-3">
+          <div className="ui-open-list space-y-3">
             {rows.map(r => {
               const barPct = maxAbs > 0 ? (Math.abs(r.current) / maxAbs) * 100 : 0;
               return (
                 <button
                   key={r.acc.id}
                   onClick={() => setSelectedId(r.acc.id)}
-                  className="w-full text-left glass-card rounded-[18px] shadow-elev-1 p-4 active:scale-[0.99] transition-transform"
+                  className="ui-open-row w-full text-left glass-card rounded-[18px] shadow-elev-1 p-4 active:scale-[0.99] transition-transform"
                 >
                   <div className="flex items-center gap-3">
                     <span className="w-8 h-8 rounded-xl flex items-center justify-center text-sm flex-shrink-0" style={{ backgroundColor: r.acc.color + '26' }}>

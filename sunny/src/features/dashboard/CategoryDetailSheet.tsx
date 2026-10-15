@@ -167,7 +167,7 @@ export function CategoryDetailSheet({
         <div className="flex-1 overflow-y-auto overscroll-contain px-5 py-4 space-y-5">
           {/* Finanziamento — stato di rimborso da sempre, indipendente dal periodo */}
           {loan && (
-            <div className="bg-card rounded-2xl px-4 py-3.5">
+            <div className="ui-open-section bg-card rounded-2xl px-4 py-3.5">
               <div className="flex items-center justify-between mb-2.5">
                 <p className="label-caps text-secondary">Finanziamento</p>
                 {loan.isPaidOff && <span className="text-[11px] font-semibold text-green">Ripagato ✓</span>}
@@ -208,7 +208,7 @@ export function CategoryDetailSheet({
           {kpis.length > 0 && (
             <div className="grid grid-cols-2 md:grid-cols-3 gap-2">
               {kpis.map(k => (
-                <div key={k.label} className="bg-card rounded-xl px-3 py-2.5">
+                <div key={k.label} className="ui-open-section bg-card rounded-xl px-3 py-2.5">
                   <p className={`text-[14px] font-semibold balance-num ${k.tone ?? 'text-primary'}`}>{k.value}</p>
                   <p className="text-[10px] text-secondary mt-0.5 truncate">{k.label}</p>
                 </div>
@@ -237,7 +237,7 @@ export function CategoryDetailSheet({
           </div>
 
           {/* Sunny note */}
-          <div className="bg-card rounded-2xl px-4 py-3">
+          <div className="ui-open-section bg-card rounded-2xl px-4 py-3">
             <p className="label-caps text-secondary mb-1">Sunny nota</p>
             <p className="text-[13px] text-primary leading-snug">{note}</p>
           </div>

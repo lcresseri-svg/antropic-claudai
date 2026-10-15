@@ -32,10 +32,10 @@ export function InsightTicker({ transactions, monthlyIncome, monthlyExpenses, mo
         {onSeeAll && <button onClick={onSeeAll} className="text-xs font-medium text-gold">Vedi tutti</button>}
       </div>
 
-      <div className="flex gap-3 overflow-x-auto scrollbar-hide -mx-4 px-4 scroll-pl-4 snap-x snap-mandatory xl:grid xl:grid-cols-3 xl:overflow-visible xl:mx-0 xl:px-0">
+      <div className="ui-insight-ticker flex gap-3 overflow-x-auto scrollbar-hide -mx-4 px-4 scroll-pl-4 snap-x snap-mandatory xl:grid xl:grid-cols-3 xl:overflow-visible xl:mx-0 xl:px-0">
         {insights.map((ins, i) => (
           <button key={i} onClick={() => setDetail(ins)}
-            className={`snap-start shrink-0 w-[230px] xl:w-auto text-left glass-card rounded-2xl p-4 flex flex-col gap-2.5 active:scale-[0.98] transition-transform ${ins.urgent ? 'ring-1 ring-[#E08B8B]/30' : ''}`}>
+            className={`ui-open-row snap-start shrink-0 w-[230px] xl:w-auto text-left glass-card rounded-2xl p-4 flex flex-col gap-2.5 active:scale-[0.98] transition-transform ${ins.urgent ? 'ring-1 ring-[#E08B8B]/30' : ''}`}>
             <div className="flex items-center justify-between">
               <span className="w-8 h-8 rounded-xl flex items-center justify-center text-sm"
                 style={{ backgroundColor: ins.accent + '20' }}>{ins.icon}</span>

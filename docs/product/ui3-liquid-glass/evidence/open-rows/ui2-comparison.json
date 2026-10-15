@@ -1,0 +1,77 @@
+[
+  {
+    "file": "home-dark-390.png",
+    "differentPixels": 19,
+    "bounds": [
+      41,
+      500,
+      58,
+      531
+    ]
+  },
+  {
+    "file": "commitments-dark-390.png",
+    "differentPixels": 0,
+    "bounds": null
+  },
+  {
+    "file": "settings-dark-390.png",
+    "differentPixels": 0,
+    "bounds": null
+  },
+  {
+    "file": "budget-light-390.png",
+    "differentPixels": 0,
+    "bounds": null
+  },
+  {
+    "file": "home-light-390.png",
+    "differentPixels": 18,
+    "bounds": [
+      41,
+      500,
+      58,
+      531
+    ]
+  },
+  {
+    "file": "wealth-light-390.png",
+    "differentPixels": 0,
+    "bounds": null
+  },
+  {
+    "file": "settings-light-390.png",
+    "differentPixels": 0,
+    "bounds": null
+  },
+  {
+    "file": "commitments-light-390.png",
+    "differentPixels": 0,
+    "bounds": null
+  },
+  {
+    "file": "budget-dark-390.png",
+    "differentPixels": 0,
+    "bounds": null
+  },
+  {
+    "file": "wealth-dark-390.png",
+    "differentPixels": 0,
+    "bounds": null
+  },
+  {
+    "file": "transactions-dark-390.png",
+    "differentPixels": 40,
+    "bounds": [
+      19,
+      784,
+      370,
+      826
+    ]
+  },
+  {
+    "file": "transactions-light-390.png",
+    "differentPixels": 0,
+    "bounds": null
+  }
+]

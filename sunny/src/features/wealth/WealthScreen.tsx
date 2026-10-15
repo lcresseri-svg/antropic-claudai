@@ -173,7 +173,7 @@ function Split({ label, value, pct, gold, onClick }: {
 }) {
   return (
     <button type="button" onClick={onClick}
-      className="glass-card rounded-[20px] shadow-elev-1 p-4 text-left active:scale-[0.99] transition-transform">
+      className="ui-open-row glass-card rounded-[20px] shadow-elev-1 p-4 text-left active:scale-[0.99] transition-transform">
       <p className="label-caps text-secondary mb-1.5">{label}</p>
       <p className={`balance-num text-[17px] font-semibold ${gold ? 'text-gold' : 'text-primary'}`}>
         {formatCurrency(value)}

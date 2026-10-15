@@ -102,3 +102,38 @@
 }
 [data-liquid-ui="true"] .ui-card-heading { flex-wrap:wrap; gap:8px; }
 [data-liquid-ui="true"] .ui-card-heading > .balance-num { max-width:100%; overflow-wrap:anywhere; }
+/* Clickable summaries use the same open rows as non-interactive sections.
+   Explicit classes leave action buttons, inputs and temporary layers intact. */
+[data-liquid-ui="true"] .app-main button.ui-open-row.glass-card {
+  background:transparent; border:0; border-top:1px solid var(--border);
+  border-radius:0; box-shadow:none; backdrop-filter:none;
+  padding:16px 0; min-height:44px;
+}
+[data-liquid-ui="true"] .app-main .ui-open-list > .ui-open-row { margin-top:0; }
+[data-liquid-ui="true"] .ui-open-list > div:first-child { padding:0 0 12px; }
+[data-liquid-ui="true"] .ui-open-row > .progress-track { height:4px; margin-top:10px; }
+[data-liquid-ui="true"] .ui-open-row .truncate { white-space:normal; overflow-wrap:anywhere; }
+[data-liquid-ui="true"] .ui-open-row > .flex > .text-right { max-width:48%; overflow-wrap:anywhere; }
+[data-liquid-ui="true"] .ui-open-row:active { transform:none; }
+/* Older analysis screens use bg-card sections instead of glass-card. */
+[data-liquid-ui="true"] .app-main :is(section.bg-card,article.bg-card,.ui-open-section):not([data-liquid-preserve] *,[data-ui-dialog] *) {
+  background:transparent; border:0; border-top:1px solid var(--border);
+  border-radius:0; box-shadow:none; padding:20px 0;
+}
+[data-liquid-ui="true"] .app-main .ui-insight-ticker { display:block; margin-inline:0; padding-inline:0; overflow:visible; }
+[data-liquid-ui="true"] .app-main .ui-insight-ticker > .ui-open-row { width:100%; display:grid; grid-template-columns:44px minmax(0,1fr); gap:12px; }
+[data-liquid-ui="true"] .ui-insight-ticker .line-clamp-2 { display:block; -webkit-line-clamp:unset; overflow:visible; }
+[data-liquid-ui="true"] .app-main .ui-insight-list.glass-card { padding-block:0; }
+[data-liquid-ui="true"] .ui-insight-list > button { padding-inline:0; }
+[data-liquid-ui="true"] .ui-insight-list .truncate { white-space:normal; overflow-wrap:anywhere; }
+[data-liquid-ui="true"] .app-main .ui-ledger-row { background:transparent; border-radius:0; margin-inline:0; padding-inline:0; }
+[data-liquid-ui="true"] .liquid-chart-legend > * { flex-wrap:wrap; min-width:0; max-width:100%; }
+[data-liquid-ui="true"] .liquid-chart-legend .balance-num { overflow-wrap:anywhere; max-width:100%; }
+[data-liquid-ui="true"] .ui-inline-notice { flex-wrap:wrap; }
+[data-liquid-ui="true"] .ui-inline-notice > p { min-width:0; flex-basis:150px; overflow-wrap:anywhere; }
+[data-liquid-ui="true"][data-ui-dialog] .ui-open-section {
+  background:transparent; border:0; border-top:1px solid var(--border);
+  border-radius:0; box-shadow:none; padding:12px 0;
+}
+/* Scheduled movement groups retain their dashed cue as a divider, not a box. */
+[data-liquid-ui="true"] .app-main .ui-open-section.border-dashed { border-top:1px dashed rgb(var(--c-gold) / .5); }

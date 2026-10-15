@@ -84,7 +84,7 @@ function MiniBars({ chart, accent }: { chart: InsightChart; accent: string }) {
   const H = 96;
 
   return (
-    <div className="bg-card rounded-2xl p-4">
+    <div className="ui-open-section bg-card rounded-2xl p-4">
       <div className="relative flex items-end justify-around gap-2" style={{ height: H }}>
         {/* Reference line (e.g. average) */}
         {refLine != null && refLine > 0 && (

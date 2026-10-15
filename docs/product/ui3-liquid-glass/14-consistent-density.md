@@ -21,3 +21,21 @@ Le prove sono eseguite nella preview con dati sintetici e Chromium. Tastiera e s
 Build/TypeScript passati. Suite unitaria: 839 test passati, 5 saltati (70 file passati, uno saltato).
 
 UI2: 12 screenshot (home, patrimonio, Piano, movimenti, impostazioni, impegni × due temi) identici pixel per pixel alla baseline precedente. Dettagli in `ui2-comparison.json`.
+
+## Liste aperte anche per le schede cliccabili
+
+Le regole precedenti aprivano le sezioni `div/section/article` ma lasciavano i `button.glass-card` rettangolari. Posizioni investimento, conti, ripartizione del patrimonio e apertura operazioni ora usano la classe esplicita `ui-open-row`: fondo trasparente, niente ombra o angoli arrotondati, un divisore superiore, margini laterali allineati al contenuto. Le barre delle righe sono alte 4 px, i nomi lunghi possono andare a capo. Pulsanti d'azione, campi, avvisi e superfici dei modali mantengono la propria forma.
+
+`liquid-open-rows.mjs` falliva sul vecchio raggio di 22 px; dopo la correzione passano 18 viste (3 rotte × 2 temi × 3 larghezze), con verifica dei divisori, assenza di bordi laterali/ombre/sfondi, assenza di overflow e apertura/chiusura del dettaglio investimento. Evidenza in `evidence/open-rows/`.
+
+## Estensione a tutte le pagine e menu Altro
+
+Controllo sorgente e inventario delle superfici su 18 rotte ordinarie: home, patrimonio, Piano, movimenti, investimenti, entrate, spese per categoria, saldo per conto, storico patrimonio, impostazioni, consigli, AI Coach, patrimonio avanzato, impegni, piano mensile, forecast, metriche e recap. Wrapped resta escluso dalle modifiche.
+
+Sono stati uniformati anche il carosello e le righe dei consigli, le sezioni `bg-card` delle analisi avanzate, i confronti degli scenari e i riquadri statistici interni ai dettagli. Le righe movimento mantengono selezione e divisori senza sfondi arrotondati. L'inventario runtime conserva soltanto due avvisi distinti: controvalori non aggiornati e concentrazione delle entrate; campi, pulsanti, badge e contenitori dei modali mantengono la forma funzionale.
+
+Rimosso il duplicato Altro dalla barra laterale UI3 e le relative regole CSS. Il menu superiore rimane l'unico accesso Altro, verificato a 390/834/1024/1440 px nei due temi, con apertura del menu e navigazione a Impostazioni. Inventario sorgente aggiornato: 590 dichiarazioni di controlli.
+
+Verifica finale dell'estensione: 114 viste, 23 suite funzionali, 32 casi stress generali, 6 viste estreme di investimenti/conti/patrimonio a 320 px e testo 200%, 18 viste delle righe, 8 casi menu Altro, 4 tastiera e 8 safe area passati. Build/TypeScript e 839 test unitari passati (5 skipped). La leggenda investimenti e l'avviso controvalori ora vanno a capo senza overflow. I gruppi di movimenti programmati mantengono un divisore tratteggiato, senza riquadro; ricontrollati selezione multipla e Movimenti alle tre larghezze.
+
+Confronto finale UI2: 9/12 immagini identiche; le altre 3 differiscono per 18–40 pixel nelle aree di rasterizzazione delle icone, senza spostamenti di layout. Wrapped mobile identico byte per byte in entrambi i temi. Rimane il limite delle prove Chromium: tastiera e safe area simulate, nessun iPhone fisico.

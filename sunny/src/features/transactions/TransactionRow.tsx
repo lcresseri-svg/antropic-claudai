@@ -76,7 +76,7 @@ export function TransactionRow({ tx, selectable, selected, upcoming, seriesFreq,
   return (
     <button
       onClick={handleClick}
-      className={`w-full flex items-center gap-3 py-3 text-left transition-colors active:bg-card-hover rounded-xl -mx-2 px-2 ${
+      className={`ui-ledger-row w-full flex items-center gap-3 py-3 text-left transition-colors active:bg-card-hover rounded-xl -mx-2 px-2 ${
         isProjected && !hideDate ? 'opacity-60' : ''}`}
     >
       {selectable && (

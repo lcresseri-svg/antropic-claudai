@@ -1,0 +1,86 @@
+[
+  {
+    "route": "/",
+    "panels": []
+  },
+  {
+    "route": "/wealth",
+    "panels": []
+  },
+  {
+    "route": "/budget",
+    "panels": []
+  },
+  {
+    "route": "/transactions",
+    "panels": []
+  },
+  {
+    "route": "/investments",
+    "panels": [
+      {
+        "tag": "DIV",
+        "class": "ui-inline-notice rounded-[18px] border border-gold/30 bg-gold/10 px-4 py-3.5 flex items-start gap-3",
+        "text": "⏱️4 controvalori non sono aggiornati: Azioni / ETF, Crypto, Obbligazioni, Fondi.Aggiorna"
+      }
+    ]
+  },
+  {
+    "route": "/income",
+    "panels": [
+      {
+        "tag": "DIV",
+        "class": "mt-4 rounded-xl px-3.5 py-3 flex items-start gap-2.5",
+        "text": "⚖️Il 100% delle entrate arriva da una sola fonte (Stipendio): il reddito è molto concentra"
+      }
+    ]
+  },
+  {
+    "route": "/category-spending",
+    "panels": []
+  },
+  {
+    "route": "/account-balance",
+    "panels": []
+  },
+  {
+    "route": "/wealth-history",
+    "panels": []
+  },
+  {
+    "route": "/settings",
+    "panels": []
+  },
+  {
+    "route": "/insights",
+    "panels": []
+  },
+  {
+    "route": "/ai-coach",
+    "panels": []
+  },
+  {
+    "route": "/wealth-v2",
+    "panels": []
+  },
+  {
+    "route": "/commitments",
+    "panels": []
+  },
+  {
+    "route": "/monthly-plan",
+    "panels": []
+  },
+  {
+    "route": "/forecast-v3",
+    "panels": []
+  },
+  {
+    "route": "/metrics",
+    "panels": []
+  },
+  {
+    "route": "/recap/2026-09",
+    "panels": []
+  }
+]

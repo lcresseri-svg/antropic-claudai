@@ -217,7 +217,7 @@ export function InvestmentsScreen({ investmentByCategory, investmentTotal, month
 
       {/* ── Un solo avviso per i controvalori fermi ── */}
       {stalePositions.length > 0 && (
-        <div className="rounded-[18px] border border-gold/30 bg-gold/10 px-4 py-3.5 flex items-start gap-3">
+        <div className="ui-inline-notice rounded-[18px] border border-gold/30 bg-gold/10 px-4 py-3.5 flex items-start gap-3">
           <span className="text-gold text-base flex-none">⏱️</span>
           <p className="flex-1 text-[12.5px] text-secondary leading-relaxed">
             {stalePositions.length === 1
@@ -251,7 +251,7 @@ export function InvestmentsScreen({ investmentByCategory, investmentTotal, month
 
       {/* ── Positions ── */}
       {positions.length > 0 && (
-        <div className="space-y-2.5">
+        <div className="ui-open-list space-y-2.5">
           <div className="flex items-center justify-between px-1">
             <p className="label-caps text-secondary">Posizioni</p>
             <p className="text-[11px] text-secondary">{positions.length} categorie</p>
@@ -267,7 +267,7 @@ export function InvestmentsScreen({ investmentByCategory, investmentTotal, month
               <button key={p.cat.id} type="button"
                 aria-label={`Apri dettaglio di ${p.cat.label}`}
                 onClick={() => setDetailCat(p.cat)}
-                className={`w-full text-left glass-card rounded-[18px] shadow-elev-1 p-4
+                className={`ui-open-row w-full text-left glass-card rounded-[18px] shadow-elev-1 p-4
                             active:scale-[0.99] transition-transform ${empty ? 'opacity-50' : ''}`}>
                 <div className="flex items-center gap-3">
                   <span className="w-9 h-9 rounded-xl flex items-center justify-center text-base flex-shrink-0"
@@ -416,7 +416,7 @@ export function InvestmentsScreen({ investmentByCategory, investmentTotal, month
           </div>
         ) : (
           <button onClick={() => setShowAllOps(true)}
-            className="w-full glass-card rounded-[18px] px-4 py-3.5 flex items-center justify-between gap-3 text-left">
+            className="ui-open-row w-full glass-card rounded-[18px] px-4 py-3.5 flex items-center justify-between gap-3 text-left">
             <span className="text-[13.5px] text-primary">
               Operazioni<span className="text-secondary"> · {investTx.length}</span>
             </span>

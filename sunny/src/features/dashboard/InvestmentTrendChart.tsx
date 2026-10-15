@@ -78,7 +78,7 @@ export function InvestmentTrendChart({ points, controvalore, height = 120 }: Pro
         <span>{capitalize(formatMonthShort(points[points.length - 1].key))}</span>
       </div>
 
-      <div className="flex flex-wrap items-center gap-x-4 gap-y-1 mt-2 text-[11px] text-secondary">
+      <div className="liquid-chart-legend flex flex-wrap items-center gap-x-4 gap-y-1 mt-2 text-[11px] text-secondary">
         <span className="flex items-center gap-1.5">
           <span className="w-4 h-[2px] rounded-full bg-gold" />
           Versato <span className="balance-num text-primary">{formatCurrency(values[values.length - 1])}</span>

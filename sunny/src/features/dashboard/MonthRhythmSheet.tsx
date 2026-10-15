@@ -217,7 +217,7 @@ function DetailRow({ label, value, hint }: { label: string; value: string; hint?
 
 function Stat({ label, value, hint }: { label: string; value: string; hint?: string }) {
   return (
-    <div className="bg-card rounded-xl px-3 py-2.5">
+    <div className="ui-open-section bg-card rounded-xl px-3 py-2.5">
       <p className="text-[14px] font-semibold text-primary balance-num">{value}</p>
       <p className="text-[10px] text-secondary mt-0.5 truncate">
         {label}{hint && <span style={{ color: 'var(--accent)' }}> · {hint}</span>}
