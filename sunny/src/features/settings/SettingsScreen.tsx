@@ -929,7 +929,7 @@ function ManageRow({ icon, color, label, sub, editMode, selected, onClick, showH
   return (
     <div
       onClick={onClick}
-      className={`w-full flex items-center gap-3.5 p-3.5 text-left transition-all first:rounded-t-2xl last:rounded-b-2xl select-none
+      className={`ui-settings-row w-full flex items-center gap-3.5 p-3.5 text-left transition-all first:rounded-t-2xl last:rounded-b-2xl select-none
         ${onClick ? 'cursor-pointer active:bg-card-hover' : 'cursor-default'}
         ${isDragging ? 'opacity-40' : ''}`}
     >
@@ -949,8 +949,8 @@ function ManageRow({ icon, color, label, sub, editMode, selected, onClick, showH
       )}
       <span className="w-9 h-9 rounded-full flex items-center justify-center text-base flex-shrink-0" style={{ backgroundColor: color + '22' }}>{icon}</span>
       <span className="flex-1 min-w-0">
-        <span className="block text-[15px] font-medium text-primary truncate">{label}</span>
-        {sub && <span className="block text-[11px] text-tertiary mt-0.5">{sub}</span>}
+        <span className="ui-settings-label block text-[15px] font-medium text-primary truncate">{label}</span>
+        {sub && <span className="ui-settings-caption block text-[11px] text-tertiary mt-0.5">{sub}</span>}
       </span>
       {!!onClick && !showHandle && <ChevronRight />}
     </div>
@@ -1013,12 +1013,12 @@ function Row({ icon, color, label, sub, value, onClick }: {
 }) {
   return (
     <button onClick={onClick}
-      className="w-full flex items-center gap-3 px-4 py-3 text-left transition-colors active:bg-card-hover">
+      className="ui-settings-row w-full flex items-center gap-3 px-4 py-3 text-left transition-colors active:bg-card-hover">
       <span className="w-8 h-8 rounded-[11px] flex items-center justify-center text-base flex-none"
         style={{ backgroundColor: color + '26' }}>{icon}</span>
       <span className="flex-1 min-w-0">
-        <span className="block text-[14.5px] text-primary truncate">{label}</span>
-        {sub && <span className="block text-[11.5px] text-tertiary truncate">{sub}</span>}
+        <span className="ui-settings-label block text-[14.5px] text-primary truncate">{label}</span>
+        {sub && <span className="ui-settings-caption block text-[11.5px] text-tertiary truncate">{sub}</span>}
       </span>
       {value && <span className="text-[12.5px] text-secondary flex-none">{value}</span>}
       <ChevronRight />
@@ -1032,12 +1032,12 @@ function SwitchRow({ icon, color, label, sub, on, onToggle }: {
 }) {
   const ui3=useUiVersion()==='3.0';
   return (
-    <div className="w-full flex items-center gap-3 px-4 py-3">
+    <div className="ui-settings-row w-full flex items-center gap-3 px-4 py-3">
       <span className="w-8 h-8 rounded-[11px] flex items-center justify-center text-base flex-none"
         style={{ backgroundColor: color + '26' }}>{icon}</span>
       <span className="flex-1 min-w-0">
-        <span className="block text-[14.5px] text-primary truncate">{label}</span>
-        {sub && <span className="block text-[11.5px] text-tertiary truncate">{sub}</span>}
+        <span className="ui-settings-label block text-[14.5px] text-primary truncate">{label}</span>
+        {sub && <span className="ui-settings-caption block text-[11.5px] text-tertiary truncate">{sub}</span>}
       </span>
       <button type="button" role="switch" aria-checked={on} aria-label={label} onClick={onToggle}
         className={ui3 ? 'ui-toggle' : `w-[42px] h-[25px] rounded-full flex-none transition-colors relative ${on ? 'bg-gold' : 'progress-track'}`}>

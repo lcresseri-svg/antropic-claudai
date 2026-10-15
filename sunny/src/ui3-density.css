@@ -1,0 +1,104 @@
+/* Shared UI3 proportions. Opt-in surfaces only: never the root or Wrapped. */
+[data-liquid-ui="true"] {
+  --ui-type-body: 1rem;
+  --ui-type-secondary: .875rem;
+  --ui-type-caption: .8125rem;
+  --ui-type-title: 1.375rem;
+  --ui-type-section: 1.0625rem;
+  --ui-space-row: 10px;
+  --ui-space-section: 20px;
+  --ui-radius-control: 12px;
+  --ui-radius-dialog: 24px;
+}
+[data-liquid-ui="true"] .app-main { padding-top:16px; }
+[data-liquid-ui="true"] .app-main h1:not([data-liquid-preserve] *, .wrapped-shell *) {
+  font-size:var(--ui-type-title); line-height:1.3; font-weight:600; letter-spacing:-.025em;
+}
+[data-liquid-ui="true"] :is(.liquid-section-heading,.liquid-spending,.plan-section-heading) h2,
+[data-liquid-ui="true"] .app-main .plan-card > h2 {
+  font-size:var(--ui-type-section); line-height:1.4; font-weight:600;
+}
+[data-liquid-ui="true"] .app-main :is(section,article,div).glass-card:not([data-liquid-preserve] *):not([data-ui-dialog] *):not([data-ui-dialog]) {
+  padding-block:var(--ui-space-section);
+}
+[data-liquid-ui="true"] .liquid-today-heading { margin:0 0 20px; }
+[data-liquid-ui="true"] .liquid-headline-value { font-size:clamp(2rem,9cqw,3rem); }
+[data-liquid-ui="true"] .liquid-eyebrow { font-size:var(--ui-type-caption); letter-spacing:.04em; }
+[data-liquid-ui="true"] .liquid-month-summary { padding-block:16px; }
+[data-liquid-ui="true"] .liquid-month-stats { margin-top:12px; gap:12px; }
+[data-liquid-ui="true"] .liquid-month-stats .balance-num { font-size:clamp(1.125rem,3cqw,1.5rem); line-height:1.4; }
+[data-liquid-ui="true"] .liquid-today-columns { row-gap:16px; }
+[data-liquid-ui="true"] .liquid-spending { padding-block:12px; }
+[data-liquid-ui="true"] .liquid-spending-row { padding-block:var(--ui-space-row); min-height:60px; }
+[data-liquid-ui="true"] .liquid-spending-label { font-size:var(--ui-type-body); line-height:1.4; gap:8px; }
+[data-liquid-ui="true"] .liquid-spending-label > span:nth-child(2) { overflow-wrap:anywhere; }
+[data-liquid-ui="true"] .liquid-spending-meter { margin-top:4px; padding-left:32px; font-size:var(--ui-type-caption); line-height:1.4; }
+[data-liquid-ui="true"] :is(.liquid-section-heading button,.liquid-overview-links button,.ui-back,.ui-keypad-toggle) { font-size:var(--ui-type-secondary); }
+[data-liquid-ui="true"] .liquid-movement-row { padding-block:12px; }
+
+/* Settings use the same readable two-line rows as the rest of the app. */
+[data-liquid-ui="true"] .ui-settings :is(.ui-settings-menu,.ui-settings-detail) > * + * { margin-top:20px; }
+[data-liquid-ui="true"] .app-main .ui-settings-menu .glass-card { padding-block:4px; }
+[data-liquid-ui="true"] .ui-settings-row { min-height:56px; padding:10px 4px; gap:12px; }
+[data-liquid-ui="true"] .ui-settings-label { font-size:var(--ui-type-body); line-height:1.4; white-space:normal; overflow-wrap:anywhere; }
+[data-liquid-ui="true"] .ui-settings-caption { font-size:var(--ui-type-caption); line-height:1.4; white-space:normal; margin-top:2px; }
+[data-liquid-ui="true"] .ui-settings-row > .flex-none.text-secondary { font-size:var(--ui-type-caption); max-width:35%; overflow-wrap:anywhere; }
+[data-liquid-ui="true"] .ui-settings input:not([type="checkbox"]):not([type="range"]) { font-size:var(--ui-type-body); min-height:44px; }
+
+/* A single type scale for editor/detail surfaces; amount entry stays prominent. */
+[data-liquid-ui="true"][data-ui-dialog], [data-liquid-ui="true"].plan-dialog { border-radius:var(--ui-radius-dialog); font-size:var(--ui-type-body); line-height:1.45; }
+[data-liquid-ui="true"][data-ui-dialog] :is(h2,h3), [data-liquid-ui="true"].plan-dialog > header h2 { font-size:1.125rem; line-height:1.35; font-weight:600; }
+[data-liquid-ui="true"][data-ui-dialog] :is(.text-xs,.text-sm),
+[data-liquid-ui="true"].plan-dialog :is(label,.plan-check,.plan-editor section p) { font-size:var(--ui-type-secondary); line-height:1.45; }
+[data-liquid-ui="true"][data-ui-dialog] input:not([type="checkbox"]):not([type="range"]):not(.ui-amount-input),
+[data-liquid-ui="true"][data-ui-dialog] :is(select,textarea) { font-size:var(--ui-type-body); min-height:44px; border-radius:var(--ui-radius-control); }
+[data-liquid-ui="true"][data-ui-dialog] .ui-icon-picker { grid-template-columns:repeat(auto-fit,minmax(44px,1fr)); }
+[data-liquid-ui="true"] .ui-dialog-editor-title { padding:16px 20px 0; }
+[data-liquid-ui="true"].plan-dialog > header { padding:12px 20px; background:var(--surface-1); }
+[data-liquid-ui="true"].plan-dialog .plan-dialog-body { padding:16px 20px 20px; }
+[data-liquid-ui="true"].plan-dialog button { font-size:var(--ui-type-secondary); }
+[data-liquid-ui="true"] :is(.plan-caption,.plan-category-list small,.plan-category-forecast,.plan-lines small,.plan-hero-description) { font-size:var(--ui-type-caption); line-height:1.45; }
+[data-liquid-ui="true"] :is(.plan-category-title,.plan-category-title strong,.plan-lines strong) { font-size:var(--ui-type-body); }
+[data-liquid-ui="true"] .piano-page :is(.plan-section-heading button,.plan-month-nav select,.plan-goals > button) { font-size:var(--ui-type-caption); }
+@media (max-width:639px) {
+  [data-liquid-ui="true"][data-ui-dialog].p-6 { padding:16px; }
+  [data-liquid-ui="true"][data-ui-dialog] > .ui-dialog-parent { padding:0 0 8px; }
+  [data-liquid-ui="true"][data-ui-dialog] > .shrink-0 { padding:12px 16px; }
+  [data-liquid-ui="true"][data-ui-dialog] form > .overflow-y-auto { padding-inline:16px; }
+  [data-liquid-ui="true"][data-ui-dialog] .ui-editor-footer { padding:12px 16px 16px; }
+}
+@media (max-height:599px) {
+  [data-liquid-ui="true"][data-ui-dialog] { border-radius:0; }
+}
+[data-liquid-ui="true"] .app-main .ui-settings-menu :is(section,article,div).glass-card:not([data-liquid-preserve] *):not([data-ui-dialog] *):not([data-ui-dialog]) { padding-block:4px; }
+[data-liquid-ui="true"] :is(.liquid-month-stats,.ui-settings) .label-caps { font-size:var(--ui-type-caption); line-height:1.4; letter-spacing:.04em; }
+[data-liquid-ui="true"] .ui-settings-menu > .glass-card > div > p:last-child { font-size:var(--ui-type-caption); line-height:1.4; }
+[data-liquid-ui="true"] .liquid-month-chart { padding-block:12px; }
+/* Bring legacy text utilities onto the same scale across the remaining routes.
+   SVG chart labels and the preserved Wrapped surfaces keep their own metrics. */
+:is([data-liquid-ui="true"] .app-main,[data-liquid-ui="true"][data-ui-dialog])
+:is(.text-xs,[class~="text-[11px]"],[class~="text-[11.5px]"],[class~="text-[12px]"],[class~="text-[12.5px]"]):not([data-liquid-preserve] *, .wrapped-shell *, svg, svg *) {
+  font-size:var(--ui-type-caption); line-height:1.4;
+}
+:is([data-liquid-ui="true"] .app-main,[data-liquid-ui="true"][data-ui-dialog])
+:is([class~="text-[13px]"],[class~="text-[13.5px]"]):not([data-liquid-preserve] *, .wrapped-shell *, svg, svg *) {
+  font-size:var(--ui-type-secondary); line-height:1.45;
+}
+:is([data-liquid-ui="true"] .app-main,[data-liquid-ui="true"][data-ui-dialog])
+:is([class~="text-[14.5px]"],[class~="text-[15px]"]):not([data-liquid-preserve] *, .wrapped-shell *, svg, svg *) {
+  font-size:var(--ui-type-body); line-height:1.4;
+}
+/* The label supplies the touch target; the checkbox itself stays proportional. */
+[data-liquid-ui="true"][data-ui-dialog] input:is([type="checkbox"],[type="radio"]) {
+  width:20px; height:20px; min-width:20px; min-height:20px; flex-shrink:0;
+}
+/* Field sizing wins over legacy utility classes to prevent Safari auto-zoom. */
+:is([data-liquid-ui="true"] .app-main,[data-liquid-ui="true"][data-ui-dialog])
+:is(input:not([type="checkbox"]):not([type="radio"]):not([type="range"]):not(.ui-amount-input),select,textarea):not([data-liquid-preserve] *, .wrapped-shell *) {
+  font-size:var(--ui-type-body); min-height:44px;
+}
+@media (max-width:639px) {
+  [data-liquid-ui="true"] .ui-family-wealth > .h-14 { flex-wrap:wrap; gap:8px; height:auto; min-height:56px; }
+}
+[data-liquid-ui="true"] .ui-card-heading { flex-wrap:wrap; gap:8px; }
+[data-liquid-ui="true"] .ui-card-heading > .balance-num { max-width:100%; overflow-wrap:anywhere; }

@@ -24,7 +24,7 @@ export function CategoryCard({ categoryTotals, onClick }: Props) {
       onClick={onClick}
       role={onClick ? 'button' : undefined}
     >
-      <div className="flex items-center justify-between mb-4">
+      <div className="ui-card-heading flex items-center justify-between mb-4">
         <p className="label-caps text-secondary flex items-center gap-1.5">
           Spese per categoria
           {onClick && (
