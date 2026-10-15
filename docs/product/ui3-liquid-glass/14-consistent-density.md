@@ -39,3 +39,29 @@ Rimosso il duplicato Altro dalla barra laterale UI3 e le relative regole CSS. Il
 Verifica finale dell'estensione: 114 viste, 23 suite funzionali, 32 casi stress generali, 6 viste estreme di investimenti/conti/patrimonio a 320 px e testo 200%, 18 viste delle righe, 8 casi menu Altro, 4 tastiera e 8 safe area passati. Build/TypeScript e 839 test unitari passati (5 skipped). La leggenda investimenti e l'avviso controvalori ora vanno a capo senza overflow. I gruppi di movimenti programmati mantengono un divisore tratteggiato, senza riquadro; ricontrollati selezione multipla e Movimenti alle tre larghezze.
 
 Confronto finale UI2: 9/12 immagini identiche; le altre 3 differiscono per 18–40 pixel nelle aree di rasterizzazione delle icone, senza spostamenti di layout. Wrapped mobile identico byte per byte in entrambi i temi. Rimane il limite delle prove Chromium: tastiera e safe area simulate, nessun iPhone fisico.
+
+### Storico nel dettaglio di un fondo — 15 ottobre 2026
+
+Il raggruppamento mensile del dettaglio poteva comprimere tutti i movimenti
+registrati nello stesso mese in un solo punto. In UI3 il dettaglio ora apre
+**Tutto** lo storico disponibile, con selettore **6 mesi / 1 anno / Tutto**.
+La curva mantiene le date reali, le distanze temporali e il saldo di fine
+giornata; i salti rappresentano versamenti e disinvestimenti. Nessun dato
+precedente alla prima data nota viene inventato. La data iniziale è esplicita;
+un solo giorno o una storia priva di data hanno messaggi dedicati.
+Il capitale iniziale viene riportato correttamente all'inizio delle finestre
+più brevi. Il controvalore storico resta escluso perché non disponibile.
+La tabella espone tutte le date rappresentate, senza diradare i movimenti.
+UI2 conserva il grafico precedente; nessun cambiamento a formule o Wrapped.
+
+Verifica dedicata: build/TypeScript passati; 29 test su performance e finestre
+storiche passati; 12 viste browser (320/390/1440 px, chiaro/scuro,
+storico pluriennale e confinato allo stesso mese) passate, compresi selettore
+da tastiera, invarianza del saldo finale, Escape e assenza di overflow.
+Evidenza in `evidence/fund-history/`. Test su Chromium, non Safari fisico.
+Anche la suite dettagli è passata nei due temi: apertura dei sottomodali di
+versamento/disinvestimento/controvalore, ritorno al fondo, errori di salvataggio
+e conservazione della bozza; controlli delle altre sezioni impostazioni inclusi.
+Nuovi controlli del grafico: tre pulsanti periodo (stato `aria-pressed`),
+riepilogo espandibile “Vedi dati · Capitale versato”; tutti dentro il focus trap
+esistente del dettaglio.
