@@ -21,6 +21,13 @@
     "passed": true
   },
   {
+    "mode": "tipo movimento",
+    "theme": "light",
+    "width": 390,
+    "count": 132,
+    "passed": true
+  },
+  {
     "mode": "mese",
     "theme": "light",
     "width": 1440,
@@ -39,6 +46,13 @@
     "theme": "light",
     "width": 1440,
     "count": 60,
+    "passed": true
+  },
+  {
+    "mode": "tipo movimento",
+    "theme": "light",
+    "width": 1440,
+    "count": 132,
     "passed": true
   },
   {
@@ -63,6 +77,13 @@
     "passed": true
   },
   {
+    "mode": "tipo movimento",
+    "theme": "dark",
+    "width": 390,
+    "count": 132,
+    "passed": true
+  },
+  {
     "mode": "mese",
     "theme": "dark",
     "width": 1440,
@@ -81,6 +102,13 @@
     "theme": "dark",
     "width": 1440,
     "count": 60,
+    "passed": true
+  },
+  {
+    "mode": "tipo movimento",
+    "theme": "dark",
+    "width": 1440,
+    "count": 132,
     "passed": true
   }
 ]

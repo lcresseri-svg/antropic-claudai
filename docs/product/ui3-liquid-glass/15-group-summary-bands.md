@@ -18,3 +18,23 @@ finanziario passati; 12 viste Chromium (tre raggruppamenti, due temi,
 riapertura, compressione/espansione globale, selezione del gruppo, righe
 adiacenti senza spazio aggiuntivo e assenza di overflow. Screenshot e log
 in `evidence/group-bands/`. Nessuna prova su Safari fisico.
+
+## Pannello filtri e tipo movimento
+
+Pannello UI3 largo fino a 352 px, limitato alla larghezza disponibile: testo
+opzioni 16 px, etichette 13 px, nessuno spazio aggiuntivo fra le voci, sezioni
+più ravvicinate. Target di almeno 44 px mantenuti. Altezza calcolata sul viewport
+per conservare spazio alla navigazione mobile; opzioni finali raggiungibili
+scorrendo il pannello. Sfondo esplicitamente opaco.
+
+Nuova voce “Per tipo movimento”: Entrata, Uscita, Investimento, Movimento e
+Storno rimangono gruppi distinti, con le medesime funzioni di selezione e
+apertura/chiusura. I trasferimenti non inventano entrate o uscite nella banda;
+le formule statistiche esistenti rimangono invariate.
+
+Verifiche aggiuntive: build/TypeScript passati, 6 pannelli a 320/390/1440 px
+nei due temi passati (dimensioni e font effettivi, nessun overflow, tutti i
+cinque tipi, tastiera e apertura/chiusura). Screenshot acquisiti dopo la fine
+dell'animazione e risultati in `evidence/filter-panel/`.
+La suite dei raggruppamenti aggiornata passa su 16 viste: mese, conto, categoria
+e tipo, nei due temi a 390/1440 px; include selezione del gruppo e comandi globali.

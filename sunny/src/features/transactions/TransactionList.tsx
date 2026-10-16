@@ -1,5 +1,5 @@
 import { readTransactionRange } from '../../shared/transactionRoute';
-import { useState, useMemo, useEffect } from 'react';
+import { useState, useMemo, useEffect, useRef, useLayoutEffect } from 'react';
 import { useSearchParams } from 'react-router-dom';
 import { useUiSessionState, useUiVersion } from '../../shared/providers/UiVersionProvider';
 import { Transaction, TransactionType, TYPE_META, TYPE_ORDER, TransactionPatch, typeColor, ownShare } from '../../types';
@@ -29,7 +29,7 @@ interface Props {
   onAdd: () => void;
 }
 
-type GroupMode = 'day' | 'month' | 'account' | 'category';
+type GroupMode = 'day' | 'month' | 'account' | 'category' | 'type';
 type SortKey = 'date' | 'amount';
 type SortDir = 'desc' | 'asc';
 type PeriodFilter = 'all' | '1m' | '3m' | '6m' | '1y' | 'ytd';
@@ -119,6 +119,22 @@ export function TransactionList({ transactions, projected = [], onEdit, onDelete
   const [period, setPeriod] = useUiSessionState<PeriodFilter>(`transactions.period:${viewKey}`,'all');
   const [projView, setProjView] = useUiSessionState<ProjView>(`transactions.projected:${viewKey}`,PROJ_DEFAULT);
   const [filterOpen, setFilterOpen] = useState(false);
+  const filterPanel = useRef<HTMLDivElement>(null);
+  useLayoutEffect(() => {
+    if (!filterOpen || !ui3) return;
+    const resize = () => {
+      const panel = filterPanel.current;
+      if (!panel) return;
+      const viewport = window.visualViewport;
+      const bottom = (viewport?.offsetTop ?? 0) + (viewport?.height ?? innerHeight);
+      const reserved = innerWidth < 768 ? 100 : 24;
+      panel.style.maxHeight = `${Math.max(120, Math.min(innerHeight * .78, bottom - panel.getBoundingClientRect().top - reserved))}px`;
+    };
+    resize();
+    window.addEventListener('resize', resize);
+    window.visualViewport?.addEventListener('resize', resize);
+    return () => { window.removeEventListener('resize', resize); window.visualViewport?.removeEventListener('resize', resize); };
+  }, [filterOpen, ui3]);
   const [collapsed, setCollapsed] = useState<Set<string>>(new Set());
   const [selectMode, setSelectMode] = useState(false);
   const [selected, setSelected] = useState<Set<string>>(new Set());
@@ -238,7 +254,7 @@ export function TransactionList({ transactions, projected = [], onEdit, onDelete
   const groups = useMemo(() => {
     const map = new Map<string, Transaction[]>();
     for (const t of filtered) {
-      const key = groupMode === 'month' ? t.date.slice(0, 7) : groupMode === 'account' ? t.account : t.category;
+      const key = groupMode === 'month' ? t.date.slice(0, 7) : groupMode === 'account' ? t.account : groupMode === 'type' ? t.type : t.category;
       (map.get(key) ?? map.set(key, []).get(key)!).push(t);
     }
     return Array.from(map.entries());
@@ -253,6 +269,7 @@ export function TransactionList({ transactions, projected = [], onEdit, onDelete
   const groupTitle = (key: string) =>
     groupMode === 'month' ? capitalize(formatMonthLong(key))
       : groupMode === 'account' ? `${getAcc(key).icon} ${getAcc(key).label}`
+      : groupMode === 'type' ? TYPE_META[key as TransactionType].label
       : `${getCat(key).icon} ${getCat(key).label}`;
 
   // Subtotals are STATISTICAL: a refund is neutral here because it has already
@@ -420,7 +437,7 @@ export function TransactionList({ transactions, projected = [], onEdit, onDelete
             {filterOpen && (
               <>
                 <div className="fixed inset-0 z-40" onClick={() => setFilterOpen(false)} />
-                <div className="absolute right-0 top-full mt-1 w-56 z-50 glass-elevated rounded-2xl shadow-float p-2.5 max-h-[70dvh] overflow-y-auto overscroll-contain animate-fade-in-fast">
+                <div ref={filterPanel} aria-label="Opzioni movimenti" role="region" className="ui-transaction-filters absolute right-0 top-full mt-1 w-56 z-50 glass-elevated rounded-2xl shadow-float p-2.5 max-h-[70dvh] overflow-y-auto overscroll-contain animate-fade-in-fast">
                   <p className="label-caps text-secondary mb-1.5 px-1">Ordina per</p>
                   <div className="flex gap-1 bg-card rounded-xl p-1 mb-2">
                     {([['date', 'Data'], ['amount', 'Importo']] as [SortKey, string][]).map(([key, lbl]) => (
@@ -444,7 +461,7 @@ export function TransactionList({ transactions, projected = [], onEdit, onDelete
                   </div>
                   <p className="label-caps text-secondary mb-1.5 px-1">Raggruppa per</p>
                   <div className="space-y-1 mb-2.5">
-                    {([['day', 'Per giorno'], ['month', 'Per mese'], ['account', 'Per conto'], ['category', 'Per categoria']] as [GroupMode, string][]).map(([m, lbl]) => (
+                    {([['day', 'Per giorno'], ['month', 'Per mese'], ['account', 'Per conto'], ['category', 'Per categoria'], ...(ui3 ? [['type', 'Per tipo movimento']] : [])] as [GroupMode, string][]).map(([m, lbl]) => (
                       <button key={m} onClick={() => { changeGroup(m); setFilterOpen(false); }}
                         className={`w-full flex items-center justify-between px-3 py-1.5 rounded-xl text-[13px] transition-colors ${
                           groupMode === m ? 'bg-gold/10 text-gold font-medium' : 'text-primary hover:bg-card'

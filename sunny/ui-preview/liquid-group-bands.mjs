@@ -7,7 +7,7 @@ try{for(const theme of ['light','dark'])for(const width of [390,1440]){
  const page=await browser.newPage({viewport:{width,height:900}});const errors=[];page.on('pageerror',e=>errors.push(e.message));
  await page.goto(`http://127.0.0.1:4177/ui-preview/index.html?ui=3&theme=${theme}`);await page.locator('#preview-writes').waitFor();
  await page.evaluate(()=>{history.pushState({},'','/transactions');dispatchEvent(new PopStateEvent('popstate'));});
- for(const mode of ['mese','conto','categoria']){
+ for(const mode of ['mese','conto','categoria','tipo movimento']){
   await page.getByRole('button',{name:'Filtri',exact:true}).click();
   await page.getByRole('button',{name:`Per ${mode}`,exact:true}).click();
   const summaries=page.locator('[data-transaction-group-summary]');await summaries.first().waitFor();
