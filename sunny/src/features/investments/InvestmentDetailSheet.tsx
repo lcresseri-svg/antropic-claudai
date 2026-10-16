@@ -1,3 +1,4 @@
+import { PaidInHistoryChart } from './PaidInHistoryChart';
 import { DialogSurface } from '../../shared/components/DialogSurface';
 // Investment position detail — bottom sheet on mobile, right side-panel on
 // desktop. Speculare ad AccountDetailSheet: stessa shell, focus management
@@ -86,6 +87,8 @@ export function InvestmentDetailSheet({
     () => collectPositionMovements(transactions, category.id),
     [transactions, category.id],
   );
+
+  const paidInSeries = useMemo(() => buildPaidInSeries(category, transactions, todayISO), [category, transactions, todayISO]);
 
   // Grafico: capitale versato ricostruito nel tempo (punti reali, mai storico
   // di mercato inventato). Bucket mensile per leggibilità.
@@ -283,8 +286,10 @@ export function InvestmentDetailSheet({
 
           {/* Capitale versato nel tempo */}
           <div>
-            <p className="label-caps text-secondary mb-2">Capitale versato nel tempo</p>
-            <AccountBalanceLineChart points={paidInPoints} formatValue={formatCurrency} />
+            {ui3 ? <PaidInHistoryChart key={category.id} series={paidInSeries} today={todayISO} /> : <>
+              <p className="label-caps text-secondary mb-2">Capitale versato nel tempo</p>
+              <AccountBalanceLineChart points={paidInPoints} formatValue={formatCurrency} />
+            </>}
             <p className="text-[10px] text-secondary/70 mt-1 leading-snug">
               {controvalore != null && category.lastValueUpdate
                 ? `Il controvalore è un dato reale inserito a mano, disponibile dal ${formatDate(category.lastValueUpdate)}: la curva mostra solo il capitale versato, non l'andamento di mercato.`

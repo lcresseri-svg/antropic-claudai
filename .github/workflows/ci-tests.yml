@@ -60,7 +60,7 @@ jobs:
           distribution: temurin
           java-version: '17'
       - name: Install rules-test deps
-        run: npm install
+        run: npm ci
         working-directory: firestore-tests
       - name: Run Firestore rules tests on the emulator
         run: npx -y firebase-tools@13 emulators:exec --only firestore --project sunny-test "npm --prefix firestore-tests run test"

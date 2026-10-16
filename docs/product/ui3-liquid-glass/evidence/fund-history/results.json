@@ -1,0 +1,98 @@
+[
+  {
+    "name": "fund-all-light-320",
+    "fullCount": 14,
+    "first": "1 gen 2025\t8000,00 €",
+    "last": "15 ott 2026\t12.200,00 €",
+    "overflow": 0,
+    "passed": true
+  },
+  {
+    "name": "fund-short-light-320",
+    "fullCount": 4,
+    "first": "1 ott 2026\t8000,00 €",
+    "last": "15 ott 2026\t8250,00 €",
+    "overflow": 0,
+    "passed": true
+  },
+  {
+    "name": "fund-all-light-390",
+    "fullCount": 14,
+    "first": "1 gen 2025\t8000,00 €",
+    "last": "15 ott 2026\t12.200,00 €",
+    "overflow": 0,
+    "passed": true
+  },
+  {
+    "name": "fund-short-light-390",
+    "fullCount": 4,
+    "first": "1 ott 2026\t8000,00 €",
+    "last": "15 ott 2026\t8250,00 €",
+    "overflow": 0,
+    "passed": true
+  },
+  {
+    "name": "fund-all-light-1440",
+    "fullCount": 14,
+    "first": "1 gen 2025\t8000,00 €",
+    "last": "15 ott 2026\t12.200,00 €",
+    "overflow": 0,
+    "passed": true
+  },
+  {
+    "name": "fund-short-light-1440",
+    "fullCount": 4,
+    "first": "1 ott 2026\t8000,00 €",
+    "last": "15 ott 2026\t8250,00 €",
+    "overflow": 0,
+    "passed": true
+  },
+  {
+    "name": "fund-all-dark-320",
+    "fullCount": 14,
+    "first": "1 gen 2025\t8000,00 €",
+    "last": "15 ott 2026\t12.200,00 €",
+    "overflow": 0,
+    "passed": true
+  },
+  {
+    "name": "fund-short-dark-320",
+    "fullCount": 4,
+    "first": "1 ott 2026\t8000,00 €",
+    "last": "15 ott 2026\t8250,00 €",
+    "overflow": 0,
+    "passed": true
+  },
+  {
+    "name": "fund-all-dark-390",
+    "fullCount": 14,
+    "first": "1 gen 2025\t8000,00 €",
+    "last": "15 ott 2026\t12.200,00 €",
+    "overflow": 0,
+    "passed": true
+  },
+  {
+    "name": "fund-short-dark-390",
+    "fullCount": 4,
+    "first": "1 ott 2026\t8000,00 €",
+    "last": "15 ott 2026\t8250,00 €",
+    "overflow": 0,
+    "passed": true
+  },
+  {
+    "name": "fund-all-dark-1440",
+    "fullCount": 14,
+    "first": "1 gen 2025\t8000,00 €",
+    "last": "15 ott 2026\t12.200,00 €",
+    "overflow": 0,
+    "passed": true
+  },
+  {
+    "name": "fund-short-dark-1440",
+    "fullCount": 4,
+    "first": "1 ott 2026\t8000,00 €",
+    "last": "15 ott 2026\t8250,00 €",
+    "overflow": 0,
+    "passed": true
+  }
+]

@@ -50,7 +50,6 @@ export function AdaptiveNav({ onAdd, onImport, aiEnabled, showCommitments, isSet
         <button onClick={onImport}>Importa CSV</button>
         <NavLink to="/settings">Impostazioni</NavLink>
       </div>
-      <button className="ui3-rail-menu" onClick={() => document.getElementById('ui3-more-trigger')?.click()}>⋯ <span>Altro</span></button>
       <p className="ui3-nav-footer">Una visione più chiara.<br />Un passo alla volta.</p>
     </nav>
   </>;

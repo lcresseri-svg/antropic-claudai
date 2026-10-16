@@ -203,7 +203,7 @@ export function InsightsScreenV2(p: Props) {
               {/* Righe compatte, non card: il pollice su/giù resta solo sul
                   consiglio in evidenza e dentro la sheet di dettaglio. */}
               {isOpen && (
-                <div className="glass-card rounded-[20px] shadow-elev-1 overflow-hidden">
+                <div className="ui-insight-list glass-card rounded-[20px] shadow-elev-1 overflow-hidden">
                   {items.map((ins, i) => (
                     <button key={i} type="button"
                       onClick={() => { setDetail(ins); if (user) logEvent(user.uid, 'insight_open'); }}

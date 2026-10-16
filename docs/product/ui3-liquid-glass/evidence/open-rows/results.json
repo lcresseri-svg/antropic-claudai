@@ -1,0 +1,128 @@
+[
+  {
+    "route": "/investments",
+    "width": 390,
+    "theme": "light",
+    "rows": 5,
+    "errors": []
+  },
+  {
+    "route": "/account-balance",
+    "width": 390,
+    "theme": "light",
+    "rows": 4,
+    "errors": []
+  },
+  {
+    "route": "/wealth",
+    "width": 390,
+    "theme": "light",
+    "rows": 2,
+    "errors": []
+  },
+  {
+    "route": "/investments",
+    "width": 390,
+    "theme": "dark",
+    "rows": 5,
+    "errors": []
+  },
+  {
+    "route": "/account-balance",
+    "width": 390,
+    "theme": "dark",
+    "rows": 4,
+    "errors": []
+  },
+  {
+    "route": "/wealth",
+    "width": 390,
+    "theme": "dark",
+    "rows": 2,
+    "errors": []
+  },
+  {
+    "route": "/investments",
+    "width": 834,
+    "theme": "light",
+    "rows": 5,
+    "errors": []
+  },
+  {
+    "route": "/account-balance",
+    "width": 834,
+    "theme": "light",
+    "rows": 4,
+    "errors": []
+  },
+  {
+    "route": "/wealth",
+    "width": 834,
+    "theme": "light",
+    "rows": 2,
+    "errors": []
+  },
+  {
+    "route": "/investments",
+    "width": 834,
+    "theme": "dark",
+    "rows": 5,
+    "errors": []
+  },
+  {
+    "route": "/account-balance",
+    "width": 834,
+    "theme": "dark",
+    "rows": 4,
+    "errors": []
+  },
+  {
+    "route": "/wealth",
+    "width": 834,
+    "theme": "dark",
+    "rows": 2,
+    "errors": []
+  },
+  {
+    "route": "/investments",
+    "width": 1440,
+    "theme": "light",
+    "rows": 5,
+    "errors": []
+  },
+  {
+    "route": "/account-balance",
+    "width": 1440,
+    "theme": "light",
+    "rows": 4,
+    "errors": []
+  },
+  {
+    "route": "/wealth",
+    "width": 1440,
+    "theme": "light",
+    "rows": 2,
+    "errors": []
+  },
+  {
+    "route": "/investments",
+    "width": 1440,
+    "theme": "dark",
+    "rows": 5,
+    "errors": []
+  },
+  {
+    "route": "/account-balance",
+    "width": 1440,
+    "theme": "dark",
+    "rows": 4,
+    "errors": []
+  },
+  {
+    "route": "/wealth",
+    "width": 1440,
+    "theme": "dark",
+    "rows": 2,
+    "errors": []
+  }
+]

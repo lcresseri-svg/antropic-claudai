@@ -548,7 +548,7 @@ function CategoryRow({
           {hasVariableSignals && (
             <div>
               <p className="text-[10px] text-tertiary uppercase tracking-wide mb-1.5">Segnali stima variabile</p>
-              <div className="space-y-1 bg-elevated/50 rounded-lg p-2">
+              <div className="ui-open-section space-y-1 bg-elevated/50 rounded-lg p-2">
                 {v3.paceRemainingSignal > 0 && (
                   <DetailRow label="Ritmo corrente" value={fmt(v3.paceRemainingSignal)} hint="estrapolazione dal ritmo di spesa attuale" muted />
                 )}
@@ -580,7 +580,7 @@ function CategoryRow({
           {(v3.amountCurveRemaining > 0 || v3.countCurveRemaining > 0) && (
             <div>
               <p className="text-[10px] text-tertiary uppercase tracking-wide mb-1.5">Curve di riferimento</p>
-              <div className="grid grid-cols-2 gap-x-4 gap-y-1 bg-elevated/30 rounded-lg p-2">
+              <div className="ui-open-section grid grid-cols-2 gap-x-4 gap-y-1 bg-elevated/30 rounded-lg p-2">
                 <DetailRow label="Curva importi" value={fmt(v3.amountCurveRemaining)} muted />
                 <DetailRow label="Curva frequenza" value={fmt(v3.countCurveRemaining)} muted />
                 <DetailRow label="Peso importi (α)" value={pct(v3.blendAlpha)} muted />
@@ -673,7 +673,7 @@ function ComponentMetricsBlock({
   const biasColor = Math.abs(metrics.bias) < 80 ? 'text-[#8A9270]' : Math.abs(metrics.bias) < 200 ? 'text-gold' : 'text-[#C0706A]';
 
   return (
-    <div className="rounded-xl bg-elevated/50 p-3">
+    <div className="ui-open-section rounded-xl bg-elevated/50 p-3">
       <div className="flex items-baseline gap-2 mb-2">
         <p className="text-xs font-medium text-secondary">{title}</p>
         <p className="text-[10px] text-tertiary">{note}</p>
@@ -738,7 +738,7 @@ function SnapshotRow({ s, fmt }: { s: BacktestSnapshotV3; fmt: (n: number) => st
       {open && (
         <div className="pb-2 pl-22 pr-1 space-y-1 text-[10px]">
           {/* Variable component */}
-          <div className="rounded bg-elevated/40 p-2 space-y-0.5">
+          <div className="ui-open-section rounded bg-elevated/40 p-2 space-y-0.5">
             <p className="text-tertiary font-medium mb-1">Componente variabile</p>
             <div className="flex justify-between">
               <span className="text-tertiary">Stimato (coda)</span>
@@ -754,7 +754,7 @@ function SnapshotRow({ s, fmt }: { s: BacktestSnapshotV3; fmt: (n: number) => st
             </div>
           </div>
           {/* Deterministic future component */}
-          <div className="rounded bg-elevated/40 p-2 space-y-0.5">
+          <div className="ui-open-section rounded bg-elevated/40 p-2 space-y-0.5">
             <p className="text-tertiary font-medium mb-1">Componente deterministica futura</p>
             <div className="flex justify-between">
               <span className="text-tertiary">Previsto (scheduled+planned)</span>
@@ -811,7 +811,7 @@ function BacktestPanel({
   return (
     <div className="space-y-5 pt-3">
       {/* Quality grade */}
-      <div className="flex items-center gap-3 p-3 rounded-xl bg-elevated/50">
+      <div className="ui-open-section flex items-center gap-3 p-3 rounded-xl bg-elevated/50">
         <div>
           <p className={`text-lg font-bold ${grade.color}`}>{grade.label}</p>
           <p className="text-[11px] text-tertiary">
@@ -940,7 +940,7 @@ function BacktestPanel({
 
       {/* Bias factor explanation */}
       <div className="h-px bg-divider" />
-      <div className="rounded-xl bg-elevated/50 p-3">
+      <div className="ui-open-section rounded-xl bg-elevated/50 p-3">
         <p className="text-xs font-semibold text-secondary mb-1">Fattore bias variabile: ×{result.biasFactor.toFixed(2)}</p>
         <p className="text-[11px] text-tertiary">
           {result.biasFactor > 1.05

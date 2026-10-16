@@ -144,7 +144,7 @@ export function EditDefSheet({ open, draft, withKind, canDelete, showFundType, s
         )}
 
         <p className="text-xs font-medium text-secondary mb-2 px-1">Icona</p>
-        <div className="grid grid-cols-8 gap-1.5">
+        <div className="ui-icon-picker grid grid-cols-8 gap-1.5">
           {(emojiExpanded ? EMOJI_CHOICES : EMOJI_CHOICES.slice(0, 24)).map(e => (
             <button key={e} onClick={() => { setIcon(e); setEmojiExpanded(false); }}
               className={`aspect-square rounded-xl flex items-center justify-center text-lg transition-colors ${

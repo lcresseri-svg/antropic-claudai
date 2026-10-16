@@ -615,7 +615,7 @@ export function TransactionList({ transactions, projected = [], onEdit, onDelete
                           {formatCurrency(total, { sign: true })}
                         </p>
                       </div>
-                      <div className={`rounded-[18px] px-3.5 divide-y divide-divider ${
+                      <div className={`ui-open-section rounded-[18px] px-3.5 divide-y divide-divider ${
                         day.upcoming
                           ? 'border border-dashed border-gold/50'
                           : 'glass-card shadow-elev-1'}`}>
@@ -681,7 +681,7 @@ export function TransactionList({ transactions, projected = [], onEdit, onDelete
                 )}
               </div>
               {!isCollapsed && (
-                <div className={`rounded-[18px] px-3.5 divide-y divide-divider ${
+                <div className={`ui-open-section rounded-[18px] px-3.5 divide-y divide-divider ${
                   hasReal ? 'glass-card shadow-elev-1' : 'border border-dashed border-gold/50'}`}>
                   {txs.map(tx => (
                     <TransactionRow key={tx.id} tx={tx} upcoming={isUpcoming(tx)} todayISO={TODAY_ISO}

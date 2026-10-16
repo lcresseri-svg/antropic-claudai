@@ -1,0 +1,2 @@
+PASS light: demo no duplicates, slow write navigation guard; login error, onboarding back/draft, create, demo confirmation/error, real importer, savings error/retry enabled, ready
+PASS dark: demo no duplicates, slow write navigation guard; login error, onboarding back/draft, create, demo confirmation/error, real importer, savings error/retry enabled, ready

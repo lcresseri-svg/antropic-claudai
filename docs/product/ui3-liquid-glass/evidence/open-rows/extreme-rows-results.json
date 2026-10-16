@@ -1,0 +1,44 @@
+[
+  {
+    "route": "/investments",
+    "width": 320,
+    "theme": "light",
+    "rows": 5,
+    "errors": []
+  },
+  {
+    "route": "/account-balance",
+    "width": 320,
+    "theme": "light",
+    "rows": 4,
+    "errors": []
+  },
+  {
+    "route": "/wealth",
+    "width": 320,
+    "theme": "light",
+    "rows": 2,
+    "errors": []
+  },
+  {
+    "route": "/investments",
+    "width": 320,
+    "theme": "dark",
+    "rows": 5,
+    "errors": []
+  },
+  {
+    "route": "/account-balance",
+    "width": 320,
+    "theme": "dark",
+    "rows": 4,
+    "errors": []
+  },
+  {
+    "route": "/wealth",
+    "width": 320,
+    "theme": "dark",
+    "rows": 2,
+    "errors": []
+  }
+]

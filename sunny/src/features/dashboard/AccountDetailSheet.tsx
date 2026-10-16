@@ -116,7 +116,7 @@ export function AccountDetailSheet({
           {kpis.length > 0 && (
             <div className="grid grid-cols-2 md:grid-cols-3 gap-2">
               {kpis.map(k => (
-                <div key={k.label} className="bg-card rounded-xl px-3 py-2.5">
+                <div key={k.label} className="ui-open-section bg-card rounded-xl px-3 py-2.5">
                   <p className={`text-[14px] font-semibold balance-num ${k.tone ?? 'text-primary'}`}>{k.value}</p>
                   <p className="text-[10px] text-secondary mt-0.5 truncate">{k.label}</p>
                 </div>
@@ -149,7 +149,7 @@ export function AccountDetailSheet({
 
           {/* Sunny note */}
           {depth !== 'minimal' && (
-            <div className="bg-card rounded-2xl px-4 py-3">
+            <div className="ui-open-section bg-card rounded-2xl px-4 py-3">
               <p className="label-caps text-secondary mb-1">Sunny nota</p>
               <p className="text-[13px] text-primary leading-snug">{note}</p>
             </div>

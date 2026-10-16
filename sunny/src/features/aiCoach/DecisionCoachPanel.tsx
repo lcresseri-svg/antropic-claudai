@@ -67,7 +67,7 @@ export function DecisionCoachPanel({ itemName, cost, transactions, liquidity, sa
       </p>
       <div className="space-y-2.5">
         {analysis.scenarios.map(s => (
-          <div key={s.kind} className={`rounded-xl bg-elevated p-3 ${analysis.recommended === s.kind ? 'ring-1 ring-gold/40' : ''}`}>
+          <div key={s.kind} className={`ui-open-section rounded-xl bg-elevated p-3 ${analysis.recommended === s.kind ? 'ring-1 ring-gold/40' : ''}`}>
             <div className="flex items-center justify-between gap-2">
               <p className="text-sm font-medium text-primary">
                 {s.label}

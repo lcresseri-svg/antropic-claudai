@@ -1,0 +1,8 @@
+PASS light [ 0, 0 ] category { top: 12, bottom: 840, safeTop: 12, safeBottom: 840 }
+PASS light [ 0, 0 ] account { top: 12, bottom: 840, safeTop: 12, safeBottom: 840 }
+PASS light [ 59, 34 ] category { top: 59, bottom: 818, safeTop: 59, safeBottom: 818 }
+PASS light [ 59, 34 ] account { top: 59, bottom: 818, safeTop: 59, safeBottom: 818 }
+PASS dark [ 0, 0 ] category { top: 12, bottom: 840, safeTop: 12, safeBottom: 840 }
+PASS dark [ 0, 0 ] account { top: 12, bottom: 840, safeTop: 12, safeBottom: 840 }
+PASS dark [ 59, 34 ] category { top: 59, bottom: 818, safeTop: 59, safeBottom: 818 }
+PASS dark [ 59, 34 ] account { top: 59, bottom: 818, safeTop: 59, safeBottom: 818 }
