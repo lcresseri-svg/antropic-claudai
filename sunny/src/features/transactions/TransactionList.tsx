@@ -1,7 +1,7 @@
 import { readTransactionRange } from '../../shared/transactionRoute';
 import { useState, useMemo, useEffect } from 'react';
 import { useSearchParams } from 'react-router-dom';
-import { useUiSessionState } from '../../shared/providers/UiVersionProvider';
+import { useUiSessionState, useUiVersion } from '../../shared/providers/UiVersionProvider';
 import { Transaction, TransactionType, TYPE_META, TYPE_ORDER, TransactionPatch, typeColor, ownShare } from '../../types';
 import { formatCurrency, formatDate, formatDateFull, formatMonthLong, capitalize } from '../../utils';
 import { useSettings } from '../../shared/providers/settings';
@@ -77,6 +77,7 @@ function projectedCutoffISO(v: ProjView, now: Date): string | null {
 }
 
 export function TransactionList({ transactions, projected = [], onEdit, onDelete, onBulkUpdate, onBulkDelete, onAdd }: Props) {
+  const ui3 = useUiVersion() === '3.0';
   const { categories, accounts, getAcc, getCat, theme } = useSettings();
   // Optional category filter driven by the URL (?cat=<id>) — set when arriving
   // from the "Vedi tutti i movimenti" CTA of the Categorie analytics screen.
@@ -640,12 +641,26 @@ export function TransactionList({ transactions, projected = [], onEdit, onDelete
            dentro una card con divisori. Cambia solo cosa raggruppa — e la data
            resta nella riga, perché lì non è nell'intestazione. */
         <div className="space-y-3.5 mt-1">
-        {groups.map(([key, txs]) => {
+        {groups.map(([key, txs], groupIndex) => {
           const isCollapsed = collapsed.has(key);
           const hasReal = groupHasReal(txs);
+          const realized = txs.filter(t => !isUpcoming(t));
+          const rowsId = `transaction-group-${groupMode}-${groupIndex}`;
           return (
             <div key={key}>
-              <div className="flex items-center gap-2 px-1 mb-1.5">
+              {ui3 ? <div className="flex items-start gap-2 mb-2" data-transaction-group-summary>
+                {selectMode && hasReal && <button onClick={() => toggleGroup(txs)} aria-label="Seleziona gruppo"
+                  className={`mt-4 w-5 h-5 rounded-full border-2 flex items-center justify-center flex-none ${groupAllSelected(txs) ? 'bg-gold border-gold' : 'border-divider'}`}>
+                  {groupAllSelected(txs) && <span className="text-bg text-xs font-bold">✓</span>}
+                </button>}
+                <div className="flex-1 min-w-0">
+                  <MonthSummaryHeader title={groupTitle(key)} realized={realized}
+                    realizedCount={realized.length} upcomingCount={txs.length - realized.length}
+                    net={groupSum(txs)} projectedNet={groupProjectedSum(txs)}
+                    onToggle={() => toggleCollapse(key)} expanded={!isCollapsed} controls={rowsId}
+                    action={hasReal && groupHasInvestment(txs) ? <OutflowInfo ariaLabel="Dettaglio flusso" lines={groupFlowLines(txs)} /> : undefined} />
+                </div>
+              </div> : <div className="flex items-center gap-2 px-1 mb-1.5">
                 {selectMode && hasReal && (
                   <button onClick={() => toggleGroup(txs)} aria-label="Seleziona gruppo"
                     className={`w-5 h-5 rounded-full border-2 flex items-center justify-center flex-none transition-colors ${
@@ -679,7 +694,8 @@ export function TransactionList({ transactions, projected = [], onEdit, onDelete
                     {formatCurrency(groupProjectedSum(txs), { sign: true })}
                   </span>
                 )}
-              </div>
+              </div>}
+              <div id={rowsId} hidden={isCollapsed}>
               {!isCollapsed && (
                 <div className={`ui-open-section rounded-[18px] px-3.5 divide-y divide-divider ${
                   hasReal ? 'glass-card shadow-elev-1' : 'border border-dashed border-gold/50'}`}>
@@ -692,6 +708,7 @@ export function TransactionList({ transactions, projected = [], onEdit, onDelete
                   ))}
                 </div>
               )}
+              </div>
             </div>
           );
         })}

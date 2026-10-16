@@ -1,0 +1,86 @@
+[
+  {
+    "mode": "mese",
+    "theme": "light",
+    "width": 390,
+    "count": 13,
+    "passed": true
+  },
+  {
+    "mode": "conto",
+    "theme": "light",
+    "width": 390,
+    "count": 156,
+    "passed": true
+  },
+  {
+    "mode": "categoria",
+    "theme": "light",
+    "width": 390,
+    "count": 60,
+    "passed": true
+  },
+  {
+    "mode": "mese",
+    "theme": "light",
+    "width": 1440,
+    "count": 13,
+    "passed": true
+  },
+  {
+    "mode": "conto",
+    "theme": "light",
+    "width": 1440,
+    "count": 156,
+    "passed": true
+  },
+  {
+    "mode": "categoria",
+    "theme": "light",
+    "width": 1440,
+    "count": 60,
+    "passed": true
+  },
+  {
+    "mode": "mese",
+    "theme": "dark",
+    "width": 390,
+    "count": 13,
+    "passed": true
+  },
+  {
+    "mode": "conto",
+    "theme": "dark",
+    "width": 390,
+    "count": 156,
+    "passed": true
+  },
+  {
+    "mode": "categoria",
+    "theme": "dark",
+    "width": 390,
+    "count": 60,
+    "passed": true
+  },
+  {
+    "mode": "mese",
+    "theme": "dark",
+    "width": 1440,
+    "count": 13,
+    "passed": true
+  },
+  {
+    "mode": "conto",
+    "theme": "dark",
+    "width": 1440,
+    "count": 156,
+    "passed": true
+  },
+  {
+    "mode": "categoria",
+    "theme": "dark",
+    "width": 1440,
+    "count": 60,
+    "passed": true
+  }
+]
