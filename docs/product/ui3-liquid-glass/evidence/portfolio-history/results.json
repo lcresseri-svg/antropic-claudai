@@ -1,0 +1,44 @@
+[
+  {
+    "theme": "light",
+    "width": 320,
+    "months": 22,
+    "last": "2026-10\t12.200,00 €",
+    "passed": true
+  },
+  {
+    "theme": "light",
+    "width": 390,
+    "months": 22,
+    "last": "2026-10\t12.200,00 €",
+    "passed": true
+  },
+  {
+    "theme": "light",
+    "width": 1440,
+    "months": 22,
+    "last": "2026-10\t12.200,00 €",
+    "passed": true
+  },
+  {
+    "theme": "dark",
+    "width": 320,
+    "months": 22,
+    "last": "2026-10\t12.200,00 €",
+    "passed": true
+  },
+  {
+    "theme": "dark",
+    "width": 390,
+    "months": 22,
+    "last": "2026-10\t12.200,00 €",
+    "passed": true
+  },
+  {
+    "theme": "dark",
+    "width": 1440,
+    "months": 22,
+    "last": "2026-10\t12.200,00 €",
+    "passed": true
+  }
+]

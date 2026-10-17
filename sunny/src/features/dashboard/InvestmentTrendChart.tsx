@@ -24,15 +24,17 @@ interface Props {
   /** Controvalore di oggi; null quando nessuna posizione ne ha uno. */
   controvalore: number | null;
   height?: number;
+  fullDates?: boolean;
+  periodLabel?: string;
 }
 
 const W = 600;
 const PAD_X = 10;
 const PAD_TOP = 12;
 
-export function InvestmentTrendChart({ points, controvalore, height = 120 }: Props) {
+export function InvestmentTrendChart({ points, controvalore, height = 120, fullDates = false, periodLabel = '12 mesi' }: Props) {
 
-  if (points.length < 2) return null;
+  if (!points.length || (!fullDates && points.length < 2)) return null;
 
   const values = points.map(p => p.versato);
   // Il dominio segue i dati, non lo zero: con un capitale già accumulato una
@@ -44,7 +46,7 @@ export function InvestmentTrendChart({ points, controvalore, height = 120 }: Pro
   const min = lo - pad;
   const span = top + pad * 0.4 - min || 1;
 
-  const x = (i: number) => PAD_X + (i / (points.length - 1)) * (W - PAD_X * 2);
+  const x = (i: number) => PAD_X + (points.length === 1 ? .5 : i / (points.length - 1)) * (W - PAD_X * 2);
   const y = (v: number) => PAD_TOP + (1 - (v - min) / span) * (height - PAD_TOP - 2);
 
   const line = values.map((v, i) => `${i === 0 ? 'M' : 'L'} ${x(i).toFixed(1)} ${y(v).toFixed(1)}`).join(' ');
@@ -53,8 +55,10 @@ export function InvestmentTrendChart({ points, controvalore, height = 120 }: Pro
 
   return (
     <div>
+      {points.length === 1 && <p className="text-sm text-secondary mb-2">È disponibile un solo mese di storico.</p>}
       <svg viewBox={`0 0 ${W} ${height}`} className="w-full" style={{ height }} preserveAspectRatio="none" aria-hidden>
         <path d={area} fill="rgba(var(--c-gold) / 0.13)" />
+        {points.length === 1 && <circle cx={x(0)} cy={y(values[0])} r="3" fill="rgb(var(--c-gold))" />}
         <path d={line} fill="none" stroke="rgb(var(--c-gold))" strokeWidth="2" vectorEffect="non-scaling-stroke"
           strokeLinecap="round" strokeLinejoin="round" />
         {controvalore != null && (
@@ -74,8 +78,8 @@ export function InvestmentTrendChart({ points, controvalore, height = 120 }: Pro
       </div>
 
       <div className="flex justify-between mt-1.5 text-[10px] text-tertiary">
-        <span>{capitalize(formatMonthShort(points[0].key))}</span>
-        <span>{capitalize(formatMonthShort(points[points.length - 1].key))}</span>
+        <span>{capitalize(formatMonthShort(points[0].key))}{fullDates && ` ${points[0].key.slice(0,4)}`}</span>
+        <span>{capitalize(formatMonthShort(points[points.length - 1].key))}{fullDates && ` ${points[points.length - 1].key.slice(0,4)}`}</span>
       </div>
 
       <div className="liquid-chart-legend flex flex-wrap items-center gap-x-4 gap-y-1 mt-2 text-[11px] text-secondary">
@@ -89,7 +93,7 @@ export function InvestmentTrendChart({ points, controvalore, height = 120 }: Pro
             Controvalore oggi <span className="balance-num text-primary">{formatCurrency(controvalore)}</span>
           </span>
         )}
-        <span className="ml-auto text-tertiary">12 mesi</span>
+        <span className="ml-auto text-tertiary">{periodLabel}</span>
       </div>
       <ChartData title="Capitale investito" columns={['Mese','Versato']} rows={points.map(p=>[p.key,formatCurrency(p.versato)])} scale="Scala adattata ai valori, non ancorata allo zero. Controvalore disponibile solo per oggi."/>
     </div>
