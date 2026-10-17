@@ -11,7 +11,7 @@ try{for(const theme of ['light','dark'])for(const width of [320,390,1440]){
  const panel=page.getByRole('region',{name:'Opzioni movimenti'});await panel.waitFor();
  const metrics=await panel.evaluate(el=>{const r=el.getBoundingClientRect();return {width:r.width,left:r.left,right:r.right,bottom:r.bottom,overflow:el.scrollWidth-el.clientWidth};});
  assert.ok(metrics.width>=280);assert.ok(metrics.left>=0&&metrics.right<=width+1);assert.ok(metrics.overflow<=1);assert.ok(metrics.bottom<= (width<768?800:876));
- const type=panel.getByRole('button',{name:'Per tipo movimento',exact:true});
+ const type=panel.getByRole('button',{name:'Tipo movimento',exact:true});
  assert.equal(await type.evaluate(el=>getComputedStyle(el).fontSize),'16px');
  const height=await type.evaluate(el=>el.getBoundingClientRect().height);assert.ok(height>=44);
  await page.waitForTimeout(350);

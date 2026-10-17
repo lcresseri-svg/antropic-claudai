@@ -10,6 +10,7 @@ import { InvestmentWithdrawSheet } from '../investments/InvestmentWithdrawSheet'
 import { SetCurrentValueSheet } from '../investments/SetCurrentValueSheet';
 import { InvestmentDetailSheet } from '../investments/InvestmentDetailSheet';
 import { monthlyInvestmentStats, statsSpreadOf, addMonths } from '../investments/investmentStatsSpread';
+import { portfolioHistory } from '../investments/portfolioHistory';
 import { InvestmentTrendChart, InvestmentTrendPoint } from './InvestmentTrendChart';
 import { AnalysisHeader } from './AnalysisHeader';
 import { useUiVersion } from '../../shared/providers/UiVersionProvider';
@@ -41,6 +42,7 @@ export function InvestmentsScreen({ investmentByCategory, investmentTotal, month
   const [detailCat, setDetailCat] = useState<CategoryDef | null>(null);
   const [showAllOps, setShowAllOps] = useState(false);
   const ui3=useUiVersion()==='3.0';
+  const [historyPeriod, setHistoryPeriod] = useState<'6m' | '1y' | 'all'>('all');
   const detailAction=useRef<HTMLElement|null>(null);
   const enterDetailChild=()=>{
     if(ui3) detailAction.current=document.activeElement as HTMLElement;
@@ -161,6 +163,10 @@ export function InvestmentsScreen({ investmentByCategory, investmentTotal, month
     return out;
   }, [trend, investTx, versatoTotale]);
 
+  const fullHistory = useMemo(() => portfolioHistory(visibleCategories, transactions, new Date().toISOString().slice(0, 10)), [visibleCategories, transactions]);
+  const chartPoints = ui3 ? historyPeriod === 'all' ? fullHistory : fullHistory.slice(historyPeriod === '6m' ? -6 : -12) : trend12;
+  const unknownOpeningDate = visibleCategories.some(c => c.kind === 'investment' && c.initialBalance && !c.subscriptionDate);
+
   // Un solo avviso per i controvalori fermi, invece dell'azione ripetuta su
   // ogni riga: dice QUALI e da quanto, e porta direttamente alla prima.
   const stalePositions = useMemo(() => positions.filter(p => p.stale || p.controvalore == null), [positions]);
@@ -207,10 +213,16 @@ export function InvestmentsScreen({ investmentByCategory, investmentTotal, month
             <span className="text-[11.5px] text-secondary balance-num">versato {formatCurrency(versatoTotale)}</span>
           </div>
         )}
-        {trend12.length >= 2 && (
-          <div className="mt-4">
-            <InvestmentTrendChart points={trend12}
+        {(ui3 || trend12.length >= 2) && (
+          <div className="mt-4" data-portfolio-history>
+            {ui3 && <div role="group" aria-label="Periodo del portafoglio" className="flex flex-wrap gap-2 mb-3">
+              {([['6m','6 mesi'],['1y','1 anno'],['all','Tutto']] as const).map(([value,label]) => <button key={value} type="button" aria-pressed={historyPeriod===value} onClick={()=>setHistoryPeriod(value)}
+                className={`min-h-[44px] px-3 rounded-xl text-sm font-semibold ${historyPeriod===value?'bg-gold text-bg':'bg-elevated text-secondary'}`}>{label}</button>)}
+            </div>}
+            <InvestmentTrendChart points={chartPoints} fullDates={ui3}
+              periodLabel={ui3 ? `${chartPoints.length} ${chartPoints.length===1?'mese disponibile':'mesi disponibili'}` : undefined}
               controvalore={controvaloreTotale > 0 ? controvaloreTotale : null} />
+            {ui3 && unknownOpeningDate && <p className="text-xs text-secondary mt-2">Il capitale iniziale senza data è incluso per tutto il periodo disponibile.</p>}
           </div>
         )}
       </section>

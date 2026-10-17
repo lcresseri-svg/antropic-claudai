@@ -1,0 +1,16 @@
+
+> sunny-finance@0.1.0 test
+> vitest run --run src/features/investments/portfolioHistory.test.ts src/features/investments/investmentPerformance.test.ts src/features/investments/paidInChartRange.test.ts
+
+6:23:36 AM [vite] warning: `esbuild` option was specified by "vite:react-babel" plugin. This option is deprecated, please use `oxc` instead.
+6:23:36 AM [vite] warning: `optimizeDeps.esbuildOptions` option was specified by "vite:react-babel" plugin. This option is deprecated, please use `optimizeDeps.rolldownOptions` instead.
+Both esbuild and oxc options were set. oxc options will be used and esbuild options will be ignored. The following esbuild options were set: `{ jsx: 'automatic', jsxImportSource: undefined }`
+
+ RUN  v4.1.7 /workspace/antropic-claudai/sunny
+
+
+ Test Files  3 passed (3)
+      Tests  33 passed (33)
+   Start at  06:23:36
+   Duration  600ms (transform 91ms, setup 0ms, import 125ms, tests 32ms, environment 0ms)
+
