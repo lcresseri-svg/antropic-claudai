@@ -137,3 +137,17 @@
 }
 /* Scheduled movement groups retain their dashed cue as a divider, not a box. */
 [data-liquid-ui="true"] .app-main .ui-open-section.border-dashed { border-top:1px dashed rgb(var(--c-gold) / .5); }
+
+/* Wider, denser transaction options without shrinking touch targets. */
+[data-liquid-ui="true"] .app-main .ui-transaction-filters {
+  width:352px; max-width:100%; padding:12px; scrollbar-width:thin;
+  background:var(--surface-1);
+}
+[data-liquid-ui="true"] .app-main .ui-transaction-filters button[class] {
+  font-size:1rem; line-height:1.3; padding-block:8px; min-height:44px;
+}
+[data-liquid-ui="true"] .app-main .ui-transaction-filters .label-caps {
+  font-size:.8125rem; letter-spacing:.06em; margin-bottom:4px;
+}
+[data-liquid-ui="true"] .app-main .ui-transaction-filters :is(.mb-2,.mb-2\.5) { margin-bottom:8px; }
+[data-liquid-ui="true"] .app-main .ui-transaction-filters .space-y-1 > :not([hidden]) ~ :not([hidden]) { margin-top:0; }

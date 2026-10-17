@@ -6,13 +6,20 @@
 // originale tramite ownShare, anche se sono arrivati in un mese successivo.
 // Il flusso di cassa lordo resta riservato ai saldi dei conti.
 
+import type { ReactNode } from 'react';
 import { Transaction, ownShare } from '../../types';
 import { aggregateFlow } from '../../shared/financialFlow';
 import { formatCurrency, formatMonthLong, capitalize } from '../../utils';
 
 interface Props {
   /** `YYYY-MM`. */
-  ym: string;
+  ym?: string;
+  title?: string;
+  onToggle?: () => void;
+  expanded?: boolean;
+  controls?: string;
+  action?: ReactNode;
+  projectedNet?: number;
   /** Righe REALIZZATE del mese. Devono essere le stesse su cui la lista ha
    *  calcolato `net`: se qui entrassero anche i previsti, la barra e il netto
    *  racconterebbero due mesi diversi. */
@@ -26,7 +33,7 @@ interface Props {
 /** Larghezza minima di un segmento, così una voce piccola resta visibile. */
 const MIN_SEGMENT_PCT = 3;
 
-export function MonthSummaryHeader({ ym, realized, realizedCount, upcomingCount, net }: Props) {
+export function MonthSummaryHeader({ ym, title, onToggle, expanded, controls, action, projectedNet, realized, realizedCount, upcomingCount, net }: Props) {
   const flow = aggregateFlow(realized);
   const income = flow.cashIn - flow.refundsReceived;
   const expenses = realized
@@ -42,26 +49,36 @@ export function MonthSummaryHeader({ ym, realized, realizedCount, upcomingCount,
 
   const total = segments.reduce((s, x) => s + x.value, 0);
 
+  const label = title ?? capitalize(formatMonthLong(ym!).replace(/ \d{4}$/, ''));
+  const forecastOnly = realizedCount === 0 && upcomingCount > 0 && projectedNet != null;
+  const heading = <>
+    <span className="block text-[17px] font-semibold text-primary tracking-[-0.02em]">
+      {onToggle && <span aria-hidden="true" className="mr-2">{expanded ? '⌄' : '›'}</span>}{label}
+    </span>
+    <span className="block text-[11.5px] text-secondary mt-0.5">
+      {realizedCount} {realizedCount === 1 ? 'movimento' : 'movimenti'}
+      {upcomingCount > 0 && ` · ${upcomingCount} programmat${upcomingCount === 1 ? 'o' : 'i'}`}
+    </span>
+  </>;
+
   return (
     <div className="px-1 pt-2">
-      <div className="flex items-end justify-between gap-3">
-        <div className="min-w-0">
-          <p className="text-[17px] font-semibold text-primary tracking-[-0.02em]">
-            {capitalize(formatMonthLong(ym).replace(/ \d{4}$/, ''))}
-          </p>
-          <p className="text-[11.5px] text-secondary mt-0.5">
-            {realizedCount} {realizedCount === 1 ? 'movimento' : 'movimenti'}
-            {upcomingCount > 0 && ` · ${upcomingCount} programmat${upcomingCount === 1 ? 'o' : 'i'}`}
+      <div className={`flex items-end justify-between gap-3 ${onToggle ? 'flex-wrap' : ''}`}>
+        {onToggle ? <button type="button" onClick={onToggle} aria-expanded={expanded} aria-controls={controls}
+          aria-label={`${expanded ? 'Chiudi' : 'Espandi'} gruppo ${label}`}
+          className="min-w-0 flex-1 min-h-[44px] text-left">{heading}</button> : <div className="min-w-0">{heading}</div>}
+        <div className="flex items-center gap-1 flex-wrap">
+          {action}
+          <p className={`balance-num text-[18px] font-bold ${forecastOnly ? 'text-gold' : net > 0.005 ? 'text-green' : net < -0.005 ? 'text-red' : 'text-secondary'}`}>
+            {forecastOnly && <span className="text-xs font-normal">Previsti · </span>}
+            {formatCurrency(forecastOnly ? projectedNet! : net, { sign: true })}
           </p>
         </div>
-        <p className={`balance-num text-[18px] font-bold flex-none ${net > 0.005 ? 'text-green' : net < -0.005 ? 'text-red' : 'text-secondary'}`}>
-          {formatCurrency(net, { sign: true })}
-        </p>
       </div>
 
       {total > 0 && (
         <>
-          <div className="flex gap-0.5 mt-3 h-2 rounded-full overflow-hidden">
+          <div data-group-summary-band aria-hidden="true" className="flex gap-0.5 mt-3 h-2 rounded-full overflow-hidden">
             {segments.map(s => (
               <div key={s.label} className="h-full first:rounded-l-full last:rounded-r-full bar-grow"
                 style={{

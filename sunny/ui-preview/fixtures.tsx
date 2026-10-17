@@ -25,6 +25,12 @@ export const transactions: Transaction[] = params.has('empty') ? [] : params.has
   ...Array.from({length:10},(_,j) => ({id:`expense-${i}-${j}`,type:'expense' as const, amount: 24.9+j*5.4, category: j%2?'spesa':'ristoranti', account:'conto_corrente',date:iso(-i,j+1),description:j%2?'Spesa settimanale':'Caffè e pranzo',createdAt:0})),
   { id: `invest-${i}`, type: 'investment' as const, amount: 350, category: 'azioni_etf', account: 'conto_corrente', date: iso(-i,3), description: 'PAC ETF', createdAt: 0 },
 ]).flat();
+if (params.has('allMovementTypes')) {
+  transactions.push(
+    { id: 'type-transfer', type: 'transfer', category: 'trasferimento', account: 'conto_corrente', toAccount: 'contanti', date: iso(0, 1), amount: 50, description: 'Trasferimento di prova' },
+    { id: 'type-refund', type: 'refund', category: 'spesa', account: 'conto_corrente', date: iso(0, 1), amount: 20, description: 'Storno di prova' },
+  );
+}
 if (params.has('shortInvestmentHistory')) {
   const fund = categories.find(c => c.id === 'azioni_etf')!;
   fund.subscriptionDate = iso(0, 1);

@@ -1,0 +1,16 @@
+
+> sunny-finance@0.1.0 test
+> vitest run --run src/features/transactions/listGrouping.test.ts src/shared/financialFlow.test.ts
+
+4:46:26 PM [vite] warning: `esbuild` option was specified by "vite:react-babel" plugin. This option is deprecated, please use `oxc` instead.
+4:46:26 PM [vite] warning: `optimizeDeps.esbuildOptions` option was specified by "vite:react-babel" plugin. This option is deprecated, please use `optimizeDeps.rolldownOptions` instead.
+Both esbuild and oxc options were set. oxc options will be used and esbuild options will be ignored. The following esbuild options were set: `{ jsx: 'automatic', jsxImportSource: undefined }`
+
+ RUN  v4.1.7 /workspace/antropic-claudai/sunny
+
+
+ Test Files  2 passed (2)
+      Tests  25 passed (25)
+   Start at  16:46:26
+   Duration  699ms (transform 86ms, setup 0ms, import 114ms, tests 46ms, environment 0ms)
+
