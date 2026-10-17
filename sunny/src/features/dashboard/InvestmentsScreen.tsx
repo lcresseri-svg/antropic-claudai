@@ -10,7 +10,7 @@ import { InvestmentWithdrawSheet } from '../investments/InvestmentWithdrawSheet'
 import { SetCurrentValueSheet } from '../investments/SetCurrentValueSheet';
 import { InvestmentDetailSheet } from '../investments/InvestmentDetailSheet';
 import { monthlyInvestmentStats, statsSpreadOf, addMonths } from '../investments/investmentStatsSpread';
-import { portfolioHistory } from '../investments/portfolioHistory';
+import { portfolioHistory, isHistoryDate } from '../investments/portfolioHistory';
 import { InvestmentTrendChart, InvestmentTrendPoint } from './InvestmentTrendChart';
 import { AnalysisHeader } from './AnalysisHeader';
 import { useUiVersion } from '../../shared/providers/UiVersionProvider';
@@ -165,7 +165,7 @@ export function InvestmentsScreen({ investmentByCategory, investmentTotal, month
 
   const fullHistory = useMemo(() => portfolioHistory(visibleCategories, transactions, new Date().toISOString().slice(0, 10)), [visibleCategories, transactions]);
   const chartPoints = ui3 ? historyPeriod === 'all' ? fullHistory : fullHistory.slice(historyPeriod === '6m' ? -6 : -12) : trend12;
-  const unknownOpeningDate = visibleCategories.some(c => c.kind === 'investment' && c.initialBalance && !c.subscriptionDate);
+  const unknownOpeningDate = visibleCategories.some(c => c.kind === 'investment' && c.initialBalance && !isHistoryDate(c.subscriptionDate));
 
   // Un solo avviso per i controvalori fermi, invece dell'azione ripetuta su
   // ogni riga: dice QUALI e da quanto, e porta direttamente alla prima.
