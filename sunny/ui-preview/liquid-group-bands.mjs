@@ -9,7 +9,7 @@ try{for(const theme of ['light','dark'])for(const width of [390,1440]){
  await page.evaluate(()=>{history.pushState({},'','/transactions');dispatchEvent(new PopStateEvent('popstate'));});
  for(const mode of ['mese','conto','categoria','tipo movimento']){
   await page.getByRole('button',{name:'Filtri',exact:true}).click();
-  await page.getByRole('button',{name:`Per ${mode}`,exact:true}).click();
+  await page.getByRole('button',{name:mode.charAt(0).toUpperCase()+mode.slice(1),exact:true}).click();
   const summaries=page.locator('[data-transaction-group-summary]');await summaries.first().waitFor();
   const summary=summaries.first();const toggle=summary.getByRole('button',{name:/Chiudi gruppo/});
   const id=await toggle.getAttribute('aria-controls');const rows=page.locator(`[id="${id}"]`);

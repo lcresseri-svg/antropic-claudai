@@ -461,7 +461,7 @@ export function TransactionList({ transactions, projected = [], onEdit, onDelete
                   </div>
                   <p className="label-caps text-secondary mb-1.5 px-1">Raggruppa per</p>
                   <div className="space-y-1 mb-2.5">
-                    {([['day', 'Per giorno'], ['month', 'Per mese'], ['account', 'Per conto'], ['category', 'Per categoria'], ...(ui3 ? [['type', 'Per tipo movimento']] : [])] as [GroupMode, string][]).map(([m, lbl]) => (
+                    {([['day', 'Giorno'], ['month', 'Mese'], ['account', 'Conto'], ['category', 'Categoria'], ...(ui3 ? [['type', 'Tipo movimento']] : [])] as [GroupMode, string][]).map(([m, lbl]) => (
                       <button key={m} onClick={() => { changeGroup(m); setFilterOpen(false); }}
                         className={`w-full flex items-center justify-between px-3 py-1.5 rounded-xl text-[13px] transition-colors ${
                           groupMode === m ? 'bg-gold/10 text-gold font-medium' : 'text-primary hover:bg-card'
