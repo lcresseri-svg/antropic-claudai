@@ -1,10 +1,10 @@
 import {chromium,browserOptions} from './browser.mjs';
 import {mkdir,writeFile} from 'node:fs/promises';
 import assert from 'node:assert/strict';
-const out='/workspace/portfolio-history';await mkdir(out,{recursive:true});const results=[];const browser=await chromium.launch(browserOptions);
+const out=process.env.SUNNY_EVIDENCE||'/workspace/portfolio-history';await mkdir(out,{recursive:true});const results=[];const browser=await chromium.launch(browserOptions);
 try{for(const theme of ['light','dark'])for(const width of [320,390,1440]){
  const page=await browser.newPage({viewport:{width,height:900}});const errors=[];page.on('pageerror',e=>errors.push(e.message));await page.clock.setFixedTime(new Date('2026-10-17T12:00:00Z'));
- await page.goto(`http://127.0.0.1:4177/ui-preview/index.html?ui=3&theme=${theme}`);await page.locator('#preview-writes').waitFor();
+ await page.goto(`http://127.0.0.1:4177/ui-preview/index.html?ui=3&theme=${theme}${process.env.SUNNY_INVALID_DATE?'&invalidPortfolioDate':''}`);await page.locator('#preview-writes').waitFor();
  await page.evaluate(()=>{history.pushState({},'','/investments');dispatchEvent(new PopStateEvent('popstate'));});
  const chart=page.locator('[data-portfolio-history]');await chart.waitFor();
  assert.equal(await chart.getByRole('button',{name:'Tutto',exact:true}).getAttribute('aria-pressed'),'true');
