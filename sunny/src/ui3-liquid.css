@@ -15,6 +15,8 @@
  --hero-bg:var(--surface-1); --hero-border-top:var(--border); --modal-hdr-bg:var(--surface-1);
  --accent-surface:linear-gradient(145deg,#17140D,#080808);
  --ui-motion-sheet:260ms; color-scheme:dark;
+ --ui-positive:#74B85C; --ui-negative:#DD5B4F; --ui-info:#7FB6CC;
+ --c-rhythm:242 196 109; --rhythm-ink:#F7F8FA; --rhythm-ink-hi:#241704;
 }
 html.light [data-liquid-ui="true"] {
  --bg:#FFFFFF; --surface-1:#FFFFFF; --surface-2:#F7F9FC;
@@ -29,6 +31,12 @@ html.light [data-liquid-ui="true"] {
  --liquid-panel:rgb(255 255 255 / .96); --liquid-edge:rgb(255 255 255 / .9);
  --ui-shadow:0 16px 48px rgb(30 43 66 / .09); --elev-1:0 3px 18px rgb(30 43 66 / .04);
  --accent-surface:linear-gradient(145deg,#FFFAEF,#FFFFFF); color-scheme:light;
+ --ui-accent-text:#825006;
+ --c-gold:154 101 10; --accent:#825006; --accent-gold:#9A650A;
+ --c-green:35 106 32; --accent-green:#236A20; --ui-positive:#236A20;
+ --c-red:170 48 40; --accent-red:#AA3028; --ui-negative:#AA3028;
+ --accent-blue:#225B78; --ui-info:#225B78;
+ --c-rhythm:242 196 109; --rhythm-ink:#5E6570; --rhythm-ink-hi:#241704;
 }
 [data-liquid-ui="true"] [data-liquid-preserve] {
   color:var(--text-1);
@@ -233,3 +241,14 @@ html.light:has(.app-shell[data-liquid-ui="true"]), html.light:has(.app-shell[dat
 [data-liquid-ui="true"] .plan-limit-picker > button { display:flex; justify-content:space-between; gap:16px; width:100%; min-height:52px; padding:12px 0; border-bottom:1px solid var(--border); text-align:left; }
 [data-liquid-ui="true"] .plan-limit-picker > button > span:last-child { font-size:13px; color:var(--text-2); }
 [data-liquid-ui="true"] .plan-category-list .plan-category-edit { width:auto; min-height:44px; padding:8px 0; color:var(--ui-accent-text); font-size:13px; }
+
+[data-liquid-ui="true"] [data-liquid-preserve] {
+ --accent:#F0BE4D; --accent-gold:#F0BE4D; --accent-green:#74B85C; --accent-red:#DD5B4F; --accent-blue:#7FB6CC;
+ --c-gold:240 190 77; --c-green:116 184 92; --c-red:221 91 79;
+ --c-rhythm:240 190 77; --rhythm-ink:#C9B27A; --rhythm-ink-hi:#141210;
+}
+html.light [data-liquid-ui="true"] [data-liquid-preserve] {
+ --accent:#C4972C; --accent-gold:#C4972C; --accent-green:#2C8526; --accent-red:#C5392F; --accent-blue:#2F7396;
+ --c-gold:196 151 44; --c-green:44 133 38; --c-red:197 57 47;
+ --c-rhythm:196 151 44; --rhythm-ink:#5A4A22; --rhythm-ink-hi:#FFFDF9;
+}

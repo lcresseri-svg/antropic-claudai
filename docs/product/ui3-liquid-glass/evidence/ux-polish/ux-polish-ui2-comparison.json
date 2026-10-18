@@ -1,0 +1,137 @@
+[
+  {
+    "name": "home-dark-390.png",
+    "pixelsChanged": 19,
+    "bbox": [
+      41,
+      500,
+      58,
+      531
+    ]
+  },
+  {
+    "name": "settings-light-1440.png",
+    "pixelsChanged": 0,
+    "bbox": null
+  },
+  {
+    "name": "settings-dark-390.png",
+    "pixelsChanged": 0,
+    "bbox": null
+  },
+  {
+    "name": "investments-dark-390.png",
+    "pixelsChanged": 0,
+    "bbox": null
+  },
+  {
+    "name": "budget-light-390.png",
+    "pixelsChanged": 0,
+    "bbox": null
+  },
+  {
+    "name": "home-light-390.png",
+    "pixelsChanged": 18,
+    "bbox": [
+      41,
+      500,
+      58,
+      531
+    ]
+  },
+  {
+    "name": "transactions-light-1440.png",
+    "pixelsChanged": 0,
+    "bbox": null
+  },
+  {
+    "name": "investments-dark-1440.png",
+    "pixelsChanged": 0,
+    "bbox": null
+  },
+  {
+    "name": "investments-light-390.png",
+    "pixelsChanged": 0,
+    "bbox": null
+  },
+  {
+    "name": "wrapped-2026-dark-390.png",
+    "pixelsChanged": 0,
+    "bbox": null
+  },
+  {
+    "name": "settings-light-390.png",
+    "pixelsChanged": 0,
+    "bbox": null
+  },
+  {
+    "name": "budget-dark-390.png",
+    "pixelsChanged": 0,
+    "bbox": null
+  },
+  {
+    "name": "budget-light-1440.png",
+    "pixelsChanged": 0,
+    "bbox": null
+  },
+  {
+    "name": "transactions-dark-390.png",
+    "pixelsChanged": 0,
+    "bbox": null
+  },
+  {
+    "name": "home-light-1440.png",
+    "pixelsChanged": 72,
+    "bbox": [
+      1049,
+      239,
+      1069,
+      749
+    ]
+  },
+  {
+    "name": "transactions-dark-1440.png",
+    "pixelsChanged": 0,
+    "bbox": null
+  },
+  {
+    "name": "wrapped-2026-light-1440.png",
+    "pixelsChanged": 0,
+    "bbox": null
+  },
+  {
+    "name": "budget-dark-1440.png",
+    "pixelsChanged": 0,
+    "bbox": null
+  },
+  {
+    "name": "investments-light-1440.png",
+    "pixelsChanged": 0,
+    "bbox": null
+  },
+  {
+    "name": "settings-dark-1440.png",
+    "pixelsChanged": 0,
+    "bbox": null
+  },
+  {
+    "name": "transactions-light-390.png",
+    "pixelsChanged": 0,
+    "bbox": null
+  },
+  {
+    "name": "home-dark-1440.png",
+    "pixelsChanged": 0,
+    "bbox": null
+  },
+  {
+    "name": "wrapped-2026-light-390.png",
+    "pixelsChanged": 0,
+    "bbox": null
+  },
+  {
+    "name": "wrapped-2026-dark-1440.png",
+    "pixelsChanged": 0,
+    "bbox": null
+  }
+]

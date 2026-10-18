@@ -1,0 +1,28 @@
+PASS light applePay {
+  top: 57,
+  bottom: 423,
+  bodyHeight: 434,
+  bodyScroll: 434,
+  overflow: 'auto'
+}
+PASS light generic {
+  top: 57,
+  bottom: 423,
+  bodyHeight: 438,
+  bodyScroll: 438,
+  overflow: 'auto'
+}
+PASS dark applePay {
+  top: 57,
+  bottom: 423,
+  bodyHeight: 434,
+  bodyScroll: 434,
+  overflow: 'auto'
+}
+PASS dark generic {
+  top: 57,
+  bottom: 423,
+  bodyHeight: 438,
+  bodyScroll: 438,
+  overflow: 'auto'
+}

@@ -95,7 +95,7 @@ export function CategoryTrendLineChart({ points, color, formatValue, height = 96
 
       <div className="flex justify-between mt-1.5" style={{ paddingLeft: PAD_X, paddingRight: PAD_X }}>
         {points.map((p, i) => (
-          <span key={i} className={`text-[9px] text-secondary ${points.length > 7 && i % 2 === 1 ? 'hidden sm:inline' : ''}`}>
+          <span key={i} className={`ui-chart-tick text-[9px] text-secondary ${points.length > 7 && i % 2 === 1 ? 'hidden sm:inline' : ''}`}>
             {p.label}
           </span>
         ))}

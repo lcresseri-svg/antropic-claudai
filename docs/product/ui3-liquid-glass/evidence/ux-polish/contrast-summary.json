@@ -1,0 +1,287 @@
+[
+  {
+    "view": "/",
+    "theme": "light",
+    "textNodesMeasured": 151,
+    "contrastCandidates": 0,
+    "samples": []
+  },
+  {
+    "view": "/wealth",
+    "theme": "light",
+    "textNodesMeasured": 111,
+    "contrastCandidates": 0,
+    "samples": [
+      {
+        "text": "+4014,00 €",
+        "contrast": 5.4,
+        "font": 13
+      }
+    ]
+  },
+  {
+    "view": "/budget",
+    "theme": "light",
+    "textNodesMeasured": 100,
+    "contrastCandidates": 0,
+    "samples": []
+  },
+  {
+    "view": "/transactions",
+    "theme": "light",
+    "textNodesMeasured": 987,
+    "contrastCandidates": 0,
+    "samples": []
+  },
+  {
+    "view": "/investments",
+    "theme": "light",
+    "textNodesMeasured": 123,
+    "contrastCandidates": 0,
+    "samples": [
+      {
+        "text": "Tutto",
+        "contrast": 10.75,
+        "font": 14
+      },
+      {
+        "text": "Aggiorna",
+        "contrast": 5.95,
+        "font": 13
+      }
+    ]
+  },
+  {
+    "view": "/account-balance",
+    "theme": "light",
+    "textNodesMeasured": 38,
+    "contrastCandidates": 0,
+    "samples": []
+  },
+  {
+    "view": "/category-spending",
+    "theme": "light",
+    "textNodesMeasured": 47,
+    "contrastCandidates": 0,
+    "samples": []
+  },
+  {
+    "view": "/insights",
+    "theme": "light",
+    "textNodesMeasured": 36,
+    "contrastCandidates": 0,
+    "samples": [
+      {
+        "text": "988,00 €",
+        "contrast": 6.78,
+        "font": 14
+      }
+    ]
+  },
+  {
+    "view": "/settings",
+    "theme": "light",
+    "textNodesMeasured": 58,
+    "contrastCandidates": 0,
+    "samples": []
+  },
+  {
+    "view": "/forecast-v3",
+    "theme": "light",
+    "textNodesMeasured": 171,
+    "contrastCandidates": 0,
+    "samples": []
+  },
+  {
+    "view": "fund-detail",
+    "theme": "light",
+    "textNodesMeasured": 233,
+    "contrastCandidates": 0,
+    "samples": [
+      {
+        "text": "Tutto",
+        "contrast": 10.75,
+        "font": 14
+      },
+      {
+        "text": "Aggiorna",
+        "contrast": 5.95,
+        "font": 13
+      },
+      {
+        "text": "Tutto",
+        "contrast": 10.75,
+        "font": 14
+      }
+    ]
+  },
+  {
+    "view": "deposit-editor",
+    "theme": "light",
+    "textNodesMeasured": 143,
+    "contrastCandidates": 0,
+    "samples": [
+      {
+        "text": "Tutto",
+        "contrast": 10.75,
+        "font": 14
+      },
+      {
+        "text": "Aggiorna",
+        "contrast": 5.95,
+        "font": 13
+      }
+    ]
+  },
+  {
+    "view": "filters",
+    "theme": "light",
+    "textNodesMeasured": 1005,
+    "contrastCandidates": 0,
+    "samples": []
+  },
+  {
+    "view": "settings-appearance",
+    "theme": "light",
+    "textNodesMeasured": 9,
+    "contrastCandidates": 0,
+    "samples": []
+  },
+  {
+    "view": "/",
+    "theme": "dark",
+    "textNodesMeasured": 151,
+    "contrastCandidates": 0,
+    "samples": []
+  },
+  {
+    "view": "/wealth",
+    "theme": "dark",
+    "textNodesMeasured": 111,
+    "contrastCandidates": 0,
+    "samples": [
+      {
+        "text": "+4014,00 €",
+        "contrast": 7.46,
+        "font": 13
+      }
+    ]
+  },
+  {
+    "view": "/budget",
+    "theme": "dark",
+    "textNodesMeasured": 100,
+    "contrastCandidates": 0,
+    "samples": []
+  },
+  {
+    "view": "/transactions",
+    "theme": "dark",
+    "textNodesMeasured": 151,
+    "contrastCandidates": 0,
+    "samples": []
+  },
+  {
+    "view": "/investments",
+    "theme": "dark",
+    "textNodesMeasured": 151,
+    "contrastCandidates": 0,
+    "samples": []
+  },
+  {
+    "view": "/account-balance",
+    "theme": "dark",
+    "textNodesMeasured": 38,
+    "contrastCandidates": 0,
+    "samples": []
+  },
+  {
+    "view": "/category-spending",
+    "theme": "dark",
+    "textNodesMeasured": 47,
+    "contrastCandidates": 0,
+    "samples": []
+  },
+  {
+    "view": "/insights",
+    "theme": "dark",
+    "textNodesMeasured": 36,
+    "contrastCandidates": 0,
+    "samples": [
+      {
+        "text": "988,00 €",
+        "contrast": 12.18,
+        "font": 14
+      }
+    ]
+  },
+  {
+    "view": "/settings",
+    "theme": "dark",
+    "textNodesMeasured": 151,
+    "contrastCandidates": 0,
+    "samples": []
+  },
+  {
+    "view": "/forecast-v3",
+    "theme": "dark",
+    "textNodesMeasured": 171,
+    "contrastCandidates": 0,
+    "samples": []
+  },
+  {
+    "view": "fund-detail",
+    "theme": "dark",
+    "textNodesMeasured": 233,
+    "contrastCandidates": 0,
+    "samples": [
+      {
+        "text": "Tutto",
+        "contrast": 10.75,
+        "font": 14
+      },
+      {
+        "text": "Aggiorna",
+        "contrast": 11.57,
+        "font": 13
+      },
+      {
+        "text": "Tutto",
+        "contrast": 10.75,
+        "font": 14
+      }
+    ]
+  },
+  {
+    "view": "deposit-editor",
+    "theme": "dark",
+    "textNodesMeasured": 143,
+    "contrastCandidates": 0,
+    "samples": [
+      {
+        "text": "Tutto",
+        "contrast": 10.75,
+        "font": 14
+      },
+      {
+        "text": "Aggiorna",
+        "contrast": 11.57,
+        "font": 13
+      }
+    ]
+  },
+  {
+    "view": "filters",
+    "theme": "dark",
+    "textNodesMeasured": 1005,
+    "contrastCandidates": 0,
+    "samples": []
+  },
+  {
+    "view": "settings-appearance",
+    "theme": "dark",
+    "textNodesMeasured": 9,
+    "contrastCandidates": 0,
+    "samples": []
+  }
+]

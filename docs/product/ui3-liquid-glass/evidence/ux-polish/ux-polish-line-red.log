@@ -1,0 +1,26 @@
+PASS light 390 selected period contrast
+FAIL light 390 valuation reference line contrast The expression evaluated to a falsy value:
+
+  assert.ok(await ratio(history.locator('line[stroke-dasharray="5 4"]'))>=3)
+
+PASS light 390 responsive portfolio chart
+PASS light 390 last known valuation labelled
+PASS light 390 period change preserves selected month
+PASS light 390 amount display size
+PASS light 390 amount input retained
+PASS light 390 discard preserves draft
+PASS light 390 Escape restores filter trigger
+PASS light 390 daily chart large keyboard surface
+PASS dark 390 selected period contrast
+FAIL dark 390 valuation reference line contrast The expression evaluated to a falsy value:
+
+  assert.ok(await ratio(history.locator('line[stroke-dasharray="5 4"]'))>=3)
+
+PASS dark 390 responsive portfolio chart
+PASS dark 390 last known valuation labelled
+PASS dark 390 period change preserves selected month
+PASS dark 390 amount display size
+PASS dark 390 amount input retained
+PASS dark 390 discard preserves draft
+PASS dark 390 Escape restores filter trigger
+PASS dark 390 daily chart large keyboard surface

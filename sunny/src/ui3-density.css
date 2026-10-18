@@ -77,7 +77,7 @@
 /* Bring legacy text utilities onto the same scale across the remaining routes.
    SVG chart labels and the preserved Wrapped surfaces keep their own metrics. */
 :is([data-liquid-ui="true"] .app-main,[data-liquid-ui="true"][data-ui-dialog])
-:is(.text-xs,[class~="text-[11px]"],[class~="text-[11.5px]"],[class~="text-[12px]"],[class~="text-[12.5px]"]):not([data-liquid-preserve] *, .wrapped-shell *, svg, svg *) {
+:is(.text-xs,[class~="text-[10px]"],[class~="text-[10.5px]"],[class~="text-[11px]"],[class~="text-[11.5px]"],[class~="text-[12px]"],[class~="text-[12.5px]"]):not([data-liquid-preserve] *, .wrapped-shell *, svg, svg *) {
   font-size:var(--ui-type-caption); line-height:1.4;
 }
 :is([data-liquid-ui="true"] .app-main,[data-liquid-ui="true"][data-ui-dialog])
@@ -151,3 +151,33 @@
 }
 [data-liquid-ui="true"] .app-main .ui-transaction-filters :is(.mb-2,.mb-2\.5) { margin-bottom:8px; }
 [data-liquid-ui="true"] .app-main .ui-transaction-filters .space-y-1 > :not([hidden]) ~ :not([hidden]) { margin-top:0; }
+
+/* Semantic controls override legacy utility sizes without shrinking amounts. */
+:is([data-liquid-ui="true"] .app-main,[data-liquid-ui="true"][data-ui-dialog]) .ui-amount-input {
+  font-size:clamp(2rem,7vw,2.5rem); line-height:1.2; min-height:48px;
+}
+:is([data-liquid-ui="true"] .app-main,[data-liquid-ui="true"][data-ui-dialog]) .ui-amount-input::placeholder { color:var(--text-2); opacity:1; }
+[data-liquid-ui="true"] .ui-period-selector { display:flex; flex-wrap:wrap; gap:8px; margin-bottom:12px; }
+[data-liquid-ui="true"] .ui-period-choice { min-height:44px; padding:8px 14px; border-radius:12px; font-size:.875rem; font-weight:600; background:var(--surface-2); color:var(--text-2); }
+[data-liquid-ui="true"] .ui-period-choice[aria-pressed="true"],
+[data-liquid-ui="true"] button.bg-gold.text-bg { background:var(--ui-accent); color:var(--ui-on-accent); }
+:is([data-liquid-ui="true"] .app-main,[data-liquid-ui="true"][data-ui-dialog]) .label-caps:not([data-liquid-preserve] *, .wrapped-shell *) { font-size:.75rem; line-height:1.4; }
+:is([data-liquid-ui="true"] .app-main,[data-liquid-ui="true"][data-ui-dialog]) .ui-chart-tick { font-size:.75rem; line-height:1.4; color:var(--text-2); }
+[data-liquid-ui="true"] .ui-forecast :is(.text-emerald-400,[class~="text-[#8A9270]"]) { color:var(--ui-positive); }
+[data-liquid-ui="true"] .ui-forecast :is(.text-blue-400,.text-blue-500) { color:var(--ui-info); }
+[data-liquid-ui="true"] .ui-forecast [class~="text-[#C0706A]"] { color:var(--ui-negative); }
+
+[data-liquid-ui="true"] .ui-chart-picker { min-height:112px; cursor:crosshair; border-radius:8px; touch-action:manipulation; }
+[data-liquid-ui="true"] .ui-chart-selection { display:flex; align-items:center; justify-content:space-between; flex-wrap:wrap; gap:8px; min-height:44px; font-size:.8125rem; color:var(--text-2); margin-top:8px; }
+[data-liquid-ui="true"] .ui-chart-selection button { min-height:44px; padding:8px 0; color:var(--ui-accent-text); font-weight:600; }
+
+[data-liquid-ui="true"] .ui-rhythm-cell[class~="text-tertiary/70"] { color:var(--text-2); }
+[data-liquid-ui="true"] button.bg-gold[class~="text-[var(--rhythm-ink-hi)]"] { background:var(--ui-accent); color:var(--ui-on-accent); }
+/* Metric columns adapt to scaled labels instead of forcing narrow tracks. */
+[data-liquid-ui="true"] .plan-hero-stats {
+  font-size:var(--ui-type-caption);
+  grid-template-columns:repeat(auto-fit,minmax(min(100%,14ch),1fr));
+}
+[data-liquid-ui="true"] :is(.plan-lines > button,.plan-lines li) { flex-wrap:wrap; }
+[data-liquid-ui="true"] .plan-goals > button > span:nth-child(2),
+[data-liquid-ui="true"] .plan-lines li > span { min-width:min(100%,14ch); overflow-wrap:anywhere; }

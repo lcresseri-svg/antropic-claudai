@@ -1,3 +1,4 @@
+import { ProgressiveSection } from '../../shared/components/ProgressiveSection';
 import { PaidInHistoryChart } from './PaidInHistoryChart';
 import { DialogSurface } from '../../shared/components/DialogSurface';
 // Investment position detail — bottom sheet on mobile, right side-panel on
@@ -274,10 +275,10 @@ export function InvestmentDetailSheet({
 
           {/* KPI */}
           <div className="grid grid-cols-2 gap-2">
-            {kpis.map(k => (
+            {(ui3 ? kpis.filter(k => k.label === 'Capitale investito netto' || k.label === 'Guadagno totale') : kpis).map(k => (
               <div key={k.label} className="bg-card rounded-xl px-3 py-2.5">
                 <p className={`text-[14px] font-semibold balance-num ${k.tone ?? 'text-primary'}`}>{k.value}</p>
-                <p className="text-[10px] text-secondary mt-0.5 truncate">
+                <p className={`text-[10px] text-secondary mt-0.5 ${ui3 ? '' : 'truncate'}`}>
                   {k.label}{k.hint && <span style={{ color: 'var(--accent)' }}> · {k.hint}</span>}
                 </p>
               </div>
@@ -297,9 +298,19 @@ export function InvestmentDetailSheet({
             </p>
           </div>
 
+          {ui3 && <ProgressiveSection title="Rendimento e durata">
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 pt-3">
+              {kpis.filter(k => k.label !== 'Capitale investito netto' && k.label !== 'Guadagno totale').map(k => <div key={k.label}>
+                <p className={`text-sm font-semibold balance-num ${k.tone ?? 'text-primary'}`}>{k.value}</p>
+                <p className="text-xs text-secondary mt-1">{k.label}{k.hint && ` · ${k.hint}`}</p>
+              </div>)}
+            </div>
+          </ProgressiveSection>}
+
           {/* Statistiche */}
+          <ProgressiveSection title="Statistiche della posizione">
           <div>
-            <p className="label-caps text-secondary mb-2">Statistiche</p>
+            {!ui3 && <p className="label-caps text-secondary mb-2">Statistiche</p>}
             <div className="bg-card rounded-2xl px-4 py-1.5 divide-y divide-divider">
               {stats.map(s => (
                 <div key={s.label} className="flex items-center justify-between gap-3 py-2">
@@ -310,6 +321,7 @@ export function InvestmentDetailSheet({
             </div>
           </div>
 
+          </ProgressiveSection>
           {/* Movimenti recenti */}
           <div>
             <p className="label-caps text-secondary mb-2">Movimenti recenti</p>

@@ -1,0 +1,28 @@
+PASS light 390 selected period contrast
+PASS light 390 responsive portfolio chart
+PASS light 390 last known valuation labelled
+FAIL light 390 period change preserves selected month Expected values to be strictly equal:
++ actual - expected
+
++ 'Giu 2025 · versato 8000,00 €'
+- 'Ott 2026 · versato 12.200,00 €'
+
+PASS light 390 amount display size
+PASS light 390 amount input retained
+PASS light 390 discard preserves draft
+PASS light 390 Escape restores filter trigger
+PASS light 390 daily chart large keyboard surface
+PASS dark 390 selected period contrast
+PASS dark 390 responsive portfolio chart
+PASS dark 390 last known valuation labelled
+FAIL dark 390 period change preserves selected month Expected values to be strictly equal:
++ actual - expected
+
++ 'Giu 2025 · versato 8000,00 €'
+- 'Ott 2026 · versato 12.200,00 €'
+
+PASS dark 390 amount display size
+PASS dark 390 amount input retained
+PASS dark 390 discard preserves draft
+PASS dark 390 Escape restores filter trigger
+PASS dark 390 daily chart large keyboard surface

@@ -1,0 +1,290 @@
+[
+  {
+    "route": "/",
+    "theme": "light",
+    "state": "empty",
+    "width": 320,
+    "textSize": "200% root",
+    "overflow": false,
+    "errors": []
+  },
+  {
+    "route": "/wealth",
+    "theme": "light",
+    "state": "empty",
+    "width": 320,
+    "textSize": "200% root",
+    "overflow": false,
+    "errors": []
+  },
+  {
+    "route": "/budget",
+    "theme": "light",
+    "state": "empty",
+    "width": 320,
+    "textSize": "200% root",
+    "overflow": false,
+    "errors": []
+  },
+  {
+    "route": "/transactions",
+    "theme": "light",
+    "state": "empty",
+    "width": 320,
+    "textSize": "200% root",
+    "overflow": false,
+    "errors": []
+  },
+  {
+    "route": "/category-spending",
+    "theme": "light",
+    "state": "empty",
+    "width": 320,
+    "textSize": "200% root",
+    "overflow": false,
+    "errors": []
+  },
+  {
+    "route": "/account-balance",
+    "theme": "light",
+    "state": "empty",
+    "width": 320,
+    "textSize": "200% root",
+    "overflow": false,
+    "errors": []
+  },
+  {
+    "route": "/income",
+    "theme": "light",
+    "state": "empty",
+    "width": 320,
+    "textSize": "200% root",
+    "overflow": false,
+    "errors": []
+  },
+  {
+    "route": "/settings",
+    "theme": "light",
+    "state": "empty",
+    "width": 320,
+    "textSize": "200% root",
+    "overflow": false,
+    "errors": []
+  },
+  {
+    "route": "/",
+    "theme": "light",
+    "state": "edgeCategories",
+    "width": 320,
+    "textSize": "200% root",
+    "overflow": false,
+    "errors": []
+  },
+  {
+    "route": "/wealth",
+    "theme": "light",
+    "state": "edgeCategories",
+    "width": 320,
+    "textSize": "200% root",
+    "overflow": false,
+    "errors": []
+  },
+  {
+    "route": "/budget",
+    "theme": "light",
+    "state": "edgeCategories",
+    "width": 320,
+    "textSize": "200% root",
+    "overflow": false,
+    "errors": []
+  },
+  {
+    "route": "/transactions",
+    "theme": "light",
+    "state": "edgeCategories",
+    "width": 320,
+    "textSize": "200% root",
+    "overflow": false,
+    "errors": []
+  },
+  {
+    "route": "/category-spending",
+    "theme": "light",
+    "state": "edgeCategories",
+    "width": 320,
+    "textSize": "200% root",
+    "overflow": false,
+    "errors": []
+  },
+  {
+    "route": "/account-balance",
+    "theme": "light",
+    "state": "edgeCategories",
+    "width": 320,
+    "textSize": "200% root",
+    "overflow": false,
+    "errors": []
+  },
+  {
+    "route": "/income",
+    "theme": "light",
+    "state": "edgeCategories",
+    "width": 320,
+    "textSize": "200% root",
+    "overflow": false,
+    "errors": []
+  },
+  {
+    "route": "/settings",
+    "theme": "light",
+    "state": "edgeCategories",
+    "width": 320,
+    "textSize": "200% root",
+    "overflow": false,
+    "errors": []
+  },
+  {
+    "route": "/",
+    "theme": "dark",
+    "state": "empty",
+    "width": 320,
+    "textSize": "200% root",
+    "overflow": false,
+    "errors": []
+  },
+  {
+    "route": "/wealth",
+    "theme": "dark",
+    "state": "empty",
+    "width": 320,
+    "textSize": "200% root",
+    "overflow": false,
+    "errors": []
+  },
+  {
+    "route": "/budget",
+    "theme": "dark",
+    "state": "empty",
+    "width": 320,
+    "textSize": "200% root",
+    "overflow": false,
+    "errors": []
+  },
+  {
+    "route": "/transactions",
+    "theme": "dark",
+    "state": "empty",
+    "width": 320,
+    "textSize": "200% root",
+    "overflow": false,
+    "errors": []
+  },
+  {
+    "route": "/category-spending",
+    "theme": "dark",
+    "state": "empty",
+    "width": 320,
+    "textSize": "200% root",
+    "overflow": false,
+    "errors": []
+  },
+  {
+    "route": "/account-balance",
+    "theme": "dark",
+    "state": "empty",
+    "width": 320,
+    "textSize": "200% root",
+    "overflow": false,
+    "errors": []
+  },
+  {
+    "route": "/income",
+    "theme": "dark",
+    "state": "empty",
+    "width": 320,
+    "textSize": "200% root",
+    "overflow": false,
+    "errors": []
+  },
+  {
+    "route": "/settings",
+    "theme": "dark",
+    "state": "empty",
+    "width": 320,
+    "textSize": "200% root",
+    "overflow": false,
+    "errors": []
+  },
+  {
+    "route": "/",
+    "theme": "dark",
+    "state": "edgeCategories",
+    "width": 320,
+    "textSize": "200% root",
+    "overflow": false,
+    "errors": []
+  },
+  {
+    "route": "/wealth",
+    "theme": "dark",
+    "state": "edgeCategories",
+    "width": 320,
+    "textSize": "200% root",
+    "overflow": false,
+    "errors": []
+  },
+  {
+    "route": "/budget",
+    "theme": "dark",
+    "state": "edgeCategories",
+    "width": 320,
+    "textSize": "200% root",
+    "overflow": false,
+    "errors": []
+  },
+  {
+    "route": "/transactions",
+    "theme": "dark",
+    "state": "edgeCategories",
+    "width": 320,
+    "textSize": "200% root",
+    "overflow": false,
+    "errors": []
+  },
+  {
+    "route": "/category-spending",
+    "theme": "dark",
+    "state": "edgeCategories",
+    "width": 320,
+    "textSize": "200% root",
+    "overflow": false,
+    "errors": []
+  },
+  {
+    "route": "/account-balance",
+    "theme": "dark",
+    "state": "edgeCategories",
+    "width": 320,
+    "textSize": "200% root",
+    "overflow": false,
+    "errors": []
+  },
+  {
+    "route": "/income",
+    "theme": "dark",
+    "state": "edgeCategories",
+    "width": 320,
+    "textSize": "200% root",
+    "overflow": false,
+    "errors": []
+  },
+  {
+    "route": "/settings",
+    "theme": "dark",
+    "state": "edgeCategories",
+    "width": 320,
+    "textSize": "200% root",
+    "overflow": false,
+    "errors": []
+  }
+]

@@ -6,7 +6,7 @@ import { useUiVersion } from '../../shared/providers/UiVersionProvider';
 // the range crosses it. Theme-aware: the line uses the gold accent token; grid
 // and labels use design tokens. No glow / heavy gradients.
 
-import { useId } from 'react';
+import { useId, useState } from 'react';
 
 interface Point { label: string; value: number; }
 
@@ -42,6 +42,9 @@ function smoothPath(pts: { x: number; y: number }[]): string {
 export function AccountBalanceLineChart({ points, formatValue, title='Saldo per conto', metricLabel='Saldo', color = 'var(--accent)', height = 112, presentation='line', lastPeriodLabel, onSelectPoint }: Props) {
   const ui3=useUiVersion()==='3.0';
   const bars=ui3&&presentation==='bars';
+  const selectable = bars && !!onSelectPoint;
+  const [selected, setSelected] = useState<number | null>(null);
+  const activeIndex = Math.min(selected ?? points.length - 1, points.length - 1);
   const path=(pts:{x:number;y:number}[])=>ui3?pts.map((p,i)=>`${i?'L':'M'} ${p.x} ${p.y}`).join(' '):smoothPath(pts);
   const gradId = useId();
   const values = points.map(p => p.value);
@@ -75,9 +78,8 @@ export function AccountBalanceLineChart({ points, formatValue, title='Saldo per 
   const minIdx = values.indexOf(Math.min(...values));
   const maxIdx = values.indexOf(Math.max(...values));
 
-  return (
-    <div>
-      <svg viewBox={`0 0 ${W} ${height}`} preserveAspectRatio="none" className="w-full overflow-visible" style={{ height }}>
+  const drawing = (
+      <svg aria-hidden={selectable ? true : undefined} viewBox={`0 0 ${W} ${height}`} preserveAspectRatio="none" className="w-full overflow-visible" style={{ height }}>
         <defs>
           <linearGradient id={gradId} x1="0" y1="0" x2="0" y2="1">
             <stop offset="0%" style={{ stopColor: color, stopOpacity: 0.16 }} />
@@ -86,7 +88,12 @@ export function AccountBalanceLineChart({ points, formatValue, title='Saldo per 
         </defs>
 
         {!bars&&<path d={area} fill={`url(#${gradId})`} />}
-        {bars&&values.map((v,i)=><rect data-chart-bar key={i} role={onSelectPoint?"button":undefined} tabIndex={onSelectPoint?0:undefined} aria-label={onSelectPoint?`${points[i].label}: ${formatValue(v)}. Apri movimenti`:undefined} onClick={onSelectPoint?()=>onSelectPoint(i):undefined} onKeyDown={onSelectPoint?e=>{if(e.key==='Enter'||e.key===' '){e.preventDefault();onSelectPoint(i);}}:undefined} x={PAD_X+(i+.19)*(W-PAD_X*2)/values.length} y={Math.min(y(v),zeroY)} width={(W-PAD_X*2)/values.length*.62} height={Math.abs(y(v)-zeroY)} rx="2" fill={color}><title>{points[i].label}: {formatValue(v)}</title></rect>)}
+        {bars&&values.map((v,i)=><rect data-chart-bar key={i}
+          x={PAD_X+(i+.19)*(W-PAD_X*2)/values.length} y={Math.min(y(v),zeroY)} width={(W-PAD_X*2)/values.length*.62}
+          height={Math.abs(y(v)-zeroY)} rx="2" fill={color}><title>{points[i].label}: {formatValue(v)}</title></rect>)}
+        {selectable && <line x1={PAD_X+(activeIndex+.5)*(W-PAD_X*2)/values.length} x2={PAD_X+(activeIndex+.5)*(W-PAD_X*2)/values.length}
+          y1={PAD_TOP} y2={height-PAD_BOTTOM} stroke="var(--text-2)" strokeDasharray="3 3" vectorEffect="non-scaling-stroke" />}
+
 
         {/* Zero baseline — only when the range actually crosses zero. */}
         {crossesZero && (
@@ -103,15 +110,41 @@ export function AccountBalanceLineChart({ points, formatValue, title='Saldo per 
           <circle key={i} cx={c.x} cy={c.y} r={2.6} fill={color} vectorEffect="non-scaling-stroke" />
         ))}
       </svg>
+  );
+
+  return (
+    <div>
+      {selectable ? <div role="group" aria-label={`${title}. Seleziona un periodo con le frecce, Home o End; Invio apre i movimenti.`}
+        tabIndex={0} className="ui-chart-picker"
+        onClick={event=>{
+          const box=event.currentTarget.getBoundingClientRect();
+          const position=((event.clientX-box.left)/box.width*W-PAD_X)/(W-PAD_X*2);
+          setSelected(Math.max(0,Math.min(points.length-1,Math.floor(position*points.length))));
+        }}
+        onKeyDown={event=>{
+          let index=activeIndex;
+          if(event.key==='ArrowLeft') index--;
+          else if(event.key==='ArrowRight') index++;
+          else if(event.key==='Home') index=0;
+          else if(event.key==='End') index=points.length-1;
+          else if(event.key==='Enter'||event.key===' '){event.preventDefault();onSelectPoint?.(activeIndex);return;}
+          else return;
+          event.preventDefault();setSelected(Math.max(0,Math.min(points.length-1,index)));
+        }}>{drawing}</div> : drawing}
+      {selectable && <div className="ui-chart-selection">
+        <p role="status" aria-live="polite" aria-atomic="true">{points[activeIndex].label}: <strong className="balance-num">{formatValue(values[activeIndex])}</strong></p>
+        <button type="button" onClick={()=>onSelectPoint?.(activeIndex)} aria-label={`Apri movimenti del periodo ${points[activeIndex].label}`}>Apri movimenti ›</button>
+      </div>}
+
 
       <div className="flex justify-between mt-1.5" style={{ paddingLeft: PAD_X, paddingRight: PAD_X }}>
         {points.map((p, i) => ui3 && points.length>7 && i%Math.ceil(points.length/6)!==0 && i!==points.length-1 ? null : (
-          <span key={i} className={`text-[9px] text-secondary ${points.length > 7 && i % 2 === 1 ? 'hidden sm:inline' : ''}`}>
+          <span key={i} className={`ui-chart-tick text-[9px] text-secondary ${points.length > 7 && i % 2 === 1 ? 'hidden sm:inline' : ''}`}>
             {p.label}
           </span>
         ))}
       </div>
-      <p className="text-[10px] text-secondary/70 text-center mt-1">{metricLabel} {lastPeriodLabel ?? (bars?'nell’ultimo mese':'a fine periodo')}: {formatValue(last ? values[values.length - 1] : 0)}</p>
+      <p className="ui-chart-tick text-[10px] text-secondary/70 text-center mt-1">{metricLabel} {lastPeriodLabel ?? (bars?'nell’ultimo mese':'a fine periodo')}: {formatValue(last ? values[values.length - 1] : 0)}</p>
       <ChartData title={title} columns={['Periodo',metricLabel]} rows={points.map(p=>[p.label,formatValue(p.value)])} scale="Scala ancorata allo zero."/>
     </div>
   );

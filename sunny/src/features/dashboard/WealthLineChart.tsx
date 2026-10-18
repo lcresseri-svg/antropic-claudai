@@ -187,7 +187,7 @@ export function WealthLineChart({ points, formatValue, height = 190 }: Props) {
       <div className="flex justify-between mt-1.5" style={{ paddingLeft: PAD_X * 0.02 + '%', paddingRight: PAD_X * 0.02 + '%' }}>
         {points.map((p, i) => (
           (i % labelEvery === 0 || i === points.length - 1) && (
-            <span key={p.date} className="text-[9px] text-secondary">{p.label}</span>
+            <span key={p.date} className="ui-chart-tick text-[9px] text-secondary">{p.label}</span>
           )
         ))}
       </div>

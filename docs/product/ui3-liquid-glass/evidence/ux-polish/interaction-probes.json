@@ -1,0 +1,84 @@
+[
+  {
+    "theme": "light",
+    "filterEscapeFocus": {
+      "tag": "BUTTON",
+      "label": "Filtri"
+    },
+    "depositInputs": [
+      {
+        "tag": "INPUT",
+        "cls": "ui-amount-input flex-1 min-w-0 bg-transparent text-[34px] leading-none font-bold text-primary\n                     outline-none balance-num placeholder:text-divider",
+        "placeholder": "0",
+        "type": "text",
+        "font": "32px",
+        "color": "rgb(21, 22, 25)",
+        "placeholderColor": "rgb(94, 101, 112)",
+        "bg": "rgba(0, 0, 0, 0)",
+        "rect": {
+          "width": 274.796875,
+          "height": 48
+        }
+      },
+      {
+        "tag": "INPUT",
+        "cls": "block w-full min-w-0 box-border appearance-none bg-elevated rounded-2xl px-4 py-3 text-primary text-sm outline-none focus:ring-1 focus:ring-gold/40",
+        "placeholder": null,
+        "type": "date",
+        "font": "16px",
+        "color": "rgb(21, 22, 25)",
+        "placeholderColor": "rgb(21, 22, 25)",
+        "bg": "rgb(247, 249, 252)",
+        "rect": {
+          "width": 324,
+          "height": 49.1875
+        }
+      }
+    ],
+    "childBackFocus": {
+      "tag": "BUTTON",
+      "label": "+ Versa"
+    }
+  },
+  {
+    "theme": "dark",
+    "filterEscapeFocus": {
+      "tag": "BUTTON",
+      "label": "Filtri"
+    },
+    "depositInputs": [
+      {
+        "tag": "INPUT",
+        "cls": "ui-amount-input flex-1 min-w-0 bg-transparent text-[34px] leading-none font-bold text-primary\n                     outline-none balance-num placeholder:text-divider",
+        "placeholder": "0",
+        "type": "text",
+        "font": "32px",
+        "color": "rgb(247, 248, 250)",
+        "placeholderColor": "rgb(175, 182, 194)",
+        "bg": "rgba(0, 0, 0, 0)",
+        "rect": {
+          "width": 274.796875,
+          "height": 48
+        }
+      },
+      {
+        "tag": "INPUT",
+        "cls": "block w-full min-w-0 box-border appearance-none bg-elevated rounded-2xl px-4 py-3 text-primary text-sm outline-none focus:ring-1 focus:ring-gold/40",
+        "placeholder": null,
+        "type": "date",
+        "font": "16px",
+        "color": "rgb(247, 248, 250)",
+        "placeholderColor": "rgb(247, 248, 250)",
+        "bg": "rgb(16, 16, 16)",
+        "rect": {
+          "width": 324,
+          "height": 49.1875
+        }
+      }
+    ],
+    "childBackFocus": {
+      "tag": "BUTTON",
+      "label": "+ Versa"
+    }
+  }
+]

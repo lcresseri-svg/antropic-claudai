@@ -1,0 +1,80 @@
+PASS light 320 selected period contrast
+PASS light 320 valuation reference line contrast
+PASS light 320 responsive portfolio chart
+PASS light 320 last known valuation labelled
+PASS light 320 period change preserves selected month
+PASS light 320 amount display size
+PASS light 320 amount input retained
+PASS light 320 discard preserves draft
+PASS light 320 Escape restores filter trigger
+PASS light 320 daily chart large keyboard surface
+PASS light 390 selected period contrast
+PASS light 390 valuation reference line contrast
+PASS light 390 responsive portfolio chart
+PASS light 390 last known valuation labelled
+PASS light 390 period change preserves selected month
+PASS light 390 amount display size
+PASS light 390 amount input retained
+PASS light 390 discard preserves draft
+PASS light 390 Escape restores filter trigger
+PASS light 390 daily chart large keyboard surface
+PASS light 834 selected period contrast
+PASS light 834 valuation reference line contrast
+PASS light 834 responsive portfolio chart
+PASS light 834 last known valuation labelled
+PASS light 834 period change preserves selected month
+PASS light 834 amount display size
+PASS light 834 amount input retained
+PASS light 834 discard preserves draft
+PASS light 834 Escape restores filter trigger
+PASS light 834 daily chart large keyboard surface
+PASS light 1440 selected period contrast
+PASS light 1440 valuation reference line contrast
+PASS light 1440 responsive portfolio chart
+PASS light 1440 last known valuation labelled
+PASS light 1440 period change preserves selected month
+PASS light 1440 amount display size
+PASS light 1440 amount input retained
+PASS light 1440 discard preserves draft
+PASS light 1440 Escape restores filter trigger
+PASS light 1440 daily chart large keyboard surface
+PASS dark 320 selected period contrast
+PASS dark 320 valuation reference line contrast
+PASS dark 320 responsive portfolio chart
+PASS dark 320 last known valuation labelled
+PASS dark 320 period change preserves selected month
+PASS dark 320 amount display size
+PASS dark 320 amount input retained
+PASS dark 320 discard preserves draft
+PASS dark 320 Escape restores filter trigger
+PASS dark 320 daily chart large keyboard surface
+PASS dark 390 selected period contrast
+PASS dark 390 valuation reference line contrast
+PASS dark 390 responsive portfolio chart
+PASS dark 390 last known valuation labelled
+PASS dark 390 period change preserves selected month
+PASS dark 390 amount display size
+PASS dark 390 amount input retained
+PASS dark 390 discard preserves draft
+PASS dark 390 Escape restores filter trigger
+PASS dark 390 daily chart large keyboard surface
+PASS dark 834 selected period contrast
+PASS dark 834 valuation reference line contrast
+PASS dark 834 responsive portfolio chart
+PASS dark 834 last known valuation labelled
+PASS dark 834 period change preserves selected month
+PASS dark 834 amount display size
+PASS dark 834 amount input retained
+PASS dark 834 discard preserves draft
+PASS dark 834 Escape restores filter trigger
+PASS dark 834 daily chart large keyboard surface
+PASS dark 1440 selected period contrast
+PASS dark 1440 valuation reference line contrast
+PASS dark 1440 responsive portfolio chart
+PASS dark 1440 last known valuation labelled
+PASS dark 1440 period change preserves selected month
+PASS dark 1440 amount display size
+PASS dark 1440 amount input retained
+PASS dark 1440 discard preserves draft
+PASS dark 1440 Escape restores filter trigger
+PASS dark 1440 daily chart large keyboard surface
