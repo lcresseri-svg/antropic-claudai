@@ -1,0 +1,7751 @@
+[
+  {
+    "name": "/",
+    "theme": "light",
+    "overflow": false,
+    "textNodesMeasured": 148,
+    "controlCount": 75,
+    "fontSizes": [
+      9,
+      9.5,
+      10,
+      11,
+      12,
+      13,
+      14,
+      16,
+      17,
+      22,
+      24,
+      30,
+      32.22
+    ],
+    "contrastCandidates": [
+      {
+        "text": "+ 15 %",
+        "tag": "SPAN",
+        "cls": "text-[11.5px] font-semibold rounded-full px-2 py-[3px] text-green bg-green/[0.14]",
+        "font": 13,
+        "weight": "600",
+        "color": "rgb(44, 133, 38)",
+        "bg": [
+          225.45999999999998,
+          237.92,
+          224.61999999999998
+        ],
+        "contrast": 3.9,
+        "uncertain": false,
+        "svg": false,
+        "opacity": "1"
+      },
+      {
+        "text": "2",
+        "tag": "BUTTON",
+        "cls": "aspect-square rounded-[7px] md:rounded-lg flex items-center justify-center text-[11px] md:text-[12px] transition-colors font-semibold cursor-pointer",
+        "font": 13,
+        "weight": "600",
+        "color": "rgb(255, 253, 249)",
+        "bg": [
+          198.95,
+          156.2,
+          54.55000000000001
+        ],
+        "contrast": 2.51,
+        "uncertain": false,
+        "svg": false,
+        "opacity": "1"
+      },
+      {
+        "text": "11",
+        "tag": "BUTTON",
+        "cls": "aspect-square rounded-[7px] md:rounded-lg flex items-center justify-center text-[11px] md:text-[12px] transition-colors text-tertiary/70 cursor-pointer",
+        "font": 13,
+        "weight": "400",
+        "color": "rgba(94, 101, 112, 0.7)",
+        "bg": [
+          243.3,
+          243.35,
+          243.5
+        ],
+        "contrast": 2.91,
+        "uncertain": false,
+        "svg": false,
+        "opacity": "1"
+      },
+      {
+        "text": "12",
+        "tag": "BUTTON",
+        "cls": "aspect-square rounded-[7px] md:rounded-lg flex items-center justify-center text-[11px] md:text-[12px] transition-colors text-tertiary/70 cursor-pointer",
+        "font": 13,
+        "weight": "400",
+        "color": "rgba(94, 101, 112, 0.7)",
+        "bg": [
+          243.3,
+          243.35,
+          243.5
+        ],
+        "contrast": 2.91,
+        "uncertain": false,
+        "svg": false,
+        "opacity": "1"
+      },
+      {
+        "text": "13",
+        "tag": "BUTTON",
+        "cls": "aspect-square rounded-[7px] md:rounded-lg flex items-center justify-center text-[11px] md:text-[12px] transition-colors text-tertiary/70 cursor-pointer",
+        "font": 13,
+        "weight": "400",
+        "color": "rgba(94, 101, 112, 0.7)",
+        "bg": [
+          243.3,
+          243.35,
+          243.5
+        ],
+        "contrast": 2.91,
+        "uncertain": false,
+        "svg": false,
+        "opacity": "1"
+      },
+      {
+        "text": "14",
+        "tag": "BUTTON",
+        "cls": "aspect-square rounded-[7px] md:rounded-lg flex items-center justify-center text-[11px] md:text-[12px] transition-colors text-tertiary/70 cursor-pointer",
+        "font": 13,
+        "weight": "400",
+        "color": "rgba(94, 101, 112, 0.7)",
+        "bg": [
+          243.3,
+          243.35,
+          243.5
+        ],
+        "contrast": 2.91,
+        "uncertain": false,
+        "svg": false,
+        "opacity": "1"
+      },
+      {
+        "text": "15",
+        "tag": "BUTTON",
+        "cls": "aspect-square rounded-[7px] md:rounded-lg flex items-center justify-center text-[11px] md:text-[12px] transition-colors text-tertiary/70 cursor-pointer",
+        "font": 13,
+        "weight": "400",
+        "color": "rgba(94, 101, 112, 0.7)",
+        "bg": [
+          243.3,
+          243.35,
+          243.5
+        ],
+        "contrast": 2.91,
+        "uncertain": false,
+        "svg": false,
+        "opacity": "1"
+      },
+      {
+        "text": "16",
+        "tag": "BUTTON",
+        "cls": "aspect-square rounded-[7px] md:rounded-lg flex items-center justify-center text-[11px] md:text-[12px] transition-colors text-tertiary/70 cursor-pointer",
+        "font": 13,
+        "weight": "400",
+        "color": "rgba(94, 101, 112, 0.7)",
+        "bg": [
+          243.3,
+          243.35,
+          243.5
+        ],
+        "contrast": 2.91,
+        "uncertain": false,
+        "svg": false,
+        "opacity": "1"
+      },
+      {
+        "text": "17",
+        "tag": "BUTTON",
+        "cls": "aspect-square rounded-[7px] md:rounded-lg flex items-center justify-center text-[11px] md:text-[12px] transition-colors text-tertiary/70 cursor-pointer",
+        "font": 13,
+        "weight": "400",
+        "color": "rgba(94, 101, 112, 0.7)",
+        "bg": [
+          243.3,
+          243.35,
+          243.5
+        ],
+        "contrast": 2.91,
+        "uncertain": false,
+        "svg": false,
+        "opacity": "1"
+      },
+      {
+        "text": "18",
+        "tag": "BUTTON",
+        "cls": "aspect-square rounded-[7px] md:rounded-lg flex items-center justify-center text-[11px] md:text-[12px] transition-colors text-tertiary/70 outline outline-2 outline-offset-1 outline-primary font-bold cursor-pointer",
+        "font": 13,
+        "weight": "700",
+        "color": "rgba(94, 101, 112, 0.7)",
+        "bg": [
+          243.3,
+          243.35,
+          243.5
+        ],
+        "contrast": 2.91,
+        "uncertain": false,
+        "svg": false,
+        "opacity": "1"
+      },
+      {
+        "text": "19",
+        "tag": "BUTTON",
+        "cls": "aspect-square rounded-[7px] md:rounded-lg flex items-center justify-center text-[11px] md:text-[12px] transition-colors text-tertiary/70 cursor-pointer",
+        "font": 13,
+        "weight": "400",
+        "color": "rgba(94, 101, 112, 0.7)",
+        "bg": [
+          243.3,
+          243.35,
+          243.5
+        ],
+        "contrast": 2.91,
+        "uncertain": false,
+        "svg": false,
+        "opacity": "1"
+      },
+      {
+        "text": "20",
+        "tag": "BUTTON",
+        "cls": "aspect-square rounded-[7px] md:rounded-lg flex items-center justify-center text-[11px] md:text-[12px] transition-colors text-tertiary/70 cursor-pointer",
+        "font": 13,
+        "weight": "400",
+        "color": "rgba(94, 101, 112, 0.7)",
+        "bg": [
+          243.3,
+          243.35,
+          243.5
+        ],
+        "contrast": 2.91,
+        "uncertain": false,
+        "svg": false,
+        "opacity": "1"
+      },
+      {
+        "text": "21",
+        "tag": "BUTTON",
+        "cls": "aspect-square rounded-[7px] md:rounded-lg flex items-center justify-center text-[11px] md:text-[12px] transition-colors text-tertiary/70 cursor-pointer",
+        "font": 13,
+        "weight": "400",
+        "color": "rgba(94, 101, 112, 0.7)",
+        "bg": [
+          243.3,
+          243.35,
+          243.5
+        ],
+        "contrast": 2.91,
+        "uncertain": false,
+        "svg": false,
+        "opacity": "1"
+      },
+      {
+        "text": "22",
+        "tag": "BUTTON",
+        "cls": "aspect-square rounded-[7px] md:rounded-lg flex items-center justify-center text-[11px] md:text-[12px] transition-colors text-tertiary/70 cursor-pointer",
+        "font": 13,
+        "weight": "400",
+        "color": "rgba(94, 101, 112, 0.7)",
+        "bg": [
+          243.3,
+          243.35,
+          243.5
+        ],
+        "contrast": 2.91,
+        "uncertain": false,
+        "svg": false,
+        "opacity": "1"
+      },
+      {
+        "text": "23",
+        "tag": "BUTTON",
+        "cls": "aspect-square rounded-[7px] md:rounded-lg flex items-center justify-center text-[11px] md:text-[12px] transition-colors text-tertiary/70 cursor-pointer",
+        "font": 13,
+        "weight": "400",
+        "color": "rgba(94, 101, 112, 0.7)",
+        "bg": [
+          243.3,
+          243.35,
+          243.5
+        ],
+        "contrast": 2.91,
+        "uncertain": false,
+        "svg": false,
+        "opacity": "1"
+      },
+      {
+        "text": "24",
+        "tag": "BUTTON",
+        "cls": "aspect-square rounded-[7px] md:rounded-lg flex items-center justify-center text-[11px] md:text-[12px] transition-colors text-tertiary/70 cursor-pointer",
+        "font": 13,
+        "weight": "400",
+        "color": "rgba(94, 101, 112, 0.7)",
+        "bg": [
+          243.3,
+          243.35,
+          243.5
+        ],
+        "contrast": 2.91,
+        "uncertain": false,
+        "svg": false,
+        "opacity": "1"
+      },
+      {
+        "text": "25",
+        "tag": "BUTTON",
+        "cls": "aspect-square rounded-[7px] md:rounded-lg flex items-center justify-center text-[11px] md:text-[12px] transition-colors text-tertiary/70 cursor-pointer",
+        "font": 13,
+        "weight": "400",
+        "color": "rgba(94, 101, 112, 0.7)",
+        "bg": [
+          243.3,
+          243.35,
+          243.5
+        ],
+        "contrast": 2.91,
+        "uncertain": false,
+        "svg": false,
+        "opacity": "1"
+      },
+      {
+        "text": "26",
+        "tag": "BUTTON",
+        "cls": "aspect-square rounded-[7px] md:rounded-lg flex items-center justify-center text-[11px] md:text-[12px] transition-colors text-tertiary/70 cursor-pointer",
+        "font": 13,
+        "weight": "400",
+        "color": "rgba(94, 101, 112, 0.7)",
+        "bg": [
+          243.3,
+          243.35,
+          243.5
+        ],
+        "contrast": 2.91,
+        "uncertain": false,
+        "svg": false,
+        "opacity": "1"
+      },
+      {
+        "text": "27",
+        "tag": "BUTTON",
+        "cls": "aspect-square rounded-[7px] md:rounded-lg flex items-center justify-center text-[11px] md:text-[12px] transition-colors text-tertiary/70 cursor-pointer",
+        "font": 13,
+        "weight": "400",
+        "color": "rgba(94, 101, 112, 0.7)",
+        "bg": [
+          243.3,
+          243.35,
+          243.5
+        ],
+        "contrast": 2.91,
+        "uncertain": false,
+        "svg": false,
+        "opacity": "1"
+      },
+      {
+        "text": "28",
+        "tag": "BUTTON",
+        "cls": "aspect-square rounded-[7px] md:rounded-lg flex items-center justify-center text-[11px] md:text-[12px] transition-colors text-tertiary/70 cursor-pointer",
+        "font": 13,
+        "weight": "400",
+        "color": "rgba(94, 101, 112, 0.7)",
+        "bg": [
+          243.3,
+          243.35,
+          243.5
+        ],
+        "contrast": 2.91,
+        "uncertain": false,
+        "svg": false,
+        "opacity": "1"
+      },
+      {
+        "text": "29",
+        "tag": "BUTTON",
+        "cls": "aspect-square rounded-[7px] md:rounded-lg flex items-center justify-center text-[11px] md:text-[12px] transition-colors text-tertiary/70 cursor-pointer",
+        "font": 13,
+        "weight": "400",
+        "color": "rgba(94, 101, 112, 0.7)",
+        "bg": [
+          243.3,
+          243.35,
+          243.5
+        ],
+        "contrast": 2.91,
+        "uncertain": false,
+        "svg": false,
+        "opacity": "1"
+      },
+      {
+        "text": "30",
+        "tag": "BUTTON",
+        "cls": "aspect-square rounded-[7px] md:rounded-lg flex items-center justify-center text-[11px] md:text-[12px] transition-colors text-tertiary/70 cursor-pointer",
+        "font": 13,
+        "weight": "400",
+        "color": "rgba(94, 101, 112, 0.7)",
+        "bg": [
+          243.3,
+          243.35,
+          243.5
+        ],
+        "contrast": 2.91,
+        "uncertain": false,
+        "svg": false,
+        "opacity": "1"
+      },
+      {
+        "text": "31",
+        "tag": "BUTTON",
+        "cls": "aspect-square rounded-[7px] md:rounded-lg flex items-center justify-center text-[11px] md:text-[12px] transition-colors text-tertiary/70 cursor-pointer",
+        "font": 13,
+        "weight": "400",
+        "color": "rgba(94, 101, 112, 0.7)",
+        "bg": [
+          243.3,
+          243.35,
+          243.5
+        ],
+        "contrast": 2.91,
+        "uncertain": false,
+        "svg": false,
+        "opacity": "1"
+      }
+    ],
+    "textUnder12px": [
+      {
+        "text": "Oggi",
+        "tag": "SPAN",
+        "cls": null,
+        "font": 11,
+        "weight": "600",
+        "color": "rgb(21, 22, 25)",
+        "bg": [
+          247,
+          249,
+          252
+        ],
+        "contrast": 17.15,
+        "uncertain": false,
+        "svg": false,
+        "opacity": "1"
+      },
+      {
+        "text": "Patrimonio",
+        "tag": "SPAN",
+        "cls": null,
+        "font": 11,
+        "weight": "400",
+        "color": "rgb(94, 101, 112)",
+        "bg": [
+          255,
+          255,
+          255
+        ],
+        "contrast": 5.88,
+        "uncertain": false,
+        "svg": false,
+        "opacity": "1"
+      },
+      {
+        "text": "Piano",
+        "tag": "SPAN",
+        "cls": null,
+        "font": 11,
+        "weight": "400",
+        "color": "rgb(94, 101, 112)",
+        "bg": [
+          255,
+          255,
+          255
+        ],
+        "contrast": 5.88,
+        "uncertain": false,
+        "svg": false,
+        "opacity": "1"
+      },
+      {
+        "text": "Movimenti",
+        "tag": "SPAN",
+        "cls": null,
+        "font": 11,
+        "weight": "400",
+        "color": "rgb(94, 101, 112)",
+        "bg": [
+          255,
+          255,
+          255
+        ],
+        "contrast": 5.88,
+        "uncertain": false,
+        "svg": false,
+        "opacity": "1"
+      },
+      {
+        "text": "1",
+        "tag": "SPAN",
+        "cls": "text-[9px] text-secondary ",
+        "font": 9,
+        "weight": "400",
+        "color": "rgb(94, 101, 112)",
+        "bg": [
+          255,
+          255,
+          255
+        ],
+        "contrast": 5.88,
+        "uncertain": false,
+        "svg": false,
+        "opacity": "1"
+      },
+      {
+        "text": "7",
+        "tag": "SPAN",
+        "cls": "text-[9px] text-secondary ",
+        "font": 9,
+        "weight": "400",
+        "color": "rgb(94, 101, 112)",
+        "bg": [
+          255,
+          255,
+          255
+        ],
+        "contrast": 5.88,
+        "uncertain": false,
+        "svg": false,
+        "opacity": "1"
+      },
+      {
+        "text": "13",
+        "tag": "SPAN",
+        "cls": "text-[9px] text-secondary ",
+        "font": 9,
+        "weight": "400",
+        "color": "rgb(94, 101, 112)",
+        "bg": [
+          255,
+          255,
+          255
+        ],
+        "contrast": 5.88,
+        "uncertain": false,
+        "svg": false,
+        "opacity": "1"
+      },
+      {
+        "text": "Spesa   oggi :  0,00 €",
+        "tag": "P",
+        "cls": "text-[10px] text-secondary/70 text-center mt-1",
+        "font": 10,
+        "weight": "400",
+        "color": "rgb(94, 101, 112)",
+        "bg": [
+          255,
+          255,
+          255
+        ],
+        "contrast": 5.88,
+        "uncertain": false,
+        "svg": false,
+        "opacity": "1"
+      },
+      {
+        "text": "Patrimonio netto",
+        "tag": "P",
+        "cls": "label-caps text-secondary mb-2 flex items-center gap-1",
+        "font": 10,
+        "weight": "500",
+        "color": "rgb(94, 101, 112)",
+        "bg": [
+          255,
+          255,
+          255
+        ],
+        "contrast": 5.88,
+        "uncertain": false,
+        "svg": false,
+        "opacity": "1"
+      },
+      {
+        "text": "Ritmo del mese",
+        "tag": "SPAN",
+        "cls": "label-caps text-secondary",
+        "font": 10,
+        "weight": "500",
+        "color": "rgb(94, 101, 112)",
+        "bg": [
+          255,
+          255,
+          255
+        ],
+        "contrast": 5.88,
+        "uncertain": false,
+        "svg": false,
+        "opacity": "1"
+      },
+      {
+        "text": "L",
+        "tag": "SPAN",
+        "cls": null,
+        "font": 9.5,
+        "weight": "600",
+        "color": "rgb(94, 101, 112)",
+        "bg": [
+          255,
+          255,
+          255
+        ],
+        "contrast": 5.88,
+        "uncertain": false,
+        "svg": false,
+        "opacity": "1"
+      },
+      {
+        "text": "M",
+        "tag": "SPAN",
+        "cls": null,
+        "font": 9.5,
+        "weight": "600",
+        "color": "rgb(94, 101, 112)",
+        "bg": [
+          255,
+          255,
+          255
+        ],
+        "contrast": 5.88,
+        "uncertain": false,
+        "svg": false,
+        "opacity": "1"
+      },
+      {
+        "text": "M",
+        "tag": "SPAN",
+        "cls": null,
+        "font": 9.5,
+        "weight": "600",
+        "color": "rgb(94, 101, 112)",
+        "bg": [
+          255,
+          255,
+          255
+        ],
+        "contrast": 5.88,
+        "uncertain": false,
+        "svg": false,
+        "opacity": "1"
+      },
+      {
+        "text": "G",
+        "tag": "SPAN",
+        "cls": null,
+        "font": 9.5,
+        "weight": "600",
+        "color": "rgb(94, 101, 112)",
+        "bg": [
+          255,
+          255,
+          255
+        ],
+        "contrast": 5.88,
+        "uncertain": false,
+        "svg": false,
+        "opacity": "1"
+      },
+      {
+        "text": "V",
+        "tag": "SPAN",
+        "cls": null,
+        "font": 9.5,
+        "weight": "600",
+        "color": "rgb(94, 101, 112)",
+        "bg": [
+          255,
+          255,
+          255
+        ],
+        "contrast": 5.88,
+        "uncertain": false,
+        "svg": false,
+        "opacity": "1"
+      },
+      {
+        "text": "S",
+        "tag": "SPAN",
+        "cls": null,
+        "font": 9.5,
+        "weight": "600",
+        "color": "rgb(94, 101, 112)",
+        "bg": [
+          255,
+          255,
+          255
+        ],
+        "contrast": 5.88,
+        "uncertain": false,
+        "svg": false,
+        "opacity": "1"
+      },
+      {
+        "text": "D",
+        "tag": "SPAN",
+        "cls": null,
+        "font": 9.5,
+        "weight": "600",
+        "color": "rgb(94, 101, 112)",
+        "bg": [
+          255,
+          255,
+          255
+        ],
+        "contrast": 5.88,
+        "uncertain": false,
+        "svg": false,
+        "opacity": "1"
+      }
+    ],
+    "targetsUnder24px": [
+      {
+        "tag": "rect",
+        "label": "1: 24,90 €. Apri movimenti",
+        "width": 11.6,
+        "height": 3.3
+      },
+      {
+        "tag": "rect",
+        "label": "2: 650,30 €. Apri movimenti",
+        "width": 11.6,
+        "height": 86
+      },
+      {
+        "tag": "rect",
+        "label": "3: 35,70 €. Apri movimenti",
+        "width": 11.6,
+        "height": 4.7
+      },
+      {
+        "tag": "rect",
+        "label": "4: 41,10 €. Apri movimenti",
+        "width": 11.6,
+        "height": 5.4
+      },
+      {
+        "tag": "rect",
+        "label": "5: 46,50 €. Apri movimenti",
+        "width": 11.6,
+        "height": 6.1
+      },
+      {
+        "tag": "rect",
+        "label": "6: 51,90 €. Apri movimenti",
+        "width": 11.6,
+        "height": 6.9
+      },
+      {
+        "tag": "rect",
+        "label": "7: 57,30 €. Apri movimenti",
+        "width": 11.6,
+        "height": 7.6
+      },
+      {
+        "tag": "rect",
+        "label": "8: 62,70 €. Apri movimenti",
+        "width": 11.6,
+        "height": 8.3
+      },
+      {
+        "tag": "rect",
+        "label": "9: 68,10 €. Apri movimenti",
+        "width": 11.6,
+        "height": 9
+      },
+      {
+        "tag": "rect",
+        "label": "10: 73,50 €. Apri movimenti",
+        "width": 11.6,
+        "height": 9.7
+      },
+      {
+        "tag": "rect",
+        "label": "11: 0,00 €. Apri movimenti",
+        "width": 11.6,
+        "height": 0
+      },
+      {
+        "tag": "rect",
+        "label": "12: 0,00 €. Apri movimenti",
+        "width": 11.6,
+        "height": 0
+      },
+      {
+        "tag": "rect",
+        "label": "13: 0,00 €. Apri movimenti",
+        "width": 11.6,
+        "height": 0
+      },
+      {
+        "tag": "rect",
+        "label": "14: 0,00 €. Apri movimenti",
+        "width": 11.6,
+        "height": 0
+      },
+      {
+        "tag": "rect",
+        "label": "15: 0,00 €. Apri movimenti",
+        "width": 11.6,
+        "height": 0
+      },
+      {
+        "tag": "rect",
+        "label": "16: 0,00 €. Apri movimenti",
+        "width": 11.6,
+        "height": 0
+      },
+      {
+        "tag": "rect",
+        "label": "17: 0,00 €. Apri movimenti",
+        "width": 11.6,
+        "height": 0
+      },
+      {
+        "tag": "rect",
+        "label": "18: 0,00 €. Apri movimenti",
+        "width": 11.6,
+        "height": 0
+      }
+    ]
+  },
+  {
+    "name": "/wealth",
+    "theme": "light",
+    "overflow": false,
+    "textNodesMeasured": 111,
+    "controlCount": 18,
+    "fontSizes": [
+      9,
+      10,
+      11,
+      12,
+      13,
+      14,
+      16,
+      17,
+      22,
+      24,
+      32.22
+    ],
+    "contrastCandidates": [
+      {
+        "text": "+4014,00 €",
+        "tag": "SPAN",
+        "cls": "text-[11.5px] font-semibold rounded-full px-2 py-[3px] text-green bg-green/[0.14]",
+        "font": 13,
+        "weight": "600",
+        "color": "rgb(44, 133, 38)",
+        "bg": [
+          225.45999999999998,
+          237.92,
+          224.61999999999998
+        ],
+        "contrast": 3.9,
+        "uncertain": false,
+        "svg": false,
+        "opacity": "1"
+      }
+    ],
+    "textUnder12px": [
+      {
+        "text": "Oggi",
+        "tag": "SPAN",
+        "cls": null,
+        "font": 11,
+        "weight": "400",
+        "color": "rgb(94, 101, 112)",
+        "bg": [
+          255,
+          255,
+          255
+        ],
+        "contrast": 5.88,
+        "uncertain": false,
+        "svg": false,
+        "opacity": "1"
+      },
+      {
+        "text": "Patrimonio",
+        "tag": "SPAN",
+        "cls": null,
+        "font": 11,
+        "weight": "600",
+        "color": "rgb(21, 22, 25)",
+        "bg": [
+          247,
+          249,
+          252
+        ],
+        "contrast": 17.15,
+        "uncertain": false,
+        "svg": false,
+        "opacity": "1"
+      },
+      {
+        "text": "Piano",
+        "tag": "SPAN",
+        "cls": null,
+        "font": 11,
+        "weight": "400",
+        "color": "rgb(94, 101, 112)",
+        "bg": [
+          255,
+          255,
+          255
+        ],
+        "contrast": 5.88,
+        "uncertain": false,
+        "svg": false,
+        "opacity": "1"
+      },
+      {
+        "text": "Movimenti",
+        "tag": "SPAN",
+        "cls": null,
+        "font": 11,
+        "weight": "400",
+        "color": "rgb(94, 101, 112)",
+        "bg": [
+          255,
+          255,
+          255
+        ],
+        "contrast": 5.88,
+        "uncertain": false,
+        "svg": false,
+        "opacity": "1"
+      },
+      {
+        "text": "Ott 25",
+        "tag": "SPAN",
+        "cls": "text-[9px] text-secondary",
+        "font": 9,
+        "weight": "400",
+        "color": "rgb(94, 101, 112)",
+        "bg": [
+          255,
+          255,
+          255
+        ],
+        "contrast": 5.88,
+        "uncertain": false,
+        "svg": false,
+        "opacity": "1"
+      },
+      {
+        "text": "Gen 26",
+        "tag": "SPAN",
+        "cls": "text-[9px] text-secondary",
+        "font": 9,
+        "weight": "400",
+        "color": "rgb(94, 101, 112)",
+        "bg": [
+          255,
+          255,
+          255
+        ],
+        "contrast": 5.88,
+        "uncertain": false,
+        "svg": false,
+        "opacity": "1"
+      },
+      {
+        "text": "Apr 26",
+        "tag": "SPAN",
+        "cls": "text-[9px] text-secondary",
+        "font": 9,
+        "weight": "400",
+        "color": "rgb(94, 101, 112)",
+        "bg": [
+          255,
+          255,
+          255
+        ],
+        "contrast": 5.88,
+        "uncertain": false,
+        "svg": false,
+        "opacity": "1"
+      },
+      {
+        "text": "Lug 26",
+        "tag": "SPAN",
+        "cls": "text-[9px] text-secondary",
+        "font": 9,
+        "weight": "400",
+        "color": "rgb(94, 101, 112)",
+        "bg": [
+          255,
+          255,
+          255
+        ],
+        "contrast": 5.88,
+        "uncertain": false,
+        "svg": false,
+        "opacity": "1"
+      },
+      {
+        "text": "Ott 26",
+        "tag": "SPAN",
+        "cls": "text-[9px] text-secondary",
+        "font": 9,
+        "weight": "400",
+        "color": "rgb(94, 101, 112)",
+        "bg": [
+          255,
+          255,
+          255
+        ],
+        "contrast": 5.88,
+        "uncertain": false,
+        "svg": false,
+        "opacity": "1"
+      },
+      {
+        "text": "Liquidità",
+        "tag": "P",
+        "cls": "label-caps text-secondary mb-1.5",
+        "font": 10,
+        "weight": "500",
+        "color": "rgb(94, 101, 112)",
+        "bg": [
+          255,
+          255,
+          255
+        ],
+        "contrast": 5.88,
+        "uncertain": false,
+        "svg": false,
+        "opacity": "1"
+      },
+      {
+        "text": "Investito",
+        "tag": "P",
+        "cls": "label-caps text-secondary mb-1.5",
+        "font": 10,
+        "weight": "500",
+        "color": "rgb(94, 101, 112)",
+        "bg": [
+          255,
+          255,
+          255
+        ],
+        "contrast": 5.88,
+        "uncertain": false,
+        "svg": false,
+        "opacity": "1"
+      },
+      {
+        "text": "Saldo per conto",
+        "tag": "BUTTON",
+        "cls": "flex items-center gap-1 label-caps text-secondary active:text-primary transition-colors",
+        "font": 10,
+        "weight": "500",
+        "color": "rgb(94, 101, 112)",
+        "bg": [
+          255,
+          255,
+          255
+        ],
+        "contrast": 5.88,
+        "uncertain": false,
+        "svg": false,
+        "opacity": "1"
+      },
+      {
+        "text": "Investimenti per categoria",
+        "tag": "P",
+        "cls": "label-caps text-secondary flex items-center gap-1.5",
+        "font": 10,
+        "weight": "500",
+        "color": "rgb(94, 101, 112)",
+        "bg": [
+          255,
+          255,
+          255
+        ],
+        "contrast": 5.88,
+        "uncertain": false,
+        "svg": false,
+        "opacity": "1"
+      },
+      {
+        "text": "Investito",
+        "tag": "SPAN",
+        "cls": "label-caps text-secondary",
+        "font": 10,
+        "weight": "500",
+        "color": "rgb(94, 101, 112)",
+        "bg": [
+          255,
+          255,
+          255
+        ],
+        "contrast": 5.88,
+        "uncertain": false,
+        "svg": false,
+        "opacity": "1"
+      }
+    ],
+    "targetsUnder24px": []
+  },
+  {
+    "name": "/budget",
+    "theme": "light",
+    "overflow": false,
+    "textNodesMeasured": 100,
+    "controlCount": 31,
+    "fontSizes": [
+      10,
+      11,
+      12,
+      13,
+      14,
+      15,
+      16,
+      17,
+      18,
+      22,
+      24,
+      36
+    ],
+    "contrastCandidates": [
+      {
+        "text": "↙",
+        "tag": "SPAN",
+        "cls": "plan-goal-icon plan-income-icon",
+        "font": 16,
+        "weight": "500",
+        "color": "rgb(44, 133, 38)",
+        "bg": [
+          233.9,
+          242.8,
+          233.3
+        ],
+        "contrast": 4.11,
+        "uncertain": false,
+        "svg": false,
+        "opacity": "1"
+      },
+      {
+        "text": "◎",
+        "tag": "SPAN",
+        "cls": "plan-goal-icon",
+        "font": 16,
+        "weight": "500",
+        "color": "rgb(196, 151, 44)",
+        "bg": [
+          249.1,
+          244.6,
+          233.9
+        ],
+        "contrast": 2.46,
+        "uncertain": false,
+        "svg": false,
+        "opacity": "1"
+      },
+      {
+        "text": "↗",
+        "tag": "SPAN",
+        "cls": "plan-goal-icon",
+        "font": 16,
+        "weight": "500",
+        "color": "rgb(196, 151, 44)",
+        "bg": [
+          249.1,
+          244.6,
+          233.9
+        ],
+        "contrast": 2.46,
+        "uncertain": false,
+        "svg": false,
+        "opacity": "1"
+      },
+      {
+        "text": "367,50 €",
+        "tag": "STRONG",
+        "cls": "balance-num",
+        "font": 14,
+        "weight": "600",
+        "color": "rgb(196, 151, 44)",
+        "bg": [
+          255,
+          255,
+          255
+        ],
+        "contrast": 2.69,
+        "uncertain": false,
+        "svg": false,
+        "opacity": "1"
+      },
+      {
+        "text": "Rivedi categoria",
+        "tag": "BUTTON",
+        "cls": null,
+        "font": 12,
+        "weight": "500",
+        "color": "rgb(196, 151, 44)",
+        "bg": [
+          255,
+          255,
+          255
+        ],
+        "contrast": 2.69,
+        "uncertain": false,
+        "svg": false,
+        "opacity": "1"
+      },
+      {
+        "text": "Tutte",
+        "tag": "BUTTON",
+        "cls": null,
+        "font": 13,
+        "weight": "600",
+        "color": "rgb(196, 151, 44)",
+        "bg": [
+          240.88000000000002,
+          237.24,
+          227.04
+        ],
+        "contrast": 2.3,
+        "uncertain": false,
+        "svg": false,
+        "opacity": "1"
+      },
+      {
+        "text": "🍽️",
+        "tag": "SPAN",
+        "cls": "plan-category-icon",
+        "font": 16,
+        "weight": "500",
+        "color": "rgb(196, 151, 44)",
+        "bg": [
+          249.1,
+          244.6,
+          233.9
+        ],
+        "contrast": 2.46,
+        "uncertain": false,
+        "svg": false,
+        "opacity": "1"
+      },
+      {
+        "text": "53,00 €  oltre il limite",
+        "tag": "SPAN",
+        "cls": "plan-forecast-over",
+        "font": 12,
+        "weight": "500",
+        "color": "rgb(196, 151, 44)",
+        "bg": [
+          255,
+          255,
+          255
+        ],
+        "contrast": 2.69,
+        "uncertain": false,
+        "svg": false,
+        "opacity": "1"
+      },
+      {
+        "text": "🏠",
+        "tag": "SPAN",
+        "cls": "plan-category-icon",
+        "font": 16,
+        "weight": "500",
+        "color": "rgb(196, 151, 44)",
+        "bg": [
+          249.1,
+          244.6,
+          233.9
+        ],
+        "contrast": 2.46,
+        "uncertain": false,
+        "svg": false,
+        "opacity": "1"
+      },
+      {
+        "text": "🛒",
+        "tag": "SPAN",
+        "cls": "plan-category-icon",
+        "font": 16,
+        "weight": "500",
+        "color": "rgb(196, 151, 44)",
+        "bg": [
+          249.1,
+          244.6,
+          233.9
+        ],
+        "contrast": 2.46,
+        "uncertain": false,
+        "svg": false,
+        "opacity": "1"
+      }
+    ],
+    "textUnder12px": [
+      {
+        "text": "Oggi",
+        "tag": "SPAN",
+        "cls": null,
+        "font": 11,
+        "weight": "400",
+        "color": "rgb(94, 101, 112)",
+        "bg": [
+          255,
+          255,
+          255
+        ],
+        "contrast": 5.88,
+        "uncertain": false,
+        "svg": false,
+        "opacity": "1"
+      },
+      {
+        "text": "Patrimonio",
+        "tag": "SPAN",
+        "cls": null,
+        "font": 11,
+        "weight": "400",
+        "color": "rgb(94, 101, 112)",
+        "bg": [
+          255,
+          255,
+          255
+        ],
+        "contrast": 5.88,
+        "uncertain": false,
+        "svg": false,
+        "opacity": "1"
+      },
+      {
+        "text": "Piano",
+        "tag": "SPAN",
+        "cls": null,
+        "font": 11,
+        "weight": "600",
+        "color": "rgb(21, 22, 25)",
+        "bg": [
+          247,
+          249,
+          252
+        ],
+        "contrast": 17.15,
+        "uncertain": false,
+        "svg": false,
+        "opacity": "1"
+      },
+      {
+        "text": "Movimenti",
+        "tag": "SPAN",
+        "cls": null,
+        "font": 11,
+        "weight": "400",
+        "color": "rgb(94, 101, 112)",
+        "bg": [
+          255,
+          255,
+          255
+        ],
+        "contrast": 5.88,
+        "uncertain": false,
+        "svg": false,
+        "opacity": "1"
+      },
+      {
+        "text": "Modifica piano",
+        "tag": "BUTTON",
+        "cls": "plan-edit-button cta-gold-fill",
+        "font": 11,
+        "weight": "600",
+        "color": "rgb(36, 23, 4)",
+        "bg": [
+          242,
+          196,
+          109
+        ],
+        "contrast": 10.75,
+        "uncertain": false,
+        "svg": false,
+        "opacity": "1"
+      },
+      {
+        "text": "Margine del mese",
+        "tag": "P",
+        "cls": "plan-eyebrow label-caps text-secondary",
+        "font": 10,
+        "weight": "500",
+        "color": "rgb(94, 101, 112)",
+        "bg": [
+          255,
+          255,
+          255
+        ],
+        "contrast": 5.88,
+        "uncertain": false,
+        "svg": false,
+        "opacity": "1"
+      },
+      {
+        "text": "Consulta Patrimonio",
+        "tag": "BUTTON",
+        "cls": null,
+        "font": 10,
+        "weight": "500",
+        "color": "rgb(94, 101, 112)",
+        "bg": [
+          255,
+          255,
+          255
+        ],
+        "contrast": 5.88,
+        "uncertain": false,
+        "svg": false,
+        "opacity": "1"
+      },
+      {
+        "text": "Cuscinetto non allocato",
+        "tag": "SPAN",
+        "cls": null,
+        "font": 11,
+        "weight": "400",
+        "color": "rgb(21, 22, 25)",
+        "bg": [
+          255,
+          255,
+          255
+        ],
+        "contrast": 18.09,
+        "uncertain": false,
+        "svg": false,
+        "opacity": "1"
+      }
+    ],
+    "targetsUnder24px": []
+  },
+  {
+    "name": "/transactions",
+    "theme": "light",
+    "overflow": false,
+    "textNodesMeasured": 987,
+    "controlCount": 170,
+    "fontSizes": [
+      11,
+      12,
+      13,
+      16,
+      17,
+      18,
+      22,
+      24
+    ],
+    "contrastCandidates": [],
+    "textUnder12px": [
+      {
+        "text": "Oggi",
+        "tag": "SPAN",
+        "cls": null,
+        "font": 11,
+        "weight": "400",
+        "color": "rgb(94, 101, 112)",
+        "bg": [
+          255,
+          255,
+          255
+        ],
+        "contrast": 5.88,
+        "uncertain": false,
+        "svg": false,
+        "opacity": "1"
+      },
+      {
+        "text": "Patrimonio",
+        "tag": "SPAN",
+        "cls": null,
+        "font": 11,
+        "weight": "400",
+        "color": "rgb(94, 101, 112)",
+        "bg": [
+          255,
+          255,
+          255
+        ],
+        "contrast": 5.88,
+        "uncertain": false,
+        "svg": false,
+        "opacity": "1"
+      },
+      {
+        "text": "Piano",
+        "tag": "SPAN",
+        "cls": null,
+        "font": 11,
+        "weight": "400",
+        "color": "rgb(94, 101, 112)",
+        "bg": [
+          255,
+          255,
+          255
+        ],
+        "contrast": 5.88,
+        "uncertain": false,
+        "svg": false,
+        "opacity": "1"
+      },
+      {
+        "text": "Movimenti",
+        "tag": "SPAN",
+        "cls": null,
+        "font": 11,
+        "weight": "600",
+        "color": "rgb(21, 22, 25)",
+        "bg": [
+          247,
+          249,
+          252
+        ],
+        "contrast": 17.15,
+        "uncertain": false,
+        "svg": false,
+        "opacity": "1"
+      }
+    ],
+    "targetsUnder24px": []
+  },
+  {
+    "name": "/investments",
+    "theme": "light",
+    "overflow": false,
+    "textNodesMeasured": 119,
+    "controlCount": 21,
+    "fontSizes": [
+      10,
+      11,
+      12,
+      13,
+      14,
+      16,
+      22,
+      24,
+      32
+    ],
+    "contrastCandidates": [
+      {
+        "text": "− 2600,00 €  ·  − 21.3 %",
+        "tag": "SPAN",
+        "cls": "text-[11.5px] font-semibold balance-num px-2 py-[3px] rounded-full text-red bg-red/[0.14]",
+        "font": 13,
+        "weight": "600",
+        "color": "rgb(197, 57, 47)",
+        "bg": [
+          246.88,
+          227.27999999999997,
+          225.88
+        ],
+        "contrast": 4.27,
+        "uncertain": false,
+        "svg": false,
+        "opacity": "1"
+      },
+      {
+        "text": "Tutto",
+        "tag": "BUTTON",
+        "cls": "min-h-[44px] px-3 rounded-xl text-sm font-semibold bg-gold text-bg",
+        "font": 14,
+        "weight": "600",
+        "color": "rgb(255, 255, 255)",
+        "bg": [
+          196,
+          151,
+          44
+        ],
+        "contrast": 2.69,
+        "uncertain": false,
+        "svg": false,
+        "opacity": "1"
+      },
+      {
+        "text": "⏱️",
+        "tag": "SPAN",
+        "cls": "text-gold text-base flex-none",
+        "font": 16,
+        "weight": "400",
+        "color": "rgb(165, 102, 10)",
+        "bg": [
+          249.1,
+          244.6,
+          233.9
+        ],
+        "contrast": 4.27,
+        "uncertain": false,
+        "svg": false,
+        "opacity": "1"
+      },
+      {
+        "text": "Aggiorna",
+        "tag": "BUTTON",
+        "cls": "text-[12px] font-semibold text-gold flex-none",
+        "font": 13,
+        "weight": "600",
+        "color": "rgb(165, 102, 10)",
+        "bg": [
+          249.1,
+          244.6,
+          233.9
+        ],
+        "contrast": 4.27,
+        "uncertain": false,
+        "svg": false,
+        "opacity": "1"
+      }
+    ],
+    "textUnder12px": [
+      {
+        "text": "Oggi",
+        "tag": "SPAN",
+        "cls": null,
+        "font": 11,
+        "weight": "400",
+        "color": "rgb(94, 101, 112)",
+        "bg": [
+          255,
+          255,
+          255
+        ],
+        "contrast": 5.88,
+        "uncertain": false,
+        "svg": false,
+        "opacity": "1"
+      },
+      {
+        "text": "Patrimonio",
+        "tag": "SPAN",
+        "cls": null,
+        "font": 11,
+        "weight": "400",
+        "color": "rgb(94, 101, 112)",
+        "bg": [
+          255,
+          255,
+          255
+        ],
+        "contrast": 5.88,
+        "uncertain": false,
+        "svg": false,
+        "opacity": "1"
+      },
+      {
+        "text": "Piano",
+        "tag": "SPAN",
+        "cls": null,
+        "font": 11,
+        "weight": "400",
+        "color": "rgb(94, 101, 112)",
+        "bg": [
+          255,
+          255,
+          255
+        ],
+        "contrast": 5.88,
+        "uncertain": false,
+        "svg": false,
+        "opacity": "1"
+      },
+      {
+        "text": "Movimenti",
+        "tag": "SPAN",
+        "cls": null,
+        "font": 11,
+        "weight": "400",
+        "color": "rgb(94, 101, 112)",
+        "bg": [
+          255,
+          255,
+          255
+        ],
+        "contrast": 5.88,
+        "uncertain": false,
+        "svg": false,
+        "opacity": "1"
+      },
+      {
+        "text": "Controvalore totale",
+        "tag": "P",
+        "cls": "label-caps text-secondary mb-2",
+        "font": 10,
+        "weight": "500",
+        "color": "rgb(94, 101, 112)",
+        "bg": [
+          255,
+          255,
+          255
+        ],
+        "contrast": 5.88,
+        "uncertain": false,
+        "svg": false,
+        "opacity": "1"
+      },
+      {
+        "text": "Gen  2025",
+        "tag": "SPAN",
+        "cls": null,
+        "font": 10,
+        "weight": "400",
+        "color": "rgb(94, 101, 112)",
+        "bg": [
+          255,
+          255,
+          255
+        ],
+        "contrast": 5.88,
+        "uncertain": false,
+        "svg": false,
+        "opacity": "1"
+      },
+      {
+        "text": "Ott  2026",
+        "tag": "SPAN",
+        "cls": null,
+        "font": 10,
+        "weight": "400",
+        "color": "rgb(94, 101, 112)",
+        "bg": [
+          255,
+          255,
+          255
+        ],
+        "contrast": 5.88,
+        "uncertain": false,
+        "svg": false,
+        "opacity": "1"
+      },
+      {
+        "text": "Posizioni",
+        "tag": "P",
+        "cls": "label-caps text-secondary",
+        "font": 10,
+        "weight": "500",
+        "color": "rgb(94, 101, 112)",
+        "bg": [
+          255,
+          255,
+          255
+        ],
+        "contrast": 5.88,
+        "uncertain": false,
+        "svg": false,
+        "opacity": "1"
+      },
+      {
+        "text": "Andamento versamenti",
+        "tag": "P",
+        "cls": "label-caps text-secondary mb-4",
+        "font": 10,
+        "weight": "500",
+        "color": "rgb(94, 101, 112)",
+        "bg": [
+          255,
+          255,
+          255
+        ],
+        "contrast": 5.88,
+        "uncertain": false,
+        "svg": false,
+        "opacity": "1"
+      },
+      {
+        "text": "350,00 €",
+        "tag": "SPAN",
+        "cls": "text-[10px] balance-num mb-1 truncate w-full text-center leading-tight",
+        "font": 10,
+        "weight": "400",
+        "color": "rgb(94, 101, 112)",
+        "bg": [
+          255,
+          255,
+          255
+        ],
+        "contrast": 5.88,
+        "uncertain": false,
+        "svg": false,
+        "opacity": "1"
+      },
+      {
+        "text": "Mag",
+        "tag": "SPAN",
+        "cls": "flex-1 text-[10px] text-secondary text-center truncate min-w-0",
+        "font": 10,
+        "weight": "400",
+        "color": "rgb(94, 101, 112)",
+        "bg": [
+          255,
+          255,
+          255
+        ],
+        "contrast": 5.88,
+        "uncertain": false,
+        "svg": false,
+        "opacity": "1"
+      },
+      {
+        "text": "Giu",
+        "tag": "SPAN",
+        "cls": "flex-1 text-[10px] text-secondary text-center truncate min-w-0",
+        "font": 10,
+        "weight": "400",
+        "color": "rgb(94, 101, 112)",
+        "bg": [
+          255,
+          255,
+          255
+        ],
+        "contrast": 5.88,
+        "uncertain": false,
+        "svg": false,
+        "opacity": "1"
+      },
+      {
+        "text": "Lug",
+        "tag": "SPAN",
+        "cls": "flex-1 text-[10px] text-secondary text-center truncate min-w-0",
+        "font": 10,
+        "weight": "400",
+        "color": "rgb(94, 101, 112)",
+        "bg": [
+          255,
+          255,
+          255
+        ],
+        "contrast": 5.88,
+        "uncertain": false,
+        "svg": false,
+        "opacity": "1"
+      },
+      {
+        "text": "Ago",
+        "tag": "SPAN",
+        "cls": "flex-1 text-[10px] text-secondary text-center truncate min-w-0",
+        "font": 10,
+        "weight": "400",
+        "color": "rgb(94, 101, 112)",
+        "bg": [
+          255,
+          255,
+          255
+        ],
+        "contrast": 5.88,
+        "uncertain": false,
+        "svg": false,
+        "opacity": "1"
+      },
+      {
+        "text": "Set",
+        "tag": "SPAN",
+        "cls": "flex-1 text-[10px] text-secondary text-center truncate min-w-0",
+        "font": 10,
+        "weight": "400",
+        "color": "rgb(94, 101, 112)",
+        "bg": [
+          255,
+          255,
+          255
+        ],
+        "contrast": 5.88,
+        "uncertain": false,
+        "svg": false,
+        "opacity": "1"
+      },
+      {
+        "text": "Ott",
+        "tag": "SPAN",
+        "cls": "flex-1 text-[10px] text-secondary text-center truncate min-w-0",
+        "font": 10,
+        "weight": "400",
+        "color": "rgb(94, 101, 112)",
+        "bg": [
+          255,
+          255,
+          255
+        ],
+        "contrast": 5.88,
+        "uncertain": false,
+        "svg": false,
+        "opacity": "1"
+      },
+      {
+        "text": "Versato",
+        "tag": "SPAN",
+        "cls": "flex items-center gap-1.5",
+        "font": 10,
+        "weight": "400",
+        "color": "rgb(94, 101, 112)",
+        "bg": [
+          255,
+          255,
+          255
+        ],
+        "contrast": 5.88,
+        "uncertain": false,
+        "svg": false,
+        "opacity": "1"
+      },
+      {
+        "text": "Disinvestito",
+        "tag": "SPAN",
+        "cls": "flex items-center gap-1.5",
+        "font": 10,
+        "weight": "400",
+        "color": "rgb(94, 101, 112)",
+        "bg": [
+          255,
+          255,
+          255
+        ],
+        "contrast": 5.88,
+        "uncertain": false,
+        "svg": false,
+        "opacity": "1"
+      },
+      {
+        "text": "350,00 €  netti reali questo mese",
+        "tag": "SPAN",
+        "cls": "ml-auto balance-num",
+        "font": 10,
+        "weight": "400",
+        "color": "rgb(94, 101, 112)",
+        "bg": [
+          255,
+          255,
+          255
+        ],
+        "contrast": 5.88,
+        "uncertain": false,
+        "svg": false,
+        "opacity": "1"
+      },
+      {
+        "text": "Trend per competenza: i versamenti una tantum distribuiti contano per quota mensile. Saldi e flusso di cassa restano sug",
+        "tag": "P",
+        "cls": "text-[10px] text-secondary/70 mt-1.5 leading-snug",
+        "font": 10,
+        "weight": "400",
+        "color": "rgb(94, 101, 112)",
+        "bg": [
+          255,
+          255,
+          255
+        ],
+        "contrast": 5.88,
+        "uncertain": false,
+        "svg": false,
+        "opacity": "1"
+      }
+    ],
+    "targetsUnder24px": []
+  },
+  {
+    "name": "/account-balance",
+    "theme": "light",
+    "overflow": false,
+    "textNodesMeasured": 38,
+    "controlCount": 21,
+    "fontSizes": [
+      10,
+      11,
+      12,
+      13,
+      14,
+      16,
+      22,
+      24,
+      38
+    ],
+    "contrastCandidates": [
+      {
+        "text": "Mese",
+        "tag": "BUTTON",
+        "cls": "flex-none px-3 py-1.5 rounded-full text-xs font-semibold whitespace-nowrap transition-colors bg-gold/10 text-gold",
+        "font": 13,
+        "weight": "600",
+        "color": "rgb(165, 102, 10)",
+        "bg": [
+          249.1,
+          244.6,
+          233.9
+        ],
+        "contrast": 4.27,
+        "uncertain": false,
+        "svg": false,
+        "opacity": "1"
+      },
+      {
+        "text": "+988,00 €",
+        "tag": "SPAN",
+        "cls": "text-[11.5px] font-semibold balance-num px-2 py-[3px] rounded-full text-green bg-green/[0.14]",
+        "font": 13,
+        "weight": "600",
+        "color": "rgb(44, 133, 38)",
+        "bg": [
+          225.45999999999998,
+          237.92,
+          224.61999999999998
+        ],
+        "contrast": 3.9,
+        "uncertain": false,
+        "svg": false,
+        "opacity": "1"
+      }
+    ],
+    "textUnder12px": [
+      {
+        "text": "Oggi",
+        "tag": "SPAN",
+        "cls": null,
+        "font": 11,
+        "weight": "400",
+        "color": "rgb(94, 101, 112)",
+        "bg": [
+          255,
+          255,
+          255
+        ],
+        "contrast": 5.88,
+        "uncertain": false,
+        "svg": false,
+        "opacity": "1"
+      },
+      {
+        "text": "Patrimonio",
+        "tag": "SPAN",
+        "cls": null,
+        "font": 11,
+        "weight": "400",
+        "color": "rgb(94, 101, 112)",
+        "bg": [
+          255,
+          255,
+          255
+        ],
+        "contrast": 5.88,
+        "uncertain": false,
+        "svg": false,
+        "opacity": "1"
+      },
+      {
+        "text": "Piano",
+        "tag": "SPAN",
+        "cls": null,
+        "font": 11,
+        "weight": "400",
+        "color": "rgb(94, 101, 112)",
+        "bg": [
+          255,
+          255,
+          255
+        ],
+        "contrast": 5.88,
+        "uncertain": false,
+        "svg": false,
+        "opacity": "1"
+      },
+      {
+        "text": "Movimenti",
+        "tag": "SPAN",
+        "cls": null,
+        "font": 11,
+        "weight": "400",
+        "color": "rgb(94, 101, 112)",
+        "bg": [
+          255,
+          255,
+          255
+        ],
+        "contrast": 5.88,
+        "uncertain": false,
+        "svg": false,
+        "opacity": "1"
+      },
+      {
+        "text": "Liquidità totale",
+        "tag": "P",
+        "cls": "label-caps text-secondary mb-2",
+        "font": 10,
+        "weight": "500",
+        "color": "rgb(94, 101, 112)",
+        "bg": [
+          255,
+          255,
+          255
+        ],
+        "contrast": 5.88,
+        "uncertain": false,
+        "svg": false,
+        "opacity": "1"
+      }
+    ],
+    "targetsUnder24px": []
+  },
+  {
+    "name": "/category-spending",
+    "theme": "light",
+    "overflow": false,
+    "textNodesMeasured": 47,
+    "controlCount": 20,
+    "fontSizes": [
+      10,
+      11,
+      12,
+      13,
+      14,
+      16,
+      22,
+      24,
+      38
+    ],
+    "contrastCandidates": [
+      {
+        "text": "Mese",
+        "tag": "BUTTON",
+        "cls": "flex-none px-3 py-1.5 rounded-full text-xs font-semibold whitespace-nowrap transition-colors bg-gold/10 text-gold",
+        "font": 13,
+        "weight": "600",
+        "color": "rgb(165, 102, 10)",
+        "bg": [
+          249.1,
+          244.6,
+          233.9
+        ],
+        "contrast": 4.27,
+        "uncertain": false,
+        "svg": false,
+        "opacity": "1"
+      },
+      {
+        "text": "0 %",
+        "tag": "SPAN",
+        "cls": "text-[11.5px] font-semibold balance-num px-2 py-[3px] rounded-full text-green bg-green/[0.14]",
+        "font": 13,
+        "weight": "600",
+        "color": "rgb(44, 133, 38)",
+        "bg": [
+          225.45999999999998,
+          237.92,
+          224.61999999999998
+        ],
+        "contrast": 3.9,
+        "uncertain": false,
+        "svg": false,
+        "opacity": "1"
+      }
+    ],
+    "textUnder12px": [
+      {
+        "text": "Oggi",
+        "tag": "SPAN",
+        "cls": null,
+        "font": 11,
+        "weight": "400",
+        "color": "rgb(94, 101, 112)",
+        "bg": [
+          255,
+          255,
+          255
+        ],
+        "contrast": 5.88,
+        "uncertain": false,
+        "svg": false,
+        "opacity": "1"
+      },
+      {
+        "text": "Patrimonio",
+        "tag": "SPAN",
+        "cls": null,
+        "font": 11,
+        "weight": "400",
+        "color": "rgb(94, 101, 112)",
+        "bg": [
+          255,
+          255,
+          255
+        ],
+        "contrast": 5.88,
+        "uncertain": false,
+        "svg": false,
+        "opacity": "1"
+      },
+      {
+        "text": "Piano",
+        "tag": "SPAN",
+        "cls": null,
+        "font": 11,
+        "weight": "400",
+        "color": "rgb(94, 101, 112)",
+        "bg": [
+          255,
+          255,
+          255
+        ],
+        "contrast": 5.88,
+        "uncertain": false,
+        "svg": false,
+        "opacity": "1"
+      },
+      {
+        "text": "Movimenti",
+        "tag": "SPAN",
+        "cls": null,
+        "font": 11,
+        "weight": "400",
+        "color": "rgb(94, 101, 112)",
+        "bg": [
+          255,
+          255,
+          255
+        ],
+        "contrast": 5.88,
+        "uncertain": false,
+        "svg": false,
+        "opacity": "1"
+      },
+      {
+        "text": "Totale spese periodo",
+        "tag": "P",
+        "cls": "label-caps text-secondary mb-2",
+        "font": 10,
+        "weight": "500",
+        "color": "rgb(94, 101, 112)",
+        "bg": [
+          255,
+          255,
+          255
+        ],
+        "contrast": 5.88,
+        "uncertain": false,
+        "svg": false,
+        "opacity": "1"
+      },
+      {
+        "text": "Sunny nota",
+        "tag": "P",
+        "cls": "label-caps text-secondary mb-1.5",
+        "font": 10,
+        "weight": "500",
+        "color": "rgb(94, 101, 112)",
+        "bg": [
+          255,
+          255,
+          255
+        ],
+        "contrast": 5.88,
+        "uncertain": false,
+        "svg": false,
+        "opacity": "1"
+      },
+      {
+        "text": "Composizione",
+        "tag": "P",
+        "cls": "label-caps text-secondary mb-3",
+        "font": 10,
+        "weight": "500",
+        "color": "rgb(94, 101, 112)",
+        "bg": [
+          255,
+          255,
+          255
+        ],
+        "contrast": 5.88,
+        "uncertain": false,
+        "svg": false,
+        "opacity": "1"
+      }
+    ],
+    "targetsUnder24px": []
+  },
+  {
+    "name": "/insights",
+    "theme": "light",
+    "overflow": false,
+    "textNodesMeasured": 36,
+    "controlCount": 15,
+    "fontSizes": [
+      10,
+      11,
+      12,
+      13,
+      14,
+      16,
+      19,
+      22,
+      24
+    ],
+    "contrastCandidates": [
+      {
+        "text": "988,00 €",
+        "tag": "P",
+        "cls": "text-[14px] font-semibold balance-num truncate",
+        "font": 14,
+        "weight": "600",
+        "color": "rgb(196, 151, 44)",
+        "bg": [
+          255,
+          255,
+          255
+        ],
+        "contrast": 2.69,
+        "uncertain": false,
+        "svg": false,
+        "opacity": "1"
+      }
+    ],
+    "textUnder12px": [
+      {
+        "text": "Oggi",
+        "tag": "SPAN",
+        "cls": null,
+        "font": 11,
+        "weight": "400",
+        "color": "rgb(94, 101, 112)",
+        "bg": [
+          255,
+          255,
+          255
+        ],
+        "contrast": 5.88,
+        "uncertain": false,
+        "svg": false,
+        "opacity": "1"
+      },
+      {
+        "text": "Patrimonio",
+        "tag": "SPAN",
+        "cls": null,
+        "font": 11,
+        "weight": "400",
+        "color": "rgb(94, 101, 112)",
+        "bg": [
+          255,
+          255,
+          255
+        ],
+        "contrast": 5.88,
+        "uncertain": false,
+        "svg": false,
+        "opacity": "1"
+      },
+      {
+        "text": "Piano",
+        "tag": "SPAN",
+        "cls": null,
+        "font": 11,
+        "weight": "400",
+        "color": "rgb(94, 101, 112)",
+        "bg": [
+          255,
+          255,
+          255
+        ],
+        "contrast": 5.88,
+        "uncertain": false,
+        "svg": false,
+        "opacity": "1"
+      },
+      {
+        "text": "Movimenti",
+        "tag": "SPAN",
+        "cls": null,
+        "font": 11,
+        "weight": "400",
+        "color": "rgb(94, 101, 112)",
+        "bg": [
+          255,
+          255,
+          255
+        ],
+        "contrast": 5.88,
+        "uncertain": false,
+        "svg": false,
+        "opacity": "1"
+      },
+      {
+        "text": "La cosa più importante",
+        "tag": "P",
+        "cls": "label-caps text-gold",
+        "font": 10,
+        "weight": "500",
+        "color": "rgb(165, 102, 10)",
+        "bg": [
+          255,
+          255,
+          255
+        ],
+        "contrast": 4.66,
+        "uncertain": false,
+        "svg": false,
+        "opacity": "1"
+      },
+      {
+        "text": "Previsioni",
+        "tag": "P",
+        "cls": "label-caps text-secondary",
+        "font": 10,
+        "weight": "500",
+        "color": "rgb(94, 101, 112)",
+        "bg": [
+          255,
+          255,
+          255
+        ],
+        "contrast": 5.88,
+        "uncertain": false,
+        "svg": false,
+        "opacity": "1"
+      },
+      {
+        "text": "Analisi avanzata",
+        "tag": "P",
+        "cls": "label-caps text-secondary",
+        "font": 10,
+        "weight": "500",
+        "color": "rgb(94, 101, 112)",
+        "bg": [
+          255,
+          255,
+          255
+        ],
+        "contrast": 5.88,
+        "uncertain": false,
+        "svg": false,
+        "opacity": "1"
+      }
+    ],
+    "targetsUnder24px": []
+  },
+  {
+    "name": "/settings",
+    "theme": "light",
+    "overflow": false,
+    "textNodesMeasured": 77,
+    "controlCount": 25,
+    "fontSizes": [
+      12,
+      13,
+      14,
+      16,
+      22
+    ],
+    "contrastCandidates": [],
+    "textUnder12px": [],
+    "targetsUnder24px": []
+  },
+  {
+    "name": "/forecast-v3",
+    "theme": "light",
+    "overflow": false,
+    "textNodesMeasured": 171,
+    "controlCount": 28,
+    "fontSizes": [
+      10,
+      11,
+      12,
+      13,
+      14,
+      16,
+      18,
+      20,
+      22,
+      24,
+      30
+    ],
+    "contrastCandidates": [
+      {
+        "text": "Admin · Sperimentale",
+        "tag": "SPAN",
+        "cls": "text-xs font-medium px-2 py-0.5 rounded-full bg-gold/10 text-gold",
+        "font": 13,
+        "weight": "500",
+        "color": "rgb(165, 102, 10)",
+        "bg": [
+          249.1,
+          244.6,
+          233.9
+        ],
+        "contrast": 4.27,
+        "uncertain": false,
+        "svg": false,
+        "opacity": "1"
+      },
+      {
+        "text": "+ €987",
+        "tag": "P",
+        "cls": "text-xl font-semibold text-[#8A9270]",
+        "font": 20,
+        "weight": "600",
+        "color": "rgb(138, 146, 112)",
+        "bg": [
+          255,
+          255,
+          255
+        ],
+        "contrast": 3.27,
+        "uncertain": false,
+        "svg": false,
+        "opacity": "1"
+      },
+      {
+        "text": "Confronto V2",
+        "tag": "BUTTON",
+        "cls": "text-[11px] px-2.5 py-1 rounded-full font-medium transition-colors bg-gold/15 text-gold",
+        "font": 13,
+        "weight": "500",
+        "color": "rgb(165, 102, 10)",
+        "bg": [
+          246.15,
+          239.4,
+          223.35
+        ],
+        "contrast": 4.08,
+        "uncertain": false,
+        "svg": false,
+        "opacity": "1"
+      },
+      {
+        "text": "Affidabilità  Alta  ·  94%",
+        "tag": "SPAN",
+        "cls": "text-xs font-medium text-[#8A9270]",
+        "font": 13,
+        "weight": "500",
+        "color": "rgb(138, 146, 112)",
+        "bg": [
+          255,
+          255,
+          255
+        ],
+        "contrast": 3.27,
+        "uncertain": false,
+        "svg": false,
+        "opacity": "1"
+      },
+      {
+        "text": "🔁 Ricorrente",
+        "tag": "SPAN",
+        "cls": "text-[10px] px-2 py-0.5 rounded-full font-medium text-[#8A9270] bg-[#8A9270]/15",
+        "font": 10,
+        "weight": "500",
+        "color": "rgb(138, 146, 112)",
+        "bg": [
+          237.45,
+          238.65,
+          233.55
+        ],
+        "contrast": 2.82,
+        "uncertain": false,
+        "svg": false,
+        "opacity": "1"
+      },
+      {
+        "text": "📦 Bundle abbonamenti",
+        "tag": "SPAN",
+        "cls": "text-[10px] px-2 py-0.5 rounded-full font-medium text-emerald-400 bg-emerald-400/10",
+        "font": 10,
+        "weight": "500",
+        "color": "rgb(52, 211, 153)",
+        "bg": [
+          234.7,
+          250.6,
+          244.8
+        ],
+        "contrast": 1.79,
+        "uncertain": false,
+        "svg": false,
+        "opacity": "1"
+      },
+      {
+        "text": "🔒 Fisso mensile",
+        "tag": "SPAN",
+        "cls": "text-[10px] px-2 py-0.5 rounded-full font-medium text-[#8A9270] bg-[#8A9270]/15",
+        "font": 10,
+        "weight": "500",
+        "color": "rgb(138, 146, 112)",
+        "bg": [
+          237.45,
+          238.65,
+          233.55
+        ],
+        "contrast": 2.82,
+        "uncertain": false,
+        "svg": false,
+        "opacity": "1"
+      },
+      {
+        "text": "📅 Periodico",
+        "tag": "SPAN",
+        "cls": "text-[10px] px-2 py-0.5 rounded-full font-medium text-blue-400 bg-blue-500/10",
+        "font": 10,
+        "weight": "500",
+        "color": "rgb(96, 165, 250)",
+        "bg": [
+          235.4,
+          242.5,
+          254.1
+        ],
+        "contrast": 2.27,
+        "uncertain": false,
+        "svg": false,
+        "opacity": "1"
+      },
+      {
+        "text": "⚡ Ibrido",
+        "tag": "SPAN",
+        "cls": "text-[10px] px-2 py-0.5 rounded-full font-medium text-gold bg-gold/10",
+        "font": 10,
+        "weight": "500",
+        "color": "rgb(165, 102, 10)",
+        "bg": [
+          249.1,
+          244.6,
+          233.9
+        ],
+        "contrast": 4.27,
+        "uncertain": false,
+        "svg": false,
+        "opacity": "1"
+      },
+      {
+        "text": "⚠️ Volatile",
+        "tag": "SPAN",
+        "cls": "text-[10px] px-2 py-0.5 rounded-full font-medium text-[#C0706A] bg-[#C0706A]/10",
+        "font": 10,
+        "weight": "500",
+        "color": "rgb(192, 112, 106)",
+        "bg": [
+          248.7,
+          240.7,
+          240.1
+        ],
+        "contrast": 3.26,
+        "uncertain": false,
+        "svg": false,
+        "opacity": "1"
+      },
+      {
+        "text": "90%",
+        "tag": "SPAN",
+        "cls": "text-xs ml-1 flex-shrink-0 text-[#8A9270]",
+        "font": 13,
+        "weight": "400",
+        "color": "rgb(138, 146, 112)",
+        "bg": [
+          255,
+          255,
+          255
+        ],
+        "contrast": 3.27,
+        "uncertain": false,
+        "svg": false,
+        "opacity": "1"
+      },
+      {
+        "text": "€95",
+        "tag": "SPAN",
+        "cls": "text-[10px] font-medium flex-shrink-0 text-[#8A9270]",
+        "font": 10,
+        "weight": "500",
+        "color": "rgb(138, 146, 112)",
+        "bg": [
+          255,
+          255,
+          255
+        ],
+        "contrast": 3.27,
+        "uncertain": false,
+        "svg": false,
+        "opacity": "1"
+      },
+      {
+        "text": "100%",
+        "tag": "SPAN",
+        "cls": "text-xs ml-1 flex-shrink-0 text-[#8A9270]",
+        "font": 13,
+        "weight": "400",
+        "color": "rgb(138, 146, 112)",
+        "bg": [
+          255,
+          255,
+          255
+        ],
+        "contrast": 3.27,
+        "uncertain": false,
+        "svg": false,
+        "opacity": "1"
+      },
+      {
+        "text": "€85",
+        "tag": "SPAN",
+        "cls": "text-[10px] font-medium flex-shrink-0 text-[#8A9270]",
+        "font": 10,
+        "weight": "500",
+        "color": "rgb(138, 146, 112)",
+        "bg": [
+          255,
+          255,
+          255
+        ],
+        "contrast": 3.27,
+        "uncertain": false,
+        "svg": false,
+        "opacity": "1"
+      },
+      {
+        "text": "100%",
+        "tag": "SPAN",
+        "cls": "text-xs ml-1 flex-shrink-0 text-[#8A9270]",
+        "font": 13,
+        "weight": "400",
+        "color": "rgb(138, 146, 112)",
+        "bg": [
+          255,
+          255,
+          255
+        ],
+        "contrast": 3.27,
+        "uncertain": false,
+        "svg": false,
+        "opacity": "1"
+      },
+      {
+        "text": "Admin · V4",
+        "tag": "SPAN",
+        "cls": "text-xs font-medium px-2 py-0.5 rounded-full bg-gold/15 text-gold",
+        "font": 13,
+        "weight": "500",
+        "color": "rgb(165, 102, 10)",
+        "bg": [
+          246.15,
+          239.4,
+          223.35
+        ],
+        "contrast": 4.08,
+        "uncertain": false,
+        "svg": false,
+        "opacity": "1"
+      },
+      {
+        "text": "Affidabilità  Alta",
+        "tag": "SPAN",
+        "cls": "text-[11px] px-2 py-0.5 rounded-full font-medium text-[#8A9270] bg-[#8A9270]/15",
+        "font": 13,
+        "weight": "500",
+        "color": "rgb(138, 146, 112)",
+        "bg": [
+          237.45,
+          238.65,
+          233.55
+        ],
+        "contrast": 2.82,
+        "uncertain": false,
+        "svg": false,
+        "opacity": "1"
+      },
+      {
+        "text": "Segnale budget  ON",
+        "tag": "BUTTON",
+        "cls": "text-[11px] px-2.5 py-1 rounded-full font-medium transition-colors bg-gold/15 text-gold",
+        "font": 13,
+        "weight": "500",
+        "color": "rgb(165, 102, 10)",
+        "bg": [
+          246.15,
+          239.4,
+          223.35
+        ],
+        "contrast": 4.08,
+        "uncertain": false,
+        "svg": false,
+        "opacity": "1"
+      },
+      {
+        "text": "Confermato",
+        "tag": "SPAN",
+        "cls": "px-2 py-0.5 rounded-full font-medium text-[#8A9270] bg-[#8A9270]/15",
+        "font": 13,
+        "weight": "500",
+        "color": "rgb(138, 146, 112)",
+        "bg": [
+          237.45,
+          238.65,
+          233.55
+        ],
+        "contrast": 2.82,
+        "uncertain": false,
+        "svg": false,
+        "opacity": "1"
+      },
+      {
+        "text": "· non ancora validabile",
+        "tag": "SPAN",
+        "cls": "text-[#C0706A]",
+        "font": 13,
+        "weight": "400",
+        "color": "rgb(192, 112, 106)",
+        "bg": [
+          255,
+          255,
+          255
+        ],
+        "contrast": 3.64,
+        "uncertain": false,
+        "svg": false,
+        "opacity": "1"
+      },
+      {
+        "text": "Alta",
+        "tag": "SPAN",
+        "cls": "text-[10px] px-1.5 py-0.5 rounded-full font-medium text-[#8A9270] bg-[#8A9270]/15",
+        "font": 10,
+        "weight": "500",
+        "color": "rgb(138, 146, 112)",
+        "bg": [
+          237.45,
+          238.65,
+          233.55
+        ],
+        "contrast": 2.82,
+        "uncertain": false,
+        "svg": false,
+        "opacity": "1"
+      },
+      {
+        "text": "Alta",
+        "tag": "SPAN",
+        "cls": "text-[10px] px-1.5 py-0.5 rounded-full font-medium text-[#8A9270] bg-[#8A9270]/15",
+        "font": 10,
+        "weight": "500",
+        "color": "rgb(138, 146, 112)",
+        "bg": [
+          237.45,
+          238.65,
+          233.55
+        ],
+        "contrast": 2.82,
+        "uncertain": false,
+        "svg": false,
+        "opacity": "1"
+      },
+      {
+        "text": "Alta",
+        "tag": "SPAN",
+        "cls": "text-[10px] px-1.5 py-0.5 rounded-full font-medium text-[#8A9270] bg-[#8A9270]/15",
+        "font": 10,
+        "weight": "500",
+        "color": "rgb(138, 146, 112)",
+        "bg": [
+          237.45,
+          238.65,
+          233.55
+        ],
+        "contrast": 2.82,
+        "uncertain": false,
+        "svg": false,
+        "opacity": "1"
+      },
+      {
+        "text": "Esporta diagnostica V4 (JSON)",
+        "tag": "BUTTON",
+        "cls": "w-full py-2.5 rounded-xl bg-gold/15 text-gold font-medium text-sm hover:bg-gold/25 transition-colors",
+        "font": 14,
+        "weight": "500",
+        "color": "rgb(165, 102, 10)",
+        "bg": [
+          246.15,
+          239.4,
+          223.35
+        ],
+        "contrast": 4.08,
+        "uncertain": false,
+        "svg": false,
+        "opacity": "1"
+      },
+      {
+        "text": "Admin",
+        "tag": "SPAN",
+        "cls": "text-xs font-medium px-2 py-0.5 rounded-full bg-gold/10 text-gold",
+        "font": 13,
+        "weight": "500",
+        "color": "rgb(165, 102, 10)",
+        "bg": [
+          249.1,
+          244.6,
+          233.9
+        ],
+        "contrast": 4.27,
+        "uncertain": false,
+        "svg": false,
+        "opacity": "1"
+      },
+      {
+        "text": "Ultimi 12 mesi",
+        "tag": "BUTTON",
+        "cls": "text-xs px-3 py-1.5 rounded-lg font-medium transition-colors bg-gold/15 text-gold",
+        "font": 13,
+        "weight": "500",
+        "color": "rgb(165, 102, 10)",
+        "bg": [
+          246.15,
+          239.4,
+          223.35
+        ],
+        "contrast": 4.08,
+        "uncertain": false,
+        "svg": false,
+        "opacity": "1"
+      },
+      {
+        "text": "Pseudonimizzata",
+        "tag": "BUTTON",
+        "cls": "text-xs px-3 py-1.5 rounded-lg font-medium transition-colors bg-gold/15 text-gold",
+        "font": 13,
+        "weight": "500",
+        "color": "rgb(165, 102, 10)",
+        "bg": [
+          246.15,
+          239.4,
+          223.35
+        ],
+        "contrast": 4.08,
+        "uncertain": false,
+        "svg": false,
+        "opacity": "1"
+      },
+      {
+        "text": "Transazioni: sì",
+        "tag": "BUTTON",
+        "cls": "text-[11px] px-2.5 py-1 rounded-full font-medium transition-colors bg-gold/15 text-gold",
+        "font": 13,
+        "weight": "500",
+        "color": "rgb(165, 102, 10)",
+        "bg": [
+          246.15,
+          239.4,
+          223.35
+        ],
+        "contrast": 4.08,
+        "uncertain": false,
+        "svg": false,
+        "opacity": "1"
+      },
+      {
+        "text": "Forecast per categoria: sì",
+        "tag": "BUTTON",
+        "cls": "text-[11px] px-2.5 py-1 rounded-full font-medium transition-colors bg-gold/15 text-gold",
+        "font": 13,
+        "weight": "500",
+        "color": "rgb(165, 102, 10)",
+        "bg": [
+          246.15,
+          239.4,
+          223.35
+        ],
+        "contrast": 4.08,
+        "uncertain": false,
+        "svg": false,
+        "opacity": "1"
+      },
+      {
+        "text": "Esporta diagnostica forecast",
+        "tag": "BUTTON",
+        "cls": "w-full py-3 rounded-xl bg-gold/15 text-gold font-medium text-sm hover:bg-gold/25 transition-colors disabled:opacity-50",
+        "font": 14,
+        "weight": "500",
+        "color": "rgb(165, 102, 10)",
+        "bg": [
+          246.15,
+          239.4,
+          223.35
+        ],
+        "contrast": 4.08,
+        "uncertain": false,
+        "svg": false,
+        "opacity": "1"
+      }
+    ],
+    "textUnder12px": [
+      {
+        "text": "Oggi",
+        "tag": "SPAN",
+        "cls": null,
+        "font": 11,
+        "weight": "400",
+        "color": "rgb(94, 101, 112)",
+        "bg": [
+          255,
+          255,
+          255
+        ],
+        "contrast": 5.88,
+        "uncertain": false,
+        "svg": false,
+        "opacity": "1"
+      },
+      {
+        "text": "Patrimonio",
+        "tag": "SPAN",
+        "cls": null,
+        "font": 11,
+        "weight": "400",
+        "color": "rgb(94, 101, 112)",
+        "bg": [
+          255,
+          255,
+          255
+        ],
+        "contrast": 5.88,
+        "uncertain": false,
+        "svg": false,
+        "opacity": "1"
+      },
+      {
+        "text": "Piano",
+        "tag": "SPAN",
+        "cls": null,
+        "font": 11,
+        "weight": "400",
+        "color": "rgb(94, 101, 112)",
+        "bg": [
+          255,
+          255,
+          255
+        ],
+        "contrast": 5.88,
+        "uncertain": false,
+        "svg": false,
+        "opacity": "1"
+      },
+      {
+        "text": "Movimenti",
+        "tag": "SPAN",
+        "cls": null,
+        "font": 11,
+        "weight": "400",
+        "color": "rgb(94, 101, 112)",
+        "bg": [
+          255,
+          255,
+          255
+        ],
+        "contrast": 5.88,
+        "uncertain": false,
+        "svg": false,
+        "opacity": "1"
+      },
+      {
+        "text": "🔁 Ricorrente",
+        "tag": "SPAN",
+        "cls": "text-[10px] px-2 py-0.5 rounded-full font-medium text-[#8A9270] bg-[#8A9270]/15",
+        "font": 10,
+        "weight": "500",
+        "color": "rgb(138, 146, 112)",
+        "bg": [
+          237.45,
+          238.65,
+          233.55
+        ],
+        "contrast": 2.82,
+        "uncertain": false,
+        "svg": false,
+        "opacity": "1"
+      },
+      {
+        "text": "📦 Bundle abbonamenti",
+        "tag": "SPAN",
+        "cls": "text-[10px] px-2 py-0.5 rounded-full font-medium text-emerald-400 bg-emerald-400/10",
+        "font": 10,
+        "weight": "500",
+        "color": "rgb(52, 211, 153)",
+        "bg": [
+          234.7,
+          250.6,
+          244.8
+        ],
+        "contrast": 1.79,
+        "uncertain": false,
+        "svg": false,
+        "opacity": "1"
+      },
+      {
+        "text": "🔒 Fisso mensile",
+        "tag": "SPAN",
+        "cls": "text-[10px] px-2 py-0.5 rounded-full font-medium text-[#8A9270] bg-[#8A9270]/15",
+        "font": 10,
+        "weight": "500",
+        "color": "rgb(138, 146, 112)",
+        "bg": [
+          237.45,
+          238.65,
+          233.55
+        ],
+        "contrast": 2.82,
+        "uncertain": false,
+        "svg": false,
+        "opacity": "1"
+      },
+      {
+        "text": "📅 Periodico",
+        "tag": "SPAN",
+        "cls": "text-[10px] px-2 py-0.5 rounded-full font-medium text-blue-400 bg-blue-500/10",
+        "font": 10,
+        "weight": "500",
+        "color": "rgb(96, 165, 250)",
+        "bg": [
+          235.4,
+          242.5,
+          254.1
+        ],
+        "contrast": 2.27,
+        "uncertain": false,
+        "svg": false,
+        "opacity": "1"
+      },
+      {
+        "text": "⚡ Ibrido",
+        "tag": "SPAN",
+        "cls": "text-[10px] px-2 py-0.5 rounded-full font-medium text-gold bg-gold/10",
+        "font": 10,
+        "weight": "500",
+        "color": "rgb(165, 102, 10)",
+        "bg": [
+          249.1,
+          244.6,
+          233.9
+        ],
+        "contrast": 4.27,
+        "uncertain": false,
+        "svg": false,
+        "opacity": "1"
+      },
+      {
+        "text": "📊 Variabile frequente",
+        "tag": "SPAN",
+        "cls": "text-[10px] px-2 py-0.5 rounded-full font-medium text-tertiary bg-elevated",
+        "font": 10,
+        "weight": "500",
+        "color": "rgb(94, 101, 112)",
+        "bg": [
+          247,
+          249,
+          252
+        ],
+        "contrast": 5.58,
+        "uncertain": false,
+        "svg": false,
+        "opacity": "1"
+      },
+      {
+        "text": "📊 Variabile raro",
+        "tag": "SPAN",
+        "cls": "text-[10px] px-2 py-0.5 rounded-full font-medium text-tertiary bg-elevated",
+        "font": 10,
+        "weight": "500",
+        "color": "rgb(94, 101, 112)",
+        "bg": [
+          247,
+          249,
+          252
+        ],
+        "contrast": 5.58,
+        "uncertain": false,
+        "svg": false,
+        "opacity": "1"
+      },
+      {
+        "text": "⚠️ Volatile",
+        "tag": "SPAN",
+        "cls": "text-[10px] px-2 py-0.5 rounded-full font-medium text-[#C0706A] bg-[#C0706A]/10",
+        "font": 10,
+        "weight": "500",
+        "color": "rgb(192, 112, 106)",
+        "bg": [
+          248.7,
+          240.7,
+          240.1
+        ],
+        "contrast": 3.26,
+        "uncertain": false,
+        "svg": false,
+        "opacity": "1"
+      },
+      {
+        "text": "🌙 Rarissima",
+        "tag": "SPAN",
+        "cls": "text-[10px] px-2 py-0.5 rounded-full font-medium text-tertiary bg-elevated",
+        "font": 10,
+        "weight": "500",
+        "color": "rgb(94, 101, 112)",
+        "bg": [
+          247,
+          249,
+          252
+        ],
+        "contrast": 5.58,
+        "uncertain": false,
+        "svg": false,
+        "opacity": "1"
+      },
+      {
+        "text": "💤 Inattiva",
+        "tag": "SPAN",
+        "cls": "text-[10px] px-2 py-0.5 rounded-full font-medium text-tertiary bg-elevated",
+        "font": 10,
+        "weight": "500",
+        "color": "rgb(94, 101, 112)",
+        "bg": [
+          247,
+          249,
+          252
+        ],
+        "contrast": 5.58,
+        "uncertain": false,
+        "svg": false,
+        "opacity": "1"
+      },
+      {
+        "text": "❓ Sconosciuto",
+        "tag": "SPAN",
+        "cls": "text-[10px] px-2 py-0.5 rounded-full font-medium text-tertiary bg-elevated",
+        "font": 10,
+        "weight": "500",
+        "color": "rgb(94, 101, 112)",
+        "bg": [
+          247,
+          249,
+          252
+        ],
+        "contrast": 5.58,
+        "uncertain": false,
+        "svg": false,
+        "opacity": "1"
+      },
+      {
+        "text": "€195 – €325",
+        "tag": "SPAN",
+        "cls": "text-[10px] text-tertiary block",
+        "font": 10,
+        "weight": "400",
+        "color": "rgb(94, 101, 112)",
+        "bg": [
+          255,
+          255,
+          255
+        ],
+        "contrast": 5.88,
+        "uncertain": false,
+        "svg": false,
+        "opacity": "1"
+      },
+      {
+        "text": "€95",
+        "tag": "SPAN",
+        "cls": "text-[10px] font-medium flex-shrink-0 text-[#8A9270]",
+        "font": 10,
+        "weight": "500",
+        "color": "rgb(138, 146, 112)",
+        "bg": [
+          255,
+          255,
+          255
+        ],
+        "contrast": 3.27,
+        "uncertain": false,
+        "svg": false,
+        "opacity": "1"
+      },
+      {
+        "text": "€175 – €291",
+        "tag": "SPAN",
+        "cls": "text-[10px] text-tertiary block",
+        "font": 10,
+        "weight": "400",
+        "color": "rgb(94, 101, 112)",
+        "bg": [
+          255,
+          255,
+          255
+        ],
+        "contrast": 5.88,
+        "uncertain": false,
+        "svg": false,
+        "opacity": "1"
+      },
+      {
+        "text": "€85",
+        "tag": "SPAN",
+        "cls": "text-[10px] font-medium flex-shrink-0 text-[#8A9270]",
+        "font": 10,
+        "weight": "500",
+        "color": "rgb(138, 146, 112)",
+        "bg": [
+          255,
+          255,
+          255
+        ],
+        "contrast": 3.27,
+        "uncertain": false,
+        "svg": false,
+        "opacity": "1"
+      },
+      {
+        "text": "Previsione V4",
+        "tag": "P",
+        "cls": "label-caps text-tertiary mb-1",
+        "font": 10,
+        "weight": "500",
+        "color": "rgb(94, 101, 112)",
+        "bg": [
+          255,
+          255,
+          255
+        ],
+        "contrast": 5.88,
+        "uncertain": false,
+        "svg": false,
+        "opacity": "1"
+      },
+      {
+        "text": "Composizione",
+        "tag": "P",
+        "cls": "label-caps text-tertiary mb-1.5",
+        "font": 10,
+        "weight": "500",
+        "color": "rgb(94, 101, 112)",
+        "bg": [
+          255,
+          255,
+          255
+        ],
+        "contrast": 5.88,
+        "uncertain": false,
+        "svg": false,
+        "opacity": "1"
+      },
+      {
+        "text": "100 %",
+        "tag": "SPAN",
+        "cls": "text-[10px] text-tertiary",
+        "font": 10,
+        "weight": "400",
+        "color": "rgb(94, 101, 112)",
+        "bg": [
+          255,
+          255,
+          255
+        ],
+        "contrast": 5.88,
+        "uncertain": false,
+        "svg": false,
+        "opacity": "1"
+      },
+      {
+        "text": "Dettaglio categorie",
+        "tag": "P",
+        "cls": "text-[10px] text-tertiary uppercase tracking-wide mb-2",
+        "font": 10,
+        "weight": "400",
+        "color": "rgb(94, 101, 112)",
+        "bg": [
+          255,
+          255,
+          255
+        ],
+        "contrast": 5.88,
+        "uncertain": false,
+        "svg": false,
+        "opacity": "1"
+      },
+      {
+        "text": "Alta",
+        "tag": "SPAN",
+        "cls": "text-[10px] px-1.5 py-0.5 rounded-full font-medium text-[#8A9270] bg-[#8A9270]/15",
+        "font": 10,
+        "weight": "500",
+        "color": "rgb(138, 146, 112)",
+        "bg": [
+          237.45,
+          238.65,
+          233.55
+        ],
+        "contrast": 2.82,
+        "uncertain": false,
+        "svg": false,
+        "opacity": "1"
+      },
+      {
+        "text": "Alta",
+        "tag": "SPAN",
+        "cls": "text-[10px] px-1.5 py-0.5 rounded-full font-medium text-[#8A9270] bg-[#8A9270]/15",
+        "font": 10,
+        "weight": "500",
+        "color": "rgb(138, 146, 112)",
+        "bg": [
+          237.45,
+          238.65,
+          233.55
+        ],
+        "contrast": 2.82,
+        "uncertain": false,
+        "svg": false,
+        "opacity": "1"
+      },
+      {
+        "text": "Alta",
+        "tag": "SPAN",
+        "cls": "text-[10px] px-1.5 py-0.5 rounded-full font-medium text-[#8A9270] bg-[#8A9270]/15",
+        "font": 10,
+        "weight": "500",
+        "color": "rgb(138, 146, 112)",
+        "bg": [
+          237.45,
+          238.65,
+          233.55
+        ],
+        "contrast": 2.82,
+        "uncertain": false,
+        "svg": false,
+        "opacity": "1"
+      },
+      {
+        "text": "I vecchi motori restano la baseline finché il forecast unificato non li batte stabilmente qui.",
+        "tag": "P",
+        "cls": "text-[10px] text-secondary mt-1.5",
+        "font": 10,
+        "weight": "400",
+        "color": "rgb(94, 101, 112)",
+        "bg": [
+          255,
+          255,
+          255
+        ],
+        "contrast": 5.88,
+        "uncertain": false,
+        "svg": false,
+        "opacity": "1"
+      },
+      {
+        "text": "Periodo",
+        "tag": "P",
+        "cls": "text-[10px] text-tertiary uppercase tracking-wide mb-1.5",
+        "font": 10,
+        "weight": "400",
+        "color": "rgb(94, 101, 112)",
+        "bg": [
+          255,
+          255,
+          255
+        ],
+        "contrast": 5.88,
+        "uncertain": false,
+        "svg": false,
+        "opacity": "1"
+      },
+      {
+        "text": "Privacy",
+        "tag": "P",
+        "cls": "text-[10px] text-tertiary uppercase tracking-wide mb-1.5",
+        "font": 10,
+        "weight": "400",
+        "color": "rgb(94, 101, 112)",
+        "bg": [
+          255,
+          255,
+          255
+        ],
+        "contrast": 5.88,
+        "uncertain": false,
+        "svg": false,
+        "opacity": "1"
+      },
+      {
+        "text": "Le descrizioni raw vengono sostituite da chiavi merchant stabili (merchant_001…). Importi, date e categorie restano.",
+        "tag": "P",
+        "cls": "text-[10px] text-tertiary mt-1",
+        "font": 10,
+        "weight": "400",
+        "color": "rgb(94, 101, 112)",
+        "bg": [
+          255,
+          255,
+          255
+        ],
+        "contrast": 5.88,
+        "uncertain": false,
+        "svg": false,
+        "opacity": "1"
+      }
+    ],
+    "targetsUnder24px": []
+  },
+  {
+    "name": "fund-detail",
+    "theme": "light",
+    "overflow": false,
+    "textNodesMeasured": 229,
+    "controlCount": 27,
+    "fontSizes": [
+      10,
+      12,
+      13,
+      14,
+      16,
+      18,
+      20,
+      22,
+      30,
+      32
+    ],
+    "contrastCandidates": [
+      {
+        "text": "− 2600,00 €  ·  − 21.3 %",
+        "tag": "SPAN",
+        "cls": "text-[11.5px] font-semibold balance-num px-2 py-[3px] rounded-full text-red bg-red/[0.14]",
+        "font": 13,
+        "weight": "600",
+        "color": "rgb(197, 57, 47)",
+        "bg": [
+          246.88,
+          227.27999999999997,
+          225.88
+        ],
+        "contrast": 4.27,
+        "uncertain": false,
+        "svg": false,
+        "opacity": "1"
+      },
+      {
+        "text": "Tutto",
+        "tag": "BUTTON",
+        "cls": "min-h-[44px] px-3 rounded-xl text-sm font-semibold bg-gold text-bg",
+        "font": 14,
+        "weight": "600",
+        "color": "rgb(255, 255, 255)",
+        "bg": [
+          196,
+          151,
+          44
+        ],
+        "contrast": 2.69,
+        "uncertain": false,
+        "svg": false,
+        "opacity": "1"
+      },
+      {
+        "text": "⏱️",
+        "tag": "SPAN",
+        "cls": "text-gold text-base flex-none",
+        "font": 16,
+        "weight": "400",
+        "color": "rgb(165, 102, 10)",
+        "bg": [
+          249.1,
+          244.6,
+          233.9
+        ],
+        "contrast": 4.27,
+        "uncertain": false,
+        "svg": false,
+        "opacity": "1"
+      },
+      {
+        "text": "Aggiorna",
+        "tag": "BUTTON",
+        "cls": "text-[12px] font-semibold text-gold flex-none",
+        "font": 13,
+        "weight": "600",
+        "color": "rgb(165, 102, 10)",
+        "bg": [
+          249.1,
+          244.6,
+          233.9
+        ],
+        "contrast": 4.27,
+        "uncertain": false,
+        "svg": false,
+        "opacity": "1"
+      },
+      {
+        "text": "·  da aggiornare",
+        "tag": "SPAN",
+        "cls": null,
+        "font": 10,
+        "weight": "400",
+        "color": "rgb(196, 151, 44)",
+        "bg": [
+          255,
+          255,
+          255
+        ],
+        "contrast": 2.69,
+        "uncertain": false,
+        "svg": false,
+        "opacity": "1"
+      },
+      {
+        "text": "Tutto",
+        "tag": "BUTTON",
+        "cls": "min-h-[44px] px-3 rounded-xl text-sm font-semibold bg-gold text-bg",
+        "font": 14,
+        "weight": "600",
+        "color": "rgb(255, 255, 255)",
+        "bg": [
+          196,
+          151,
+          44
+        ],
+        "contrast": 2.69,
+        "uncertain": false,
+        "svg": false,
+        "opacity": "1"
+      },
+      {
+        "text": "Vedi tutti i movimenti",
+        "tag": "BUTTON",
+        "cls": "w-full flex items-center justify-center gap-1.5 py-2.5 rounded-xl glass-cta-gold text-[13px] font-semibold active:opacity-80 transition-opacity",
+        "font": 14,
+        "weight": "600",
+        "color": "rgb(165, 102, 10)",
+        "bg": [
+          247.92000000000002,
+          242.52,
+          229.68
+        ],
+        "contrast": 4.19,
+        "uncertain": false,
+        "svg": false,
+        "opacity": "1"
+      }
+    ],
+    "textUnder12px": [
+      {
+        "text": "Controvalore totale",
+        "tag": "P",
+        "cls": "label-caps text-secondary mb-2",
+        "font": 10,
+        "weight": "500",
+        "color": "rgb(94, 101, 112)",
+        "bg": [
+          255,
+          255,
+          255
+        ],
+        "contrast": 5.88,
+        "uncertain": false,
+        "svg": false,
+        "opacity": "1"
+      },
+      {
+        "text": "Gen  2025",
+        "tag": "SPAN",
+        "cls": null,
+        "font": 10,
+        "weight": "400",
+        "color": "rgb(94, 101, 112)",
+        "bg": [
+          255,
+          255,
+          255
+        ],
+        "contrast": 5.88,
+        "uncertain": false,
+        "svg": false,
+        "opacity": "1"
+      },
+      {
+        "text": "Ott  2026",
+        "tag": "SPAN",
+        "cls": null,
+        "font": 10,
+        "weight": "400",
+        "color": "rgb(94, 101, 112)",
+        "bg": [
+          255,
+          255,
+          255
+        ],
+        "contrast": 5.88,
+        "uncertain": false,
+        "svg": false,
+        "opacity": "1"
+      },
+      {
+        "text": "Posizioni",
+        "tag": "P",
+        "cls": "label-caps text-secondary",
+        "font": 10,
+        "weight": "500",
+        "color": "rgb(94, 101, 112)",
+        "bg": [
+          255,
+          255,
+          255
+        ],
+        "contrast": 5.88,
+        "uncertain": false,
+        "svg": false,
+        "opacity": "1"
+      },
+      {
+        "text": "Andamento versamenti",
+        "tag": "P",
+        "cls": "label-caps text-secondary mb-4",
+        "font": 10,
+        "weight": "500",
+        "color": "rgb(94, 101, 112)",
+        "bg": [
+          255,
+          255,
+          255
+        ],
+        "contrast": 5.88,
+        "uncertain": false,
+        "svg": false,
+        "opacity": "1"
+      },
+      {
+        "text": "350,00 €",
+        "tag": "SPAN",
+        "cls": "text-[10px] balance-num mb-1 truncate w-full text-center leading-tight",
+        "font": 10,
+        "weight": "400",
+        "color": "rgb(94, 101, 112)",
+        "bg": [
+          255,
+          255,
+          255
+        ],
+        "contrast": 5.88,
+        "uncertain": false,
+        "svg": false,
+        "opacity": "1"
+      },
+      {
+        "text": "Mag",
+        "tag": "SPAN",
+        "cls": "flex-1 text-[10px] text-secondary text-center truncate min-w-0",
+        "font": 10,
+        "weight": "400",
+        "color": "rgb(94, 101, 112)",
+        "bg": [
+          255,
+          255,
+          255
+        ],
+        "contrast": 5.88,
+        "uncertain": false,
+        "svg": false,
+        "opacity": "1"
+      },
+      {
+        "text": "Giu",
+        "tag": "SPAN",
+        "cls": "flex-1 text-[10px] text-secondary text-center truncate min-w-0",
+        "font": 10,
+        "weight": "400",
+        "color": "rgb(94, 101, 112)",
+        "bg": [
+          255,
+          255,
+          255
+        ],
+        "contrast": 5.88,
+        "uncertain": false,
+        "svg": false,
+        "opacity": "1"
+      },
+      {
+        "text": "Lug",
+        "tag": "SPAN",
+        "cls": "flex-1 text-[10px] text-secondary text-center truncate min-w-0",
+        "font": 10,
+        "weight": "400",
+        "color": "rgb(94, 101, 112)",
+        "bg": [
+          255,
+          255,
+          255
+        ],
+        "contrast": 5.88,
+        "uncertain": false,
+        "svg": false,
+        "opacity": "1"
+      },
+      {
+        "text": "Ago",
+        "tag": "SPAN",
+        "cls": "flex-1 text-[10px] text-secondary text-center truncate min-w-0",
+        "font": 10,
+        "weight": "400",
+        "color": "rgb(94, 101, 112)",
+        "bg": [
+          255,
+          255,
+          255
+        ],
+        "contrast": 5.88,
+        "uncertain": false,
+        "svg": false,
+        "opacity": "1"
+      },
+      {
+        "text": "Set",
+        "tag": "SPAN",
+        "cls": "flex-1 text-[10px] text-secondary text-center truncate min-w-0",
+        "font": 10,
+        "weight": "400",
+        "color": "rgb(94, 101, 112)",
+        "bg": [
+          255,
+          255,
+          255
+        ],
+        "contrast": 5.88,
+        "uncertain": false,
+        "svg": false,
+        "opacity": "1"
+      },
+      {
+        "text": "Ott",
+        "tag": "SPAN",
+        "cls": "flex-1 text-[10px] text-secondary text-center truncate min-w-0",
+        "font": 10,
+        "weight": "400",
+        "color": "rgb(94, 101, 112)",
+        "bg": [
+          255,
+          255,
+          255
+        ],
+        "contrast": 5.88,
+        "uncertain": false,
+        "svg": false,
+        "opacity": "1"
+      },
+      {
+        "text": "Versato",
+        "tag": "SPAN",
+        "cls": "flex items-center gap-1.5",
+        "font": 10,
+        "weight": "400",
+        "color": "rgb(94, 101, 112)",
+        "bg": [
+          255,
+          255,
+          255
+        ],
+        "contrast": 5.88,
+        "uncertain": false,
+        "svg": false,
+        "opacity": "1"
+      },
+      {
+        "text": "Disinvestito",
+        "tag": "SPAN",
+        "cls": "flex items-center gap-1.5",
+        "font": 10,
+        "weight": "400",
+        "color": "rgb(94, 101, 112)",
+        "bg": [
+          255,
+          255,
+          255
+        ],
+        "contrast": 5.88,
+        "uncertain": false,
+        "svg": false,
+        "opacity": "1"
+      },
+      {
+        "text": "350,00 €  netti reali questo mese",
+        "tag": "SPAN",
+        "cls": "ml-auto balance-num",
+        "font": 10,
+        "weight": "400",
+        "color": "rgb(94, 101, 112)",
+        "bg": [
+          255,
+          255,
+          255
+        ],
+        "contrast": 5.88,
+        "uncertain": false,
+        "svg": false,
+        "opacity": "1"
+      },
+      {
+        "text": "Trend per competenza: i versamenti una tantum distribuiti contano per quota mensile. Saldi e flusso di cassa restano sug",
+        "tag": "P",
+        "cls": "text-[10px] text-secondary/70 mt-1.5 leading-snug",
+        "font": 10,
+        "weight": "400",
+        "color": "rgb(94, 101, 112)",
+        "bg": [
+          255,
+          255,
+          255
+        ],
+        "contrast": 5.88,
+        "uncertain": false,
+        "svg": false,
+        "opacity": "1"
+      },
+      {
+        "text": "Controvalore",
+        "tag": "P",
+        "cls": "label-caps text-secondary mb-1",
+        "font": 10,
+        "weight": "500",
+        "color": "rgb(94, 101, 112)",
+        "bg": [
+          255,
+          255,
+          255
+        ],
+        "contrast": 5.88,
+        "uncertain": false,
+        "svg": false,
+        "opacity": "1"
+      },
+      {
+        "text": "Capitale investito netto",
+        "tag": "P",
+        "cls": "text-[10px] text-secondary mt-0.5 truncate",
+        "font": 10,
+        "weight": "400",
+        "color": "rgb(94, 101, 112)",
+        "bg": [
+          255,
+          255,
+          255
+        ],
+        "contrast": 5.88,
+        "uncertain": false,
+        "svg": false,
+        "opacity": "1"
+      },
+      {
+        "text": "Controvalore",
+        "tag": "P",
+        "cls": "text-[10px] text-secondary mt-0.5 truncate",
+        "font": 10,
+        "weight": "400",
+        "color": "rgb(94, 101, 112)",
+        "bg": [
+          255,
+          255,
+          255
+        ],
+        "contrast": 5.88,
+        "uncertain": false,
+        "svg": false,
+        "opacity": "1"
+      },
+      {
+        "text": "·  da aggiornare",
+        "tag": "SPAN",
+        "cls": null,
+        "font": 10,
+        "weight": "400",
+        "color": "rgb(196, 151, 44)",
+        "bg": [
+          255,
+          255,
+          255
+        ],
+        "contrast": 2.69,
+        "uncertain": false,
+        "svg": false,
+        "opacity": "1"
+      },
+      {
+        "text": "Guadagno totale",
+        "tag": "P",
+        "cls": "text-[10px] text-secondary mt-0.5 truncate",
+        "font": 10,
+        "weight": "400",
+        "color": "rgb(94, 101, 112)",
+        "bg": [
+          255,
+          255,
+          255
+        ],
+        "contrast": 5.88,
+        "uncertain": false,
+        "svg": false,
+        "opacity": "1"
+      },
+      {
+        "text": "Rendimento annualizzato",
+        "tag": "P",
+        "cls": "text-[10px] text-secondary mt-0.5 truncate",
+        "font": 10,
+        "weight": "400",
+        "color": "rgb(94, 101, 112)",
+        "bg": [
+          255,
+          255,
+          255
+        ],
+        "contrast": 5.88,
+        "uncertain": false,
+        "svg": false,
+        "opacity": "1"
+      },
+      {
+        "text": "Durata",
+        "tag": "P",
+        "cls": "text-[10px] text-secondary mt-0.5 truncate",
+        "font": 10,
+        "weight": "400",
+        "color": "rgb(94, 101, 112)",
+        "bg": [
+          255,
+          255,
+          255
+        ],
+        "contrast": 5.88,
+        "uncertain": false,
+        "svg": false,
+        "opacity": "1"
+      },
+      {
+        "text": "Capitale versato nel tempo",
+        "tag": "P",
+        "cls": "label-caps text-secondary mb-2",
+        "font": 10,
+        "weight": "500",
+        "color": "rgb(94, 101, 112)",
+        "bg": [
+          255,
+          255,
+          255
+        ],
+        "contrast": 5.88,
+        "uncertain": false,
+        "svg": false,
+        "opacity": "1"
+      },
+      {
+        "text": "La curva mostra il capitale versato ricostruito dai movimenti reali; nessuno storico di mercato viene stimato.",
+        "tag": "P",
+        "cls": "text-[10px] text-secondary/70 mt-1 leading-snug",
+        "font": 10,
+        "weight": "400",
+        "color": "rgb(94, 101, 112)",
+        "bg": [
+          255,
+          255,
+          255
+        ],
+        "contrast": 5.88,
+        "uncertain": false,
+        "svg": false,
+        "opacity": "1"
+      },
+      {
+        "text": "Statistiche",
+        "tag": "P",
+        "cls": "label-caps text-secondary mb-2",
+        "font": 10,
+        "weight": "500",
+        "color": "rgb(94, 101, 112)",
+        "bg": [
+          255,
+          255,
+          255
+        ],
+        "contrast": 5.88,
+        "uncertain": false,
+        "svg": false,
+        "opacity": "1"
+      },
+      {
+        "text": "Movimenti recenti",
+        "tag": "P",
+        "cls": "label-caps text-secondary mb-2",
+        "font": 10,
+        "weight": "500",
+        "color": "rgb(94, 101, 112)",
+        "bg": [
+          255,
+          255,
+          255
+        ],
+        "contrast": 5.88,
+        "uncertain": false,
+        "svg": false,
+        "opacity": "1"
+      }
+    ],
+    "targetsUnder24px": []
+  },
+  {
+    "name": "deposit-editor",
+    "theme": "light",
+    "overflow": false,
+    "textNodesMeasured": 139,
+    "controlCount": 30,
+    "fontSizes": [
+      10,
+      12,
+      13,
+      14,
+      16,
+      18,
+      20,
+      22,
+      32
+    ],
+    "contrastCandidates": [
+      {
+        "text": "− 2600,00 €  ·  − 21.3 %",
+        "tag": "SPAN",
+        "cls": "text-[11.5px] font-semibold balance-num px-2 py-[3px] rounded-full text-red bg-red/[0.14]",
+        "font": 13,
+        "weight": "600",
+        "color": "rgb(197, 57, 47)",
+        "bg": [
+          246.88,
+          227.27999999999997,
+          225.88
+        ],
+        "contrast": 4.27,
+        "uncertain": false,
+        "svg": false,
+        "opacity": "1"
+      },
+      {
+        "text": "Tutto",
+        "tag": "BUTTON",
+        "cls": "min-h-[44px] px-3 rounded-xl text-sm font-semibold bg-gold text-bg",
+        "font": 14,
+        "weight": "600",
+        "color": "rgb(255, 255, 255)",
+        "bg": [
+          196,
+          151,
+          44
+        ],
+        "contrast": 2.69,
+        "uncertain": false,
+        "svg": false,
+        "opacity": "1"
+      },
+      {
+        "text": "⏱️",
+        "tag": "SPAN",
+        "cls": "text-gold text-base flex-none",
+        "font": 16,
+        "weight": "400",
+        "color": "rgb(165, 102, 10)",
+        "bg": [
+          249.1,
+          244.6,
+          233.9
+        ],
+        "contrast": 4.27,
+        "uncertain": false,
+        "svg": false,
+        "opacity": "1"
+      },
+      {
+        "text": "Aggiorna",
+        "tag": "BUTTON",
+        "cls": "text-[12px] font-semibold text-gold flex-none",
+        "font": 13,
+        "weight": "600",
+        "color": "rgb(165, 102, 10)",
+        "bg": [
+          249.1,
+          244.6,
+          233.9
+        ],
+        "contrast": 4.27,
+        "uncertain": false,
+        "svg": false,
+        "opacity": "1"
+      }
+    ],
+    "textUnder12px": [
+      {
+        "text": "Controvalore totale",
+        "tag": "P",
+        "cls": "label-caps text-secondary mb-2",
+        "font": 10,
+        "weight": "500",
+        "color": "rgb(94, 101, 112)",
+        "bg": [
+          255,
+          255,
+          255
+        ],
+        "contrast": 5.88,
+        "uncertain": false,
+        "svg": false,
+        "opacity": "1"
+      },
+      {
+        "text": "Gen  2025",
+        "tag": "SPAN",
+        "cls": null,
+        "font": 10,
+        "weight": "400",
+        "color": "rgb(94, 101, 112)",
+        "bg": [
+          255,
+          255,
+          255
+        ],
+        "contrast": 5.88,
+        "uncertain": false,
+        "svg": false,
+        "opacity": "1"
+      },
+      {
+        "text": "Ott  2026",
+        "tag": "SPAN",
+        "cls": null,
+        "font": 10,
+        "weight": "400",
+        "color": "rgb(94, 101, 112)",
+        "bg": [
+          255,
+          255,
+          255
+        ],
+        "contrast": 5.88,
+        "uncertain": false,
+        "svg": false,
+        "opacity": "1"
+      },
+      {
+        "text": "Posizioni",
+        "tag": "P",
+        "cls": "label-caps text-secondary",
+        "font": 10,
+        "weight": "500",
+        "color": "rgb(94, 101, 112)",
+        "bg": [
+          255,
+          255,
+          255
+        ],
+        "contrast": 5.88,
+        "uncertain": false,
+        "svg": false,
+        "opacity": "1"
+      },
+      {
+        "text": "Andamento versamenti",
+        "tag": "P",
+        "cls": "label-caps text-secondary mb-4",
+        "font": 10,
+        "weight": "500",
+        "color": "rgb(94, 101, 112)",
+        "bg": [
+          255,
+          255,
+          255
+        ],
+        "contrast": 5.88,
+        "uncertain": false,
+        "svg": false,
+        "opacity": "1"
+      },
+      {
+        "text": "350,00 €",
+        "tag": "SPAN",
+        "cls": "text-[10px] balance-num mb-1 truncate w-full text-center leading-tight",
+        "font": 10,
+        "weight": "400",
+        "color": "rgb(94, 101, 112)",
+        "bg": [
+          255,
+          255,
+          255
+        ],
+        "contrast": 5.88,
+        "uncertain": false,
+        "svg": false,
+        "opacity": "1"
+      },
+      {
+        "text": "Mag",
+        "tag": "SPAN",
+        "cls": "flex-1 text-[10px] text-secondary text-center truncate min-w-0",
+        "font": 10,
+        "weight": "400",
+        "color": "rgb(94, 101, 112)",
+        "bg": [
+          255,
+          255,
+          255
+        ],
+        "contrast": 5.88,
+        "uncertain": false,
+        "svg": false,
+        "opacity": "1"
+      },
+      {
+        "text": "Giu",
+        "tag": "SPAN",
+        "cls": "flex-1 text-[10px] text-secondary text-center truncate min-w-0",
+        "font": 10,
+        "weight": "400",
+        "color": "rgb(94, 101, 112)",
+        "bg": [
+          255,
+          255,
+          255
+        ],
+        "contrast": 5.88,
+        "uncertain": false,
+        "svg": false,
+        "opacity": "1"
+      },
+      {
+        "text": "Lug",
+        "tag": "SPAN",
+        "cls": "flex-1 text-[10px] text-secondary text-center truncate min-w-0",
+        "font": 10,
+        "weight": "400",
+        "color": "rgb(94, 101, 112)",
+        "bg": [
+          255,
+          255,
+          255
+        ],
+        "contrast": 5.88,
+        "uncertain": false,
+        "svg": false,
+        "opacity": "1"
+      },
+      {
+        "text": "Ago",
+        "tag": "SPAN",
+        "cls": "flex-1 text-[10px] text-secondary text-center truncate min-w-0",
+        "font": 10,
+        "weight": "400",
+        "color": "rgb(94, 101, 112)",
+        "bg": [
+          255,
+          255,
+          255
+        ],
+        "contrast": 5.88,
+        "uncertain": false,
+        "svg": false,
+        "opacity": "1"
+      },
+      {
+        "text": "Set",
+        "tag": "SPAN",
+        "cls": "flex-1 text-[10px] text-secondary text-center truncate min-w-0",
+        "font": 10,
+        "weight": "400",
+        "color": "rgb(94, 101, 112)",
+        "bg": [
+          255,
+          255,
+          255
+        ],
+        "contrast": 5.88,
+        "uncertain": false,
+        "svg": false,
+        "opacity": "1"
+      },
+      {
+        "text": "Ott",
+        "tag": "SPAN",
+        "cls": "flex-1 text-[10px] text-secondary text-center truncate min-w-0",
+        "font": 10,
+        "weight": "400",
+        "color": "rgb(94, 101, 112)",
+        "bg": [
+          255,
+          255,
+          255
+        ],
+        "contrast": 5.88,
+        "uncertain": false,
+        "svg": false,
+        "opacity": "1"
+      },
+      {
+        "text": "Versato",
+        "tag": "SPAN",
+        "cls": "flex items-center gap-1.5",
+        "font": 10,
+        "weight": "400",
+        "color": "rgb(94, 101, 112)",
+        "bg": [
+          255,
+          255,
+          255
+        ],
+        "contrast": 5.88,
+        "uncertain": false,
+        "svg": false,
+        "opacity": "1"
+      },
+      {
+        "text": "Disinvestito",
+        "tag": "SPAN",
+        "cls": "flex items-center gap-1.5",
+        "font": 10,
+        "weight": "400",
+        "color": "rgb(94, 101, 112)",
+        "bg": [
+          255,
+          255,
+          255
+        ],
+        "contrast": 5.88,
+        "uncertain": false,
+        "svg": false,
+        "opacity": "1"
+      },
+      {
+        "text": "350,00 €  netti reali questo mese",
+        "tag": "SPAN",
+        "cls": "ml-auto balance-num",
+        "font": 10,
+        "weight": "400",
+        "color": "rgb(94, 101, 112)",
+        "bg": [
+          255,
+          255,
+          255
+        ],
+        "contrast": 5.88,
+        "uncertain": false,
+        "svg": false,
+        "opacity": "1"
+      },
+      {
+        "text": "Trend per competenza: i versamenti una tantum distribuiti contano per quota mensile. Saldi e flusso di cassa restano sug",
+        "tag": "P",
+        "cls": "text-[10px] text-secondary/70 mt-1.5 leading-snug",
+        "font": 10,
+        "weight": "400",
+        "color": "rgb(94, 101, 112)",
+        "bg": [
+          255,
+          255,
+          255
+        ],
+        "contrast": 5.88,
+        "uncertain": false,
+        "svg": false,
+        "opacity": "1"
+      },
+      {
+        "text": "Importo del versamento",
+        "tag": "LABEL",
+        "cls": "label-caps text-secondary block mb-1.5",
+        "font": 10,
+        "weight": "500",
+        "color": "rgb(94, 101, 112)",
+        "bg": [
+          255,
+          255,
+          255
+        ],
+        "contrast": 5.88,
+        "uncertain": false,
+        "svg": false,
+        "opacity": "1"
+      }
+    ],
+    "targetsUnder24px": []
+  },
+  {
+    "name": "filters",
+    "theme": "light",
+    "overflow": false,
+    "textNodesMeasured": 1005,
+    "controlCount": 185,
+    "fontSizes": [
+      11,
+      12,
+      13,
+      16,
+      17,
+      18,
+      22,
+      24
+    ],
+    "contrastCandidates": [
+      {
+        "text": "Giorno",
+        "tag": "BUTTON",
+        "cls": "w-full flex items-center justify-between px-3 py-1.5 rounded-xl text-[13px] transition-colors bg-gold/10 text-gold font-medium",
+        "font": 16,
+        "weight": "500",
+        "color": "rgb(165, 102, 10)",
+        "bg": [
+          249.1,
+          244.6,
+          233.9
+        ],
+        "contrast": 4.27,
+        "uncertain": false,
+        "svg": false,
+        "opacity": "1"
+      },
+      {
+        "text": "Da sempre",
+        "tag": "BUTTON",
+        "cls": "w-full flex items-center justify-between px-3 py-1.5 rounded-xl text-[13px] transition-colors bg-gold/10 text-gold font-medium",
+        "font": 16,
+        "weight": "500",
+        "color": "rgb(165, 102, 10)",
+        "bg": [
+          249.1,
+          244.6,
+          233.9
+        ],
+        "contrast": 4.27,
+        "uncertain": false,
+        "svg": false,
+        "opacity": "1"
+      }
+    ],
+    "textUnder12px": [
+      {
+        "text": "Oggi",
+        "tag": "SPAN",
+        "cls": null,
+        "font": 11,
+        "weight": "400",
+        "color": "rgb(94, 101, 112)",
+        "bg": [
+          255,
+          255,
+          255
+        ],
+        "contrast": 5.88,
+        "uncertain": false,
+        "svg": false,
+        "opacity": "1"
+      },
+      {
+        "text": "Patrimonio",
+        "tag": "SPAN",
+        "cls": null,
+        "font": 11,
+        "weight": "400",
+        "color": "rgb(94, 101, 112)",
+        "bg": [
+          255,
+          255,
+          255
+        ],
+        "contrast": 5.88,
+        "uncertain": false,
+        "svg": false,
+        "opacity": "1"
+      },
+      {
+        "text": "Piano",
+        "tag": "SPAN",
+        "cls": null,
+        "font": 11,
+        "weight": "400",
+        "color": "rgb(94, 101, 112)",
+        "bg": [
+          255,
+          255,
+          255
+        ],
+        "contrast": 5.88,
+        "uncertain": false,
+        "svg": false,
+        "opacity": "1"
+      },
+      {
+        "text": "Movimenti",
+        "tag": "SPAN",
+        "cls": null,
+        "font": 11,
+        "weight": "600",
+        "color": "rgb(21, 22, 25)",
+        "bg": [
+          247,
+          249,
+          252
+        ],
+        "contrast": 17.15,
+        "uncertain": false,
+        "svg": false,
+        "opacity": "1"
+      }
+    ],
+    "targetsUnder24px": []
+  },
+  {
+    "name": "settings-appearance",
+    "theme": "light",
+    "overflow": false,
+    "textNodesMeasured": 10,
+    "controlCount": 4,
+    "fontSizes": [
+      12,
+      13,
+      14,
+      16,
+      22,
+      24
+    ],
+    "contrastCandidates": [],
+    "textUnder12px": [],
+    "targetsUnder24px": []
+  },
+  {
+    "name": "/",
+    "theme": "dark",
+    "overflow": false,
+    "textNodesMeasured": 148,
+    "controlCount": 75,
+    "fontSizes": [
+      9,
+      9.5,
+      10,
+      11,
+      12,
+      13,
+      14,
+      16,
+      17,
+      22,
+      24,
+      30,
+      32.22
+    ],
+    "contrastCandidates": [],
+    "textUnder12px": [
+      {
+        "text": "Oggi",
+        "tag": "SPAN",
+        "cls": null,
+        "font": 11,
+        "weight": "600",
+        "color": "rgb(247, 248, 250)",
+        "bg": [
+          16,
+          16,
+          16
+        ],
+        "contrast": 17.91,
+        "uncertain": false,
+        "svg": false,
+        "opacity": "1"
+      },
+      {
+        "text": "Patrimonio",
+        "tag": "SPAN",
+        "cls": null,
+        "font": 11,
+        "weight": "400",
+        "color": "rgb(175, 182, 194)",
+        "bg": [
+          0,
+          0,
+          0
+        ],
+        "contrast": 10.29,
+        "uncertain": false,
+        "svg": false,
+        "opacity": "1"
+      },
+      {
+        "text": "Piano",
+        "tag": "SPAN",
+        "cls": null,
+        "font": 11,
+        "weight": "400",
+        "color": "rgb(175, 182, 194)",
+        "bg": [
+          0,
+          0,
+          0
+        ],
+        "contrast": 10.29,
+        "uncertain": false,
+        "svg": false,
+        "opacity": "1"
+      },
+      {
+        "text": "Movimenti",
+        "tag": "SPAN",
+        "cls": null,
+        "font": 11,
+        "weight": "400",
+        "color": "rgb(175, 182, 194)",
+        "bg": [
+          0,
+          0,
+          0
+        ],
+        "contrast": 10.29,
+        "uncertain": false,
+        "svg": false,
+        "opacity": "1"
+      },
+      {
+        "text": "1",
+        "tag": "SPAN",
+        "cls": "text-[9px] text-secondary ",
+        "font": 9,
+        "weight": "400",
+        "color": "rgb(175, 182, 194)",
+        "bg": [
+          0,
+          0,
+          0
+        ],
+        "contrast": 10.29,
+        "uncertain": false,
+        "svg": false,
+        "opacity": "1"
+      },
+      {
+        "text": "7",
+        "tag": "SPAN",
+        "cls": "text-[9px] text-secondary ",
+        "font": 9,
+        "weight": "400",
+        "color": "rgb(175, 182, 194)",
+        "bg": [
+          0,
+          0,
+          0
+        ],
+        "contrast": 10.29,
+        "uncertain": false,
+        "svg": false,
+        "opacity": "1"
+      },
+      {
+        "text": "13",
+        "tag": "SPAN",
+        "cls": "text-[9px] text-secondary ",
+        "font": 9,
+        "weight": "400",
+        "color": "rgb(175, 182, 194)",
+        "bg": [
+          0,
+          0,
+          0
+        ],
+        "contrast": 10.29,
+        "uncertain": false,
+        "svg": false,
+        "opacity": "1"
+      },
+      {
+        "text": "Spesa   oggi :  0,00 €",
+        "tag": "P",
+        "cls": "text-[10px] text-secondary/70 text-center mt-1",
+        "font": 10,
+        "weight": "400",
+        "color": "rgb(175, 182, 194)",
+        "bg": [
+          0,
+          0,
+          0
+        ],
+        "contrast": 10.29,
+        "uncertain": false,
+        "svg": false,
+        "opacity": "1"
+      },
+      {
+        "text": "Patrimonio netto",
+        "tag": "P",
+        "cls": "label-caps text-secondary mb-2 flex items-center gap-1",
+        "font": 10,
+        "weight": "500",
+        "color": "rgb(175, 182, 194)",
+        "bg": [
+          0,
+          0,
+          0
+        ],
+        "contrast": 10.29,
+        "uncertain": false,
+        "svg": false,
+        "opacity": "1"
+      },
+      {
+        "text": "Ritmo del mese",
+        "tag": "SPAN",
+        "cls": "label-caps text-secondary",
+        "font": 10,
+        "weight": "500",
+        "color": "rgb(175, 182, 194)",
+        "bg": [
+          0,
+          0,
+          0
+        ],
+        "contrast": 10.29,
+        "uncertain": false,
+        "svg": false,
+        "opacity": "1"
+      },
+      {
+        "text": "L",
+        "tag": "SPAN",
+        "cls": null,
+        "font": 9.5,
+        "weight": "600",
+        "color": "rgb(175, 182, 194)",
+        "bg": [
+          0,
+          0,
+          0
+        ],
+        "contrast": 10.29,
+        "uncertain": false,
+        "svg": false,
+        "opacity": "1"
+      },
+      {
+        "text": "M",
+        "tag": "SPAN",
+        "cls": null,
+        "font": 9.5,
+        "weight": "600",
+        "color": "rgb(175, 182, 194)",
+        "bg": [
+          0,
+          0,
+          0
+        ],
+        "contrast": 10.29,
+        "uncertain": false,
+        "svg": false,
+        "opacity": "1"
+      },
+      {
+        "text": "M",
+        "tag": "SPAN",
+        "cls": null,
+        "font": 9.5,
+        "weight": "600",
+        "color": "rgb(175, 182, 194)",
+        "bg": [
+          0,
+          0,
+          0
+        ],
+        "contrast": 10.29,
+        "uncertain": false,
+        "svg": false,
+        "opacity": "1"
+      },
+      {
+        "text": "G",
+        "tag": "SPAN",
+        "cls": null,
+        "font": 9.5,
+        "weight": "600",
+        "color": "rgb(175, 182, 194)",
+        "bg": [
+          0,
+          0,
+          0
+        ],
+        "contrast": 10.29,
+        "uncertain": false,
+        "svg": false,
+        "opacity": "1"
+      },
+      {
+        "text": "V",
+        "tag": "SPAN",
+        "cls": null,
+        "font": 9.5,
+        "weight": "600",
+        "color": "rgb(175, 182, 194)",
+        "bg": [
+          0,
+          0,
+          0
+        ],
+        "contrast": 10.29,
+        "uncertain": false,
+        "svg": false,
+        "opacity": "1"
+      },
+      {
+        "text": "S",
+        "tag": "SPAN",
+        "cls": null,
+        "font": 9.5,
+        "weight": "600",
+        "color": "rgb(175, 182, 194)",
+        "bg": [
+          0,
+          0,
+          0
+        ],
+        "contrast": 10.29,
+        "uncertain": false,
+        "svg": false,
+        "opacity": "1"
+      },
+      {
+        "text": "D",
+        "tag": "SPAN",
+        "cls": null,
+        "font": 9.5,
+        "weight": "600",
+        "color": "rgb(175, 182, 194)",
+        "bg": [
+          0,
+          0,
+          0
+        ],
+        "contrast": 10.29,
+        "uncertain": false,
+        "svg": false,
+        "opacity": "1"
+      }
+    ],
+    "targetsUnder24px": [
+      {
+        "tag": "rect",
+        "label": "1: 24,90 €. Apri movimenti",
+        "width": 11.6,
+        "height": 3.3
+      },
+      {
+        "tag": "rect",
+        "label": "2: 650,30 €. Apri movimenti",
+        "width": 11.6,
+        "height": 86
+      },
+      {
+        "tag": "rect",
+        "label": "3: 35,70 €. Apri movimenti",
+        "width": 11.6,
+        "height": 4.7
+      },
+      {
+        "tag": "rect",
+        "label": "4: 41,10 €. Apri movimenti",
+        "width": 11.6,
+        "height": 5.4
+      },
+      {
+        "tag": "rect",
+        "label": "5: 46,50 €. Apri movimenti",
+        "width": 11.6,
+        "height": 6.1
+      },
+      {
+        "tag": "rect",
+        "label": "6: 51,90 €. Apri movimenti",
+        "width": 11.6,
+        "height": 6.9
+      },
+      {
+        "tag": "rect",
+        "label": "7: 57,30 €. Apri movimenti",
+        "width": 11.6,
+        "height": 7.6
+      },
+      {
+        "tag": "rect",
+        "label": "8: 62,70 €. Apri movimenti",
+        "width": 11.6,
+        "height": 8.3
+      },
+      {
+        "tag": "rect",
+        "label": "9: 68,10 €. Apri movimenti",
+        "width": 11.6,
+        "height": 9
+      },
+      {
+        "tag": "rect",
+        "label": "10: 73,50 €. Apri movimenti",
+        "width": 11.6,
+        "height": 9.7
+      },
+      {
+        "tag": "rect",
+        "label": "11: 0,00 €. Apri movimenti",
+        "width": 11.6,
+        "height": 0
+      },
+      {
+        "tag": "rect",
+        "label": "12: 0,00 €. Apri movimenti",
+        "width": 11.6,
+        "height": 0
+      },
+      {
+        "tag": "rect",
+        "label": "13: 0,00 €. Apri movimenti",
+        "width": 11.6,
+        "height": 0
+      },
+      {
+        "tag": "rect",
+        "label": "14: 0,00 €. Apri movimenti",
+        "width": 11.6,
+        "height": 0
+      },
+      {
+        "tag": "rect",
+        "label": "15: 0,00 €. Apri movimenti",
+        "width": 11.6,
+        "height": 0
+      },
+      {
+        "tag": "rect",
+        "label": "16: 0,00 €. Apri movimenti",
+        "width": 11.6,
+        "height": 0
+      },
+      {
+        "tag": "rect",
+        "label": "17: 0,00 €. Apri movimenti",
+        "width": 11.6,
+        "height": 0
+      },
+      {
+        "tag": "rect",
+        "label": "18: 0,00 €. Apri movimenti",
+        "width": 11.6,
+        "height": 0
+      }
+    ]
+  },
+  {
+    "name": "/wealth",
+    "theme": "dark",
+    "overflow": false,
+    "textNodesMeasured": 111,
+    "controlCount": 18,
+    "fontSizes": [
+      9,
+      10,
+      11,
+      12,
+      13,
+      14,
+      16,
+      17,
+      22,
+      24,
+      32.22
+    ],
+    "contrastCandidates": [],
+    "textUnder12px": [
+      {
+        "text": "Oggi",
+        "tag": "SPAN",
+        "cls": null,
+        "font": 11,
+        "weight": "400",
+        "color": "rgb(175, 182, 194)",
+        "bg": [
+          0,
+          0,
+          0
+        ],
+        "contrast": 10.29,
+        "uncertain": false,
+        "svg": false,
+        "opacity": "1"
+      },
+      {
+        "text": "Patrimonio",
+        "tag": "SPAN",
+        "cls": null,
+        "font": 11,
+        "weight": "600",
+        "color": "rgb(247, 248, 250)",
+        "bg": [
+          16,
+          16,
+          16
+        ],
+        "contrast": 17.91,
+        "uncertain": false,
+        "svg": false,
+        "opacity": "1"
+      },
+      {
+        "text": "Piano",
+        "tag": "SPAN",
+        "cls": null,
+        "font": 11,
+        "weight": "400",
+        "color": "rgb(175, 182, 194)",
+        "bg": [
+          0,
+          0,
+          0
+        ],
+        "contrast": 10.29,
+        "uncertain": false,
+        "svg": false,
+        "opacity": "1"
+      },
+      {
+        "text": "Movimenti",
+        "tag": "SPAN",
+        "cls": null,
+        "font": 11,
+        "weight": "400",
+        "color": "rgb(175, 182, 194)",
+        "bg": [
+          0,
+          0,
+          0
+        ],
+        "contrast": 10.29,
+        "uncertain": false,
+        "svg": false,
+        "opacity": "1"
+      },
+      {
+        "text": "Ott 25",
+        "tag": "SPAN",
+        "cls": "text-[9px] text-secondary",
+        "font": 9,
+        "weight": "400",
+        "color": "rgb(175, 182, 194)",
+        "bg": [
+          0,
+          0,
+          0
+        ],
+        "contrast": 10.29,
+        "uncertain": false,
+        "svg": false,
+        "opacity": "1"
+      },
+      {
+        "text": "Gen 26",
+        "tag": "SPAN",
+        "cls": "text-[9px] text-secondary",
+        "font": 9,
+        "weight": "400",
+        "color": "rgb(175, 182, 194)",
+        "bg": [
+          0,
+          0,
+          0
+        ],
+        "contrast": 10.29,
+        "uncertain": false,
+        "svg": false,
+        "opacity": "1"
+      },
+      {
+        "text": "Apr 26",
+        "tag": "SPAN",
+        "cls": "text-[9px] text-secondary",
+        "font": 9,
+        "weight": "400",
+        "color": "rgb(175, 182, 194)",
+        "bg": [
+          0,
+          0,
+          0
+        ],
+        "contrast": 10.29,
+        "uncertain": false,
+        "svg": false,
+        "opacity": "1"
+      },
+      {
+        "text": "Lug 26",
+        "tag": "SPAN",
+        "cls": "text-[9px] text-secondary",
+        "font": 9,
+        "weight": "400",
+        "color": "rgb(175, 182, 194)",
+        "bg": [
+          0,
+          0,
+          0
+        ],
+        "contrast": 10.29,
+        "uncertain": false,
+        "svg": false,
+        "opacity": "1"
+      },
+      {
+        "text": "Ott 26",
+        "tag": "SPAN",
+        "cls": "text-[9px] text-secondary",
+        "font": 9,
+        "weight": "400",
+        "color": "rgb(175, 182, 194)",
+        "bg": [
+          0,
+          0,
+          0
+        ],
+        "contrast": 10.29,
+        "uncertain": false,
+        "svg": false,
+        "opacity": "1"
+      },
+      {
+        "text": "Liquidità",
+        "tag": "P",
+        "cls": "label-caps text-secondary mb-1.5",
+        "font": 10,
+        "weight": "500",
+        "color": "rgb(175, 182, 194)",
+        "bg": [
+          0,
+          0,
+          0
+        ],
+        "contrast": 10.29,
+        "uncertain": false,
+        "svg": false,
+        "opacity": "1"
+      },
+      {
+        "text": "Investito",
+        "tag": "P",
+        "cls": "label-caps text-secondary mb-1.5",
+        "font": 10,
+        "weight": "500",
+        "color": "rgb(175, 182, 194)",
+        "bg": [
+          0,
+          0,
+          0
+        ],
+        "contrast": 10.29,
+        "uncertain": false,
+        "svg": false,
+        "opacity": "1"
+      },
+      {
+        "text": "Saldo per conto",
+        "tag": "BUTTON",
+        "cls": "flex items-center gap-1 label-caps text-secondary active:text-primary transition-colors",
+        "font": 10,
+        "weight": "500",
+        "color": "rgb(175, 182, 194)",
+        "bg": [
+          0,
+          0,
+          0
+        ],
+        "contrast": 10.29,
+        "uncertain": false,
+        "svg": false,
+        "opacity": "1"
+      },
+      {
+        "text": "Investimenti per categoria",
+        "tag": "P",
+        "cls": "label-caps text-secondary flex items-center gap-1.5",
+        "font": 10,
+        "weight": "500",
+        "color": "rgb(175, 182, 194)",
+        "bg": [
+          0,
+          0,
+          0
+        ],
+        "contrast": 10.29,
+        "uncertain": false,
+        "svg": false,
+        "opacity": "1"
+      },
+      {
+        "text": "Investito",
+        "tag": "SPAN",
+        "cls": "label-caps text-secondary",
+        "font": 10,
+        "weight": "500",
+        "color": "rgb(175, 182, 194)",
+        "bg": [
+          0,
+          0,
+          0
+        ],
+        "contrast": 10.29,
+        "uncertain": false,
+        "svg": false,
+        "opacity": "1"
+      }
+    ],
+    "targetsUnder24px": []
+  },
+  {
+    "name": "/budget",
+    "theme": "dark",
+    "overflow": false,
+    "textNodesMeasured": 100,
+    "controlCount": 31,
+    "fontSizes": [
+      10,
+      11,
+      12,
+      13,
+      14,
+      15,
+      16,
+      17,
+      18,
+      22,
+      24,
+      36
+    ],
+    "contrastCandidates": [],
+    "textUnder12px": [
+      {
+        "text": "Oggi",
+        "tag": "SPAN",
+        "cls": null,
+        "font": 11,
+        "weight": "400",
+        "color": "rgb(175, 182, 194)",
+        "bg": [
+          0,
+          0,
+          0
+        ],
+        "contrast": 10.29,
+        "uncertain": false,
+        "svg": false,
+        "opacity": "1"
+      },
+      {
+        "text": "Patrimonio",
+        "tag": "SPAN",
+        "cls": null,
+        "font": 11,
+        "weight": "400",
+        "color": "rgb(175, 182, 194)",
+        "bg": [
+          0,
+          0,
+          0
+        ],
+        "contrast": 10.29,
+        "uncertain": false,
+        "svg": false,
+        "opacity": "1"
+      },
+      {
+        "text": "Piano",
+        "tag": "SPAN",
+        "cls": null,
+        "font": 11,
+        "weight": "600",
+        "color": "rgb(247, 248, 250)",
+        "bg": [
+          16,
+          16,
+          16
+        ],
+        "contrast": 17.91,
+        "uncertain": false,
+        "svg": false,
+        "opacity": "1"
+      },
+      {
+        "text": "Movimenti",
+        "tag": "SPAN",
+        "cls": null,
+        "font": 11,
+        "weight": "400",
+        "color": "rgb(175, 182, 194)",
+        "bg": [
+          0,
+          0,
+          0
+        ],
+        "contrast": 10.29,
+        "uncertain": false,
+        "svg": false,
+        "opacity": "1"
+      },
+      {
+        "text": "Modifica piano",
+        "tag": "BUTTON",
+        "cls": "plan-edit-button cta-gold-fill",
+        "font": 11,
+        "weight": "600",
+        "color": "rgb(36, 23, 4)",
+        "bg": [
+          242,
+          196,
+          109
+        ],
+        "contrast": 10.75,
+        "uncertain": false,
+        "svg": false,
+        "opacity": "1"
+      },
+      {
+        "text": "Margine del mese",
+        "tag": "P",
+        "cls": "plan-eyebrow label-caps text-secondary",
+        "font": 10,
+        "weight": "500",
+        "color": "rgb(175, 182, 194)",
+        "bg": [
+          0,
+          0,
+          0
+        ],
+        "contrast": 10.29,
+        "uncertain": false,
+        "svg": false,
+        "opacity": "1"
+      },
+      {
+        "text": "Consulta Patrimonio",
+        "tag": "BUTTON",
+        "cls": null,
+        "font": 10,
+        "weight": "500",
+        "color": "rgb(175, 182, 194)",
+        "bg": [
+          0,
+          0,
+          0
+        ],
+        "contrast": 10.29,
+        "uncertain": false,
+        "svg": false,
+        "opacity": "1"
+      },
+      {
+        "text": "Cuscinetto non allocato",
+        "tag": "SPAN",
+        "cls": null,
+        "font": 11,
+        "weight": "400",
+        "color": "rgb(247, 248, 250)",
+        "bg": [
+          0,
+          0,
+          0
+        ],
+        "contrast": 19.76,
+        "uncertain": false,
+        "svg": false,
+        "opacity": "1"
+      }
+    ],
+    "targetsUnder24px": []
+  },
+  {
+    "name": "/transactions",
+    "theme": "dark",
+    "overflow": false,
+    "textNodesMeasured": 987,
+    "controlCount": 170,
+    "fontSizes": [
+      11,
+      12,
+      13,
+      16,
+      17,
+      18,
+      22,
+      24
+    ],
+    "contrastCandidates": [],
+    "textUnder12px": [
+      {
+        "text": "Oggi",
+        "tag": "SPAN",
+        "cls": null,
+        "font": 11,
+        "weight": "400",
+        "color": "rgb(175, 182, 194)",
+        "bg": [
+          0,
+          0,
+          0
+        ],
+        "contrast": 10.29,
+        "uncertain": false,
+        "svg": false,
+        "opacity": "1"
+      },
+      {
+        "text": "Patrimonio",
+        "tag": "SPAN",
+        "cls": null,
+        "font": 11,
+        "weight": "400",
+        "color": "rgb(175, 182, 194)",
+        "bg": [
+          0,
+          0,
+          0
+        ],
+        "contrast": 10.29,
+        "uncertain": false,
+        "svg": false,
+        "opacity": "1"
+      },
+      {
+        "text": "Piano",
+        "tag": "SPAN",
+        "cls": null,
+        "font": 11,
+        "weight": "400",
+        "color": "rgb(175, 182, 194)",
+        "bg": [
+          0,
+          0,
+          0
+        ],
+        "contrast": 10.29,
+        "uncertain": false,
+        "svg": false,
+        "opacity": "1"
+      },
+      {
+        "text": "Movimenti",
+        "tag": "SPAN",
+        "cls": null,
+        "font": 11,
+        "weight": "600",
+        "color": "rgb(247, 248, 250)",
+        "bg": [
+          16,
+          16,
+          16
+        ],
+        "contrast": 17.91,
+        "uncertain": false,
+        "svg": false,
+        "opacity": "1"
+      }
+    ],
+    "targetsUnder24px": []
+  },
+  {
+    "name": "/investments",
+    "theme": "dark",
+    "overflow": false,
+    "textNodesMeasured": 119,
+    "controlCount": 21,
+    "fontSizes": [
+      10,
+      11,
+      12,
+      13,
+      14,
+      16,
+      22,
+      24,
+      32
+    ],
+    "contrastCandidates": [],
+    "textUnder12px": [
+      {
+        "text": "Oggi",
+        "tag": "SPAN",
+        "cls": null,
+        "font": 11,
+        "weight": "400",
+        "color": "rgb(175, 182, 194)",
+        "bg": [
+          0,
+          0,
+          0
+        ],
+        "contrast": 10.29,
+        "uncertain": false,
+        "svg": false,
+        "opacity": "1"
+      },
+      {
+        "text": "Patrimonio",
+        "tag": "SPAN",
+        "cls": null,
+        "font": 11,
+        "weight": "400",
+        "color": "rgb(175, 182, 194)",
+        "bg": [
+          0,
+          0,
+          0
+        ],
+        "contrast": 10.29,
+        "uncertain": false,
+        "svg": false,
+        "opacity": "1"
+      },
+      {
+        "text": "Piano",
+        "tag": "SPAN",
+        "cls": null,
+        "font": 11,
+        "weight": "400",
+        "color": "rgb(175, 182, 194)",
+        "bg": [
+          0,
+          0,
+          0
+        ],
+        "contrast": 10.29,
+        "uncertain": false,
+        "svg": false,
+        "opacity": "1"
+      },
+      {
+        "text": "Movimenti",
+        "tag": "SPAN",
+        "cls": null,
+        "font": 11,
+        "weight": "400",
+        "color": "rgb(175, 182, 194)",
+        "bg": [
+          0,
+          0,
+          0
+        ],
+        "contrast": 10.29,
+        "uncertain": false,
+        "svg": false,
+        "opacity": "1"
+      },
+      {
+        "text": "Controvalore totale",
+        "tag": "P",
+        "cls": "label-caps text-secondary mb-2",
+        "font": 10,
+        "weight": "500",
+        "color": "rgb(175, 182, 194)",
+        "bg": [
+          0,
+          0,
+          0
+        ],
+        "contrast": 10.29,
+        "uncertain": false,
+        "svg": false,
+        "opacity": "1"
+      },
+      {
+        "text": "Gen  2025",
+        "tag": "SPAN",
+        "cls": null,
+        "font": 10,
+        "weight": "400",
+        "color": "rgb(175, 182, 194)",
+        "bg": [
+          0,
+          0,
+          0
+        ],
+        "contrast": 10.29,
+        "uncertain": false,
+        "svg": false,
+        "opacity": "1"
+      },
+      {
+        "text": "Ott  2026",
+        "tag": "SPAN",
+        "cls": null,
+        "font": 10,
+        "weight": "400",
+        "color": "rgb(175, 182, 194)",
+        "bg": [
+          0,
+          0,
+          0
+        ],
+        "contrast": 10.29,
+        "uncertain": false,
+        "svg": false,
+        "opacity": "1"
+      },
+      {
+        "text": "Posizioni",
+        "tag": "P",
+        "cls": "label-caps text-secondary",
+        "font": 10,
+        "weight": "500",
+        "color": "rgb(175, 182, 194)",
+        "bg": [
+          0,
+          0,
+          0
+        ],
+        "contrast": 10.29,
+        "uncertain": false,
+        "svg": false,
+        "opacity": "1"
+      },
+      {
+        "text": "Andamento versamenti",
+        "tag": "P",
+        "cls": "label-caps text-secondary mb-4",
+        "font": 10,
+        "weight": "500",
+        "color": "rgb(175, 182, 194)",
+        "bg": [
+          0,
+          0,
+          0
+        ],
+        "contrast": 10.29,
+        "uncertain": false,
+        "svg": false,
+        "opacity": "1"
+      },
+      {
+        "text": "350,00 €",
+        "tag": "SPAN",
+        "cls": "text-[10px] balance-num mb-1 truncate w-full text-center leading-tight",
+        "font": 10,
+        "weight": "400",
+        "color": "rgb(175, 182, 194)",
+        "bg": [
+          0,
+          0,
+          0
+        ],
+        "contrast": 10.29,
+        "uncertain": false,
+        "svg": false,
+        "opacity": "1"
+      },
+      {
+        "text": "Mag",
+        "tag": "SPAN",
+        "cls": "flex-1 text-[10px] text-secondary text-center truncate min-w-0",
+        "font": 10,
+        "weight": "400",
+        "color": "rgb(175, 182, 194)",
+        "bg": [
+          0,
+          0,
+          0
+        ],
+        "contrast": 10.29,
+        "uncertain": false,
+        "svg": false,
+        "opacity": "1"
+      },
+      {
+        "text": "Giu",
+        "tag": "SPAN",
+        "cls": "flex-1 text-[10px] text-secondary text-center truncate min-w-0",
+        "font": 10,
+        "weight": "400",
+        "color": "rgb(175, 182, 194)",
+        "bg": [
+          0,
+          0,
+          0
+        ],
+        "contrast": 10.29,
+        "uncertain": false,
+        "svg": false,
+        "opacity": "1"
+      },
+      {
+        "text": "Lug",
+        "tag": "SPAN",
+        "cls": "flex-1 text-[10px] text-secondary text-center truncate min-w-0",
+        "font": 10,
+        "weight": "400",
+        "color": "rgb(175, 182, 194)",
+        "bg": [
+          0,
+          0,
+          0
+        ],
+        "contrast": 10.29,
+        "uncertain": false,
+        "svg": false,
+        "opacity": "1"
+      },
+      {
+        "text": "Ago",
+        "tag": "SPAN",
+        "cls": "flex-1 text-[10px] text-secondary text-center truncate min-w-0",
+        "font": 10,
+        "weight": "400",
+        "color": "rgb(175, 182, 194)",
+        "bg": [
+          0,
+          0,
+          0
+        ],
+        "contrast": 10.29,
+        "uncertain": false,
+        "svg": false,
+        "opacity": "1"
+      },
+      {
+        "text": "Set",
+        "tag": "SPAN",
+        "cls": "flex-1 text-[10px] text-secondary text-center truncate min-w-0",
+        "font": 10,
+        "weight": "400",
+        "color": "rgb(175, 182, 194)",
+        "bg": [
+          0,
+          0,
+          0
+        ],
+        "contrast": 10.29,
+        "uncertain": false,
+        "svg": false,
+        "opacity": "1"
+      },
+      {
+        "text": "Ott",
+        "tag": "SPAN",
+        "cls": "flex-1 text-[10px] text-secondary text-center truncate min-w-0",
+        "font": 10,
+        "weight": "400",
+        "color": "rgb(175, 182, 194)",
+        "bg": [
+          0,
+          0,
+          0
+        ],
+        "contrast": 10.29,
+        "uncertain": false,
+        "svg": false,
+        "opacity": "1"
+      },
+      {
+        "text": "Versato",
+        "tag": "SPAN",
+        "cls": "flex items-center gap-1.5",
+        "font": 10,
+        "weight": "400",
+        "color": "rgb(175, 182, 194)",
+        "bg": [
+          0,
+          0,
+          0
+        ],
+        "contrast": 10.29,
+        "uncertain": false,
+        "svg": false,
+        "opacity": "1"
+      },
+      {
+        "text": "Disinvestito",
+        "tag": "SPAN",
+        "cls": "flex items-center gap-1.5",
+        "font": 10,
+        "weight": "400",
+        "color": "rgb(175, 182, 194)",
+        "bg": [
+          0,
+          0,
+          0
+        ],
+        "contrast": 10.29,
+        "uncertain": false,
+        "svg": false,
+        "opacity": "1"
+      },
+      {
+        "text": "350,00 €  netti reali questo mese",
+        "tag": "SPAN",
+        "cls": "ml-auto balance-num",
+        "font": 10,
+        "weight": "400",
+        "color": "rgb(175, 182, 194)",
+        "bg": [
+          0,
+          0,
+          0
+        ],
+        "contrast": 10.29,
+        "uncertain": false,
+        "svg": false,
+        "opacity": "1"
+      },
+      {
+        "text": "Trend per competenza: i versamenti una tantum distribuiti contano per quota mensile. Saldi e flusso di cassa restano sug",
+        "tag": "P",
+        "cls": "text-[10px] text-secondary/70 mt-1.5 leading-snug",
+        "font": 10,
+        "weight": "400",
+        "color": "rgb(175, 182, 194)",
+        "bg": [
+          0,
+          0,
+          0
+        ],
+        "contrast": 10.29,
+        "uncertain": false,
+        "svg": false,
+        "opacity": "1"
+      }
+    ],
+    "targetsUnder24px": []
+  },
+  {
+    "name": "/account-balance",
+    "theme": "dark",
+    "overflow": false,
+    "textNodesMeasured": 38,
+    "controlCount": 21,
+    "fontSizes": [
+      10,
+      11,
+      12,
+      13,
+      14,
+      16,
+      22,
+      24,
+      38
+    ],
+    "contrastCandidates": [],
+    "textUnder12px": [
+      {
+        "text": "Oggi",
+        "tag": "SPAN",
+        "cls": null,
+        "font": 11,
+        "weight": "400",
+        "color": "rgb(175, 182, 194)",
+        "bg": [
+          0,
+          0,
+          0
+        ],
+        "contrast": 10.29,
+        "uncertain": false,
+        "svg": false,
+        "opacity": "1"
+      },
+      {
+        "text": "Patrimonio",
+        "tag": "SPAN",
+        "cls": null,
+        "font": 11,
+        "weight": "400",
+        "color": "rgb(175, 182, 194)",
+        "bg": [
+          0,
+          0,
+          0
+        ],
+        "contrast": 10.29,
+        "uncertain": false,
+        "svg": false,
+        "opacity": "1"
+      },
+      {
+        "text": "Piano",
+        "tag": "SPAN",
+        "cls": null,
+        "font": 11,
+        "weight": "400",
+        "color": "rgb(175, 182, 194)",
+        "bg": [
+          0,
+          0,
+          0
+        ],
+        "contrast": 10.29,
+        "uncertain": false,
+        "svg": false,
+        "opacity": "1"
+      },
+      {
+        "text": "Movimenti",
+        "tag": "SPAN",
+        "cls": null,
+        "font": 11,
+        "weight": "400",
+        "color": "rgb(175, 182, 194)",
+        "bg": [
+          0,
+          0,
+          0
+        ],
+        "contrast": 10.29,
+        "uncertain": false,
+        "svg": false,
+        "opacity": "1"
+      },
+      {
+        "text": "Liquidità totale",
+        "tag": "P",
+        "cls": "label-caps text-secondary mb-2",
+        "font": 10,
+        "weight": "500",
+        "color": "rgb(175, 182, 194)",
+        "bg": [
+          0,
+          0,
+          0
+        ],
+        "contrast": 10.29,
+        "uncertain": false,
+        "svg": false,
+        "opacity": "1"
+      }
+    ],
+    "targetsUnder24px": []
+  },
+  {
+    "name": "/category-spending",
+    "theme": "dark",
+    "overflow": false,
+    "textNodesMeasured": 47,
+    "controlCount": 20,
+    "fontSizes": [
+      10,
+      11,
+      12,
+      13,
+      14,
+      16,
+      22,
+      24,
+      38
+    ],
+    "contrastCandidates": [],
+    "textUnder12px": [
+      {
+        "text": "Oggi",
+        "tag": "SPAN",
+        "cls": null,
+        "font": 11,
+        "weight": "400",
+        "color": "rgb(175, 182, 194)",
+        "bg": [
+          0,
+          0,
+          0
+        ],
+        "contrast": 10.29,
+        "uncertain": false,
+        "svg": false,
+        "opacity": "1"
+      },
+      {
+        "text": "Patrimonio",
+        "tag": "SPAN",
+        "cls": null,
+        "font": 11,
+        "weight": "400",
+        "color": "rgb(175, 182, 194)",
+        "bg": [
+          0,
+          0,
+          0
+        ],
+        "contrast": 10.29,
+        "uncertain": false,
+        "svg": false,
+        "opacity": "1"
+      },
+      {
+        "text": "Piano",
+        "tag": "SPAN",
+        "cls": null,
+        "font": 11,
+        "weight": "400",
+        "color": "rgb(175, 182, 194)",
+        "bg": [
+          0,
+          0,
+          0
+        ],
+        "contrast": 10.29,
+        "uncertain": false,
+        "svg": false,
+        "opacity": "1"
+      },
+      {
+        "text": "Movimenti",
+        "tag": "SPAN",
+        "cls": null,
+        "font": 11,
+        "weight": "400",
+        "color": "rgb(175, 182, 194)",
+        "bg": [
+          0,
+          0,
+          0
+        ],
+        "contrast": 10.29,
+        "uncertain": false,
+        "svg": false,
+        "opacity": "1"
+      },
+      {
+        "text": "Totale spese periodo",
+        "tag": "P",
+        "cls": "label-caps text-secondary mb-2",
+        "font": 10,
+        "weight": "500",
+        "color": "rgb(175, 182, 194)",
+        "bg": [
+          0,
+          0,
+          0
+        ],
+        "contrast": 10.29,
+        "uncertain": false,
+        "svg": false,
+        "opacity": "1"
+      },
+      {
+        "text": "Sunny nota",
+        "tag": "P",
+        "cls": "label-caps text-secondary mb-1.5",
+        "font": 10,
+        "weight": "500",
+        "color": "rgb(175, 182, 194)",
+        "bg": [
+          0,
+          0,
+          0
+        ],
+        "contrast": 10.29,
+        "uncertain": false,
+        "svg": false,
+        "opacity": "1"
+      },
+      {
+        "text": "Composizione",
+        "tag": "P",
+        "cls": "label-caps text-secondary mb-3",
+        "font": 10,
+        "weight": "500",
+        "color": "rgb(175, 182, 194)",
+        "bg": [
+          0,
+          0,
+          0
+        ],
+        "contrast": 10.29,
+        "uncertain": false,
+        "svg": false,
+        "opacity": "1"
+      }
+    ],
+    "targetsUnder24px": []
+  },
+  {
+    "name": "/insights",
+    "theme": "dark",
+    "overflow": false,
+    "textNodesMeasured": 36,
+    "controlCount": 15,
+    "fontSizes": [
+      10,
+      11,
+      12,
+      13,
+      14,
+      16,
+      19,
+      22,
+      24
+    ],
+    "contrastCandidates": [],
+    "textUnder12px": [
+      {
+        "text": "Oggi",
+        "tag": "SPAN",
+        "cls": null,
+        "font": 11,
+        "weight": "400",
+        "color": "rgb(175, 182, 194)",
+        "bg": [
+          0,
+          0,
+          0
+        ],
+        "contrast": 10.29,
+        "uncertain": false,
+        "svg": false,
+        "opacity": "1"
+      },
+      {
+        "text": "Patrimonio",
+        "tag": "SPAN",
+        "cls": null,
+        "font": 11,
+        "weight": "400",
+        "color": "rgb(175, 182, 194)",
+        "bg": [
+          0,
+          0,
+          0
+        ],
+        "contrast": 10.29,
+        "uncertain": false,
+        "svg": false,
+        "opacity": "1"
+      },
+      {
+        "text": "Piano",
+        "tag": "SPAN",
+        "cls": null,
+        "font": 11,
+        "weight": "400",
+        "color": "rgb(175, 182, 194)",
+        "bg": [
+          0,
+          0,
+          0
+        ],
+        "contrast": 10.29,
+        "uncertain": false,
+        "svg": false,
+        "opacity": "1"
+      },
+      {
+        "text": "Movimenti",
+        "tag": "SPAN",
+        "cls": null,
+        "font": 11,
+        "weight": "400",
+        "color": "rgb(175, 182, 194)",
+        "bg": [
+          0,
+          0,
+          0
+        ],
+        "contrast": 10.29,
+        "uncertain": false,
+        "svg": false,
+        "opacity": "1"
+      },
+      {
+        "text": "La cosa più importante",
+        "tag": "P",
+        "cls": "label-caps text-gold",
+        "font": 10,
+        "weight": "500",
+        "color": "rgb(244, 198, 106)",
+        "bg": [
+          0,
+          0,
+          0
+        ],
+        "contrast": 13.13,
+        "uncertain": false,
+        "svg": false,
+        "opacity": "1"
+      },
+      {
+        "text": "Previsioni",
+        "tag": "P",
+        "cls": "label-caps text-secondary",
+        "font": 10,
+        "weight": "500",
+        "color": "rgb(175, 182, 194)",
+        "bg": [
+          0,
+          0,
+          0
+        ],
+        "contrast": 10.29,
+        "uncertain": false,
+        "svg": false,
+        "opacity": "1"
+      },
+      {
+        "text": "Analisi avanzata",
+        "tag": "P",
+        "cls": "label-caps text-secondary",
+        "font": 10,
+        "weight": "500",
+        "color": "rgb(175, 182, 194)",
+        "bg": [
+          0,
+          0,
+          0
+        ],
+        "contrast": 10.29,
+        "uncertain": false,
+        "svg": false,
+        "opacity": "1"
+      }
+    ],
+    "targetsUnder24px": []
+  },
+  {
+    "name": "/settings",
+    "theme": "dark",
+    "overflow": false,
+    "textNodesMeasured": 77,
+    "controlCount": 25,
+    "fontSizes": [
+      12,
+      13,
+      14,
+      16,
+      22
+    ],
+    "contrastCandidates": [],
+    "textUnder12px": [],
+    "targetsUnder24px": []
+  },
+  {
+    "name": "/forecast-v3",
+    "theme": "dark",
+    "overflow": false,
+    "textNodesMeasured": 171,
+    "controlCount": 28,
+    "fontSizes": [
+      10,
+      11,
+      12,
+      13,
+      14,
+      16,
+      18,
+      20,
+      22,
+      24,
+      30
+    ],
+    "contrastCandidates": [],
+    "textUnder12px": [
+      {
+        "text": "Oggi",
+        "tag": "SPAN",
+        "cls": null,
+        "font": 11,
+        "weight": "400",
+        "color": "rgb(175, 182, 194)",
+        "bg": [
+          0,
+          0,
+          0
+        ],
+        "contrast": 10.29,
+        "uncertain": false,
+        "svg": false,
+        "opacity": "1"
+      },
+      {
+        "text": "Patrimonio",
+        "tag": "SPAN",
+        "cls": null,
+        "font": 11,
+        "weight": "400",
+        "color": "rgb(175, 182, 194)",
+        "bg": [
+          0,
+          0,
+          0
+        ],
+        "contrast": 10.29,
+        "uncertain": false,
+        "svg": false,
+        "opacity": "1"
+      },
+      {
+        "text": "Piano",
+        "tag": "SPAN",
+        "cls": null,
+        "font": 11,
+        "weight": "400",
+        "color": "rgb(175, 182, 194)",
+        "bg": [
+          0,
+          0,
+          0
+        ],
+        "contrast": 10.29,
+        "uncertain": false,
+        "svg": false,
+        "opacity": "1"
+      },
+      {
+        "text": "Movimenti",
+        "tag": "SPAN",
+        "cls": null,
+        "font": 11,
+        "weight": "400",
+        "color": "rgb(175, 182, 194)",
+        "bg": [
+          0,
+          0,
+          0
+        ],
+        "contrast": 10.29,
+        "uncertain": false,
+        "svg": false,
+        "opacity": "1"
+      },
+      {
+        "text": "🔁 Ricorrente",
+        "tag": "SPAN",
+        "cls": "text-[10px] px-2 py-0.5 rounded-full font-medium text-[#8A9270] bg-[#8A9270]/15",
+        "font": 10,
+        "weight": "500",
+        "color": "rgb(138, 146, 112)",
+        "bg": [
+          20.7,
+          21.9,
+          16.8
+        ],
+        "contrast": 5.57,
+        "uncertain": false,
+        "svg": false,
+        "opacity": "1"
+      },
+      {
+        "text": "📦 Bundle abbonamenti",
+        "tag": "SPAN",
+        "cls": "text-[10px] px-2 py-0.5 rounded-full font-medium text-emerald-400 bg-emerald-400/10",
+        "font": 10,
+        "weight": "500",
+        "color": "rgb(52, 211, 153)",
+        "bg": [
+          5.2,
+          21.1,
+          15.3
+        ],
+        "contrast": 9.74,
+        "uncertain": false,
+        "svg": false,
+        "opacity": "1"
+      },
+      {
+        "text": "🔒 Fisso mensile",
+        "tag": "SPAN",
+        "cls": "text-[10px] px-2 py-0.5 rounded-full font-medium text-[#8A9270] bg-[#8A9270]/15",
+        "font": 10,
+        "weight": "500",
+        "color": "rgb(138, 146, 112)",
+        "bg": [
+          20.7,
+          21.9,
+          16.8
+        ],
+        "contrast": 5.57,
+        "uncertain": false,
+        "svg": false,
+        "opacity": "1"
+      },
+      {
+        "text": "📅 Periodico",
+        "tag": "SPAN",
+        "cls": "text-[10px] px-2 py-0.5 rounded-full font-medium text-blue-400 bg-blue-500/10",
+        "font": 10,
+        "weight": "500",
+        "color": "rgb(96, 165, 250)",
+        "bg": [
+          5.9,
+          13,
+          24.6
+        ],
+        "contrast": 7.66,
+        "uncertain": false,
+        "svg": false,
+        "opacity": "1"
+      },
+      {
+        "text": "⚡ Ibrido",
+        "tag": "SPAN",
+        "cls": "text-[10px] px-2 py-0.5 rounded-full font-medium text-gold bg-gold/10",
+        "font": 10,
+        "weight": "500",
+        "color": "rgb(244, 198, 106)",
+        "bg": [
+          24,
+          19,
+          7.7
+        ],
+        "contrast": 11.57,
+        "uncertain": false,
+        "svg": false,
+        "opacity": "1"
+      },
+      {
+        "text": "📊 Variabile frequente",
+        "tag": "SPAN",
+        "cls": "text-[10px] px-2 py-0.5 rounded-full font-medium text-tertiary bg-elevated",
+        "font": 10,
+        "weight": "500",
+        "color": "rgb(175, 182, 194)",
+        "bg": [
+          16,
+          16,
+          16
+        ],
+        "contrast": 9.33,
+        "uncertain": false,
+        "svg": false,
+        "opacity": "1"
+      },
+      {
+        "text": "📊 Variabile raro",
+        "tag": "SPAN",
+        "cls": "text-[10px] px-2 py-0.5 rounded-full font-medium text-tertiary bg-elevated",
+        "font": 10,
+        "weight": "500",
+        "color": "rgb(175, 182, 194)",
+        "bg": [
+          16,
+          16,
+          16
+        ],
+        "contrast": 9.33,
+        "uncertain": false,
+        "svg": false,
+        "opacity": "1"
+      },
+      {
+        "text": "⚠️ Volatile",
+        "tag": "SPAN",
+        "cls": "text-[10px] px-2 py-0.5 rounded-full font-medium text-[#C0706A] bg-[#C0706A]/10",
+        "font": 10,
+        "weight": "500",
+        "color": "rgb(192, 112, 106)",
+        "bg": [
+          19.200000000000003,
+          11.200000000000001,
+          10.600000000000001
+        ],
+        "contrast": 5.33,
+        "uncertain": false,
+        "svg": false,
+        "opacity": "1"
+      },
+      {
+        "text": "🌙 Rarissima",
+        "tag": "SPAN",
+        "cls": "text-[10px] px-2 py-0.5 rounded-full font-medium text-tertiary bg-elevated",
+        "font": 10,
+        "weight": "500",
+        "color": "rgb(175, 182, 194)",
+        "bg": [
+          16,
+          16,
+          16
+        ],
+        "contrast": 9.33,
+        "uncertain": false,
+        "svg": false,
+        "opacity": "1"
+      },
+      {
+        "text": "💤 Inattiva",
+        "tag": "SPAN",
+        "cls": "text-[10px] px-2 py-0.5 rounded-full font-medium text-tertiary bg-elevated",
+        "font": 10,
+        "weight": "500",
+        "color": "rgb(175, 182, 194)",
+        "bg": [
+          16,
+          16,
+          16
+        ],
+        "contrast": 9.33,
+        "uncertain": false,
+        "svg": false,
+        "opacity": "1"
+      },
+      {
+        "text": "❓ Sconosciuto",
+        "tag": "SPAN",
+        "cls": "text-[10px] px-2 py-0.5 rounded-full font-medium text-tertiary bg-elevated",
+        "font": 10,
+        "weight": "500",
+        "color": "rgb(175, 182, 194)",
+        "bg": [
+          16,
+          16,
+          16
+        ],
+        "contrast": 9.33,
+        "uncertain": false,
+        "svg": false,
+        "opacity": "1"
+      },
+      {
+        "text": "€195 – €325",
+        "tag": "SPAN",
+        "cls": "text-[10px] text-tertiary block",
+        "font": 10,
+        "weight": "400",
+        "color": "rgb(175, 182, 194)",
+        "bg": [
+          0,
+          0,
+          0
+        ],
+        "contrast": 10.29,
+        "uncertain": false,
+        "svg": false,
+        "opacity": "1"
+      },
+      {
+        "text": "€95",
+        "tag": "SPAN",
+        "cls": "text-[10px] font-medium flex-shrink-0 text-[#8A9270]",
+        "font": 10,
+        "weight": "500",
+        "color": "rgb(138, 146, 112)",
+        "bg": [
+          0,
+          0,
+          0
+        ],
+        "contrast": 6.43,
+        "uncertain": false,
+        "svg": false,
+        "opacity": "1"
+      },
+      {
+        "text": "€175 – €291",
+        "tag": "SPAN",
+        "cls": "text-[10px] text-tertiary block",
+        "font": 10,
+        "weight": "400",
+        "color": "rgb(175, 182, 194)",
+        "bg": [
+          0,
+          0,
+          0
+        ],
+        "contrast": 10.29,
+        "uncertain": false,
+        "svg": false,
+        "opacity": "1"
+      },
+      {
+        "text": "€85",
+        "tag": "SPAN",
+        "cls": "text-[10px] font-medium flex-shrink-0 text-[#8A9270]",
+        "font": 10,
+        "weight": "500",
+        "color": "rgb(138, 146, 112)",
+        "bg": [
+          0,
+          0,
+          0
+        ],
+        "contrast": 6.43,
+        "uncertain": false,
+        "svg": false,
+        "opacity": "1"
+      },
+      {
+        "text": "Previsione V4",
+        "tag": "P",
+        "cls": "label-caps text-tertiary mb-1",
+        "font": 10,
+        "weight": "500",
+        "color": "rgb(175, 182, 194)",
+        "bg": [
+          0,
+          0,
+          0
+        ],
+        "contrast": 10.29,
+        "uncertain": false,
+        "svg": false,
+        "opacity": "1"
+      },
+      {
+        "text": "Composizione",
+        "tag": "P",
+        "cls": "label-caps text-tertiary mb-1.5",
+        "font": 10,
+        "weight": "500",
+        "color": "rgb(175, 182, 194)",
+        "bg": [
+          0,
+          0,
+          0
+        ],
+        "contrast": 10.29,
+        "uncertain": false,
+        "svg": false,
+        "opacity": "1"
+      },
+      {
+        "text": "100 %",
+        "tag": "SPAN",
+        "cls": "text-[10px] text-tertiary",
+        "font": 10,
+        "weight": "400",
+        "color": "rgb(175, 182, 194)",
+        "bg": [
+          0,
+          0,
+          0
+        ],
+        "contrast": 10.29,
+        "uncertain": false,
+        "svg": false,
+        "opacity": "1"
+      },
+      {
+        "text": "Dettaglio categorie",
+        "tag": "P",
+        "cls": "text-[10px] text-tertiary uppercase tracking-wide mb-2",
+        "font": 10,
+        "weight": "400",
+        "color": "rgb(175, 182, 194)",
+        "bg": [
+          0,
+          0,
+          0
+        ],
+        "contrast": 10.29,
+        "uncertain": false,
+        "svg": false,
+        "opacity": "1"
+      },
+      {
+        "text": "Alta",
+        "tag": "SPAN",
+        "cls": "text-[10px] px-1.5 py-0.5 rounded-full font-medium text-[#8A9270] bg-[#8A9270]/15",
+        "font": 10,
+        "weight": "500",
+        "color": "rgb(138, 146, 112)",
+        "bg": [
+          20.7,
+          21.9,
+          16.8
+        ],
+        "contrast": 5.57,
+        "uncertain": false,
+        "svg": false,
+        "opacity": "1"
+      },
+      {
+        "text": "Alta",
+        "tag": "SPAN",
+        "cls": "text-[10px] px-1.5 py-0.5 rounded-full font-medium text-[#8A9270] bg-[#8A9270]/15",
+        "font": 10,
+        "weight": "500",
+        "color": "rgb(138, 146, 112)",
+        "bg": [
+          20.7,
+          21.9,
+          16.8
+        ],
+        "contrast": 5.57,
+        "uncertain": false,
+        "svg": false,
+        "opacity": "1"
+      },
+      {
+        "text": "Alta",
+        "tag": "SPAN",
+        "cls": "text-[10px] px-1.5 py-0.5 rounded-full font-medium text-[#8A9270] bg-[#8A9270]/15",
+        "font": 10,
+        "weight": "500",
+        "color": "rgb(138, 146, 112)",
+        "bg": [
+          20.7,
+          21.9,
+          16.8
+        ],
+        "contrast": 5.57,
+        "uncertain": false,
+        "svg": false,
+        "opacity": "1"
+      },
+      {
+        "text": "I vecchi motori restano la baseline finché il forecast unificato non li batte stabilmente qui.",
+        "tag": "P",
+        "cls": "text-[10px] text-secondary mt-1.5",
+        "font": 10,
+        "weight": "400",
+        "color": "rgb(175, 182, 194)",
+        "bg": [
+          0,
+          0,
+          0
+        ],
+        "contrast": 10.29,
+        "uncertain": false,
+        "svg": false,
+        "opacity": "1"
+      },
+      {
+        "text": "Periodo",
+        "tag": "P",
+        "cls": "text-[10px] text-tertiary uppercase tracking-wide mb-1.5",
+        "font": 10,
+        "weight": "400",
+        "color": "rgb(175, 182, 194)",
+        "bg": [
+          0,
+          0,
+          0
+        ],
+        "contrast": 10.29,
+        "uncertain": false,
+        "svg": false,
+        "opacity": "1"
+      },
+      {
+        "text": "Privacy",
+        "tag": "P",
+        "cls": "text-[10px] text-tertiary uppercase tracking-wide mb-1.5",
+        "font": 10,
+        "weight": "400",
+        "color": "rgb(175, 182, 194)",
+        "bg": [
+          0,
+          0,
+          0
+        ],
+        "contrast": 10.29,
+        "uncertain": false,
+        "svg": false,
+        "opacity": "1"
+      },
+      {
+        "text": "Le descrizioni raw vengono sostituite da chiavi merchant stabili (merchant_001…). Importi, date e categorie restano.",
+        "tag": "P",
+        "cls": "text-[10px] text-tertiary mt-1",
+        "font": 10,
+        "weight": "400",
+        "color": "rgb(175, 182, 194)",
+        "bg": [
+          0,
+          0,
+          0
+        ],
+        "contrast": 10.29,
+        "uncertain": false,
+        "svg": false,
+        "opacity": "1"
+      }
+    ],
+    "targetsUnder24px": []
+  },
+  {
+    "name": "fund-detail",
+    "theme": "dark",
+    "overflow": false,
+    "textNodesMeasured": 229,
+    "controlCount": 27,
+    "fontSizes": [
+      10,
+      12,
+      13,
+      14,
+      16,
+      18,
+      20,
+      22,
+      30,
+      32
+    ],
+    "contrastCandidates": [],
+    "textUnder12px": [
+      {
+        "text": "Controvalore totale",
+        "tag": "P",
+        "cls": "label-caps text-secondary mb-2",
+        "font": 10,
+        "weight": "500",
+        "color": "rgb(175, 182, 194)",
+        "bg": [
+          0,
+          0,
+          0
+        ],
+        "contrast": 10.29,
+        "uncertain": false,
+        "svg": false,
+        "opacity": "1"
+      },
+      {
+        "text": "Gen  2025",
+        "tag": "SPAN",
+        "cls": null,
+        "font": 10,
+        "weight": "400",
+        "color": "rgb(175, 182, 194)",
+        "bg": [
+          0,
+          0,
+          0
+        ],
+        "contrast": 10.29,
+        "uncertain": false,
+        "svg": false,
+        "opacity": "1"
+      },
+      {
+        "text": "Ott  2026",
+        "tag": "SPAN",
+        "cls": null,
+        "font": 10,
+        "weight": "400",
+        "color": "rgb(175, 182, 194)",
+        "bg": [
+          0,
+          0,
+          0
+        ],
+        "contrast": 10.29,
+        "uncertain": false,
+        "svg": false,
+        "opacity": "1"
+      },
+      {
+        "text": "Posizioni",
+        "tag": "P",
+        "cls": "label-caps text-secondary",
+        "font": 10,
+        "weight": "500",
+        "color": "rgb(175, 182, 194)",
+        "bg": [
+          0,
+          0,
+          0
+        ],
+        "contrast": 10.29,
+        "uncertain": false,
+        "svg": false,
+        "opacity": "1"
+      },
+      {
+        "text": "Andamento versamenti",
+        "tag": "P",
+        "cls": "label-caps text-secondary mb-4",
+        "font": 10,
+        "weight": "500",
+        "color": "rgb(175, 182, 194)",
+        "bg": [
+          0,
+          0,
+          0
+        ],
+        "contrast": 10.29,
+        "uncertain": false,
+        "svg": false,
+        "opacity": "1"
+      },
+      {
+        "text": "350,00 €",
+        "tag": "SPAN",
+        "cls": "text-[10px] balance-num mb-1 truncate w-full text-center leading-tight",
+        "font": 10,
+        "weight": "400",
+        "color": "rgb(175, 182, 194)",
+        "bg": [
+          0,
+          0,
+          0
+        ],
+        "contrast": 10.29,
+        "uncertain": false,
+        "svg": false,
+        "opacity": "1"
+      },
+      {
+        "text": "Mag",
+        "tag": "SPAN",
+        "cls": "flex-1 text-[10px] text-secondary text-center truncate min-w-0",
+        "font": 10,
+        "weight": "400",
+        "color": "rgb(175, 182, 194)",
+        "bg": [
+          0,
+          0,
+          0
+        ],
+        "contrast": 10.29,
+        "uncertain": false,
+        "svg": false,
+        "opacity": "1"
+      },
+      {
+        "text": "Giu",
+        "tag": "SPAN",
+        "cls": "flex-1 text-[10px] text-secondary text-center truncate min-w-0",
+        "font": 10,
+        "weight": "400",
+        "color": "rgb(175, 182, 194)",
+        "bg": [
+          0,
+          0,
+          0
+        ],
+        "contrast": 10.29,
+        "uncertain": false,
+        "svg": false,
+        "opacity": "1"
+      },
+      {
+        "text": "Lug",
+        "tag": "SPAN",
+        "cls": "flex-1 text-[10px] text-secondary text-center truncate min-w-0",
+        "font": 10,
+        "weight": "400",
+        "color": "rgb(175, 182, 194)",
+        "bg": [
+          0,
+          0,
+          0
+        ],
+        "contrast": 10.29,
+        "uncertain": false,
+        "svg": false,
+        "opacity": "1"
+      },
+      {
+        "text": "Ago",
+        "tag": "SPAN",
+        "cls": "flex-1 text-[10px] text-secondary text-center truncate min-w-0",
+        "font": 10,
+        "weight": "400",
+        "color": "rgb(175, 182, 194)",
+        "bg": [
+          0,
+          0,
+          0
+        ],
+        "contrast": 10.29,
+        "uncertain": false,
+        "svg": false,
+        "opacity": "1"
+      },
+      {
+        "text": "Set",
+        "tag": "SPAN",
+        "cls": "flex-1 text-[10px] text-secondary text-center truncate min-w-0",
+        "font": 10,
+        "weight": "400",
+        "color": "rgb(175, 182, 194)",
+        "bg": [
+          0,
+          0,
+          0
+        ],
+        "contrast": 10.29,
+        "uncertain": false,
+        "svg": false,
+        "opacity": "1"
+      },
+      {
+        "text": "Ott",
+        "tag": "SPAN",
+        "cls": "flex-1 text-[10px] text-secondary text-center truncate min-w-0",
+        "font": 10,
+        "weight": "400",
+        "color": "rgb(175, 182, 194)",
+        "bg": [
+          0,
+          0,
+          0
+        ],
+        "contrast": 10.29,
+        "uncertain": false,
+        "svg": false,
+        "opacity": "1"
+      },
+      {
+        "text": "Versato",
+        "tag": "SPAN",
+        "cls": "flex items-center gap-1.5",
+        "font": 10,
+        "weight": "400",
+        "color": "rgb(175, 182, 194)",
+        "bg": [
+          0,
+          0,
+          0
+        ],
+        "contrast": 10.29,
+        "uncertain": false,
+        "svg": false,
+        "opacity": "1"
+      },
+      {
+        "text": "Disinvestito",
+        "tag": "SPAN",
+        "cls": "flex items-center gap-1.5",
+        "font": 10,
+        "weight": "400",
+        "color": "rgb(175, 182, 194)",
+        "bg": [
+          0,
+          0,
+          0
+        ],
+        "contrast": 10.29,
+        "uncertain": false,
+        "svg": false,
+        "opacity": "1"
+      },
+      {
+        "text": "350,00 €  netti reali questo mese",
+        "tag": "SPAN",
+        "cls": "ml-auto balance-num",
+        "font": 10,
+        "weight": "400",
+        "color": "rgb(175, 182, 194)",
+        "bg": [
+          0,
+          0,
+          0
+        ],
+        "contrast": 10.29,
+        "uncertain": false,
+        "svg": false,
+        "opacity": "1"
+      },
+      {
+        "text": "Trend per competenza: i versamenti una tantum distribuiti contano per quota mensile. Saldi e flusso di cassa restano sug",
+        "tag": "P",
+        "cls": "text-[10px] text-secondary/70 mt-1.5 leading-snug",
+        "font": 10,
+        "weight": "400",
+        "color": "rgb(175, 182, 194)",
+        "bg": [
+          0,
+          0,
+          0
+        ],
+        "contrast": 10.29,
+        "uncertain": false,
+        "svg": false,
+        "opacity": "1"
+      },
+      {
+        "text": "Controvalore",
+        "tag": "P",
+        "cls": "label-caps text-secondary mb-1",
+        "font": 10,
+        "weight": "500",
+        "color": "rgb(175, 182, 194)",
+        "bg": [
+          8,
+          8,
+          8
+        ],
+        "contrast": 9.82,
+        "uncertain": false,
+        "svg": false,
+        "opacity": "1"
+      },
+      {
+        "text": "Capitale investito netto",
+        "tag": "P",
+        "cls": "text-[10px] text-secondary mt-0.5 truncate",
+        "font": 10,
+        "weight": "400",
+        "color": "rgb(175, 182, 194)",
+        "bg": [
+          8,
+          8,
+          8
+        ],
+        "contrast": 9.82,
+        "uncertain": false,
+        "svg": false,
+        "opacity": "1"
+      },
+      {
+        "text": "Controvalore",
+        "tag": "P",
+        "cls": "text-[10px] text-secondary mt-0.5 truncate",
+        "font": 10,
+        "weight": "400",
+        "color": "rgb(175, 182, 194)",
+        "bg": [
+          8,
+          8,
+          8
+        ],
+        "contrast": 9.82,
+        "uncertain": false,
+        "svg": false,
+        "opacity": "1"
+      },
+      {
+        "text": "·  da aggiornare",
+        "tag": "SPAN",
+        "cls": null,
+        "font": 10,
+        "weight": "400",
+        "color": "rgb(240, 190, 77)",
+        "bg": [
+          8,
+          8,
+          8
+        ],
+        "contrast": 11.61,
+        "uncertain": false,
+        "svg": false,
+        "opacity": "1"
+      },
+      {
+        "text": "Guadagno totale",
+        "tag": "P",
+        "cls": "text-[10px] text-secondary mt-0.5 truncate",
+        "font": 10,
+        "weight": "400",
+        "color": "rgb(175, 182, 194)",
+        "bg": [
+          8,
+          8,
+          8
+        ],
+        "contrast": 9.82,
+        "uncertain": false,
+        "svg": false,
+        "opacity": "1"
+      },
+      {
+        "text": "Rendimento annualizzato",
+        "tag": "P",
+        "cls": "text-[10px] text-secondary mt-0.5 truncate",
+        "font": 10,
+        "weight": "400",
+        "color": "rgb(175, 182, 194)",
+        "bg": [
+          8,
+          8,
+          8
+        ],
+        "contrast": 9.82,
+        "uncertain": false,
+        "svg": false,
+        "opacity": "1"
+      },
+      {
+        "text": "Durata",
+        "tag": "P",
+        "cls": "text-[10px] text-secondary mt-0.5 truncate",
+        "font": 10,
+        "weight": "400",
+        "color": "rgb(175, 182, 194)",
+        "bg": [
+          8,
+          8,
+          8
+        ],
+        "contrast": 9.82,
+        "uncertain": false,
+        "svg": false,
+        "opacity": "1"
+      },
+      {
+        "text": "Capitale versato nel tempo",
+        "tag": "P",
+        "cls": "label-caps text-secondary mb-2",
+        "font": 10,
+        "weight": "500",
+        "color": "rgb(175, 182, 194)",
+        "bg": [
+          8,
+          8,
+          8
+        ],
+        "contrast": 9.82,
+        "uncertain": false,
+        "svg": false,
+        "opacity": "1"
+      },
+      {
+        "text": "La curva mostra il capitale versato ricostruito dai movimenti reali; nessuno storico di mercato viene stimato.",
+        "tag": "P",
+        "cls": "text-[10px] text-secondary/70 mt-1 leading-snug",
+        "font": 10,
+        "weight": "400",
+        "color": "rgb(175, 182, 194)",
+        "bg": [
+          8,
+          8,
+          8
+        ],
+        "contrast": 9.82,
+        "uncertain": false,
+        "svg": false,
+        "opacity": "1"
+      },
+      {
+        "text": "Statistiche",
+        "tag": "P",
+        "cls": "label-caps text-secondary mb-2",
+        "font": 10,
+        "weight": "500",
+        "color": "rgb(175, 182, 194)",
+        "bg": [
+          8,
+          8,
+          8
+        ],
+        "contrast": 9.82,
+        "uncertain": false,
+        "svg": false,
+        "opacity": "1"
+      },
+      {
+        "text": "Movimenti recenti",
+        "tag": "P",
+        "cls": "label-caps text-secondary mb-2",
+        "font": 10,
+        "weight": "500",
+        "color": "rgb(175, 182, 194)",
+        "bg": [
+          8,
+          8,
+          8
+        ],
+        "contrast": 9.82,
+        "uncertain": false,
+        "svg": false,
+        "opacity": "1"
+      }
+    ],
+    "targetsUnder24px": []
+  },
+  {
+    "name": "deposit-editor",
+    "theme": "dark",
+    "overflow": false,
+    "textNodesMeasured": 139,
+    "controlCount": 30,
+    "fontSizes": [
+      10,
+      12,
+      13,
+      14,
+      16,
+      18,
+      20,
+      22,
+      32
+    ],
+    "contrastCandidates": [],
+    "textUnder12px": [
+      {
+        "text": "Controvalore totale",
+        "tag": "P",
+        "cls": "label-caps text-secondary mb-2",
+        "font": 10,
+        "weight": "500",
+        "color": "rgb(175, 182, 194)",
+        "bg": [
+          0,
+          0,
+          0
+        ],
+        "contrast": 10.29,
+        "uncertain": false,
+        "svg": false,
+        "opacity": "1"
+      },
+      {
+        "text": "Gen  2025",
+        "tag": "SPAN",
+        "cls": null,
+        "font": 10,
+        "weight": "400",
+        "color": "rgb(175, 182, 194)",
+        "bg": [
+          0,
+          0,
+          0
+        ],
+        "contrast": 10.29,
+        "uncertain": false,
+        "svg": false,
+        "opacity": "1"
+      },
+      {
+        "text": "Ott  2026",
+        "tag": "SPAN",
+        "cls": null,
+        "font": 10,
+        "weight": "400",
+        "color": "rgb(175, 182, 194)",
+        "bg": [
+          0,
+          0,
+          0
+        ],
+        "contrast": 10.29,
+        "uncertain": false,
+        "svg": false,
+        "opacity": "1"
+      },
+      {
+        "text": "Posizioni",
+        "tag": "P",
+        "cls": "label-caps text-secondary",
+        "font": 10,
+        "weight": "500",
+        "color": "rgb(175, 182, 194)",
+        "bg": [
+          0,
+          0,
+          0
+        ],
+        "contrast": 10.29,
+        "uncertain": false,
+        "svg": false,
+        "opacity": "1"
+      },
+      {
+        "text": "Andamento versamenti",
+        "tag": "P",
+        "cls": "label-caps text-secondary mb-4",
+        "font": 10,
+        "weight": "500",
+        "color": "rgb(175, 182, 194)",
+        "bg": [
+          0,
+          0,
+          0
+        ],
+        "contrast": 10.29,
+        "uncertain": false,
+        "svg": false,
+        "opacity": "1"
+      },
+      {
+        "text": "350,00 €",
+        "tag": "SPAN",
+        "cls": "text-[10px] balance-num mb-1 truncate w-full text-center leading-tight",
+        "font": 10,
+        "weight": "400",
+        "color": "rgb(175, 182, 194)",
+        "bg": [
+          0,
+          0,
+          0
+        ],
+        "contrast": 10.29,
+        "uncertain": false,
+        "svg": false,
+        "opacity": "1"
+      },
+      {
+        "text": "Mag",
+        "tag": "SPAN",
+        "cls": "flex-1 text-[10px] text-secondary text-center truncate min-w-0",
+        "font": 10,
+        "weight": "400",
+        "color": "rgb(175, 182, 194)",
+        "bg": [
+          0,
+          0,
+          0
+        ],
+        "contrast": 10.29,
+        "uncertain": false,
+        "svg": false,
+        "opacity": "1"
+      },
+      {
+        "text": "Giu",
+        "tag": "SPAN",
+        "cls": "flex-1 text-[10px] text-secondary text-center truncate min-w-0",
+        "font": 10,
+        "weight": "400",
+        "color": "rgb(175, 182, 194)",
+        "bg": [
+          0,
+          0,
+          0
+        ],
+        "contrast": 10.29,
+        "uncertain": false,
+        "svg": false,
+        "opacity": "1"
+      },
+      {
+        "text": "Lug",
+        "tag": "SPAN",
+        "cls": "flex-1 text-[10px] text-secondary text-center truncate min-w-0",
+        "font": 10,
+        "weight": "400",
+        "color": "rgb(175, 182, 194)",
+        "bg": [
+          0,
+          0,
+          0
+        ],
+        "contrast": 10.29,
+        "uncertain": false,
+        "svg": false,
+        "opacity": "1"
+      },
+      {
+        "text": "Ago",
+        "tag": "SPAN",
+        "cls": "flex-1 text-[10px] text-secondary text-center truncate min-w-0",
+        "font": 10,
+        "weight": "400",
+        "color": "rgb(175, 182, 194)",
+        "bg": [
+          0,
+          0,
+          0
+        ],
+        "contrast": 10.29,
+        "uncertain": false,
+        "svg": false,
+        "opacity": "1"
+      },
+      {
+        "text": "Set",
+        "tag": "SPAN",
+        "cls": "flex-1 text-[10px] text-secondary text-center truncate min-w-0",
+        "font": 10,
+        "weight": "400",
+        "color": "rgb(175, 182, 194)",
+        "bg": [
+          0,
+          0,
+          0
+        ],
+        "contrast": 10.29,
+        "uncertain": false,
+        "svg": false,
+        "opacity": "1"
+      },
+      {
+        "text": "Ott",
+        "tag": "SPAN",
+        "cls": "flex-1 text-[10px] text-secondary text-center truncate min-w-0",
+        "font": 10,
+        "weight": "400",
+        "color": "rgb(175, 182, 194)",
+        "bg": [
+          0,
+          0,
+          0
+        ],
+        "contrast": 10.29,
+        "uncertain": false,
+        "svg": false,
+        "opacity": "1"
+      },
+      {
+        "text": "Versato",
+        "tag": "SPAN",
+        "cls": "flex items-center gap-1.5",
+        "font": 10,
+        "weight": "400",
+        "color": "rgb(175, 182, 194)",
+        "bg": [
+          0,
+          0,
+          0
+        ],
+        "contrast": 10.29,
+        "uncertain": false,
+        "svg": false,
+        "opacity": "1"
+      },
+      {
+        "text": "Disinvestito",
+        "tag": "SPAN",
+        "cls": "flex items-center gap-1.5",
+        "font": 10,
+        "weight": "400",
+        "color": "rgb(175, 182, 194)",
+        "bg": [
+          0,
+          0,
+          0
+        ],
+        "contrast": 10.29,
+        "uncertain": false,
+        "svg": false,
+        "opacity": "1"
+      },
+      {
+        "text": "350,00 €  netti reali questo mese",
+        "tag": "SPAN",
+        "cls": "ml-auto balance-num",
+        "font": 10,
+        "weight": "400",
+        "color": "rgb(175, 182, 194)",
+        "bg": [
+          0,
+          0,
+          0
+        ],
+        "contrast": 10.29,
+        "uncertain": false,
+        "svg": false,
+        "opacity": "1"
+      },
+      {
+        "text": "Trend per competenza: i versamenti una tantum distribuiti contano per quota mensile. Saldi e flusso di cassa restano sug",
+        "tag": "P",
+        "cls": "text-[10px] text-secondary/70 mt-1.5 leading-snug",
+        "font": 10,
+        "weight": "400",
+        "color": "rgb(175, 182, 194)",
+        "bg": [
+          0,
+          0,
+          0
+        ],
+        "contrast": 10.29,
+        "uncertain": false,
+        "svg": false,
+        "opacity": "1"
+      },
+      {
+        "text": "Importo del versamento",
+        "tag": "LABEL",
+        "cls": "label-caps text-secondary block mb-1.5",
+        "font": 10,
+        "weight": "500",
+        "color": "rgb(175, 182, 194)",
+        "bg": [
+          8,
+          8,
+          8
+        ],
+        "contrast": 9.82,
+        "uncertain": false,
+        "svg": false,
+        "opacity": "1"
+      }
+    ],
+    "targetsUnder24px": []
+  },
+  {
+    "name": "filters",
+    "theme": "dark",
+    "overflow": false,
+    "textNodesMeasured": 1005,
+    "controlCount": 185,
+    "fontSizes": [
+      11,
+      12,
+      13,
+      16,
+      17,
+      18,
+      22,
+      24
+    ],
+    "contrastCandidates": [],
+    "textUnder12px": [
+      {
+        "text": "Oggi",
+        "tag": "SPAN",
+        "cls": null,
+        "font": 11,
+        "weight": "400",
+        "color": "rgb(175, 182, 194)",
+        "bg": [
+          0,
+          0,
+          0
+        ],
+        "contrast": 10.29,
+        "uncertain": false,
+        "svg": false,
+        "opacity": "1"
+      },
+      {
+        "text": "Patrimonio",
+        "tag": "SPAN",
+        "cls": null,
+        "font": 11,
+        "weight": "400",
+        "color": "rgb(175, 182, 194)",
+        "bg": [
+          0,
+          0,
+          0
+        ],
+        "contrast": 10.29,
+        "uncertain": false,
+        "svg": false,
+        "opacity": "1"
+      },
+      {
+        "text": "Piano",
+        "tag": "SPAN",
+        "cls": null,
+        "font": 11,
+        "weight": "400",
+        "color": "rgb(175, 182, 194)",
+        "bg": [
+          0,
+          0,
+          0
+        ],
+        "contrast": 10.29,
+        "uncertain": false,
+        "svg": false,
+        "opacity": "1"
+      },
+      {
+        "text": "Movimenti",
+        "tag": "SPAN",
+        "cls": null,
+        "font": 11,
+        "weight": "600",
+        "color": "rgb(247, 248, 250)",
+        "bg": [
+          16,
+          16,
+          16
+        ],
+        "contrast": 17.91,
+        "uncertain": false,
+        "svg": false,
+        "opacity": "1"
+      }
+    ],
+    "targetsUnder24px": []
+  },
+  {
+    "name": "settings-appearance",
+    "theme": "dark",
+    "overflow": false,
+    "textNodesMeasured": 10,
+    "controlCount": 4,
+    "fontSizes": [
+      12,
+      13,
+      14,
+      16,
+      22,
+      24
+    ],
+    "contrastCandidates": [],
+    "textUnder12px": [],
+    "targetsUnder24px": []
+  }
+]
