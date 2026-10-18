@@ -1,0 +1,370 @@
+[
+  {
+    "theme": "light",
+    "width": 320,
+    "checks": [
+      {
+        "name": "selected period contrast",
+        "pass": true
+      },
+      {
+        "name": "valuation reference line contrast",
+        "pass": true
+      },
+      {
+        "name": "responsive portfolio chart",
+        "pass": true
+      },
+      {
+        "name": "last known valuation labelled",
+        "pass": true
+      },
+      {
+        "name": "period change preserves selected month",
+        "pass": true
+      },
+      {
+        "name": "amount display size",
+        "pass": true
+      },
+      {
+        "name": "amount input retained",
+        "pass": true
+      },
+      {
+        "name": "discard preserves draft",
+        "pass": true
+      },
+      {
+        "name": "Escape restores filter trigger",
+        "pass": true
+      },
+      {
+        "name": "daily chart large keyboard surface",
+        "pass": true
+      }
+    ]
+  },
+  {
+    "theme": "light",
+    "width": 390,
+    "checks": [
+      {
+        "name": "selected period contrast",
+        "pass": true
+      },
+      {
+        "name": "valuation reference line contrast",
+        "pass": true
+      },
+      {
+        "name": "responsive portfolio chart",
+        "pass": true
+      },
+      {
+        "name": "last known valuation labelled",
+        "pass": true
+      },
+      {
+        "name": "period change preserves selected month",
+        "pass": true
+      },
+      {
+        "name": "amount display size",
+        "pass": true
+      },
+      {
+        "name": "amount input retained",
+        "pass": true
+      },
+      {
+        "name": "discard preserves draft",
+        "pass": true
+      },
+      {
+        "name": "Escape restores filter trigger",
+        "pass": true
+      },
+      {
+        "name": "daily chart large keyboard surface",
+        "pass": true
+      }
+    ]
+  },
+  {
+    "theme": "light",
+    "width": 834,
+    "checks": [
+      {
+        "name": "selected period contrast",
+        "pass": true
+      },
+      {
+        "name": "valuation reference line contrast",
+        "pass": true
+      },
+      {
+        "name": "responsive portfolio chart",
+        "pass": true
+      },
+      {
+        "name": "last known valuation labelled",
+        "pass": true
+      },
+      {
+        "name": "period change preserves selected month",
+        "pass": true
+      },
+      {
+        "name": "amount display size",
+        "pass": true
+      },
+      {
+        "name": "amount input retained",
+        "pass": true
+      },
+      {
+        "name": "discard preserves draft",
+        "pass": true
+      },
+      {
+        "name": "Escape restores filter trigger",
+        "pass": true
+      },
+      {
+        "name": "daily chart large keyboard surface",
+        "pass": true
+      }
+    ]
+  },
+  {
+    "theme": "light",
+    "width": 1440,
+    "checks": [
+      {
+        "name": "selected period contrast",
+        "pass": true
+      },
+      {
+        "name": "valuation reference line contrast",
+        "pass": true
+      },
+      {
+        "name": "responsive portfolio chart",
+        "pass": true
+      },
+      {
+        "name": "last known valuation labelled",
+        "pass": true
+      },
+      {
+        "name": "period change preserves selected month",
+        "pass": true
+      },
+      {
+        "name": "amount display size",
+        "pass": true
+      },
+      {
+        "name": "amount input retained",
+        "pass": true
+      },
+      {
+        "name": "discard preserves draft",
+        "pass": true
+      },
+      {
+        "name": "Escape restores filter trigger",
+        "pass": true
+      },
+      {
+        "name": "daily chart large keyboard surface",
+        "pass": true
+      }
+    ]
+  },
+  {
+    "theme": "dark",
+    "width": 320,
+    "checks": [
+      {
+        "name": "selected period contrast",
+        "pass": true
+      },
+      {
+        "name": "valuation reference line contrast",
+        "pass": true
+      },
+      {
+        "name": "responsive portfolio chart",
+        "pass": true
+      },
+      {
+        "name": "last known valuation labelled",
+        "pass": true
+      },
+      {
+        "name": "period change preserves selected month",
+        "pass": true
+      },
+      {
+        "name": "amount display size",
+        "pass": true
+      },
+      {
+        "name": "amount input retained",
+        "pass": true
+      },
+      {
+        "name": "discard preserves draft",
+        "pass": true
+      },
+      {
+        "name": "Escape restores filter trigger",
+        "pass": true
+      },
+      {
+        "name": "daily chart large keyboard surface",
+        "pass": true
+      }
+    ]
+  },
+  {
+    "theme": "dark",
+    "width": 390,
+    "checks": [
+      {
+        "name": "selected period contrast",
+        "pass": true
+      },
+      {
+        "name": "valuation reference line contrast",
+        "pass": true
+      },
+      {
+        "name": "responsive portfolio chart",
+        "pass": true
+      },
+      {
+        "name": "last known valuation labelled",
+        "pass": true
+      },
+      {
+        "name": "period change preserves selected month",
+        "pass": true
+      },
+      {
+        "name": "amount display size",
+        "pass": true
+      },
+      {
+        "name": "amount input retained",
+        "pass": true
+      },
+      {
+        "name": "discard preserves draft",
+        "pass": true
+      },
+      {
+        "name": "Escape restores filter trigger",
+        "pass": true
+      },
+      {
+        "name": "daily chart large keyboard surface",
+        "pass": true
+      }
+    ]
+  },
+  {
+    "theme": "dark",
+    "width": 834,
+    "checks": [
+      {
+        "name": "selected period contrast",
+        "pass": true
+      },
+      {
+        "name": "valuation reference line contrast",
+        "pass": true
+      },
+      {
+        "name": "responsive portfolio chart",
+        "pass": true
+      },
+      {
+        "name": "last known valuation labelled",
+        "pass": true
+      },
+      {
+        "name": "period change preserves selected month",
+        "pass": true
+      },
+      {
+        "name": "amount display size",
+        "pass": true
+      },
+      {
+        "name": "amount input retained",
+        "pass": true
+      },
+      {
+        "name": "discard preserves draft",
+        "pass": true
+      },
+      {
+        "name": "Escape restores filter trigger",
+        "pass": true
+      },
+      {
+        "name": "daily chart large keyboard surface",
+        "pass": true
+      }
+    ]
+  },
+  {
+    "theme": "dark",
+    "width": 1440,
+    "checks": [
+      {
+        "name": "selected period contrast",
+        "pass": true
+      },
+      {
+        "name": "valuation reference line contrast",
+        "pass": true
+      },
+      {
+        "name": "responsive portfolio chart",
+        "pass": true
+      },
+      {
+        "name": "last known valuation labelled",
+        "pass": true
+      },
+      {
+        "name": "period change preserves selected month",
+        "pass": true
+      },
+      {
+        "name": "amount display size",
+        "pass": true
+      },
+      {
+        "name": "amount input retained",
+        "pass": true
+      },
+      {
+        "name": "discard preserves draft",
+        "pass": true
+      },
+      {
+        "name": "Escape restores filter trigger",
+        "pass": true
+      },
+      {
+        "name": "daily chart large keyboard surface",
+        "pass": true
+      }
+    ]
+  }
+]

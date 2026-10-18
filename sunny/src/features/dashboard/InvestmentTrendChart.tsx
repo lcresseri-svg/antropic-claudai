@@ -1,3 +1,6 @@
+import { useState, useEffect } from 'react';
+import { useMediaQuery } from '../../shared/hooks/useMediaQuery';
+import { sampleLineIndexes } from '../../shared/chartSampling';
 import { ChartData } from '../../shared/components/ChartData';
 // Andamento del capitale investito negli ultimi 12 mesi.
 //
@@ -32,7 +35,14 @@ const W = 600;
 const PAD_X = 10;
 const PAD_TOP = 12;
 
-export function InvestmentTrendChart({ points, controvalore, height = 120, fullDates = false, periodLabel = '12 mesi' }: Props) {
+export function InvestmentTrendChart({ points, controvalore, height: legacyHeight = 120, fullDates = false, periodLabel = '12 mesi' }: Props) {
+
+  const desktop = useMediaQuery('(min-width: 1024px)');
+  const [selected, setSelected] = useState<string | null>(null);
+  const height = fullDates ? desktop ? 224 : 160 : legacyHeight;
+  const selectedIndex = points.findIndex(point => point.key === selected);
+  const activeIndex = selectedIndex >= 0 ? selectedIndex : points.length - 1;
+  useEffect(() => { if (selected !== null && selectedIndex < 0) setSelected(null); }, [selected, selectedIndex]);
 
   if (!points.length || (!fullDates && points.length < 2)) return null;
 
@@ -49,24 +59,42 @@ export function InvestmentTrendChart({ points, controvalore, height = 120, fullD
   const x = (i: number) => PAD_X + (points.length === 1 ? .5 : i / (points.length - 1)) * (W - PAD_X * 2);
   const y = (v: number) => PAD_TOP + (1 - (v - min) / span) * (height - PAD_TOP - 2);
 
-  const line = values.map((v, i) => `${i === 0 ? 'M' : 'L'} ${x(i).toFixed(1)} ${y(v).toFixed(1)}`).join(' ');
+  const indexes = fullDates ? sampleLineIndexes(values) : values.map((_, i) => i);
+  const line = indexes.map((i, position) => `${position === 0 ? 'M' : 'L'} ${x(i).toFixed(1)} ${y(values[i]).toFixed(1)}`).join(' ');
   const area = `${line} L ${x(points.length - 1).toFixed(1)} ${height} L ${x(0).toFixed(1)} ${height} Z`;
   const lastX = x(points.length - 1);
 
-  return (
-    <div>
-      {points.length === 1 && <p className="text-sm text-secondary mb-2">È disponibile un solo mese di storico.</p>}
+  const drawing = (
       <svg viewBox={`0 0 ${W} ${height}`} className="w-full" style={{ height }} preserveAspectRatio="none" aria-hidden>
+        {fullDates && <line x1={x(activeIndex)} x2={x(activeIndex)} y1={PAD_TOP} y2={height} stroke="var(--text-2)" strokeDasharray="3 3" vectorEffect="non-scaling-stroke" />}
         <path d={area} fill="rgba(var(--c-gold) / 0.13)" />
         {points.length === 1 && <circle cx={x(0)} cy={y(values[0])} r="3" fill="rgb(var(--c-gold))" />}
         <path d={line} fill="none" stroke="rgb(var(--c-gold))" strokeWidth="2" vectorEffect="non-scaling-stroke"
           strokeLinecap="round" strokeLinejoin="round" />
         {controvalore != null && (
           <line x1={PAD_X} y1={y(controvalore)} x2={W - PAD_X} y2={y(controvalore)}
-            stroke="rgb(var(--c-primary) / 0.25)" strokeWidth="1.5" strokeDasharray="5 4"
+            stroke={`rgb(var(--c-primary) / ${fullDates ? 0.55 : 0.25})`} strokeWidth="1.5" strokeDasharray="5 4"
             vectorEffect="non-scaling-stroke" />
         )}
       </svg>
+  );
+
+  return (
+    <div>
+      {points.length === 1 && <p className="text-sm text-secondary mb-2">È disponibile un solo mese di storico.</p>}
+      {fullDates ? <div role="group" tabIndex={0} className="ui-chart-picker" aria-label="Capitale versato. Frecce, Home e End per consultare i mesi."
+        onClick={event=>{
+          const box=event.currentTarget.getBoundingClientRect();
+          const position=((event.clientX-box.left)/box.width*W-PAD_X)/(W-PAD_X*2);
+          setSelected(points[Math.max(0,Math.min(points.length-1,Math.round(position*(points.length-1))))].key);
+        }}
+        onKeyDown={event=>{
+          let index=activeIndex;
+          if(event.key==='ArrowLeft')index--;else if(event.key==='ArrowRight')index++;
+          else if(event.key==='Home')index=0;else if(event.key==='End')index=points.length-1;else return;
+          event.preventDefault();setSelected(points[Math.max(0,Math.min(points.length-1,index))].key);
+        }}>{drawing}</div> : drawing}
+
 
       {/* Il punto finale sta FUORI dall'svg deformato: con
           preserveAspectRatio="none" un cerchio diventerebbe un'ellisse. */}
@@ -90,12 +118,16 @@ export function InvestmentTrendChart({ points, controvalore, height = 120, fullD
         {controvalore != null && (
           <span className="flex items-center gap-1.5">
             <span className="w-4 h-[2px] rounded-full" style={{ background: 'repeating-linear-gradient(90deg, rgb(var(--c-primary) / 0.4) 0 3px, transparent 3px 6px)' }} />
-            Controvalore oggi <span className="balance-num text-primary">{formatCurrency(controvalore)}</span>
+            {fullDates ? 'Ultimo valore noto' : 'Controvalore oggi'} <span className="balance-num text-primary">{formatCurrency(controvalore)}</span>
           </span>
         )}
         <span className="ml-auto text-tertiary">{periodLabel}</span>
       </div>
-      <ChartData title="Capitale investito" columns={['Mese','Versato']} rows={points.map(p=>[p.key,formatCurrency(p.versato)])} scale="Scala adattata ai valori, non ancorata allo zero. Controvalore disponibile solo per oggi."/>
+      {fullDates && <>
+        <p className="text-sm text-secondary mt-3" role="status" aria-live="polite" aria-atomic="true">{capitalize(formatMonthShort(points[activeIndex].key))} {points[activeIndex].key.slice(0,4)} · versato <strong className="text-primary balance-num">{formatCurrency(values[activeIndex])}</strong></p>
+        <p className="ui-chart-tick text-secondary mt-1">Scala adattata ai valori, non ancorata allo zero.</p>
+      </>}
+      <ChartData title="Capitale investito" columns={['Mese','Versato']} rows={points.map(p=>[p.key,formatCurrency(p.versato)])} scale="Scala adattata ai valori, non ancorata allo zero. Il controvalore è l’ultimo dato noto, non una serie storica di mercato."/>
     </div>
   );
 }

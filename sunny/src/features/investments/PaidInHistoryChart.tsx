@@ -1,3 +1,4 @@
+import { PeriodSelector } from '../../shared/components/PeriodSelector';
 import { useMemo, useState } from 'react';
 import { ChartData } from '../../shared/components/ChartData';
 import { formatCurrency } from '../../utils';
@@ -23,10 +24,7 @@ export function PaidInHistoryChart({ series, today }: { series: PaidInPoint[]; t
 
   return <section aria-label="Storico del capitale versato" className="min-w-0">
     <p className="label-caps text-secondary mb-2">Capitale versato nel tempo</p>
-    <div role="group" aria-label="Periodo del capitale versato" className="flex flex-wrap gap-2 mb-3">
-      {periods.map(opt => <button key={opt.value} type="button" aria-pressed={period === opt.value} onClick={() => setPeriod(opt.value)}
-        className={`min-h-[44px] px-3 rounded-xl text-sm font-semibold ${period === opt.value ? 'bg-gold text-bg' : 'bg-elevated text-secondary'}`}>{opt.label}</button>)}
-    </div>
+    <PeriodSelector label="Periodo del capitale versato" value={period} options={periods} onChange={setPeriod} />
     {sourceStart && <p className="text-xs text-secondary mb-2">Storico disponibile dal {dateLabel(sourceStart)}</p>}
     {points.length > 1 ? <>
       <svg viewBox="0 0 600 144" preserveAspectRatio="none" className="w-full" style={{ height: 144 }} role="img" aria-label={`Capitale versato dal ${dateLabel(first.date)} al ${dateLabel(last.date)}`}>

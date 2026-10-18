@@ -11,7 +11,7 @@ describe('reference revision financial hierarchy',()=>{
  it('supports a single recorded day with accessible daily chart controls',()=>{
   state.version='3.0';
   const html=renderToStaticMarkup(<AccountBalanceLineChart presentation="bars" lastPeriodLabel="oggi" points={[{label:'1',value:35}]} formatValue={v=>`${v} €`} onSelectPoint={()=>{}}/>);
-  expect(html).toContain('role="button"');expect(html).toContain('tabindex="0"');expect(html).toContain('oggi');expect(html).not.toContain('NaN');
+  expect(html).toContain('role="group"');expect(html).toContain('Apri movimenti');expect(html).toContain('tabindex="0"');expect(html).toContain('oggi');expect(html).not.toContain('NaN');
  });
  it('keeps Saldo prominent and moves explanations behind a dedicated control',()=>{
   state.version='3.0';

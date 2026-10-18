@@ -1,3 +1,4 @@
+import { SystemIcon } from '../../shared/components/SystemIcon';
 import {useOriginBack} from '../../shared/hooks/useOriginBack';
 import { useState, useEffect, useLayoutEffect, useRef, Children, isValidElement, ReactNode } from 'react';
 import { useNavigate, useLocation } from 'react-router-dom';
@@ -960,7 +961,7 @@ function ManageRow({ icon, color, label, sub, editMode, selected, onClick, showH
 function InfoBlock({ icon, title, children }: { icon: string; title: string; children: React.ReactNode }) {
   return (
     <div className="bg-card rounded-2xl p-4 flex gap-3.5">
-      <span className="w-9 h-9 rounded-full flex items-center justify-center text-base flex-shrink-0" style={{ backgroundColor: 'rgba(136,176,192,0.14)' }}>{icon}</span>
+      <span className="w-9 h-9 rounded-full flex items-center justify-center text-base flex-shrink-0" style={{ backgroundColor: 'rgba(136,176,192,0.14)' }}><SystemIcon icon={icon}/></span>
       <div className="min-w-0">
         <p className="text-sm font-semibold text-primary mb-1">{title}</p>
         <p className="text-[13px] text-secondary leading-relaxed">{children}</p>
@@ -1015,7 +1016,7 @@ function Row({ icon, color, label, sub, value, onClick }: {
     <button onClick={onClick}
       className="ui-settings-row w-full flex items-center gap-3 px-4 py-3 text-left transition-colors active:bg-card-hover">
       <span className="w-8 h-8 rounded-[11px] flex items-center justify-center text-base flex-none"
-        style={{ backgroundColor: color + '26' }}>{icon}</span>
+        style={{ backgroundColor: color + '26' }}><SystemIcon icon={icon}/></span>
       <span className="flex-1 min-w-0">
         <span className="ui-settings-label block text-[14.5px] text-primary truncate">{label}</span>
         {sub && <span className="ui-settings-caption block text-[11.5px] text-tertiary truncate">{sub}</span>}
@@ -1034,7 +1035,7 @@ function SwitchRow({ icon, color, label, sub, on, onToggle }: {
   return (
     <div className="ui-settings-row w-full flex items-center gap-3 px-4 py-3">
       <span className="w-8 h-8 rounded-[11px] flex items-center justify-center text-base flex-none"
-        style={{ backgroundColor: color + '26' }}>{icon}</span>
+        style={{ backgroundColor: color + '26' }}><SystemIcon icon={icon}/></span>
       <span className="flex-1 min-w-0">
         <span className="ui-settings-label block text-[14.5px] text-primary truncate">{label}</span>
         {sub && <span className="ui-settings-caption block text-[11.5px] text-tertiary truncate">{sub}</span>}
@@ -1054,7 +1055,7 @@ function ToggleRow({ icon, label, sub, on, onToggle }: {
   const ui3=useUiVersion()==='3.0';
   return (
     <div className="flex items-center gap-3.5 p-4">
-      <span className="text-2xl">{icon}</span>
+      <span className="text-2xl"><SystemIcon icon={icon}/></span>
       <div className="flex-1 min-w-0">
         <p className="text-sm font-medium text-primary">{label}</p>
         <p className="text-xs text-secondary">{sub}</p>

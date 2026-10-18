@@ -1,8 +1,9 @@
+import { PeriodSelector } from '../../shared/components/PeriodSelector';
 import { useMemo, useState, useRef, useLayoutEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { Transaction, CategoryDef, FundType, FUND_TYPE_META, FUND_TYPE_ORDER, investSign } from '../../types';
 import { useSettings } from '../../shared/providers/settings';
-import { formatCurrency, formatDate, formatMonthShort, capitalize } from '../../utils';
+import { formatCurrency, formatDate, formatDateFull, formatMonthShort, capitalize } from '../../utils';
 import { Donut } from './Donut';
 import { plusMinusLatente, isStaleValue } from '../investments/investmentTransactionBuilder';
 import { InvestmentDepositSheet } from '../investments/InvestmentDepositSheet';
@@ -167,6 +168,13 @@ export function InvestmentsScreen({ investmentByCategory, investmentTotal, month
   const chartPoints = ui3 ? historyPeriod === 'all' ? fullHistory : fullHistory.slice(historyPeriod === '6m' ? -6 : -12) : trend12;
   const unknownOpeningDate = visibleCategories.some(c => c.kind === 'investment' && c.initialBalance && !isHistoryDate(c.subscriptionDate));
 
+  const datedValues = positions.filter(p => p.controvalore != null && isHistoryDate(p.cat.lastValueUpdate)).map(p => p.cat.lastValueUpdate!).sort();
+  const valuationStatus = positions.some(p => p.controvalore == null)
+    ? 'Valore parziale: alcune posizioni usano il capitale versato.'
+    : datedValues.length === positions.length && datedValues.length
+      ? `Valori aggiornati dal ${formatDateFull(datedValues[0])} al ${formatDateFull(datedValues[datedValues.length - 1])}.`
+      : 'Data di aggiornamento non disponibile per tutte le posizioni.';
+
   // Un solo avviso per i controvalori fermi, invece dell'azione ripetuta su
   // ogni riga: dice QUALI e da quanto, e porta direttamente alla prima.
   const stalePositions = useMemo(() => positions.filter(p => p.stale || p.controvalore == null), [positions]);
@@ -204,6 +212,7 @@ export function InvestmentsScreen({ investmentByCategory, investmentTotal, month
       <section className="hero-card rounded-[26px] shadow-elev-2 p-[22px] animate-rise-in">
         <p className="label-caps text-secondary mb-2">Controvalore totale</p>
         <p className="text-[38px] leading-none font-bold balance-num text-primary">{formatCurrency(controvaloreTotale)}</p>
+        {ui3 && <p className="text-sm text-secondary mt-3">Ultimo valore noto · {valuationStatus}</p>}
         {versatoTotale > 0 && (
           <div className="flex items-center gap-2 mt-2.5 flex-wrap">
             <span className={`text-[11.5px] font-semibold balance-num px-2 py-[3px] rounded-full ${
@@ -215,10 +224,8 @@ export function InvestmentsScreen({ investmentByCategory, investmentTotal, month
         )}
         {(ui3 || trend12.length >= 2) && (
           <div className="mt-4" data-portfolio-history>
-            {ui3 && <div role="group" aria-label="Periodo del portafoglio" className="flex flex-wrap gap-2 mb-3">
-              {([['6m','6 mesi'],['1y','1 anno'],['all','Tutto']] as const).map(([value,label]) => <button key={value} type="button" aria-pressed={historyPeriod===value} onClick={()=>setHistoryPeriod(value)}
-                className={`min-h-[44px] px-3 rounded-xl text-sm font-semibold ${historyPeriod===value?'bg-gold text-bg':'bg-elevated text-secondary'}`}>{label}</button>)}
-            </div>}
+            {ui3 && <PeriodSelector label="Periodo del portafoglio" value={historyPeriod} onChange={setHistoryPeriod}
+              options={[{value:'6m',label:'6 mesi'},{value:'1y',label:'1 anno'},{value:'all',label:'Tutto'}]} />}
             <InvestmentTrendChart points={chartPoints} fullDates={ui3}
               periodLabel={ui3 ? `${chartPoints.length} ${chartPoints.length===1?'mese disponibile':'mesi disponibili'}` : undefined}
               controvalore={controvaloreTotale > 0 ? controvaloreTotale : null} />

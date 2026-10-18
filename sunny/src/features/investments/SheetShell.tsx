@@ -95,7 +95,7 @@ export function AmountBlock({ label, value, onChange, autoFocus, hint }: {
         <input type="text" inputMode="decimal" placeholder="0" value={value} autoFocus={autoFocus}
           aria-label={label}
           onChange={e => onChange(e.target.value.replace(/[^\d.,]/g, ''))}
-          className="flex-1 min-w-0 bg-transparent text-[34px] leading-none font-bold text-primary
+          className="ui-amount-input flex-1 min-w-0 bg-transparent text-[34px] leading-none font-bold text-primary
                      outline-none balance-num placeholder:text-divider" />
         <span className="text-[20px] font-semibold text-secondary flex-none">€</span>
       </div>

@@ -114,7 +114,7 @@ export function RhythmLegend() {
         meno
         {[0, 1, 3, 4].map(l => (
           <span key={l} className="w-[11px] h-[11px] rounded-[3px]"
-            style={{ background: `rgba(var(--c-gold) / ${RHYTHM_ALPHA[l]})` }} />
+            style={{ background: `rgba(var(--c-rhythm, var(--c-gold)) / ${RHYTHM_ALPHA[l]})` }} />
         ))}
         più
       </span>
@@ -143,12 +143,12 @@ function DayCell({ day, monthLabel, onSelect }: {
   const style: React.CSSProperties = isScheduled
     ? { background: SCHEDULED_FILL }
     : day.level >= 0
-      ? { background: `rgba(var(--c-gold) / ${alpha})`,
+      ? { background: `rgba(var(--c-rhythm, var(--c-gold)) / ${alpha})`,
           color: alpha >= RHYTHM_INK_HI_FROM ? 'var(--rhythm-ink-hi)' : 'var(--rhythm-ink)' }
       : { background: 'rgba(var(--c-primary) / 0.05)' };
 
   const cls = [
-    'aspect-square rounded-[7px] md:rounded-lg flex items-center justify-center',
+    'ui-rhythm-cell aspect-square rounded-[7px] md:rounded-lg flex items-center justify-center',
     'text-[11px] md:text-[12px] transition-colors',
     isScheduled ? 'border border-dashed border-gold/60 text-gold font-semibold' : '',
     day.level < 0 && !isScheduled ? 'text-tertiary/70' : '',

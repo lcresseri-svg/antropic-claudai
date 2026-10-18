@@ -1,5 +1,5 @@
 import { readTransactionRange } from '../../shared/transactionRoute';
-import { useState, useMemo, useEffect, useRef, useLayoutEffect } from 'react';
+import { useState, useMemo, useEffect, useRef, useLayoutEffect, useCallback } from 'react';
 import { useSearchParams } from 'react-router-dom';
 import { useUiSessionState, useUiVersion } from '../../shared/providers/UiVersionProvider';
 import { Transaction, TransactionType, TYPE_META, TYPE_ORDER, TransactionPatch, typeColor, ownShare } from '../../types';
@@ -120,6 +120,17 @@ export function TransactionList({ transactions, projected = [], onEdit, onDelete
   const [projView, setProjView] = useUiSessionState<ProjView>(`transactions.projected:${viewKey}`,PROJ_DEFAULT);
   const [filterOpen, setFilterOpen] = useState(false);
   const filterPanel = useRef<HTMLDivElement>(null);
+  const filterTrigger = useRef<HTMLButtonElement>(null);
+  const hadFiltersOpen = useRef(false);
+  const closeFilters = useCallback(() => setFilterOpen(false), []);
+  useLayoutEffect(() => {
+    if (!ui3) return;
+    if (filterOpen) hadFiltersOpen.current = true;
+    else if (hadFiltersOpen.current) {
+      filterTrigger.current?.focus({preventScroll:true});
+      hadFiltersOpen.current = false;
+    }
+  }, [filterOpen, ui3]);
   useLayoutEffect(() => {
     if (!filterOpen || !ui3) return;
     const resize = () => {
@@ -168,7 +179,7 @@ export function TransactionList({ transactions, projected = [], onEdit, onDelete
   // Esc chiude il pannello filtri; finché è aperto blocca lo scroll di sfondo.
   useEffect(() => {
     if (!filterOpen) return;
-    const onKey = (e: KeyboardEvent) => { if (e.key === 'Escape') setFilterOpen(false); };
+    const onKey = (e: KeyboardEvent) => { if (e.key === 'Escape') closeFilters(); };
     window.addEventListener('keydown', onKey);
     const prevOverflow = document.body.style.overflow;
     document.body.style.overflow = 'hidden';
@@ -176,7 +187,7 @@ export function TransactionList({ transactions, projected = [], onEdit, onDelete
       window.removeEventListener('keydown', onKey);
       document.body.style.overflow = prevOverflow;
     };
-  }, [filterOpen]);
+  }, [filterOpen, closeFilters]);
 
   const filtered = useMemo(() => {
     const q = search.trim().toLowerCase();
@@ -425,7 +436,7 @@ export function TransactionList({ transactions, projected = [], onEdit, onDelete
               {TYPE_META[t].label}
             </PillBtn>
           ))}
-          <PillBtn active={filterActive || filterOpen} onClick={() => setFilterOpen(o => !o)}
+          <PillBtn active={filterActive || filterOpen} buttonRef={filterTrigger} expanded={ui3 ? filterOpen : undefined} controls={ui3 ? "transaction-filters" : undefined} onClick={() => filterOpen ? closeFilters() : setFilterOpen(true)}
             icon={
               <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round">
                 <line x1="4" y1="6" x2="20" y2="6"/><line x1="7" y1="12" x2="17" y2="12"/><line x1="10" y1="18" x2="14" y2="18"/>
@@ -436,8 +447,8 @@ export function TransactionList({ transactions, projected = [], onEdit, onDelete
         </div>
             {filterOpen && (
               <>
-                <div className="fixed inset-0 z-40" onClick={() => setFilterOpen(false)} />
-                <div ref={filterPanel} aria-label="Opzioni movimenti" role="region" className="ui-transaction-filters absolute right-0 top-full mt-1 w-56 z-50 glass-elevated rounded-2xl shadow-float p-2.5 max-h-[70dvh] overflow-y-auto overscroll-contain animate-fade-in-fast">
+                <div className="fixed inset-0 z-40" onClick={() => closeFilters()} />
+                <div ref={filterPanel} id="transaction-filters" aria-label="Opzioni movimenti" role="region" className="ui-transaction-filters absolute right-0 top-full mt-1 w-56 z-50 glass-elevated rounded-2xl shadow-float p-2.5 max-h-[70dvh] overflow-y-auto overscroll-contain animate-fade-in-fast">
                   <p className="label-caps text-secondary mb-1.5 px-1">Ordina per</p>
                   <div className="flex gap-1 bg-card rounded-xl p-1 mb-2">
                     {([['date', 'Data'], ['amount', 'Importo']] as [SortKey, string][]).map(([key, lbl]) => (
@@ -462,7 +473,7 @@ export function TransactionList({ transactions, projected = [], onEdit, onDelete
                   <p className="label-caps text-secondary mb-1.5 px-1">Raggruppa per</p>
                   <div className="space-y-1 mb-2.5">
                     {([['day', 'Giorno'], ['month', 'Mese'], ['account', 'Conto'], ['category', 'Categoria'], ...(ui3 ? [['type', 'Tipo movimento']] : [])] as [GroupMode, string][]).map(([m, lbl]) => (
-                      <button key={m} onClick={() => { changeGroup(m); setFilterOpen(false); }}
+                      <button key={m} onClick={() => { changeGroup(m); closeFilters(); }}
                         className={`w-full flex items-center justify-between px-3 py-1.5 rounded-xl text-[13px] transition-colors ${
                           groupMode === m ? 'bg-gold/10 text-gold font-medium' : 'text-primary hover:bg-card'
                         }`}>
@@ -476,7 +487,7 @@ export function TransactionList({ transactions, projected = [], onEdit, onDelete
                     ))}
                   </div>
                   {groupMode !== 'day' && groups.length > 1 && (
-                    <button onClick={() => { toggleAll(); setFilterOpen(false); }}
+                    <button onClick={() => { toggleAll(); closeFilters(); }}
                       className="w-full text-left px-3 py-1.5 rounded-xl text-[13px] text-primary hover:bg-card transition-colors mb-2.5">
                       {allCollapsed ? 'Espandi tutti i gruppi' : 'Comprimi tutti i gruppi'}
                     </button>
@@ -484,7 +495,7 @@ export function TransactionList({ transactions, projected = [], onEdit, onDelete
                   <p className="label-caps text-secondary mb-1.5 px-1">Periodo</p>
                   <div className="space-y-1">
                     {PERIOD_OPTS.map(opt => (
-                      <button key={opt.value} onClick={() => { setPeriod(opt.value); setFilterOpen(false); }}
+                      <button key={opt.value} onClick={() => { setPeriod(opt.value); closeFilters(); }}
                         className={`w-full flex items-center justify-between px-3 py-1.5 rounded-xl text-[13px] transition-colors ${
                           period === opt.value ? 'bg-gold/10 text-gold font-medium' : 'text-primary hover:bg-card'
                         }`}>
@@ -503,7 +514,7 @@ export function TransactionList({ transactions, projected = [], onEdit, onDelete
                       <p className="label-caps text-secondary mb-1.5 mt-2.5 px-1">Previsti</p>
                       <div className="space-y-1">
                         {PROJ_OPTS.map(opt => (
-                          <button key={opt.value} onClick={() => { setProjView(opt.value); setFilterOpen(false); }}
+                          <button key={opt.value} onClick={() => { setProjView(opt.value); closeFilters(); }}
                             className={`w-full flex items-center justify-between px-3 py-1.5 rounded-xl text-[13px] transition-colors ${
                               projView === opt.value ? 'bg-gold/10 text-gold font-medium' : 'text-primary hover:bg-card'
                             }`}>
@@ -769,11 +780,11 @@ export function TransactionList({ transactions, projected = [], onEdit, onDelete
 
 /** Chip della riga filtri: il selezionato è PIENO (non oro al 10%), così la
  *  riga dice a colpo d'occhio dove sei anche scorrendola di lato. */
-function PillBtn({ children, active, dot, icon, onClick }: {
-  children: React.ReactNode; active: boolean; dot?: string; icon?: React.ReactNode; onClick: () => void;
+function PillBtn({ children, active, dot, icon, onClick, buttonRef, expanded, controls }: {
+  children: React.ReactNode; active: boolean; dot?: string; icon?: React.ReactNode; onClick: () => void; buttonRef?: React.Ref<HTMLButtonElement>; expanded?: boolean; controls?: string;
 }) {
   return (
-    <button onClick={onClick}
+    <button ref={buttonRef} onClick={onClick} aria-expanded={expanded} aria-controls={controls}
       className={`flex items-center gap-1.5 px-3.5 py-1.5 rounded-full text-xs font-semibold whitespace-nowrap transition-colors ${
         active ? 'bg-primary text-bg' : 'glass-card text-secondary hover:text-primary'
       }`}>

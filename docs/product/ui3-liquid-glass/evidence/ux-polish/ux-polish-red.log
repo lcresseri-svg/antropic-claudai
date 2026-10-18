@@ -1,0 +1,43 @@
+FAIL light 390 selected period contrast The expression evaluated to a falsy value:
+
+  assert.ok(await ratio(history.getByRole('button',{name:'Tutto',exact:true}))>=4.5)
+
+FAIL light 390 responsive portfolio chart 120
+FAIL light 390 last known valuation labelled Expected values to be strictly equal:
+
+0 !== 1
+
+FAIL light 390 amount display size The expression evaluated to a falsy value:
+
+  assert.ok(await amount.evaluate(e=>parseFloat(getComputedStyle(e).fontSize))>=32)
+
+PASS light 390 amount input retained
+PASS light 390 discard preserves draft
+FAIL light 390 Escape restores filter trigger Expected values to be strictly equal:
+
+false !== true
+
+FAIL light 390 daily chart large keyboard surface Expected values to be strictly equal:
+
+0 !== 1
+
+PASS dark 390 selected period contrast
+FAIL dark 390 responsive portfolio chart 120
+FAIL dark 390 last known valuation labelled Expected values to be strictly equal:
+
+0 !== 1
+
+FAIL dark 390 amount display size The expression evaluated to a falsy value:
+
+  assert.ok(await amount.evaluate(e=>parseFloat(getComputedStyle(e).fontSize))>=32)
+
+PASS dark 390 amount input retained
+PASS dark 390 discard preserves draft
+FAIL dark 390 Escape restores filter trigger Expected values to be strictly equal:
+
+false !== true
+
+FAIL dark 390 daily chart large keyboard surface Expected values to be strictly equal:
+
+0 !== 1
+

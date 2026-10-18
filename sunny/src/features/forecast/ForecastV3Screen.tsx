@@ -97,7 +97,7 @@ export function ForecastV3Screen({
   const v2CatMap = Object.fromEntries(v2.categories.map(c => [c.categoryId, c]));
 
   return (
-    <div className="space-y-6 pb-24">
+    <div className="ui-forecast space-y-6 pb-24">
       {/* Header */}
       <div>
         <div className="flex items-center gap-2 mb-1 flex-wrap">
