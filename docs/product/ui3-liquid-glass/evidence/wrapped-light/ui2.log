@@ -1,0 +1,3 @@
+light [ '', "Imposta l'obiettivo 2027" ]
+dark [ '', "Imposta l'obiettivo 2027" ]
+PASS Wrapped stories, summary, goal, close and editor cleanup
