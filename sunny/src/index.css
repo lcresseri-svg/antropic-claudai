@@ -333,15 +333,9 @@ html.light .text-\[\#E6B95C\]\/80 { color: rgb(var(--c-gold) / 0.9); }
    (regardless of the on-screen theme), hides the app chrome, and lets the recap
    flow across A4 pages. Gold is kept as the accent. Known limitation:
    window.print() is unreliable on iOS standalone PWAs (Safari); desktop/Android ok. */
-/* ─── Sunny Wrapped — la sala buia ───────────────────────────────────────────
-   Il Wrapped è disegnato su fondo nero e oro: numeri enormi in --accent su
-   --bg scuro. In tema chiaro quegli stessi token darebbero oro scuro su crema,
-   che non è la stessa schermata. Invece di forzare il tema globale (che
-   lascerebbe l'app nello stato sbagliato se si esce di colpo), i token del
-   tema scuro vengono RIDICHIARATI solo dentro il contenitore: nessun'altra
-   schermata cambia e uscendo il tema dell'utente torna da solo, senza fare
-   nulla. Stessa tecnica del blocco @media print qui sotto.
-   I valori sono copiati dal :root scuro — non sono colori nuovi. */
+/* ─── Sunny Wrapped — isolated story palette ──────────────────────────────
+   Keep the original dark palette local. The light variant below follows the
+   app preference without changing global tokens or the story lifecycle. */
 .wrapped-shell {
   --bg:            #090909;
   --surface-1:     #0C0C0C;
@@ -379,6 +373,46 @@ html.light .text-\[\#E6B95C\]\/80 { color: rgb(var(--c-gold) / 0.9); }
 
   background: rgb(var(--c-bg));
   color: rgb(var(--c-primary));
+}
+
+/* White canvas, warm glow and darker gold ink. Gold button fills stay light;
+   the streak uses the darker data gold with white text. */
+html.light .wrapped-shell {
+  --bg: #FFFFFF;
+  --surface-1: #F8F8FA;
+  --surface-2: #F3F3F6;
+  --border: rgba(24, 24, 27, 0.12);
+  --border-strong: rgba(24, 24, 27, 0.20);
+  --text-1: #18181B;
+  --text-2: #52525B;
+  --text-3: #62626B;
+  --accent: #825006;
+  --accent-hi: #F2C46D;
+  --accent-on: #FFFFFF;
+  --c-bg: 255 255 255;
+  --c-surface: 255 255 255;
+  --c-card: 248 248 250;
+  --c-card-hover: 243 243 246;
+  --c-elevated: 243 243 246;
+  --c-primary: 24 24 27;
+  --c-secondary: 82 82 91;
+  --c-tertiary: 98 98 107;
+  --c-gold: 130 80 6;
+  --c-green: 35 106 32;
+  --c-red: 170 48 40;
+  --c-divider: 226 226 230;
+  --c-divider-strong: 207 207 214;
+  --progress-track: rgba(24, 24, 27, 0.08);
+  --elev-1: 0 8px 24px -18px rgba(24, 24, 27, 0.18);
+  --elev-2: 0 16px 36px -22px rgba(24, 24, 27, 0.22);
+  --accent-surface: linear-gradient(150deg, #FFF4DF 0%, #FFFFFF 100%);
+  --wrapped-glow: #FFF4DF;
+  --wrapped-month-alpha: 0.7;
+}
+html.light .wrapped-shell .cta-gold-fill {
+  background: var(--accent-hi);
+  color: #241704;
+  box-shadow: 0 6px 18px -10px rgba(var(--c-gold) / 0.24);
 }
 
 /* Alone caldo: la copertina lo ancora in alto, le storie "risultato" in basso. */

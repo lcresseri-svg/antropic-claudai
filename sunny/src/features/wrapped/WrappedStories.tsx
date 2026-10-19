@@ -99,7 +99,7 @@ function MonthHistogram({ w }: { w: YearWrapped }) {
               height: `${Math.max(2, (m.expense / max) * 100)}%`,
               background: peak ? 'rgb(var(--c-red))'
                 : light ? 'rgb(var(--c-green))'
-                : 'rgba(var(--c-gold) / 0.28)',
+                : 'rgba(var(--c-gold) / var(--wrapped-month-alpha, 0.28))',
             }} />
           );
         })}
