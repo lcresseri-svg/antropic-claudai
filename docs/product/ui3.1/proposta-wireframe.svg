@@ -1,0 +1,208 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="1584" height="1020" viewBox="0 0 1584 1020" role="img" aria-labelledby="title desc"><title id="title">Sunny UI3.1: quattro wireframe proposti</title><desc id="desc">Proposta di gerarchia per Oggi, ricerca Movimenti, editor e Piano. Dati illustrativi, nessuna funzione implementata.</desc><rect width="1584" height="1020" fill="#EEF1F5"/><g font-family="Inter, Arial, sans-serif">
+<text x="24" y="39" font-size="15" font-weight="700" fill="#885300" text-anchor="start">SUNNY / UI3.1</text>
+<text x="24" y="75" font-size="30" font-weight="650" fill="#151619" text-anchor="start">Capire. Agire. Ritrovare il risultato.</text>
+<text x="1560" y="39" font-size="12" font-weight="500" fill="#5E6570" text-anchor="end">STUDIO · 19 OTTOBRE 2026</text>
+<text x="1560" y="65" font-size="13" font-weight="400" fill="#5E6570" text-anchor="end">Wireframe di proposta · dati illustrativi</text>
+<text x="24" y="116" font-size="15" font-weight="650" fill="#151619" text-anchor="start">01 · Oggi</text>
+<text x="24" y="982" font-size="13" font-weight="500" fill="#5E6570" text-anchor="start">Saldo e stima leggibili insieme</text>
+<g transform="translate(24 138)">
+<rect x="0" y="0" width="366" height="790" rx="22" fill="#FFFFFF" stroke="#DEE3EA"/>
+<path d="M22 35 A9 9 0 1 1 36 35" fill="none" stroke="#885300" stroke-width="2.4" stroke-linecap="round"/>
+<text x="46" y="35" font-size="18" font-weight="650" fill="#151619" text-anchor="start">sunny</text>
+<text x="342" y="34" font-size="13" font-weight="500" fill="#5E6570" text-anchor="end">Altro ···</text>
+<path d="M16 53 L350 53" stroke="#DEE3EA"/>
+<text x="20" y="85" font-size="24" font-weight="650" fill="#151619" text-anchor="start">Oggi</text>
+<text x="20" y="106" font-size="13" font-weight="400" fill="#5E6570" text-anchor="start">12 ottobre 2026</text>
+<text x="20" y="140" font-size="12" font-weight="500" fill="#5E6570" text-anchor="start">SALDO DEI CONTI</text>
+<text x="20" y="183" font-size="41" font-weight="650" fill="#151619" text-anchor="start">18.656,00 €</text>
+<path d="M20 201 L346 201" stroke="#DEE3EA"/>
+<text x="20" y="228" font-size="14" font-weight="500" fill="#151619" text-anchor="start">Liquidità libera stimata</text>
+<text x="346" y="228" font-size="19" font-weight="650" fill="#151619" text-anchor="end">17.656,00 €</text>
+<text x="20" y="252" font-size="12" font-weight="400" fill="#5E6570" text-anchor="start">Fino a fine mese, dopo impegni e riserva.</text>
+<text x="20" y="277" font-size="13" font-weight="600" fill="#885300" text-anchor="start">Vedi calcolo ›</text>
+<rect x="20" y="298" width="326" height="105" rx="14" fill="#F7F9FC" stroke="none"/>
+<text x="34" y="324" font-size="16" font-weight="650" fill="#151619" text-anchor="start">Pagamento da confermare</text>
+<text x="34" y="347" font-size="14" font-weight="400" fill="#5E6570" text-anchor="start">20,00 € · Apple Pay</text>
+<text x="34" y="382" font-size="14" font-weight="600" fill="#885300" text-anchor="start">Rivedi pagamento ›</text>
+<text x="20" y="429" font-size="13" font-weight="500" fill="#885300" text-anchor="start">Tutte le priorità ›</text>
+<text x="20" y="465" font-size="12" font-weight="500" fill="#5E6570" text-anchor="start">OTTOBRE 2026</text>
+<text x="20" y="490" font-size="12" font-weight="400" fill="#5E6570" text-anchor="start">Entrate</text>
+<text x="20" y="524" font-size="17" font-weight="650" fill="#151619" text-anchor="start">2450,00 €</text>
+<text x="133" y="490" font-size="12" font-weight="400" fill="#5E6570" text-anchor="start">Uscite</text>
+<text x="133" y="524" font-size="17" font-weight="650" fill="#151619" text-anchor="start">1112,00 €</text>
+<text x="247" y="490" font-size="12" font-weight="400" fill="#5E6570" text-anchor="start">Versamenti</text>
+<text x="247" y="524" font-size="17" font-weight="650" fill="#151619" text-anchor="start">350,00 €</text>
+<text x="247" y="505" font-size="12" font-weight="400" fill="#5E6570" text-anchor="start">dai conti</text>
+<path d="M20 542 L346 542" stroke="#DEE3EA"/>
+<text x="20" y="566" font-size="18" font-weight="650" fill="#151619" text-anchor="start">Dove hai speso</text>
+<text x="346" y="565" font-size="13" font-weight="500" fill="#885300" text-anchor="end">Tutte ›</text>
+<text x="20" y="598" font-size="14" font-weight="500" fill="#151619" text-anchor="start">Casa</text>
+<text x="346" y="598" font-size="15" font-weight="600" fill="#151619" text-anchor="end">620,00 €</text>
+<path d="M20 611 L346 611" stroke="#DEE3EA"/>
+<text x="20" y="641" font-size="14" font-weight="500" fill="#151619" text-anchor="start">Spesa</text>
+<text x="346" y="641" font-size="15" font-weight="600" fill="#151619" text-anchor="end">259,50 €</text>
+<path d="M20 654 L346 654" stroke="#DEE3EA"/>
+<text x="20" y="684" font-size="14" font-weight="500" fill="#151619" text-anchor="start">Ristoranti</text>
+<text x="346" y="684" font-size="15" font-weight="600" fill="#151619" text-anchor="end">232,50 €</text>
+<path d="M20 697 L346 697" stroke="#DEE3EA"/>
+<rect x="10" y="720" width="346" height="58" rx="22" fill="#F7F9FC" stroke="#DEE3EA"/>
+<rect x="12" y="726" width="64" height="45" rx="13" fill="#E8ECF2" stroke="none"/>
+<path d="M3 10.5 12 3l9 7.5 M5 9.5V21h5v-5h4v5h5V9.5" transform="translate(35 730) scale(.75)" fill="none" stroke="#151619" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"/>
+<text x="44" y="766" font-size="12" font-weight="600" fill="#151619" text-anchor="middle">Oggi</text>
+<path d="M3 17l5-5 4 3 5-7 M3 21h18" transform="translate(101 730) scale(.75)" fill="none" stroke="#5E6570" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"/>
+<text x="110" y="766" font-size="12" font-weight="400" fill="#5E6570" text-anchor="middle">Patrimonio</text>
+<path d="M5 4h14v17H5z M8 12l3 3 5-6" transform="translate(240 730) scale(.75)" fill="none" stroke="#5E6570" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"/>
+<text x="249" y="766" font-size="12" font-weight="400" fill="#5E6570" text-anchor="middle">Piano</text>
+<path d="M4 6h16 M4 12h16 M4 18h16" transform="translate(312 730) scale(.75)" fill="none" stroke="#5E6570" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"/>
+<text x="321" y="766" font-size="12" font-weight="400" fill="#5E6570" text-anchor="middle">Movimenti</text>
+<rect x="163" y="727" width="43" height="43" rx="15" fill="#F2C46D" stroke="none"/>
+<text x="184.5" y="756" font-size="29" font-weight="400" fill="#241704" text-anchor="middle">+</text>
+</g>
+<text x="414" y="116" font-size="15" font-weight="650" fill="#151619" text-anchor="start">02 · Movimenti</text>
+<text x="414" y="982" font-size="13" font-weight="500" fill="#5E6570" text-anchor="start">Ricerca e filtri sempre riconoscibili</text>
+<g transform="translate(414 138)">
+<rect x="0" y="0" width="366" height="790" rx="22" fill="#FFFFFF" stroke="#DEE3EA"/>
+<path d="M22 35 A9 9 0 1 1 36 35" fill="none" stroke="#885300" stroke-width="2.4" stroke-linecap="round"/>
+<text x="46" y="35" font-size="18" font-weight="650" fill="#151619" text-anchor="start">sunny</text>
+<text x="342" y="34" font-size="13" font-weight="500" fill="#5E6570" text-anchor="end">Altro ···</text>
+<path d="M16 53 L350 53" stroke="#DEE3EA"/>
+<text x="20" y="88" font-size="24" font-weight="650" fill="#151619" text-anchor="start">Movimenti</text>
+<rect x="20" y="111" width="231" height="46" rx="12" fill="#F7F9FC" stroke="#DEE3EA"/>
+<circle cx="38" cy="131" r="6" fill="none" stroke="#5E6570" stroke-width="1.6"/><path d="M42 135l5 5" stroke="#5E6570" stroke-width="1.6"/>
+<text x="56" y="140" font-size="16" font-weight="400" fill="#151619" text-anchor="start">Caffè</text>
+<rect x="260" y="113" width="86" height="42" rx="12" fill="#F7F9FC" stroke="none"/>
+<text x="303.0" y="139" font-size="13" font-weight="600" fill="#151619" text-anchor="middle">Filtri · 2</text>
+<rect x="20" y="175" width="142" height="34" rx="17" fill="#F7F9FC" stroke="#DEE3EA"/>
+<text x="32" y="197" font-size="13" font-weight="500" fill="#151619" text-anchor="start">Ottobre 2026  ×</text>
+<rect x="171" y="175" width="137" height="34" rx="17" fill="#F7F9FC" stroke="#DEE3EA"/>
+<text x="183" y="197" font-size="13" font-weight="500" fill="#151619" text-anchor="start">Ristoranti  ×</text>
+<text x="20" y="242" font-size="14" font-weight="500" fill="#5E6570" text-anchor="start">5 risultati</text>
+<text x="346" y="242" font-size="17" font-weight="650" fill="#151619" text-anchor="end">Uscite 232,50 €</text>
+<path d="M20 261 L346 261" stroke="#DEE3EA"/>
+<text x="20" y="282" font-size="12" font-weight="500" fill="#5E6570" text-anchor="start">9 ottobre</text>
+<text x="20" y="310" font-size="16" font-weight="500" fill="#151619" text-anchor="start">Caffè e pranzo</text>
+<text x="20" y="331" font-size="13" font-weight="400" fill="#5E6570" text-anchor="start">Conto Corrente</text>
+<text x="346" y="310" font-size="17" font-weight="650" fill="#151619" text-anchor="end">−68,10 €</text>
+<path d="M20 347 L346 347" stroke="#DEE3EA"/>
+<text x="20" y="364" font-size="12" font-weight="500" fill="#5E6570" text-anchor="start">7 ottobre</text>
+<text x="20" y="392" font-size="16" font-weight="500" fill="#151619" text-anchor="start">Caffè e pranzo</text>
+<text x="20" y="413" font-size="13" font-weight="400" fill="#5E6570" text-anchor="start">Conto Corrente</text>
+<text x="346" y="392" font-size="17" font-weight="650" fill="#151619" text-anchor="end">−57,30 €</text>
+<path d="M20 429 L346 429" stroke="#DEE3EA"/>
+<text x="20" y="446" font-size="12" font-weight="500" fill="#5E6570" text-anchor="start">5 ottobre</text>
+<text x="20" y="474" font-size="16" font-weight="500" fill="#151619" text-anchor="start">Caffè e pranzo</text>
+<text x="20" y="495" font-size="13" font-weight="400" fill="#5E6570" text-anchor="start">Conto Corrente</text>
+<text x="346" y="474" font-size="17" font-weight="650" fill="#151619" text-anchor="end">−46,50 €</text>
+<path d="M20 511 L346 511" stroke="#DEE3EA"/>
+<text x="20" y="528" font-size="12" font-weight="500" fill="#5E6570" text-anchor="start">3 ottobre</text>
+<text x="20" y="556" font-size="16" font-weight="500" fill="#151619" text-anchor="start">Caffè e pranzo</text>
+<text x="20" y="577" font-size="13" font-weight="400" fill="#5E6570" text-anchor="start">Conto Corrente</text>
+<text x="346" y="556" font-size="17" font-weight="650" fill="#151619" text-anchor="end">−35,70 €</text>
+<path d="M20 593 L346 593" stroke="#DEE3EA"/>
+<text x="20" y="610" font-size="12" font-weight="500" fill="#5E6570" text-anchor="start">1 ottobre</text>
+<text x="20" y="638" font-size="16" font-weight="500" fill="#151619" text-anchor="start">Caffè e pranzo</text>
+<text x="20" y="659" font-size="13" font-weight="400" fill="#5E6570" text-anchor="start">Conto Corrente</text>
+<text x="346" y="638" font-size="17" font-weight="650" fill="#151619" text-anchor="end">−24,90 €</text>
+<path d="M20 675 L346 675" stroke="#DEE3EA"/>
+<rect x="10" y="720" width="346" height="58" rx="22" fill="#F7F9FC" stroke="#DEE3EA"/>
+<path d="M3 10.5 12 3l9 7.5 M5 9.5V21h5v-5h4v5h5V9.5" transform="translate(35 730) scale(.75)" fill="none" stroke="#5E6570" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"/>
+<text x="44" y="766" font-size="12" font-weight="400" fill="#5E6570" text-anchor="middle">Oggi</text>
+<path d="M3 17l5-5 4 3 5-7 M3 21h18" transform="translate(101 730) scale(.75)" fill="none" stroke="#5E6570" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"/>
+<text x="110" y="766" font-size="12" font-weight="400" fill="#5E6570" text-anchor="middle">Patrimonio</text>
+<path d="M5 4h14v17H5z M8 12l3 3 5-6" transform="translate(240 730) scale(.75)" fill="none" stroke="#5E6570" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"/>
+<text x="249" y="766" font-size="12" font-weight="400" fill="#5E6570" text-anchor="middle">Piano</text>
+<rect x="289" y="726" width="64" height="45" rx="13" fill="#E8ECF2" stroke="none"/>
+<path d="M4 6h16 M4 12h16 M4 18h16" transform="translate(312 730) scale(.75)" fill="none" stroke="#151619" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"/>
+<text x="321" y="766" font-size="12" font-weight="600" fill="#151619" text-anchor="middle">Movimenti</text>
+<rect x="163" y="727" width="43" height="43" rx="15" fill="#F2C46D" stroke="none"/>
+<text x="184.5" y="756" font-size="29" font-weight="400" fill="#241704" text-anchor="middle">+</text>
+</g>
+<text x="804" y="116" font-size="15" font-weight="650" fill="#151619" text-anchor="start">03 · Nuovo movimento</text>
+<text x="804" y="982" font-size="13" font-weight="500" fill="#5E6570" text-anchor="start">Un percorso e un salvataggio</text>
+<g transform="translate(804 138)">
+<rect x="0" y="0" width="366" height="790" rx="22" fill="#FFFFFF" stroke="#DEE3EA"/>
+<text x="20" y="39" font-size="20" font-weight="650" fill="#151619" text-anchor="start">Nuovo movimento</text>
+<text x="344" y="39" font-size="24" font-weight="400" fill="#151619" text-anchor="end">×</text>
+<path d="M20 59 L346 59" stroke="#DEE3EA"/>
+<rect x="20" y="80" width="326" height="39" rx="12" fill="#F7F9FC" stroke="none"/>
+<rect x="24" y="84" width="105" height="31" rx="9" fill="#E8ECF2" stroke="none"/>
+<text x="77" y="105" font-size="13" font-weight="600" fill="#151619" text-anchor="middle">Uscita</text>
+<text x="184" y="105" font-size="13" font-weight="400" fill="#5E6570" text-anchor="middle">Entrata</text>
+<text x="291" y="105" font-size="13" font-weight="400" fill="#5E6570" text-anchor="middle">Altro ⌄</text>
+<text x="183" y="181" font-size="48" font-weight="650" fill="#151619" text-anchor="middle">24,90 €</text>
+<text x="20" y="216" font-size="13" font-weight="500" fill="#5E6570" text-anchor="start">Descrizione (facoltativa)</text>
+<rect x="20" y="228" width="326" height="44" rx="12" fill="#F7F9FC" stroke="#DEE3EA"/>
+<text x="34" y="256" font-size="15" font-weight="400" fill="#151619" text-anchor="start">Spesa di esempio</text>
+<text x="20" y="304" font-size="13" font-weight="500" fill="#5E6570" text-anchor="start">Categoria</text>
+<rect x="20" y="316" width="326" height="48" rx="12" fill="#F7F9FC" stroke="#DEE3EA"/>
+<text x="34" y="346" font-size="15" font-weight="500" fill="#151619" text-anchor="start">🛒  Spesa</text>
+<text x="331" y="346" font-size="15" font-weight="500" fill="#5E6570" text-anchor="end">⌄</text>
+<text x="20" y="387" font-size="13" font-weight="500" fill="#5E6570" text-anchor="start">Conto</text>
+<rect x="20" y="399" width="326" height="48" rx="12" fill="#F7F9FC" stroke="#DEE3EA"/>
+<text x="34" y="429" font-size="15" font-weight="500" fill="#151619" text-anchor="start">Conto Corrente</text>
+<text x="331" y="429" font-size="15" font-weight="500" fill="#5E6570" text-anchor="end">⌄</text>
+<text x="20" y="470" font-size="13" font-weight="500" fill="#5E6570" text-anchor="start">Data</text>
+<rect x="20" y="482" width="326" height="48" rx="12" fill="#F7F9FC" stroke="#DEE3EA"/>
+<text x="34" y="512" font-size="15" font-weight="500" fill="#151619" text-anchor="start">12 ottobre 2026</text>
+<text x="331" y="512" font-size="15" font-weight="500" fill="#5E6570" text-anchor="end">⌄</text>
+<text x="20" y="562" font-size="15" font-weight="500" fill="#151619" text-anchor="start">Altre opzioni</text>
+<text x="342" y="562" font-size="15" font-weight="400" fill="#5E6570" text-anchor="end">⌄</text>
+<path d="M20 581 L346 581" stroke="#DEE3EA"/>
+<rect x="20" y="604" width="326" height="70" rx="12" fill="#F7F9FC" stroke="none"/>
+<text x="183" y="645" font-size="13" font-weight="400" fill="#5E6570" text-anchor="middle">Tastiera o tastierino</text>
+<rect x="0" y="690" width="366" height="99" rx="12" fill="#FFFFFF" stroke="none"/>
+<rect x="20" y="710" width="326" height="42" rx="12" fill="#F2C46D" stroke="none"/>
+<text x="183.0" y="736" font-size="13" font-weight="600" fill="#241704" text-anchor="middle">Salva movimento</text>
+</g>
+<text x="1194" y="116" font-size="15" font-weight="650" fill="#151619" text-anchor="start">04 · Piano</text>
+<text x="1194" y="982" font-size="13" font-weight="500" fill="#5E6570" text-anchor="start">Mese, margine e decisioni vicini</text>
+<g transform="translate(1194 138)">
+<rect x="0" y="0" width="366" height="790" rx="22" fill="#050608" stroke="#303740"/>
+<path d="M22 35 A9 9 0 1 1 36 35" fill="none" stroke="#F4C66A" stroke-width="2.4" stroke-linecap="round"/>
+<text x="46" y="35" font-size="18" font-weight="650" fill="#F7F8FA" text-anchor="start">sunny</text>
+<text x="342" y="34" font-size="13" font-weight="500" fill="#AFB6C2" text-anchor="end">Altro ···</text>
+<path d="M16 53 L350 53" stroke="#303740"/>
+<text x="20" y="88" font-size="24" font-weight="650" fill="#F7F8FA" text-anchor="start">Piano</text>
+<rect x="230" y="65" width="116" height="30" rx="15" fill="#11151B" stroke="#303740"/>
+<text x="288" y="85" font-size="12" font-weight="500" fill="#AFB6C2" text-anchor="middle">Confermato</text>
+<text x="20" y="122" font-size="15" font-weight="500" fill="#F7F8FA" text-anchor="start">‹   Ottobre 2026   ›</text>
+<text x="20" y="163" font-size="12" font-weight="500" fill="#AFB6C2" text-anchor="start">MARGINE DEL MESE</text>
+<text x="20" y="211" font-size="46" font-weight="650" fill="#F7F8FA" text-anchor="start">488,00 €</text>
+<text x="20" y="244" font-size="14" font-weight="400" fill="#AFB6C2" text-anchor="start">Per le spese non programmate,</text>
+<text x="20" y="266" font-size="14" font-weight="400" fill="#AFB6C2" text-anchor="start">dopo gli obiettivi del mese.</text>
+<rect x="20" y="288" width="326" height="7" rx="3" fill="#11151B" stroke="none"/>
+<rect x="20" y="288" width="227" height="7" rx="3" fill="#F2C46D" stroke="none"/>
+<text x="20" y="325" font-size="12" font-weight="400" fill="#AFB6C2" text-anchor="start">Per le spese</text>
+<text x="20" y="352" font-size="16" font-weight="650" fill="#F7F8FA" text-anchor="start">1600,00 €</text>
+<text x="133" y="325" font-size="12" font-weight="400" fill="#AFB6C2" text-anchor="start">Speso</text>
+<text x="133" y="352" font-size="16" font-weight="650" fill="#F7F8FA" text-anchor="start">1112,00 €</text>
+<text x="247" y="325" font-size="12" font-weight="400" fill="#AFB6C2" text-anchor="start">Programmato</text>
+<text x="247" y="352" font-size="16" font-weight="650" fill="#F7F8FA" text-anchor="start">0,00 €</text>
+<rect x="20" y="380" width="326" height="42" rx="12" fill="#F2C46D" stroke="none"/>
+<text x="183.0" y="406" font-size="13" font-weight="600" fill="#241704" text-anchor="middle">Modifica piano</text>
+<text x="20" y="452" font-size="12" font-weight="400" fill="#AFB6C2" text-anchor="start">Questo valore riguarda il piano del mese.</text>
+<text x="20" y="480" font-size="13" font-weight="500" fill="#F4C66A" text-anchor="start">Come è calcolato ›</text>
+<path d="M20 502 L346 502" stroke="#303740"/>
+<text x="20" y="535" font-size="18" font-weight="650" fill="#F7F8FA" text-anchor="start">Categorie</text>
+<text x="20" y="570" font-size="16" font-weight="500" fill="#F7F8FA" text-anchor="start">Ristoranti</text>
+<text x="346" y="570" font-size="18" font-weight="650" fill="#FFA5A5" text-anchor="end">−52,50 €</text>
+<text x="20" y="594" font-size="12" font-weight="400" fill="#FFA5A5" text-anchor="start">Oltre il limite</text>
+<text x="346" y="620" font-size="13" font-weight="500" fill="#F4C66A" text-anchor="end">Rivedi categoria ›</text>
+<path d="M20 635 L346 635" stroke="#303740"/>
+<text x="20" y="664" font-size="16" font-weight="500" fill="#F7F8FA" text-anchor="start">Casa</text>
+<text x="346" y="664" font-size="14" font-weight="500" fill="#F7F8FA" text-anchor="end">80,00 € residui</text>
+<text x="20" y="691" font-size="12" font-weight="400" fill="#AFB6C2" text-anchor="start">Speso 620 € · limite 700 €</text>
+<rect x="10" y="720" width="346" height="58" rx="22" fill="#11151B" stroke="#303740"/>
+<path d="M3 10.5 12 3l9 7.5 M5 9.5V21h5v-5h4v5h5V9.5" transform="translate(35 730) scale(.75)" fill="none" stroke="#AFB6C2" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"/>
+<text x="44" y="766" font-size="12" font-weight="400" fill="#AFB6C2" text-anchor="middle">Oggi</text>
+<path d="M3 17l5-5 4 3 5-7 M3 21h18" transform="translate(101 730) scale(.75)" fill="none" stroke="#AFB6C2" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"/>
+<text x="110" y="766" font-size="12" font-weight="400" fill="#AFB6C2" text-anchor="middle">Patrimonio</text>
+<rect x="217" y="726" width="64" height="45" rx="13" fill="#272E38" stroke="none"/>
+<path d="M5 4h14v17H5z M8 12l3 3 5-6" transform="translate(240 730) scale(.75)" fill="none" stroke="#F7F8FA" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"/>
+<text x="249" y="766" font-size="12" font-weight="600" fill="#F7F8FA" text-anchor="middle">Piano</text>
+<path d="M4 6h16 M4 12h16 M4 18h16" transform="translate(312 730) scale(.75)" fill="none" stroke="#AFB6C2" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"/>
+<text x="321" y="766" font-size="12" font-weight="400" fill="#AFB6C2" text-anchor="middle">Movimenti</text>
+<rect x="163" y="727" width="43" height="43" rx="15" fill="#F2C46D" stroke="none"/>
+<text x="184.5" y="756" font-size="29" font-weight="400" fill="#241704" text-anchor="middle">+</text>
+</g>
+</g></svg>

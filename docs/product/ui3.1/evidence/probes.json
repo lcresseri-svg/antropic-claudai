@@ -1,0 +1,173 @@
+[
+  {
+    "name": "home-information-light",
+    "before": "SALDO\n\n18.656,00 €\n›\nⓘ\n\nOTTOBRE 2026\n\nENTRATE\n\n2450,00 €\n\nUSCITE\n\n1112,00 €\n\nINVESTITO\n\n350,00 €",
+    "detail": "Informazioni sul saldo\n✕\nSaldo\n18.656,00 €\nUscite programmate entro fine mese\n0,00 €\nDeposito di sicurezza\n1000,00 €\nLiquidità libera stimata\n17.656,00 €\n\nIl saldo considera i conti che hai scelto per il patrimonio. Non sottrae gli impegni futuri; la liquidità libera considera anche le uscite programmate e il deposito.\n\nNon è il margine del Piano, che dipende dalle entrate e dagli obiettivi del mese.\n\nVedi conti ›",
+    "errors": []
+  },
+  {
+    "name": "priorities-light",
+    "before": "3 elementi da rivedere\nPagamenti, rischi e scadenze ›",
+    "isOpen": null,
+    "after": "3 elementi da rivedere\nPagamenti, rischi e scadenze ›\n⌁\nPagamenti Apple Pay da confermare\n\n1 pagamento non ancora registrato\n\n1\nRivedi pagamenti (1)\nScadenze entro 7 giorni\nScadenza test 1 · 120,00 €\n13/10/2026 · Vedi impegni ›\nScadenza test 2 · 120,00 €\n14/10/2026 · Vedi impegni ›",
+    "errors": []
+  },
+  {
+    "name": "filter-and-search-light",
+    "filterBox": {
+      "x": 414.46875,
+      "y": 157,
+      "width": 78.140625,
+      "height": 44
+    },
+    "viewport": 390,
+    "before": {
+      "h1": 0,
+      "search": "Caffè",
+      "url": "http://127.0.0.1:4177/transactions?cat=ristoranti&from=2026-10-01&to=2026-10-31"
+    },
+    "after": {
+      "h1": 1,
+      "inputs": 0,
+      "url": "http://127.0.0.1:4177/transactions?from=2026-10-01&to=2026-10-31",
+      "main": "Movimenti\nTutte · 13\nUscita\nEntrata\nInvestimento\nFiltri\n1 ott 2026 – 31 ott 2026 ✕\nOttobre\n13 movimenti\n\n+988,00 €\n\n2450\nentrate\n1112\nuscite\n350\ninvestiti\n\n10 ottobre\n\n−73,50 €\n\n🛒\n\nSpesa settimanale\n\nConto Corrente\n\n−73,50 €\n\n9 ottobre\n\n−68,10 €\n\n🍽️\n\nCaffè e pranzo\n\nConto Corrente\n\n−68,10 €\n\n8 ottobre\n\n−62,70 €\n\n🛒\n\nSpesa sett"
+    },
+    "errors": []
+  },
+  {
+    "name": "editor-light",
+    "form": "✕\nNuova transazione\n€\nDescrizione (facoltativa)\n🛒\nSpesa\n🍽️\nRistoranti\n🏠\nCasa\n🚗\nTrasporti\n🛍️\nShopping\n🩺\nSalute\naltre ›\n\nSuggerita da «Spesa di esempio»\n\nDettagli avanzati\nRicorrente, condivisa, a rate…\nOpzioni\nMostra tastierino\nAggiungi uscitaSalva e aggiungi un'altra",
+    "amountStyle": {
+      "fontSize": "32px",
+      "inputMode": "decimal"
+    },
+    "writes": "0",
+    "errors": []
+  },
+  {
+    "name": "home-information-dark",
+    "before": "SALDO\n\n18.656,00 €\n›\nⓘ\n\nOTTOBRE 2026\n\nENTRATE\n\n2450,00 €\n\nUSCITE\n\n1112,00 €\n\nINVESTITO\n\n350,00 €",
+    "detail": "Informazioni sul saldo\n✕\nSaldo\n18.656,00 €\nUscite programmate entro fine mese\n0,00 €\nDeposito di sicurezza\n1000,00 €\nLiquidità libera stimata\n17.656,00 €\n\nIl saldo considera i conti che hai scelto per il patrimonio. Non sottrae gli impegni futuri; la liquidità libera considera anche le uscite programmate e il deposito.\n\nNon è il margine del Piano, che dipende dalle entrate e dagli obiettivi del mese.\n\nVedi conti ›",
+    "errors": []
+  },
+  {
+    "name": "priorities-dark",
+    "before": "3 elementi da rivedere\nPagamenti, rischi e scadenze ›",
+    "isOpen": null,
+    "after": "3 elementi da rivedere\nPagamenti, rischi e scadenze ›\n⌁\nPagamenti Apple Pay da confermare\n\n1 pagamento non ancora registrato\n\n1\nRivedi pagamenti (1)\nScadenze entro 7 giorni\nScadenza test 1 · 120,00 €\n13/10/2026 · Vedi impegni ›\nScadenza test 2 · 120,00 €\n14/10/2026 · Vedi impegni ›",
+    "errors": []
+  },
+  {
+    "name": "filter-and-search-dark",
+    "filterBox": {
+      "x": 414.46875,
+      "y": 157,
+      "width": 78.140625,
+      "height": 44
+    },
+    "viewport": 390,
+    "before": {
+      "h1": 0,
+      "search": "Caffè",
+      "url": "http://127.0.0.1:4177/transactions?cat=ristoranti&from=2026-10-01&to=2026-10-31"
+    },
+    "after": {
+      "h1": 1,
+      "inputs": 0,
+      "url": "http://127.0.0.1:4177/transactions?from=2026-10-01&to=2026-10-31",
+      "main": "Movimenti\nTutte · 13\nUscita\nEntrata\nInvestimento\nFiltri\n1 ott 2026 – 31 ott 2026 ✕\nOttobre\n13 movimenti\n\n+988,00 €\n\n2450\nentrate\n1112\nuscite\n350\ninvestiti\n\n10 ottobre\n\n−73,50 €\n\n🛒\n\nSpesa settimanale\n\nConto Corrente\n\n−73,50 €\n\n9 ottobre\n\n−68,10 €\n\n🍽️\n\nCaffè e pranzo\n\nConto Corrente\n\n−68,10 €\n\n8 ottobre\n\n−62,70 €\n\n🛒\n\nSpesa sett"
+    },
+    "errors": []
+  },
+  {
+    "name": "editor-dark",
+    "form": "✕\nNuova transazione\n€\nDescrizione (facoltativa)\n🛒\nSpesa\n🍽️\nRistoranti\n🏠\nCasa\n🚗\nTrasporti\n🛍️\nShopping\n🩺\nSalute\naltre ›\n\nSuggerita da «Spesa di esempio»\n\nDettagli avanzati\nRicorrente, condivisa, a rate…\nOpzioni\nMostra tastierino\nAggiungi uscitaSalva e aggiungi un'altra",
+    "amountStyle": {
+      "fontSize": "32px",
+      "inputMode": "decimal"
+    },
+    "writes": "0",
+    "errors": []
+  },
+  {
+    "name": "filter-reach-320",
+    "width": 320,
+    "box": {
+      "x": 428.859375,
+      "y": 157,
+      "width": 78.140625,
+      "height": 44
+    },
+    "parent": {
+      "parentWidth": 296,
+      "parentScrollWidth": 499,
+      "overflow": "auto"
+    },
+    "initialFullyVisible": false,
+    "errors": []
+  },
+  {
+    "name": "filter-reach-390",
+    "width": 390,
+    "box": {
+      "x": 428.859375,
+      "y": 157,
+      "width": 78.140625,
+      "height": 44
+    },
+    "parent": {
+      "parentWidth": 366,
+      "parentScrollWidth": 499,
+      "overflow": "auto"
+    },
+    "initialFullyVisible": false,
+    "errors": []
+  },
+  {
+    "name": "filter-reach-1440",
+    "width": 1440,
+    "box": {
+      "x": 702.859375,
+      "y": 165,
+      "width": 78.140625,
+      "height": 44
+    },
+    "parent": {
+      "parentWidth": 1108,
+      "parentScrollWidth": 1108,
+      "overflow": "auto"
+    },
+    "initialFullyVisible": true,
+    "errors": []
+  },
+  {
+    "name": "empty",
+    "ui": "3.0",
+    "text": "Salta al contenuto\nOggi\nPatrimonio\nPiano\nMovimenti\n＋\nsunny\nOttobre · giorno 12 di 31\nAltro\n⋯\nCiao, Luca\n\nSALDO\n\n6800,00 €\n›\nⓘ\n\nOTTOBRE 2026\n\nENTRATE\n\n0,00 €\n\nUSCITE\n\n0,00 €\n\nINVESTITO\n\n0,00 €\n\nSpese per categoria\n\nNessuna spesa questo mese.\n\nUscite del mese\nRitmo e calendario ›\n\nottobre 2026 · giorno per giorno\n\nNessuna spesa registrata in questo mese.\n\nRiepilogo di settembre\n›\nTutti i consigli\n›\nAltre statistiche\nDati illustrativi · nessuna connessione al database · scritture simulate: 0· Piani salvati in memoria: 0\nApri editor test\nCambia tema test\nUtente normale test\nAdmin test\nLogout test\nWrapped test",
+    "errors": []
+  },
+  {
+    "name": "features-off",
+    "ui": "3.0",
+    "text": "Salta al contenuto\nOggi\nPatrimonio\nPiano\nMovimenti\n＋\nsunny\nOttobre · giorno 12 di 31\nAltro\n⋯\nPatrimonio\nStorico ›\n\nPATRIMONIO NETTO\n\n30.856,00 €\n\nSaldo attuale · liquidità e investimenti inclusi\n\n+4014,00 €\nnegli ultimi 3 mesi\nOtt 25\nGen 26\nApr 26\nLug 26\nOtt 26\nTotale\nLiquidità\nInvestimenti\nVedi dati · Patrimonio\nImpegni fissi\nNessun costo fisso rilevato\n0,00 €/mese\n\nLIQUIDITÀ\n\n18.656,00 €\n\n60% del totale\n\nSALDO PER CONTO\nVedi spese\n🏦\nConto Corrente\n16.656,00 €\n💰\nConto Risparmio\n2000,00 €\n💳\nCarta di Credito\n0,00 €\nMostra tutti (2 in più)\nDati illustrativi · nessuna connessione al database · scritture simulate: 0· Piani salvati in memoria: 0\nApri editor test\nCambia tema test\nUtente normale test\nAdmin test\nLogout test\nWrapped test",
+    "errors": []
+  },
+  {
+    "name": "normal-user",
+    "ui": "2.0",
+    "text": "Ottobre · giorno 12 di 31\n\nLIQUIDITÀ LIBERA\n\n17.656,00 €\n\nSu 18.656,00 € di liquidità, 1000,00 € sono il tuo deposito di sicurezza.\n\n95%\nlibero\n\nENTRATE\n\n2450,00 €\n\nUSCITE\n\n1112,00 €\n\nINVESTITO\n\n350,00 €\n\nPATRIMONIO NETTO\n\n30.856,00 €\n\n+15%\nultimi 3 mesi\n🏦\nSaldo per conto\n18.656,00 €\n📊\nInvestimenti per categoria\n12.200,00 €\nRITMO DEL MESE\n93 €/giorno in media\n\nOgni quadratino è un giorno di ottobre: più è pieno, più hai speso.\n\nL\nM\nM\nG\nV\nS\nD\n1\n2\n3\n4\n5\n6\n7\n8\n9\n10\n11\n12\n13\n14\n15\n16\n17\n18\n19\n20\n21\n22\n23\n24\n25\n26\n27\n28\n29\n30\n31\nmeno\npiù\nprogrammato\noggi\n\nGiorno più caro: 2 ottobre · 650 € (affitto). Oggi 0 €.\n\nDOVE VANNO I SOLDI\n\nTutte ›\nUSCITE\n1112,00 €\nCasa\n620,00 €\nSpesa\n259,50 €\nRistoranti\n232,50 €\n🔮\n\nPROSSIMA MOSSA\n\nFine mese stimato: +987,00 €\n\nRisparmio proiettato su spese attuali e abitudini storiche\n\nTutti gli impegni del mese ›\nRiordina\nDati illustrativi · nessuna connessione al database · scritture simulate: 0· Piani salvati in memoria: 0\nApri editor test\nCambia tema test\nUtente normale test\nAdmin test\nLogout test\nWrapped test\nOggi\nPatrimonio\nPiano\nMovimenti",
+    "errors": []
+  },
+  {
+    "name": "plan-error",
+    "ui": "3.0",
+    "text": "Salta al contenuto\nOggi\nPatrimonio\nPiano\nMovimenti\n＋\nsunny\nOttobre · giorno 12 di 31\nAltro\n⋯\nPiano\n\nDati non disponibili: Errore fixture. Il margine non viene calcolato su dati incompleti.\n\nRiprova\nDati illustrativi · nessuna connessione al database · scritture simulate: 0· Piani salvati in memoria: 0\nApri editor test\nCambia tema test\nUtente normale test\nAdmin test\nLogout test\nWrapped test",
+    "errors": []
+  },
+  {
+    "name": "onboarding",
+    "ui": "3.0",
+    "text": "PASSO 1 DI 6 · BENVENUTO\n\n~2 min in tutto\n\nCapisci i tuoi soldi,\nsenza stress.\n\nSunny ti aiuta a leggere le tue spese, prevedere il mese e costruire abitudini finanziarie più serene.\n\nInizia\n\nPuoi modificare tutto in seguito.",
+    "errors": []
+  }
+]

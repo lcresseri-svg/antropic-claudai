@@ -1,0 +1,44 @@
+{
+  "kind": "Design-only illustrative scenario, not private or production data",
+  "date": "2026-10-12",
+  "plan": {
+    "expectedIncome": 2400,
+    "savingsGoal": 400,
+    "investmentGoalFromAccounts": 200,
+    "expensesRecorded": 900,
+    "expensesScheduled": 350,
+    "capacityForExpenses": 1800,
+    "margin": 550,
+    "categoryLimits": {
+      "casa": 900,
+      "spesa": 350,
+      "ristoranti": 150,
+      "trasporti": 150,
+      "salute": 150
+    },
+    "unallocatedCushion": 100
+  },
+  "accounts": {
+    "Conto Corrente": 3920,
+    "Contanti": 180,
+    "Risparmio": 720
+  },
+  "cash": 4820,
+  "cashReserve": 500,
+  "freeCashEstimate": 3970,
+  "investmentCapital": 4200,
+  "lastKnownInvestmentValuation": 4380,
+  "netWorthUsingCapital": 9020,
+  "pendingPayment": {
+    "amount": 20,
+    "source": "Apple Pay",
+    "includedInRecordedExpenses": false
+  },
+  "exampleAfterExpense24_90": {
+    "expensesRecorded": 924.9,
+    "margin": 525.1,
+    "cash": 4795.1,
+    "netWorthUsingCapital": 8995.1
+  },
+  "sourceSkillCommit": "56ea9cf174ed86786187daa9de0e6247cb0747e4"
+}
