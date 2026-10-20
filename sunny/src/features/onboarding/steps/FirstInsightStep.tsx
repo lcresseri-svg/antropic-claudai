@@ -1,4 +1,13 @@
+import { useUiVersion } from '../../../shared/providers/UiVersionProvider';
+import { Transaction } from '../../../types';
+import { buildFirstReading } from '../entryJourney';
+
 interface Props {
+  transactions?: Transaction[];
+  loading?: boolean;
+  error?: string | null;
+  onOptionalGoals?: () => void;
+  onOptionalSavings?: () => void;
   dataMode: 'manual' | 'csv' | 'demo' | null;
   onComplete: () => void;
 }
@@ -20,7 +29,25 @@ const DEMO_INSIGHTS = [
 
 const UPCOMING = ['Previsione di fine mese', 'Categorie dove spendi di più', 'Abbonamenti ricorrenti'];
 
-export function FirstInsightStep({ dataMode, onComplete }: Props) {
+export function FirstInsightStep({ dataMode, onComplete, transactions, loading = false, error, onOptionalGoals, onOptionalSavings }: Props) {
+  const ui3 = useUiVersion() === '3.0';
+  const reading = buildFirstReading(dataMode, error ? undefined : transactions, loading && !error);
+  if (ui3) return <div className="ui31-first-reading space-y-6">
+    <div><p className="label-caps text-secondary">La prima lettura</p><h2 className="text-2xl font-bold mt-2">Partiamo da quello che c’è.</h2></div>
+    {(dataMode === 'demo' || (reading.kind === 'ready' && reading.demo)) && <p className="ui31-demo-notice">Stai esplorando dati di esempio. Non rappresentano le tue finanze.</p>}
+    <div className="ui31-entry-reading" aria-live="polite">
+      {reading.kind === 'loading' && <p>Sto caricando i movimenti…</p>}
+      {reading.kind === 'unavailable' && <p role={error ? 'alert' : undefined}>{error ? `${error}. La lettura non è disponibile; puoi riprovare da Oggi.` : 'La lettura dei movimenti non è ancora disponibile. Li ritrovi in Oggi appena caricati.'}</p>}
+      {reading.kind === 'empty' && <><h3>Nessun movimento da leggere, per ora.</h3><p>Aggiungi il primo movimento in Sunny. Un saldo assente non viene interpretato come zero.</p></>}
+      {reading.kind === 'ready' && <><h3>{reading.recorded} {reading.recorded === 1 ? 'movimento registrato' : 'movimenti registrati'}</h3><p>{reading.scheduled} {reading.scheduled === 1 ? 'movimento programmato, distinto' : 'movimenti programmati, distinti'} da quelli già registrati.</p><p>Apri Oggi per leggere il mese, oppure Movimenti per controllare i dati.</p></>}
+    </div>
+    <p className="text-sm text-secondary">Piano, limiti e obiettivi sono facoltativi. Puoi usare Sunny anche senza configurarli.</p>
+    <button type="button" onClick={onComplete} className="w-full cta-gold-fill py-4 rounded-2xl font-semibold">Apri Oggi</button>
+    <div className="ui31-entry-optional">
+      {onOptionalGoals && <button type="button" onClick={onOptionalGoals}>Scegli preferenze <span>Facoltativo</span></button>}
+      {onOptionalSavings && <button type="button" onClick={onOptionalSavings}>Imposta un obiettivo di risparmio <span>Facoltativo</span></button>}
+    </div>
+  </div>;
   const hasData = dataMode === 'demo';
 
   return (

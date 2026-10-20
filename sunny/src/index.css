@@ -2,6 +2,7 @@
 @import './ui-v3.css';
 @import './ui3-liquid.css';
 @import './ui3-density.css';
+@import './ui31.css';
 
 @tailwind base;
 @tailwind components;

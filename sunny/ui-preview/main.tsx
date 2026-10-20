@@ -45,7 +45,9 @@ function PreviewShell({uid,onSwitch}:{uid:string;onSwitch:(uid:string)=>void}) {
   const tx=useMemo(()=>{
     const today=new Date().toISOString().slice(0,10),ym=today.slice(0,7);
     const realized=rows.filter(t=>t.date<=today),month=realized.filter(t=>t.date.startsWith(ym));
-    const balances=Object.fromEntries(settings.accounts.map(a=>[a.id,(a.initialBalance??0)+realized.reduce((v,t)=>v+accountDelta(t,a.id),0)]));
+    const balances:Record<string,number>={};
+    for(const a of settings.accounts)if(a.initialBalance!==undefined)balances[a.id]=a.initialBalance;
+    for(const t of realized)for(const id of [t.account,t.type==='transfer'?t.toAccount:undefined])if(id){const delta=accountDelta(t,id);if(delta!==0)balances[id]=(balances[id]??0)+delta;}
     const inv=Object.fromEntries(settings.categories.filter(c=>c.kind==='investment').map(c=>[c.id,(c.initialBalance??0)+realized.filter(t=>t.type==='investment'&&t.category===c.id).reduce((v,t)=>v+investSign(t)*t.amount,0)]));
     const investmentTotal=Object.values(inv).reduce((v,a)=>v+a,0),liquidity=Object.values(balances).reduce((v,a)=>v+a,0);
     const totals=Object.fromEntries(settings.categories.map(c=>[c.id,month.filter(t=>t.type==='expense'&&t.category===c.id).reduce((v,t)=>v+ownShare(t),0)]));
@@ -64,13 +66,13 @@ function PreviewShell({uid,onSwitch}:{uid:string;onSwitch:(uid:string)=>void}) {
   const [onboardingDone,setOnboardingDone]=useState(false);
   const [loginError,setLoginError]=useState<string|null>(null);
   if(query.has('login')) return <LoginScreen onSignIn={()=>setLoginError('Accesso di prova non riuscito. Riprova.')} error={loginError}/>;
-  if(query.has('onboarding')&&!onboardingDone)return <OnboardingScreen uid={uid} onboarding={{completed:false,version:1,currentStep:0,goals:[],dataMode:null}} updateOnboarding={()=>{}} completeOnboarding={()=>setOnboardingDone(true)} skipOnboarding={()=>setOnboardingDone(true)} onImport={rows=>save([],rows)}/>;
+  if(query.has('onboarding')&&!onboardingDone)return <OnboardingScreen uid={uid} onboarding={{completed:false,version:1,currentStep:0,goals:[],dataMode:null}} transactions={tx.transactions} transactionsLoading={tx.loading} updateOnboarding={()=>{}} completeOnboarding={()=>setOnboardingDone(true)} skipOnboarding={()=>setOnboardingDone(true)} onImport={rows=>save([],rows)}/>;
   const isSettings=route.pathname.startsWith('/settings');
   return <div data-liquid-ui={uiVersion==='3.0'&&!route.pathname.startsWith('/wrapped/')?'true':undefined} data-ui-version={uiVersion} className={uiVersion==='3.0'?'h-full app-shell ui3-shell':'h-full md:flex ui-v2'}>
     {uiVersion==='3.0'?<AdaptiveNav onAdd={openAdd} onImport={()=>setImportOpen(true)} aiEnabled={settings.aiEnabled} showCommitments isSettings={isSettings}/>:<SideNav onAdd={openAdd} onImport={()=>setImportOpen(true)} aiEnabled={settings.aiEnabled} transactions={rows} showCommitments/>}
     <div className={`app-content flex-1 min-w-0 flex flex-col h-full overflow-hidden ${uiVersion==='2.0'?'md:ml-[220px]':''}`}>
       <AppHeader brand="Ciao, Luca" monthLine={monthContext()} loading={false} isSettings={isSettings} settingsOpen={menu} onToggleSettings={setMenu} onImport={()=>setImportOpen(true)} aiEnabled={settings.aiEnabled} showCommitments/>
-      <div id="app-scroll" className="flex-1 overflow-y-auto overscroll-contain"><main id="page-content" tabIndex={-1} className="app-main max-w-2xl mx-auto md:max-w-none px-4 md:px-8 pt-4 md:pt-2 pb-24 md:pb-2">
+      <div id="app-scroll" className="flex-1 overflow-y-auto overscroll-contain"><main data-preview-route={route.pathname+route.search} id="page-content" tabIndex={-1} className="app-main max-w-2xl mx-auto md:max-w-none px-4 md:px-8 pt-4 md:pt-2 pb-24 md:pb-2">
         <AppRoutes {...({user:userFor(uid),brand:'Ciao, Luca',tx,budget,editing:editor,applePayPayments:query.has('manyPriorities')?[{id:'pending-1',schemaVersion:1,eventId:'test',source:'apple_pay',status:'pending',amount:20,currency:'EUR',date:new Date().toISOString().slice(0,10),merchant:'Negozio test',description:'Acquisto da confermare',cardKey:'test',cardLabel:'Carta test',receivedAt:0}]:[],applePayLoading:false,applePayError:null,onReviewApplePay(){},onIgnoreApplePay:async()=>{},onLogOut:()=>onSwitch(''),onDeleteAccount:async()=>{},onImport(){setImportOpen(true);}} as any)}/>
         <div style={{marginTop:40,padding:16,border:'1px dashed var(--border)',fontSize:12}} aria-label="Controlli anteprima locale">
           Dati illustrativi · nessuna connessione al database · scritture simulate: <output id="preview-writes">{writes}</output>
@@ -80,7 +82,7 @@ function PreviewShell({uid,onSwitch}:{uid:string;onSwitch:(uid:string)=>void}) {
       </main></div>
       {uiVersion==='2.0'&&!isSettings&&<BottomNav onAdd={openAdd}/>}
     </div>
-    {createPortal(<TransactionModal title={query.has('applePay') ? 'Conferma Apple Pay' : undefined} saveLabel={query.has('applePay') ? 'Conferma pagamento' : undefined} open={modal} editing={editing} defaultType={defaultType} transactions={rows} sourceBanner={scheduledDate?'Spesa programmata registrata: Salva crea un movimento futuro, non una simulazione.':query.has('applePay')?'Ricevuto da Carta test. Controlla i dati.':undefined} initialValues={scheduledDate?{date:scheduledDate}:query.has('applePay')?{source:'apple_pay',sourceId:'fixture-1',description:'Supermercato',amount:45}:undefined} singleSave={query.has('singleSave')} awaitSave={query.has('awaitSave')} onSave={save} onClose={()=>{setModal(false);setScheduledDate(undefined);}} onRegisterRefund={()=>{setModal(false);setRefund(true);}}/>,document.body)}
+    {createPortal(<TransactionModal title={query.has('applePay') ? 'Conferma Apple Pay' : undefined} saveLabel={query.has('applePay') ? 'Conferma pagamento' : undefined} open={modal} editing={editing} defaultType={defaultType} transactions={rows} sourceBanner={scheduledDate?'Spesa programmata registrata: Salva crea un movimento futuro, non una simulazione.':query.has('applePay')?'Ricevuto da Carta test. Controlla i dati.':undefined} initialValues={scheduledDate?{date:scheduledDate}:query.has('applePay')?{source:'apple_pay',sourceId:'fixture-1',description:'Supermercato',amount:45}:undefined} typeLocked={query.has('applePay')} singleSave={query.has('singleSave')} awaitSave={query.has('awaitSave')} onSave={save} onClose={()=>{setModal(false);setScheduledDate(undefined);}} onRegisterRefund={()=>{setModal(false);setRefund(true);}}/>,document.body)}
     <ImportModal open={importOpen} onClose={()=>setImportOpen(false)} onImport={rows=>save([],rows)}/>
     <RefundSheet open={refund} transactions={rows} onClose={()=>setRefund(false)} onSave={()=>{}}/>
     <ReleaseDialog open={notice} title="Avviso di prova" onClose={()=>setNotice(false)} bullets={['Solo anteprima locale.']}/>

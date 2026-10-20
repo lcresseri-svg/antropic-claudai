@@ -15,7 +15,7 @@ try {
     await page.goto('http://127.0.0.1:4177/ui-preview/index.html?'+q);
     await page.locator('#preview-writes').waitFor();
     await page.evaluate(()=>localStorage.clear());
-    await page.getByRole('link',{name:'Piano',exact:true}).first().click();
+    await page.evaluate(()=>{history.pushState({},'', '/budget');dispatchEvent(new PopStateEvent('popstate'));});
     await page.getByRole('heading',{name:'Piano',exact:true}).waitFor();
   };
   await start('theme=dark');

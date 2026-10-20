@@ -7,16 +7,20 @@ import { ConfirmationDialog } from '../../../shared/components/DiscardConfirmati
 // mai. Ogni card dice quanto costa in tempo e cosa si ottiene — non solo cosa
 // è.
 import { useState } from 'react';
+import { useUiVersion } from '../../../shared/providers/UiVersionProvider';
+import { SystemIcon } from '../../../shared/components/SystemIcon';
 import { writeDemoData } from '../demoData';
 
 interface Props {
+  deferDemo?: boolean;
   uid: string;
   accountId: string;
   existingDemoIds?: string[];
   onNext: (mode: 'manual' | 'csv' | 'demo', demoIds?: string[]) => void;
 }
 
-export function DataSourceStep({ uid, accountId, onNext, existingDemoIds }: Props) {
+export function DataSourceStep({ uid, accountId, onNext, existingDemoIds, deferDemo }: Props) {
+  const ui3 = useUiVersion() === '3.0';
   const [demoIds,setDemoIds]=useState<string[]|undefined>(existingDemoIds);
   const [confirmDemo,setConfirmDemo]=useState(false);
   const [error,setError]=useState('');
@@ -46,7 +50,14 @@ export function DataSourceStep({ uid, accountId, onNext, existingDemoIds }: Prop
         </p>
       </div>
 
-      <div className="space-y-2.5">
+      {ui3 ? <div className="ui31-source-options">
+        <Card icon="📝" tint="#8A9270" title="Inserisco a mano" time="" onClick={() => onNext('manual')}
+          detail="Scegli un conto, poi aggiungi il primo movimento. Puoi rimandare il saldo se non lo conosci." />
+        <Card icon="💾" tint="#88B0C0" title="Importa un file" time="" onClick={() => onNext('csv')}
+          detail="CSV o Excel: controlla colonne, anteprima e conti prima di confermare l’importazione." />
+        <Card icon="✨" tint="#B5A8C8" title="Esplora con dati di esempio" time="" onClick={() => deferDemo ? onNext('demo') : demoIds ? onNext('demo', demoIds) : setConfirmDemo(true)} disabled={loading}
+          detail="Aggiunge movimenti dimostrativi riconoscibili al tuo account, dopo una conferma. Non descrivono le tue finanze e si possono rimuovere." />
+      </div> : <div className="space-y-2.5">
         <Card icon="✨" tint="#E6B95C" title="Esplora con dati di esempio" time="~20 sec"
           recommended highlighted disabled={loading} onClick={()=>demoIds?onNext('demo',demoIds):setConfirmDemo(true)}
           detail={loading
@@ -60,7 +71,7 @@ export function DataSourceStep({ uid, accountId, onNext, existingDemoIds }: Prop
         <Card icon="✏️" tint="#8A9270" title="Inserisco a mano" time="~30 sec"
           dimmed={loading} disabled={loading} onClick={() => onNext('manual')}
           detail="Parti dalla prima spesa. Le altre si aggiungono man mano, anche dallo shortcut su iPhone." />
-      </div>
+      </div>}
 
       {error&&<p role="alert" className="text-red">{error}</p>}
       {confirmDemo&&<ConfirmationDialog title="Aggiungere dati di esempio?" description={error||"Sunny aggiungerà movimenti dimostrativi al tuo account. Restano riconoscibili e rimovibili dalle Impostazioni."} confirmLabel="Aggiungi dati di esempio" onCancel={()=>setConfirmDemo(false)} onConfirm={()=>void handleDemo()} busy={loading}/>}
@@ -82,7 +93,7 @@ function Card({ icon, tint, title, time, detail, recommended, highlighted, dimme
         highlighted ? 'accent-card' : 'glass-card hover:bg-card-hover'} ${dimmed ? 'opacity-50' : ''}`}>
       <div className="flex items-start gap-3">
         <span className="w-8 h-8 rounded-[11px] flex items-center justify-center text-base flex-none"
-          style={{ background: `${tint}29` }}>{icon}</span>
+          style={{ background: `${tint}29` }}><SystemIcon icon={icon} /></span>
         <div className="min-w-0 flex-1">
           <div className="flex items-center gap-2 flex-wrap">
             <span className="text-[15px] font-semibold text-primary">{title}</span>

@@ -1,3 +1,4 @@
+import './transactions-ui31.css';
 import { DiscardConfirmation } from '../../shared/components/DiscardConfirmation';
 import { createContext, useContext, useState, useEffect, useLayoutEffect, useMemo, useRef, useCallback } from 'react';
 import { Transaction, TransactionType, TYPE_META, TYPE_ORDER, RecurrenceRule, SeriesMeta, SeriesKind, AccountDef, typeColor, typeOnColor } from '../../types';
@@ -21,6 +22,8 @@ interface Props {
   groupTransfers?: Transaction[];
   seriesEdit?: boolean;
   defaultType?: TransactionType;
+  /** Review flows can retain their source's transaction type. */
+  typeLocked?: boolean;
   /** Pre-populate a brand-new movement (Apple Pay review inbox). */
   initialValues?: Partial<Omit<Transaction, 'id'>>;
   /** Await non-investment writes and keep the modal open on failure. */
@@ -75,7 +78,7 @@ const r2 = (n: number) => Math.round(n * 100) / 100;
 const today = () => new Date().toISOString().slice(0, 10);
 const yesterday = () => { const d = new Date(); d.setDate(d.getDate() - 1); return d.toISOString().slice(0, 10); };
 
-export function TransactionModal({ open, editing, groupTransfers = [], seriesEdit = false, defaultType, initialValues, awaitSave = false, singleSave = false, title, sourceBanner, saveLabel, recognize, transactions = [], onRegisterRefund, onEditRefund, onClose, onSave }: Props) {
+export function TransactionModal({ open, editing, groupTransfers = [], seriesEdit = false, defaultType, typeLocked = false, initialValues, awaitSave = false, singleSave = false, title, sourceBanner, saveLabel, recognize, transactions = [], onRegisterRefund, onEditRefund, onClose, onSave }: Props) {
   const { categories, accounts, visibleCategories, visibleAccounts, enableInvestments, detailedInvestments, theme, getAcc } = useSettings();
   const ui3 = useUiVersion() === '3.0';
   const coarse = useMediaQuery('(any-pointer: coarse)');
@@ -108,7 +111,8 @@ export function TransactionModal({ open, editing, groupTransfers = [], seriesEdi
   const [spreadCustom, setSpreadCustom] = useState('');
 
   const [saving, setSaving] = useState(false);
-  const [saveError, setSaveError] = useState(false);
+  const saveLock = useRef(false);
+  const [saveError, setSaveError] = useState<'investment' | 'ordinary' | null>(null);
   const [amountError, setAmountError] = useState(false);
   const [categoryTouched, setCategoryTouched] = useState(false);
   const [showMore, setShowMore] = useState(false);
@@ -134,7 +138,7 @@ export function TransactionModal({ open, editing, groupTransfers = [], seriesEdi
   const amountInput = useRef<HTMLInputElement>(null);
   useEffect(()=>{if(ui3 && amountError) amountInput.current?.focus();},[ui3,amountError]);
   const requestClose = () => {
-    if (ui3 && saving) return;
+    if (ui3 && (saving || saveLock.current)) return;
     if (ui3 && confirmDiscard) { setConfirmDiscard(false); return; }
     if (ui3 && beforeInteraction.current !== null && beforeInteraction.current !== draftSignature && !saving) setConfirmDiscard(true);
     else onClose();
@@ -152,6 +156,7 @@ export function TransactionModal({ open, editing, groupTransfers = [], seriesEdi
   useEffect(() => {
     if (!open) return;
     beforeInteraction.current = null;
+    saveLock.current = false;
     setConfirmDiscard(false); setTextInputActive(false);
     if (editing) {
       // Shared-expense reconstruction only folds the settlements (transfers): an
@@ -205,7 +210,7 @@ export function TransactionModal({ open, editing, groupTransfers = [], seriesEdi
       setFee(''); setTfr('');
       setSpreadChoice('none'); setSpreadCustom('');
     }
-    setSaving(false); setSaveError(false);
+    setSaving(false); setSaveError(null);
     setAmountError(false);
     setKeypad('amount');
     setCategoryTouched(!!editing || !!initialValues?.category);
@@ -225,7 +230,8 @@ export function TransactionModal({ open, editing, groupTransfers = [], seriesEdi
   // stays available only when EDITING an existing investment (so its type renders
   // correctly and the edit isn't silently retyped).
   const availableTypes = TYPE_ORDER.filter(t =>
-    t !== 'investment' || (enableInvestments && editing?.type === 'investment'),
+    (!typeLocked || t === (initialValues?.type ?? defaultType ?? editing?.type ?? 'expense')) &&
+    (t !== 'investment' || (enableInvestments && editing?.type === 'investment')),
   );
   // Category chips: only VISIBLE categories of this type — plus, when editing a
   // transaction whose category was archived, that one (so the edit doesn't
@@ -396,15 +402,17 @@ export function TransactionModal({ open, editing, groupTransfers = [], seriesEdi
       if (keepOpen && !editing) { resetKeepContext(); } else { onClose(); }
       return;
     }
-    if (saving) return;
+    if (saving || (ui3 && saveLock.current)) return;
+    saveLock.current = true;
     setSaving(true);
-    setSaveError(false);
+    setSaveError(null);
     try {
       await onSave(deleteIds, create);
       if (keepOpen && !editing) { resetKeepContext(); } else { onClose(); }
     } catch {
-      setSaveError(true); // nothing was written: stay open, offer Retry
+      setSaveError(involvesInvestment ? 'investment' : 'ordinary'); // Keep the draft mounted for retry.
     } finally {
+      saveLock.current = false;
       setSaving(false);
     }
   };
@@ -561,68 +569,7 @@ export function TransactionModal({ open, editing, groupTransfers = [], seriesEdi
 
   const td = today(), yd = yesterday();
 
-  return (
-    <div className="fixed inset-0 z-50 flex items-end sm:items-center justify-center px-3 pt-[max(0.75rem,env(safe-area-inset-top))] pb-[max(0.75rem,env(safe-area-inset-bottom))]"
-      onClick={e => { if (e.target === e.currentTarget) requestClose(); }}>
-      <div className="absolute inset-0 bg-black/60 backdrop-blur-sm animate-fade-in-fast" />
-
-      {/* Mobile: the card fills the screen (minus a 12px + safe-area margin, so
-          the backdrop peeks around the rounded corners and it still reads as a
-          card). From `sm` up it stays the compact centered sheet as before.
-          The CARD ITSELF never scrolls: it's a fixed mask (header + footer)
-          around an internal scrolling window (the form fields). overscroll-contain
-          stops the scroll from chaining to the page when the window hits its end. */}
-      <DialogSurface title={title ?? (seriesEdit ? 'Modifica serie' : editing ? 'Modifica movimento' : `Nuova ${TYPE_META[type].label.toLowerCase()}`)} onDismiss={requestClose} kind="editor" showEditorTitle={!quickMode && availableTypes.length > 1}
-        data-keypad={ui3 ? String(useKeypad) : undefined} data-text-input={ui3 ? String(textInputActive) : undefined}
-        onChangeCapture={ui3 ? captureDraft : undefined}
-        onPointerDownCapture={ui3 ? captureDraft : undefined} onKeyDownCapture={ui3 ? e => {
-          captureDraft();
-          const target=e.target as HTMLInputElement;
-          if (useKeypad && target.tagName==='INPUT' && target.readOnly && (/^[\d.,]$/.test(e.key) || e.key==='Backspace')) { e.preventDefault(); pressKey(e.key==='Backspace'?'back':e.key); }
-        } : undefined}
-        onFocusCapture={ui3 ? e => { const target=e.target as HTMLInputElement; if (target.tagName==='INPUT'||target.tagName==='TEXTAREA') setTextInputActive(!target.readOnly && !['decimal','numeric','none'].includes(target.inputMode)); } : undefined}
-        onBlurCapture={ui3 ? e => { if (!e.currentTarget.contains(e.relatedTarget as Node | null)) setTextInputActive(false); } : undefined}
-        className="relative w-full max-w-none h-full max-h-full sm:max-w-[560px] sm:h-auto sm:max-h-[88dvh] glass-elevated rounded-3xl sm:rounded-[26px] shadow-float overflow-hidden flex flex-col animate-sheet-up">
-        {/* Testa: ✕ a sinistra, segmented al centro. Il titolo sparisce — con
-            il tipo selezionato davanti agli occhi non diceva nulla di nuovo. */}
-        <div className="shrink-0 bg-[var(--modal-hdr-bg)] px-5 pt-5 pb-3 flex items-center gap-3">
-          <button type="button" onClick={requestClose} aria-label="Chiudi"
-            className="w-8 h-8 rounded-full bg-elevated flex items-center justify-center text-secondary flex-none">✕</button>
-          {!quickMode && availableTypes.length > 1 ? (
-            <div className="flex-1 min-w-0 grid gap-1 bg-surface rounded-xl p-1"
-              style={{ gridTemplateColumns: `repeat(${availableTypes.length}, 1fr)` }}>
-              {availableTypes.map(t => (
-                <button key={t} type="button" onClick={() => setType(t)}
-                  className={`py-1.5 rounded-lg text-[12px] font-semibold truncate transition-colors ${
-                    type === t ? 'bg-primary text-bg' : 'text-secondary'}`}>
-                  {TYPE_META[t].label}
-                </button>
-              ))}
-            </div>
-          ) : (
-            <h2 className="flex-1 text-base font-semibold text-primary text-center">
-              {title ?? (seriesEdit ? 'Modifica serie' : editing ? 'Modifica' : 'Nuova transazione')}
-            </h2>
-          )}
-          <span className="w-8 flex-none" aria-hidden />
-        </div>
-
-        {confirmDiscard && <DiscardConfirmation onContinue={() => setConfirmDiscard(false)} onDiscard={onClose} />}
-        <NumericKeypadContext.Provider value={ui3 ? useKeypad : null}>
-        <form onSubmit={submit} aria-busy={ui3 ? saving : undefined} className="flex-1 min-h-0 flex flex-col">
-          <div className="flex-1 min-h-0 overflow-y-auto overscroll-contain scrollbar-hide px-5 sm:px-7 pb-4 space-y-3 sm:space-y-4">
-          {seriesEdit && (
-            <p className="text-[11px] text-secondary bg-elevated rounded-xl px-3 py-2 leading-snug">
-              🔁 Stai modificando l'intera serie. Le modifiche valgono per le occorrenze future; le voci già registrate non cambiano.
-            </p>
-          )}
-
-          {sourceBanner && (
-            <p className="text-[11.5px] text-secondary bg-gold/10 border border-gold/15 rounded-xl px-3 py-2.5 leading-snug">
-              {sourceBanner}
-            </p>
-          )}
-
+  const refundDetails = <>
           {/* Storni della spesa — elenco, totale stornato, spesa effettiva */}
           {canRefund && refundSummary && (
             <div className="bg-card rounded-2xl px-4 py-3.5">
@@ -683,12 +630,78 @@ export function TransactionModal({ open, editing, groupTransfers = [], seriesEdi
           )}
 
           {/* Accesso secondario: "+" → Registra storno → scegli la spesa */}
-          {!editing && !quickMode && onRegisterRefund && (
+          {!editing && (ui3 || !quickMode) && onRegisterRefund && (
             <button type="button" onClick={() => onRegisterRefund(undefined)}
               className="w-full py-2.5 rounded-xl bg-elevated text-gold text-sm font-medium">
               ↩︎ Registra storno di una spesa
             </button>
           )}
+
+  </>;
+
+  return (
+    <div className="fixed inset-0 z-50 flex items-end sm:items-center justify-center px-3 pt-[max(0.75rem,env(safe-area-inset-top))] pb-[max(0.75rem,env(safe-area-inset-bottom))]"
+      onClick={e => { if (e.target === e.currentTarget) requestClose(); }}>
+      <div className="absolute inset-0 bg-black/60 backdrop-blur-sm animate-fade-in-fast" />
+
+      {/* Mobile: the card fills the screen (minus a 12px + safe-area margin, so
+          the backdrop peeks around the rounded corners and it still reads as a
+          card). From `sm` up it stays the compact centered sheet as before.
+          The CARD ITSELF never scrolls: it's a fixed mask (header + footer)
+          around an internal scrolling window (the form fields). overscroll-contain
+          stops the scroll from chaining to the page when the window hits its end. */}
+      <DialogSurface title={title ?? (seriesEdit ? 'Modifica serie' : editing ? 'Modifica movimento' : `Nuova ${TYPE_META[type].label.toLowerCase()}`)} onDismiss={requestClose} kind="editor" showEditorTitle={(ui3 || !quickMode) && availableTypes.length > 1}
+        data-keypad={ui3 ? String(useKeypad) : undefined} data-text-input={ui3 ? String(textInputActive) : undefined}
+        onChangeCapture={ui3 ? captureDraft : undefined}
+        onPointerDownCapture={ui3 ? captureDraft : undefined} onKeyDownCapture={ui3 ? e => {
+          captureDraft();
+          const target=e.target as HTMLInputElement;
+          if (useKeypad && target.tagName==='INPUT' && target.readOnly && (/^[\d.,]$/.test(e.key) || e.key==='Backspace')) { e.preventDefault(); pressKey(e.key==='Backspace'?'back':e.key); }
+        } : undefined}
+        onFocusCapture={ui3 ? e => { const target=e.target as HTMLInputElement; if (target.tagName==='INPUT'||target.tagName==='TEXTAREA') setTextInputActive(!target.readOnly && !['decimal','numeric','none'].includes(target.inputMode)); } : undefined}
+        onBlurCapture={ui3 ? e => { if (!e.currentTarget.contains(e.relatedTarget as Node | null)) setTextInputActive(false); } : undefined}
+        className={`${ui3 ? "ui31-movement-editor " : ""}relative w-full max-w-none h-full max-h-full sm:max-w-[560px] sm:h-auto sm:max-h-[88dvh] glass-elevated rounded-3xl sm:rounded-[26px] shadow-float overflow-hidden flex flex-col animate-sheet-up`}>
+        {/* Testa: ✕ a sinistra, segmented al centro. Il titolo sparisce — con
+            il tipo selezionato davanti agli occhi non diceva nulla di nuovo. */}
+        <div className="shrink-0 bg-[var(--modal-hdr-bg)] px-5 pt-5 pb-3 flex items-center gap-3">
+          <button type="button" onClick={requestClose} aria-label="Chiudi"
+            className="w-8 h-8 rounded-full bg-elevated flex items-center justify-center text-secondary flex-none">✕</button>
+          {(ui3 || !quickMode) && availableTypes.length > 1 ? (
+            <div className={ui3 ? "ui31-movement-types flex-1 min-w-0 grid gap-1 bg-surface rounded-xl p-1" : "flex-1 min-w-0 grid gap-1 bg-surface rounded-xl p-1"}
+              style={{ gridTemplateColumns: `repeat(${availableTypes.length}, 1fr)` }}>
+              {availableTypes.map(t => (
+                <button key={t} type="button" onClick={() => setType(t)} aria-pressed={ui3 ? type === t : undefined}
+                  className={`py-1.5 rounded-lg text-[12px] font-semibold truncate transition-colors ${
+                    type === t ? 'bg-primary text-bg' : 'text-secondary'}`}>
+                  {TYPE_META[t].label}
+                </button>
+              ))}
+            </div>
+          ) : (
+            <h2 className="flex-1 text-base font-semibold text-primary text-center">
+              {title ?? (seriesEdit ? 'Modifica serie' : editing ? 'Modifica' : 'Nuova transazione')}
+            </h2>
+          )}
+          <span className="w-8 flex-none" aria-hidden />
+        </div>
+
+        {confirmDiscard && <DiscardConfirmation onContinue={() => setConfirmDiscard(false)} onDiscard={onClose} />}
+        <NumericKeypadContext.Provider value={ui3 ? useKeypad : null}>
+        <form onSubmit={submit} aria-busy={ui3 ? saving : undefined} className="flex-1 min-h-0 flex flex-col">
+          <div className="flex-1 min-h-0 overflow-y-auto overscroll-contain scrollbar-hide px-5 sm:px-7 pb-4 space-y-3 sm:space-y-4">
+          {seriesEdit && (
+            <p className="text-[11px] text-secondary bg-elevated rounded-xl px-3 py-2 leading-snug">
+              🔁 Stai modificando l'intera serie. Le modifiche valgono per le occorrenze future; le voci già registrate non cambiano.
+            </p>
+          )}
+
+          {sourceBanner && (
+            <p className="text-[11.5px] text-secondary bg-gold/10 border border-gold/15 rounded-xl px-3 py-2.5 leading-snug">
+              {sourceBanner}
+            </p>
+          )}
+
+          {!ui3 && refundDetails}
 
           {/* Amount — su telefono lo scrive il tastierino in fondo, quindi il
               campo è readOnly e la tastiera di sistema non copre la modale.
@@ -725,7 +738,7 @@ export function TransactionModal({ open, editing, groupTransfers = [], seriesEdi
 
           {/* Description — non è un campo sempre aperto: una spesa tipica si
               registra senza scriverla, e il campo appare al tocco. */}
-          {!descOpen ? (
+          {!ui3 && !descOpen ? (
             <button type="button" onClick={() => setDescOpen(true)}
               className="w-full text-center py-2 text-[13px] text-secondary">
               Tocca per scrivere la descrizione
@@ -888,6 +901,8 @@ export function TransactionModal({ open, editing, groupTransfers = [], seriesEdi
               Questo versamento non esce da nessun conto: aumenta il capitale investito senza intaccare la liquidità.
             </p>
           )}
+
+          {ui3 && refundDetails}
 
           {/* Una sola riga per tutto ciò che è opzionale: serie, spesa condivisa,
               rate, commissione, TFR, distribuzione. Prima erano sei blocchi in
@@ -1138,9 +1153,10 @@ export function TransactionModal({ open, editing, groupTransfers = [], seriesEdi
           <div className="ui-editor-footer shrink-0 px-5 sm:px-7 pt-3 pb-5 sm:pb-7 bg-[var(--modal-hdr-bg)] space-y-2">
             {ui3 && <button type="button" className="ui-keypad-toggle" onClick={() => { setKeypadPreference(!useKeypad); setTextInputActive(false); }}> {useKeypad ? 'Usa tastiera' : 'Mostra tastierino'} </button>}
             {saveError && (
-              <p className="text-xs text-red px-1 leading-snug">
-                Salvataggio non riuscito: nessun dato è stato scritto (movimento e controvalore
-                si aggiornano insieme). Controlla la connessione e riprova.
+              <p role={ui3 ? 'alert' : undefined} className="text-sm text-red px-1 leading-snug">
+                {saveError === 'investment'
+                  ? 'Salvataggio non riuscito: movimento e controvalore non sono stati aggiornati. I valori inseriti sono conservati. Controlla la connessione e riprova.'
+                  : 'Salvataggio non riuscito. I valori inseriti sono conservati: controlla la connessione e riprova.'}
               </p>
             )}
             {/* Telefono: tastierino 4×4 — le cifre stanno dove sta il pollice e

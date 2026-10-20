@@ -1,4 +1,5 @@
 import { useState } from 'react';
+import { useUiVersion } from '../../../shared/providers/UiVersionProvider';
 import { doc, setDoc } from 'firebase/firestore';
 import { db } from '../../../lib/firebase';
 
@@ -11,6 +12,7 @@ interface Props {
 const PRESETS = [100, 300, 500];
 
 export function SavingsTargetStep({ uid, onNext, onBusyChange }: Props) {
+  const ui3 = useUiVersion() === '3.0';
   const [selected, setSelected] = useState<number | null>(null);
   const [custom, setCustom] = useState('');
   const [isCustom, setIsCustom] = useState(false);
@@ -38,6 +40,17 @@ export function SavingsTargetStep({ uid, onNext, onBusyChange }: Props) {
 
   return (
     <div className="space-y-6">
+      {ui3 ? <>
+        <div><p className="label-caps text-secondary">Facoltativo</p><h2 className="text-2xl font-bold mt-2">Un obiettivo scelto da te.</h2></div>
+        <p className="text-secondary">Non è denaro già accantonato. Salvarlo non attiva né conferma il Piano.</p>
+        <label className="block space-y-2"><span>Risparmio per questo mese (€)</span>
+          <input type="number" min="0" inputMode="decimal" value={custom} onChange={e => {setCustom(e.target.value);setIsCustom(true);}} placeholder="Scrivi un importo" className="w-full px-4 py-3 rounded-2xl bg-card border border-divider" />
+        </label>
+        {error && <p role="alert" className="text-red">{error}</p>}
+        <button type="button" onClick={handleContinue} disabled={saving || !effectiveTarget || effectiveTarget <= 0} className="w-full py-4 cta-gold-fill rounded-2xl disabled:opacity-50">{saving ? 'Salvataggio…' : 'Salva obiettivo'}</button>
+        <button type="button" disabled={saving} onClick={() => onNext(null)} className="w-full py-3 text-secondary">Decido dopo</button>
+      </> : <>
+
       <div className="space-y-2">
         <h2 className="text-2xl font-bold text-primary tracking-[-0.03em]">
           Quanto vuoi risparmiare questo mese?
@@ -103,6 +116,7 @@ export function SavingsTargetStep({ uid, onNext, onBusyChange }: Props) {
           {saving ? 'Salvataggio…' : 'Continua'}
         </button>
       )}
+    </>}
     </div>
   );
 }

@@ -1,3 +1,6 @@
+import './ui31-settings.css';
+import { SettingsMenuResults } from './SettingsMenuResults';
+import { matchesSettingsQuery } from './settingsSearch';
 import { SystemIcon } from '../../shared/components/SystemIcon';
 import {useOriginBack} from '../../shared/hooks/useOriginBack';
 import { useState, useEffect, useLayoutEffect, useRef, Children, isValidElement, ReactNode } from 'react';
@@ -355,7 +358,7 @@ export function SettingsScreen({ user, transactions, budgetExport, onImport, onL
           if (!res.ok) setPushMsg(pushReason(res.reason));
         }}
       />
-      {pushMsg && <p className="text-xs text-[#E08B8B] px-4 -mt-1 pb-3">{pushMsg}</p>}
+      {pushMsg && <p role="status" className="text-xs text-[#E08B8B] px-4 -mt-1 pb-3">{pushMsg}</p>}
       {push.enabled && (
         <>
           <ToggleRow
@@ -406,7 +409,7 @@ export function SettingsScreen({ user, transactions, budgetExport, onImport, onL
               className="w-full py-3 rounded-xl bg-elevated text-gold text-sm font-semibold active:scale-[0.98] transition-transform">
               {testing ? 'Invio…' : 'Invia notifica di prova'}
             </button>
-            {testMsg && <p className="text-xs text-secondary px-1">{testMsg}</p>}
+            {testMsg && <p role="status" className="text-xs text-secondary px-1">{testMsg}</p>}
           </div>
         </>
       )}
@@ -414,7 +417,7 @@ export function SettingsScreen({ user, transactions, budgetExport, onImport, onL
   ) : null;
 
   return (
-    <div className="ui-settings space-y-6 pb-28 animate-fade-in" data-settings-sub={ui3 ? sub : undefined}>
+    <div className="ui31-settings ui-settings space-y-6 pb-28 animate-fade-in" data-settings-sub={ui3 ? sub : undefined}>
       {(sub === 'menu' || ui3) && (
         <SettingsPane menu>
           <div className="flex items-center gap-2">
@@ -422,10 +425,10 @@ export function SettingsScreen({ user, transactions, budgetExport, onImport, onL
               className={ui3 ? 'ui-back' : 'w-9 h-9 -ml-2 flex items-center justify-center text-secondary active:text-primary'}>
               {ui3 ? '‹ Indietro' : <ChevronLeft />}
             </button>
-            <h1 className="text-2xl font-bold text-primary tracking-[-0.03em] flex-1">Impostazioni</h1>
+            <h1 className="text-2xl font-bold text-primary tracking-[-0.03em] flex-1">{ui3 ? 'Profilo e impostazioni' : 'Impostazioni'}</h1>
           </div>
 
-          {ui3 && <h2 className="liquid-eyebrow">Account</h2>}
+          {ui3 && <p className="ui31-settings-intro">Preferenze, funzioni e dati. Scegli come usare Sunny.</p>}
           {/* Profilo */}
           <div className="glass-card rounded-[20px] shadow-elev-1 p-4 flex items-center gap-3.5">
             {user.photoURL
@@ -446,14 +449,15 @@ export function SettingsScreen({ user, transactions, budgetExport, onImport, onL
             <input type="text" value={menuQuery} onChange={e => setMenuQuery(e.target.value)}
               placeholder="Cerca nelle impostazioni"
               aria-label="Cerca nelle impostazioni"
-              className="w-full glass-card rounded-2xl pl-9 pr-3 py-2.5 text-[13.5px] text-primary placeholder:text-secondary/60 outline-none focus:ring-1 focus:ring-gold/40" />
+              className="w-full glass-card rounded-2xl pl-9 pr-14 py-2.5 text-[13.5px] text-primary placeholder:text-secondary/60 outline-none focus:ring-1 focus:ring-gold/40" />
+            {ui3 && menuQuery && <button type="button" className="ui31-settings-search-clear" aria-label="Cancella ricerca impostazioni" onClick={() => setMenuQuery('')}>×</button>}
           </div>
 
           {/* Da sette gruppi a quattro. Gli interruttori più usati vivono nella
               riga stessa: aprire un sottolivello per un sì/no era un passo di
               troppo. Le voci che portano davvero da qualche parte tengono il
               chevron. */}
-          <div className="space-y-5 wide:grid wide:grid-cols-2 wide:gap-5 wide:space-y-0 wide:items-start">
+          <SettingsMenuResults active={ui3} query={menuQuery}>
               {ui3 && <MenuSection title="Aspetto" query={menuQuery}>
                 <SwitchRow icon="🌙" color="#8B8B8B" label="Tema scuro" sub="Chiaro o scuro" on={theme==='dark'} onToggle={()=>saveTheme(theme==='dark'?'light':'dark')}/>
               </MenuSection>}
@@ -525,7 +529,7 @@ export function SettingsScreen({ user, transactions, budgetExport, onImport, onL
                   <Row icon="🧭" color="#8A9270" label="Forecast unificato (anteprima)" sub="Motori a confronto e backtest baseline" onClick={() => navigate('/forecast-v3')} />
                 )}
               </MenuSection>
-          </div>
+          </SettingsMenuResults>
 
           {/* Riga piatta di chiusura: versione e uscita, senza card attorno. */}
           <div className="flex items-center justify-between gap-3 px-1 pt-2">
@@ -663,7 +667,8 @@ export function SettingsScreen({ user, transactions, budgetExport, onImport, onL
               </button>
             </div>
 
-            <div className="bg-card rounded-2xl divide-y divide-divider">
+            {ui3 && <h2 className="ui31-settings-danger-heading">Suppressioni definitive</h2>}
+            <div className="ui31-settings-danger bg-card rounded-2xl divide-y divide-divider">
               {confirmReset ? (
                 <div className="p-4 space-y-3">
                   <p className="text-sm font-medium text-primary">Eliminare tutte le transazioni?</p>
@@ -712,7 +717,7 @@ export function SettingsScreen({ user, transactions, budgetExport, onImport, onL
                 </button>
               )}
             </div>
-            {deleteError && <p className="text-xs text-red px-1">{deleteError}</p>}
+            {deleteError && <p role="alert" className="text-xs text-red px-1">{deleteError}</p>}
           </div>
         </>
       )}
@@ -986,24 +991,26 @@ const DEPTH_LABEL: Record<string, string> = {
 /** Una voce corrisponde alla ricerca se il testo compare in etichetta o
  *  sottotitolo. Il filtro è qui e non nel chiamante perché le voci sono JSX:
  *  la sezione le legge dalle props dei figli e sparisce se non ne resta nessuna. */
-function matchesQuery(child: ReactNode, q: string): boolean {
+function matchesQuery(child: ReactNode, q: string, group = '', ui3 = false): boolean {
   if (!q) return true;
   if (!isValidElement(child)) return false;
   const p = child.props as { label?: string; sub?: string };
+  if (ui3) return matchesSettingsQuery(p.label ?? '', p.sub, group, q);
   const hay = `${p.label ?? ''} ${p.sub ?? ''}`.toLowerCase();
   return hay.includes(q.trim().toLowerCase());
 }
 
 function MenuSection({ title, query = '', children }: { title: string; query?: string; children: React.ReactNode }) {
-  const visible = Children.toArray(children).filter((c: ReactNode) => matchesQuery(c, query));
+  const ui3 = useUiVersion() === '3.0';
+  const visible = Children.toArray(children).filter((c: ReactNode) => matchesQuery(c, query, title, ui3));
   if (visible.length === 0) return null;
   return (
-    <div>
-      <p className="label-caps text-secondary mb-2 px-1">{title}</p>
+    <section className="ui31-settings-group" aria-label={title}>
+      <h2 className="label-caps text-secondary mb-2 px-1">{title}</h2>
       <div className="glass-card rounded-[20px] shadow-elev-1 divide-y divide-divider overflow-hidden">
         {visible}
       </div>
-    </div>
+    </section>
   );
 }
 

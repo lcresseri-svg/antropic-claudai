@@ -1,0 +1,19 @@
+[data-liquid-ui="true"].ui31-login { min-height: 100dvh; padding: max(32px, env(safe-area-inset-top)) 24px max(24px, env(safe-area-inset-bottom)); gap: 32px; }
+[data-liquid-ui="true"].ui31-login > div:first-child { padding-block: 32px; }
+[data-liquid-ui="true"].ui31-login > div:first-child > p:first-of-type { max-width: 320px; font-size: 22px; color: rgb(var(--c-primary)); }
+[data-liquid-ui="true"] .ui31-login-intro { max-width: 340px; margin-top: 20px; color: rgb(var(--c-secondary)); font-size: 16px; line-height: 1.6; }
+[data-liquid-ui="true"] .ui31-login-action { padding-bottom: 0; }
+[data-liquid-ui="true"] .ui31-login-action li { font-size: 14px; line-height: 1.55; }
+[data-liquid-ui="true"] .ui31-login-action > p { font-size: 13px; }
+[data-liquid-ui="true"] .ui31-login-action button { min-height: 52px; background: rgb(var(--c-gold)); color: var(--accent-on); }
+[data-liquid-ui="true"] .ui31-login-action button:focus-visible { outline: 2px solid rgb(var(--c-gold)); outline-offset: 5px; }
+@media (min-width: 768px) {
+  [data-liquid-ui="true"].ui31-login { justify-content: center; padding: 48px; }
+  [data-liquid-ui="true"].ui31-login > div:first-child { flex: 0; }
+  [data-liquid-ui="true"] .ui31-login-action { max-width: 400px; }
+}
+@media (min-width: 1100px) {
+  [data-liquid-ui="true"].ui31-login { display: grid; grid-template-columns: minmax(0, 460px) minmax(0, 400px); gap: 80px; }
+  [data-liquid-ui="true"] .ui31-login-action { padding: 32px 0; }
+}
+@media (prefers-reduced-motion: reduce) { [data-liquid-ui="true"].ui31-login * { animation: none !important; transition: none !important; } }

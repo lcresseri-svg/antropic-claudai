@@ -1,3 +1,4 @@
+import './ui31Analysis.css';
 import {useAnalysisPeriod} from '../../shared/hooks/useAnalysisPeriod';
 import { transactionRoute } from '../../shared/transactionRoute';
 // "Saldo per conto" — analytics for how the cash balance of each liquidity
@@ -88,7 +89,7 @@ export function AccountBalanceScreen({ transactions }: Props) {
   }, [includedCashAccounts, transactions, period, offset, now, range.start]);
 
   return (
-    <div className="pb-32">
+    <div className="ui31-analysis ui31-accounts pb-32">
       <AnalysisHeader title="Saldo per conto"
         subtitle="Come si muove la liquidità dei tuoi conti" backTo="/wealth" />
 
@@ -101,11 +102,11 @@ export function AccountBalanceScreen({ transactions }: Props) {
           <p className="text-[13px] text-secondary">Nessun conto di liquidità da mostrare.</p>
         </div>
       ) : (
-        <>
+        <div className="ui31-analysis-grid">
           {/* Hero — total liquidity at the end of the analysed period */}
-          <div className="hero-card rounded-[26px] shadow-elev-2 p-[22px] mb-3.5 animate-rise-in">
+          <div className="ui31-analysis-hero hero-card rounded-[26px] shadow-elev-2 p-[22px] mb-3.5 animate-rise-in">
             <p className="label-caps text-secondary mb-2">Liquidità totale</p>
-            <p className={`text-[38px] leading-none font-bold balance-num ${liquidity < 0 ? 'text-red' : 'text-primary'}`}>
+            <p className={`ui31-analysis-value text-[38px] leading-none font-bold balance-num ${liquidity < 0 ? 'text-red' : 'text-primary'}`}>
               {formatCurrency(liquidity)}
             </p>
             {showDelta && Math.abs(totalDelta) > 0.005 && (
@@ -127,7 +128,7 @@ export function AccountBalanceScreen({ transactions }: Props) {
 
           {/* Una card per conto: la variazione del periodo va SOTTO il nome,
               non in fila con il saldo — sono due cose diverse. */}
-          <div className="ui-open-list space-y-3">
+          <div className="ui31-analysis-list ui-open-list space-y-3">
             {rows.map(r => {
               const barPct = maxAbs > 0 ? (Math.abs(r.current) / maxAbs) * 100 : 0;
               return (
@@ -136,7 +137,7 @@ export function AccountBalanceScreen({ transactions }: Props) {
                   onClick={() => setSelectedId(r.acc.id)}
                   className="ui-open-row w-full text-left glass-card rounded-[18px] shadow-elev-1 p-4 active:scale-[0.99] transition-transform"
                 >
-                  <div className="flex items-center gap-3">
+                  <div className="ui31-data-row flex items-center gap-3">
                     <span className="w-8 h-8 rounded-xl flex items-center justify-center text-sm flex-shrink-0" style={{ backgroundColor: r.acc.color + '26' }}>
                       {r.acc.icon}
                     </span>
@@ -170,7 +171,7 @@ export function AccountBalanceScreen({ transactions }: Props) {
           <p className="text-[11.5px] text-tertiary mt-4 px-1">
             I conti investimento non sono liquidità: vivono nel tab Patrimonio.
           </p>
-        </>
+        </div>
       )}
 
       {selected && (

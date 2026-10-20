@@ -1,6 +1,6 @@
 # Sunny UI3.1 Implementation Plan
 
-> **For agentic workers:** REQUIRED SUB-SKILL: Use superpowers:subagent-driven-development (recommended) or superpowers:executing-plans to implement this plan task-by-task. Steps use checkbox (`- [ ]`) syntax for tracking.
+> **For agentic workers:** REQUIRED SUB-SKILL: Use superpowers:subagent-driven-development (recommended) or superpowers:executing-plans to implement this plan task-by-task. Steps use checkbox (`- [x]`) syntax for tracking.
 
 **Goal:** implementare il ripensamento Sunny approvato su tutte le schermate UI3, con esperienza distinta per telefono/tablet/desktop e più grafici/colori sobri.
 
@@ -48,10 +48,10 @@
 
 **Interfaces:** produce navigazione tre aree, accessi secondari sempre raggiungibili e token condivisi; conserva firme callback esistenti.
 
-- [ ] Aggiornare test nav per tre destinazioni, ramo mese attivo, azione Aggiungi e gate AI/Impegni; osservare il fallimento atteso.
-- [ ] Implementare dock/rail/sidebar e profilo, preservando accessi a mese, consigli, AI abilitata, importazione e impostazioni. Titolo/periodo locale.
-- [ ] Aggiungere token e layout responsivi per tutte le famiglie di pagine e overlay UI3, escluso Wrapped. Oro, colori serie sobri, tipografia leggibile.
-- [ ] Verificare test nav e preview a 320/390/834/1440, tastiera e safe area.
+- [x] Aggiornare test nav per tre destinazioni, ramo mese attivo, azione Aggiungi e gate AI/Impegni; osservare il fallimento atteso.
+- [x] Implementare dock/rail/sidebar e profilo, preservando accessi a mese, consigli, AI abilitata, importazione e impostazioni. Titolo/periodo locale.
+- [x] Aggiungere token e layout responsivi per tutte le famiglie di pagine e overlay UI3, escluso Wrapped. Oro, colori serie sobri, tipografia leggibile.
+- [x] Verificare test nav e preview a 320/390/834/1440, tastiera e safe area.
 
 ## Task 2: Oggi e Il tuo mese
 
@@ -59,11 +59,11 @@
 
 **Interfaces:** Ui31MonthScreen e props descritti sopra; calcoli da `useBudget`, `calculateMonthlyPlan/useMonthlyPlan`, `aggregateFlow`, `monthOccurrences`, mai formule parallele.
 
-- [ ] Testare prima gli stati confermato/bozza/incompleto/disattivato/errore/incassi attesi; osservare fallimento per la nuova gerarchia.
-- [ ] Oggi: titolo/data, sintesi mese, prima priorità visibile, saldo, tre movimenti recenti. Piccolo grafico di composizione o flussi utile alla lettura, non decorativo.
-- [ ] Mese: Riepilogo/Piano/Scadenze, un periodo controllato e conservato, accessi a categorie/entrate/consigli/analisi; grafici di flussi e categorie con dati alternativi.
-- [ ] Piano esistente riusato e disponibile anche in UI2; bozza/conferma, editor, formule e persistenza invariati.
-- [ ] Verificare almeno una verticale categoria→movimenti→modifica e stati di margine senza introdurre dati demo.
+- [x] Testare prima gli stati confermato/bozza/incompleto/disattivato/errore/incassi attesi; osservare fallimento per la nuova gerarchia.
+- [x] Oggi: titolo/data, sintesi mese, prima priorità visibile, saldo, tre movimenti recenti. Piccolo grafico di composizione o flussi utile alla lettura, non decorativo.
+- [x] Mese: Riepilogo/Piano/Scadenze, un periodo controllato e conservato, accessi a categorie/entrate/consigli/analisi; grafici di flussi e categorie con dati alternativi.
+- [x] Piano esistente riusato e disponibile anche in UI2; bozza/conferma, editor, formule e persistenza invariati.
+- [x] Verificare almeno una verticale categoria→movimenti→modifica e stati di margine senza introdurre dati demo.
 
 ## Task 3: ricerca, filtri e operazioni dei movimenti
 
@@ -71,11 +71,11 @@
 
 **Interfaces:** URL supportate conservate; stato di sessione isolato per utente. Nessuna modifica ai payload delle scritture.
 
-- [ ] Riprodurre con test la perdita della ricerca rimuovendo una categoria e Filtri fuori viewport; osservare fallimento.
-- [ ] Titolo stabile, campo ricerca etichettato, Filtri fuori dallo scroller dei tipi, chip a capo, reset con ambiti distinti.
-- [ ] Conservare criteri indipendenti, periodo, ordinamento e ritorno dal dettaglio; le viste da deep link mantengono contesto senza contaminare altre selezioni.
-- [ ] Editor responsivo con importo dominante e CTA raggiungibile; nessun nuovo passaggio obbligatorio. Errori/scarto/focus e tipi esistenti preservati.
-- [ ] Verificare bulk, draft, errore, storni, serie, tastiera e viewport estremi.
+- [x] Riprodurre con test la perdita della ricerca rimuovendo una categoria e Filtri fuori viewport; osservare fallimento.
+- [x] Titolo stabile, campo ricerca etichettato, Filtri fuori dallo scroller dei tipi, chip a capo, reset con ambiti distinti.
+- [x] Conservare criteri indipendenti, periodo, ordinamento e ritorno dal dettaglio; le viste da deep link mantengono contesto senza contaminare altre selezioni.
+- [x] Editor responsivo con importo dominante e CTA raggiungibile; nessun nuovo passaggio obbligatorio. Errori/scarto/focus e tipi esistenti preservati.
+- [x] Verificare bulk, draft, errore, storni, serie, tastiera e viewport estremi.
 
 ## Task 4: patrimonio, investimenti e analisi
 
@@ -83,11 +83,11 @@
 
 **Interfaces:** props pubbliche esistenti conservate; nessuna ridefinizione di capitale, mercato, quote o storico.
 
-- [ ] Verificare test esistenti su dati storici e accessi alle serie; aggiungere solo regressioni di comportamento pertinenti.
-- [ ] Composizione e lettura per conto/posizione, grafici adattivi con palette sobria e distinzioni non basate solo sul colore.
-- [ ] Evidenziare capitale vs ultimo controvalore noto e aggiornamento; pochi punti e valori mancanti non producono curve inventate.
-- [ ] Ottimizzare confronto/liste sul desktop e dettagli progressivi touch su mobile/tablet.
-- [ ] Verificare periodo→movimenti riconciliabili, date, assenza investimenti, etichette lunghe e cifre estreme.
+- [x] Verificare test esistenti su dati storici e accessi alle serie; aggiungere solo regressioni di comportamento pertinenti.
+- [x] Composizione e lettura per conto/posizione, grafici adattivi con palette sobria e distinzioni non basate solo sul colore.
+- [x] Evidenziare capitale vs ultimo controvalore noto e aggiornamento; pochi punti e valori mancanti non producono curve inventate.
+- [x] Ottimizzare confronto/liste sul desktop e dettagli progressivi touch su mobile/tablet.
+- [x] Verificare periodo→movimenti riconciliabili, date, assenza investimenti, etichette lunghe e cifre estreme.
 
 ## Task 5: impostazioni, flussi iniziali e copertura delle viste secondarie
 
@@ -95,19 +95,19 @@
 
 **Interfaces:** firme servizi e dati onboarding esistenti; eventuale raggruppamento UI in tre momenti non altera Rules, auth o grant.
 
-- [ ] Testare resume, modalità manuale/CSV/esempio, assenza dati e preferenze: niente attivazioni o preset impliciti.
-- [ ] Applicare tre momenti di ingresso dove compatibile con i passi persistiti: origine dati, conti/validazione, prima lettura; piano/obiettivi restano facoltativi e contestuali.
-- [ ] Impostazioni con gruppi leggibili, ricerca, azioni distruttive separate e feedback reale; layout specifici per touch e desktop.
-- [ ] Allineare login, importazione, notifiche e conferme al linguaggio UI3.1; non aggiungere grafici dove non aiutano.
-- [ ] Verificare tutte le rotte secondarie e i loro overlay, inclusi gate e Wrapped.
+- [x] Testare resume, modalità manuale/CSV/esempio, assenza dati e preferenze: niente attivazioni o preset impliciti.
+- [x] Applicare tre momenti di ingresso dove compatibile con i passi persistiti: origine dati, conti/validazione, prima lettura; piano/obiettivi restano facoltativi e contestuali.
+- [x] Impostazioni con gruppi leggibili, ricerca, azioni distruttive separate e feedback reale; layout specifici per touch e desktop.
+- [x] Allineare login, importazione, notifiche e conferme al linguaggio UI3.1; non aggiungere grafici dove non aiutano.
+- [x] Verificare tutte le rotte secondarie e i loro overlay, inclusi gate e Wrapped.
 
 ## Task 6: integrazione e consegna
 
 **Files:** `AppRoutes.tsx`, `ui-preview/ui31-*.mjs`, `docs/product/ui3.1/implementazione/`, piano/progress.
 
-- [ ] Integrare domini e controllare diff/contratti, senza interleaving delle modifiche agli stessi file.
-- [ ] Eseguire typecheck, suite unit completa e build. Baseline: 852 passed, 5 skipped; build passata.
-- [ ] Matrice di tutte le 19 rotte nei due temi a 320/390/834/1440; login/onboarding; tastiera, safe area, testo 200%, reduced motion e flussi funzionali pertinenti.
-- [ ] Confrontare UI2 e Wrapped nei due temi; aggiornare soltanto aspettative UI3 cambiate dall'approvazione, preservando asserzioni di dati e comportamento.
-- [ ] Revisione indipendente del diff completo e correzione dei rilievi verificati.
-- [ ] Raccogliere screenshot reali, inventario/coprertura, esiti e limiti; commit del branch. Nessun merge o deploy.
+- [x] Integrare domini e controllare diff/contratti, senza interleaving delle modifiche agli stessi file.
+- [x] Eseguire typecheck, suite unit completa e build. Baseline: 852 passed, 5 skipped; build passata.
+- [x] Matrice di tutte le 19 rotte nei due temi a 320/390/834/1440; login/onboarding; tastiera, safe area, testo 200%, reduced motion e flussi funzionali pertinenti.
+- [x] Confrontare UI2 e Wrapped nei due temi; aggiornare soltanto aspettative UI3 cambiate dall'approvazione, preservando asserzioni di dati e comportamento.
+- [x] Revisione indipendente del diff completo e correzione dei rilievi verificati.
+- [x] Raccogliere screenshot reali, inventario/coprertura, esiti e limiti; commit del branch. Nessun merge o deploy.

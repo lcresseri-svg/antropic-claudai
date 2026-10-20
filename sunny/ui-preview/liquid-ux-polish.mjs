@@ -11,7 +11,7 @@ const ratio=async locator=>locator.evaluate(el=>{
 try{for(const theme of ['light','dark'])for(const width of (process.env.SUNNY_WIDTHS||'390').split(',').map(Number)){
  const page=await browser.newPage({viewport:{width,height:900}});page.setDefaultTimeout(5000);const errors=[];page.on('pageerror',e=>errors.push(e.message));
  const checks=[];const check=async(name,fn)=>{try{await fn();checks.push({name,pass:true});}catch(e){checks.push({name,pass:false,error:e.message});}};
- const start=async route=>{await page.goto(`http://127.0.0.1:4177/ui-preview/index.html?ui=3&theme=${theme}`);await page.locator('#preview-writes').waitFor();if(route!=='/')await page.evaluate(r=>{history.pushState({},'',r);dispatchEvent(new PopStateEvent('popstate'));},route);await page.getByRole('status',{name:'Caricamento',exact:true}).waitFor({state:'hidden'});await page.waitForTimeout(350);};
+ const start=async route=>{await page.goto(`http://127.0.0.1:4177/ui-preview/index.html?ui=3&theme=${theme}`,{waitUntil:'domcontentloaded',timeout:30000});await page.locator('.ui31-today').waitFor();await page.locator('#preview-writes').waitFor();if(route!=='/')await page.evaluate(r=>{history.pushState({},'',r);dispatchEvent(new PopStateEvent('popstate'));},route);await page.getByRole('status',{name:'Caricamento',exact:true}).waitFor({state:'hidden'});await page.waitForTimeout(350);};
  await start('/investments');const history=page.locator('[data-portfolio-history]');
  await check('selected period contrast',async()=>assert.ok(await ratio(history.getByRole('button',{name:'Tutto',exact:true}))>=4.5));
  await check('valuation reference line contrast',async()=>assert.ok(await ratio(history.locator('line[stroke-dasharray="5 4"]'))>=3));
@@ -32,7 +32,7 @@ try{for(const theme of ['light','dark'])for(const width of (process.env.SUNNY_WI
  await page.screenshot({path:`${out}/amount-${theme}-${width}.png`});
  await start('/transactions');await page.getByRole('button',{name:'Filtri',exact:true}).click();const panel=page.getByRole('region',{name:'Opzioni movimenti'});await panel.getByRole('button',{name:'Categoria',exact:true}).focus();await page.keyboard.press('Escape');await panel.waitFor({state:'hidden'});
  await check('Escape restores filter trigger',async()=>assert.equal(await page.getByRole('button',{name:'Filtri',exact:true}).evaluate(e=>e===document.activeElement),true));
- await start('/');
+ await start('/budget?view=overview');
  await check('daily chart large keyboard surface',async()=>{const area=page.getByRole('group',{name:/Spese giornaliere/});assert.equal(await area.count(),1);await area.focus();await page.keyboard.press('Home');await page.keyboard.press('ArrowRight');const open=page.getByRole('button',{name:/Apri movimenti.*2/});assert.equal(await open.count(),1);await open.click();await page.waitForURL('**/transactions?*');assert.equal(new URL(page.url()).searchParams.get('date')?.slice(-2),'02');});
  assert.deepEqual(errors,[]);results.push({theme,width,checks});await page.close();
 }}finally{await browser.close();}

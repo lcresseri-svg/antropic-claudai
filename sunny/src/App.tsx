@@ -1,4 +1,4 @@
-import { useState, useEffect, useMemo, useRef } from 'react';
+import { useState, useEffect, useMemo, useRef, type ComponentProps } from 'react';
 import { useLocation, useNavigate } from 'react-router-dom';
 import { doc, setDoc } from 'firebase/firestore';
 import { useAuth } from './shared/hooks/useAuth';
@@ -122,7 +122,8 @@ function OnboardingGate({ user, onLogOut, onDeleteAccount }: {
 
   if (!onboarding || !onboarding.completed) {
     return (
-      <OnboardingScreen
+      <OnboardingWithTransactions
+        user={user}
         uid={user.uid}
         onboarding={onboarding ?? { completed: false, version: ONBOARDING_VERSION, currentStep: 0, goals: [], dataMode: null }}
         updateOnboarding={updateOnboarding}
@@ -133,6 +134,15 @@ function OnboardingGate({ user, onLogOut, onDeleteAccount }: {
   }
 
   return <Main user={user} onLogOut={onLogOut} onDeleteAccount={onDeleteAccount} />;
+}
+
+/** Subscribe only while the guided journey is visible. Its first reading uses
+ * the same persisted transactions as Main, including newly imported rows. */
+function OnboardingWithTransactions({ user, ...props }: ComponentProps<typeof OnboardingScreen> & { user: import('firebase/auth').User }) {
+  const ui3 = useUiVersion() === '3.0';
+  const { accounts, categories, includeInvestments, enableInvestments } = useSettings();
+  const tx = useTransactions(ui3 ? user : null, accounts, includeInvestments, categories, enableInvestments);
+  return <OnboardingScreen {...props} transactions={ui3 ? tx.transactions : undefined} transactionsLoading={ui3 && tx.loading} transactionsError={ui3 ? tx.error : undefined} />;
 }
 
 function Main({ user, onLogOut, onDeleteAccount }: {
@@ -319,7 +329,7 @@ function Main({ user, onLogOut, onDeleteAccount }: {
         <RecapPrompt transactions={tx.transactions} />
 
         {/* Budget month-setup prompt — shown until the current month is confirmed */}
-        {enableBudget && budget.showBudgetPrompt && !isSettings && (
+        {uiVersion !== '3.0' && enableBudget && budget.showBudgetPrompt && !isSettings && (
           <div className="max-w-2xl mx-auto md:max-w-none px-4 md:px-8 pt-3">
             <BudgetSetupBanner
               month={budget.currentMonth}
@@ -363,6 +373,7 @@ function Main({ user, onLogOut, onDeleteAccount }: {
         editing={null}
         defaultType="expense"
         initialValues={applePayInitialValues}
+        typeLocked
         awaitSave
         singleSave
         title="Conferma Apple Pay"

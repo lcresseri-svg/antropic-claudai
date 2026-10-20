@@ -20,7 +20,7 @@ if(mode==='draft') {
   assert.equal(await page.getByRole('textbox',{name:'Importo',exact:true}).inputValue(),'12,50');
   await page.setViewportSize({width:1440,height:900});
   assert.equal(await page.getByRole('textbox',{name:'Importo',exact:true}).inputValue(),'12,50');
-  await page.getByRole('button',{name:'Tocca per scrivere la descrizione'}).click();
+  if(!await page.getByRole('textbox',{name:'Descrizione facoltativa'}).isVisible())await page.getByRole('button',{name:'Tocca per scrivere la descrizione'}).click();
   assert.notEqual(await page.evaluate(()=>document.activeElement?.getAttribute('placeholder')),'Spesa','description opening must not autofocus');
   const description=page.getByRole('textbox').filter({hasNot:page.locator('[aria-label="Importo"]')});
   await page.getByRole('button',{name:'Chiudi',exact:true}).click();

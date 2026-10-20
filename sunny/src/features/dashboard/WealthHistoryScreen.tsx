@@ -1,3 +1,4 @@
+import './ui31Analysis.css';
 import {useOriginBack} from '../../shared/hooks/useOriginBack';
 import { ProgressiveSection } from '../../shared/components/ProgressiveSection';
 // "Andamento patrimonio" — how total wealth moves over time, split into its two
@@ -60,7 +61,7 @@ export function WealthHistoryScreen({ transactions }: Props) {
   const last = summary.points[summary.points.length - 1];
 
   return (
-    <div className="pb-32">
+    <div className="ui31-analysis ui31-history pb-32">
       {/* Header */}
       <div className="flex items-center gap-3 mb-1">
         <button
@@ -75,6 +76,8 @@ export function WealthHistoryScreen({ transactions }: Props) {
         <h1 className="text-xl font-bold text-primary tracking-[-0.03em]">Andamento patrimonio</h1>
       </div>
       <p className="text-[13px] text-secondary mb-5 ml-12">Liquidità e investimenti insieme, nel tempo.</p>
+
+      {ui3 && <p className="text-sm text-secondary mb-5">Saldo dei conti inclusi e capitale investito. Lo storico non rappresenta i controvalori di mercato.</p>}
 
       {/* Sticky period selector */}
       <div className="sticky top-0 z-10 -mx-4 px-4 md:-mx-8 md:px-8 pt-1 pb-3 bg-bg border-b border-divider mb-5">
@@ -93,10 +96,11 @@ export function WealthHistoryScreen({ transactions }: Props) {
         </div>
       </div>
 
+      <div className="ui31-history-overview">
       {/* Hero — today's total + the two components */}
       <div className="glass-card rounded-3xl p-6 mb-4">
         <p className="label-caps text-secondary mb-2">Patrimonio totale</p>
-        <p className="text-[38px] leading-none font-bold text-primary balance-num">{formatCurrency(last.total)}</p>
+        <p className="ui31-analysis-value text-[38px] leading-none font-bold text-primary balance-num">{formatCurrency(last.total)}</p>
         <p className="text-[11px] text-secondary mt-2">
           al {formatDateFull(summary.endDate)}
           <span className={`ml-2 font-semibold balance-num ${tone(summary.total.delta)}`}>
@@ -139,6 +143,8 @@ export function WealthHistoryScreen({ transactions }: Props) {
             La linea tratteggiata indica il totale a inizio periodo ({formatCurrency(summary.total.startValue)}).
           </p>
         )}
+      </div>
+
       </div>
 
       {/* KPI — total variation over the four trailing windows */}

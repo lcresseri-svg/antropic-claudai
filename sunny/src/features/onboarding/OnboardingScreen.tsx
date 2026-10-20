@@ -2,6 +2,8 @@ import { ImportModal } from '../transactions/ImportModal';
 import { createTransactionsSynced } from '../investments/investmentValueSync';
 import { Transaction } from '../../types';
 import { useState } from 'react';
+import { useUiVersion } from '../../shared/providers/UiVersionProvider';
+import { Ui31OnboardingScreen } from './Ui31OnboardingScreen';
 import { useSettings } from '../../shared/providers/settings';
 import { OnboardingData, OnboardingGoal } from './onboardingTypes';
 import { OnboardingLayout } from './OnboardingLayout';
@@ -12,7 +14,10 @@ import { DataSourceStep } from './steps/DataSourceStep';
 import { SavingsTargetStep } from './steps/SavingsTargetStep';
 import { FirstInsightStep } from './steps/FirstInsightStep';
 
-interface Props {
+export interface OnboardingProps {
+  transactions?: Transaction[];
+  transactionsLoading?: boolean;
+  transactionsError?: string | null;
   onImport?: (rows:Omit<Transaction,'id'>[])=>Promise<void>;
   uid: string;
   onboarding: OnboardingData;
@@ -23,13 +28,13 @@ interface Props {
 
 const TOTAL_STEPS = 6;
 
-export function OnboardingScreen({
+function LegacyOnboardingScreen({
   uid, onImport,
   onboarding,
   updateOnboarding,
   completeOnboarding,
   skipOnboarding,
-}: Props) {
+}: OnboardingProps) {
   const [busy,setBusy]=useState(false);
   const [importOpen,setImportOpen]=useState(false);
   const [step, setStep] = useState(onboarding.currentStep ?? 0);
@@ -92,4 +97,8 @@ export function OnboardingScreen({
       setDataMode('csv');advance(4,{dataMode:'csv'});
     }}/></>
   );
+}
+
+export function OnboardingScreen(props: OnboardingProps) {
+  return useUiVersion() === '3.0' ? <Ui31OnboardingScreen {...props} /> : <LegacyOnboardingScreen {...props} />;
 }

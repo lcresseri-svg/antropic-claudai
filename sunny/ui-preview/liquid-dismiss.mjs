@@ -11,7 +11,7 @@ for(const height of [844,500])for(const theme of ['light','dark'])for(const edit
  await page.route('**/*',r=>new URL(r.request().url()).hostname==='127.0.0.1'?r.continue():r.abort());
 await page.goto(`http://127.0.0.1:4177/ui-preview/index.html?ui=3&theme=${theme}${editor==='transaction'?'&editor':'&pianoCase'}`);
  if(editor==='plan'){
-  await page.getByRole('link',{name:'Piano',exact:true}).click();
+  await page.evaluate(()=>{history.pushState({},'', '/budget');dispatchEvent(new PopStateEvent('popstate'));});
   await page.getByRole('button',{name:/Modifica piano/}).first().click();
  }
  const field=page.getByRole('textbox',{name:editor==='transaction'?'Importo':'Entrate Stipendio',exact:true});

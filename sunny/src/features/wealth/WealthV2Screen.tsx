@@ -1,3 +1,4 @@
+import '../dashboard/ui31Analysis.css';
 import {useOriginBack} from '../../shared/hooks/useOriginBack';
 // Patrimonio V2 (admin-only, flag `wealth_v2`): decomposizione del delta,
 // composizione, freschezza controvalori, liquidità disponibile e snapshot
@@ -104,7 +105,7 @@ export function WealthV2Screen({ user, transactions, liquidity }: Props) {
   };
 
   return (
-    <div className="pb-32 space-y-5">
+    <div className="ui31-analysis ui31-wealth-advanced pb-32 space-y-5">
       <div className="flex items-center gap-3">
         <button type="button" onClick={() => ui3 ? back() : navigate(-1)} aria-label="Indietro"
           className="w-11 h-11 -ml-2 flex items-center justify-center text-secondary hover:text-primary rounded-full">

@@ -12,6 +12,8 @@
 // Desktop: due colonne INDIPENDENTI in altezza (come già faceva la vecchia
 // dashboard) — a sinistra hero + Ritmo|Torta, a destra 352px con patrimonio,
 // prossima mossa e ultimi movimenti.
+import type { User } from 'firebase/auth';
+import { Ui31Today } from './Ui31Today';
 import { useUiVersion } from '../../shared/providers/UiVersionProvider';
 import { buildMonthRhythm } from './monthRhythm';
 import { AccountBalanceLineChart } from './AccountBalanceLineChart';
@@ -38,8 +40,13 @@ import { ReorderHomeSheet } from './ReorderHomeSheet';
 import { HomeBlockId, resolveHomeOrder } from './homeOrder';
 import { WrappedEntryCard } from '../wrapped/WrappedEntryCard';
 import { isFeatureEnabled } from '../../shared/featureRollout';
+import { hasRecordedAccountBalance } from '../../shared/accountBalanceAvailability';
 
 interface Props {
+  user?: User;
+  rawTransactions?: Transaction[];
+  transactionsLoading?: boolean;
+  transactionsError?: string|null;
   paymentPriority?: React.ReactNode;
   hasPaymentPriority?: boolean;
   paymentPriorityCount?: number;
@@ -224,49 +231,20 @@ export function DashboardV2(p: Props) {
   };
 
   if (ui3) {
-    const month = buildMonthRhythm({transactions:p.transactions,now});
-    const points = month.days.filter(d=>!d.isFuture).map(d=>({label:String(d.day),value:d.spent}));
     const upcoming = cash.committedItems.filter(item=>item.date>=localISO(now)&&(new Date(item.date+'T12:00:00').getTime()-now.getTime())/86400000<=7).sort((a,b)=>a.date.localeCompare(b.date));
-    const due=upcoming[0];
-    const dueSoon = due && (new Date(due.date+'T12:00:00').getTime()-now.getTime())/86400000<=7;
-    const priority = p.hasPaymentPriority ? p.paymentPriority : nextMoveCard ?? (dueSoon && isFeatureEnabled('commitments',{uid:p.userId}) ?
-      <section className="liquid-priority"><p className="liquid-eyebrow">Prossima scadenza</p><button onClick={()=>navigate('/commitments')}>{due.description || 'Uscita programmata'} · {formatCurrency(due.amount)}<span>{due.date.split('-').reverse().join('/')} · Vedi impegni ›</span></button></section> : null);
     const risks=insights.filter(i=>i.urgent||i.category==='alert');
     const canSeeDue=isFeatureEnabled('commitments',{uid:p.userId});
-    const priorityCount=(p.hasPaymentPriority?(p.paymentPriorityCount||1):0)+risks.length+(canSeeDue?upcoming.length:0);
-    return <div className="liquid-today">
-      <header className="liquid-today-heading"><h1>{p.greeting || 'Oggi'}</h1></header>
-      {p.userId && <div data-liquid-preserve style={{display:'contents'}}><WrappedEntryCard transactions={p.transactions} projected={p.projected??[]} userId={p.userId} onOpen={y=>navigate(`/wrapped/${y}`)}/></div>}
-      {hero}
-      {priority && <div className="liquid-today-priority">{priorityCount>1 ? <details className="liquid-priority-list"><summary>{priorityCount} elementi da rivedere <span>Pagamenti, rischi e scadenze ›</span></summary>
-        {p.hasPaymentPriority && p.paymentPriority}
-        {risks.length>0 && <section><h2>Rischi nelle analisi</h2>{risks.map((risk,i)=><button key={i} onClick={p.onSeeInsights}>{risk.title}<span>Vedi motivazione ›</span></button>)}</section>}
-        {canSeeDue && upcoming.length>0 && <section><h2>Scadenze entro 7 giorni</h2>{upcoming.map((item,i)=><button key={i} onClick={()=>navigate('/commitments')}>{item.description || 'Uscita programmata'} · {formatCurrency(item.amount)}<span>{item.date.split('-').reverse().join('/')} · Vedi impegni ›</span></button>)}</section>}
-      </details> : priority}</div>}
-      <div className="liquid-today-columns">
-        <div>{breakdown}</div>
-        <div>
-          <section className="liquid-month-chart">
-            <div className="liquid-section-heading"><h2>Uscite del mese</h2><button onClick={()=>setRhythmHistoryOpen(true)}>Ritmo e calendario ›</button></div>
-            <p className="liquid-period">{month.monthLabelFull} · giorno per giorno</p>
-            {p.transactions.some(t=>t.type==='expense'&&t.date.startsWith(month.monthKey)&&!isPending(t,localISO(now))) ?
-              <AccountBalanceLineChart points={points} onSelectPoint={index=>navigate(`/transactions?date=${month.monthKey}-${String(index+1).padStart(2,'0')}`)} presentation="bars" title="Spese giornaliere" lastPeriodLabel="oggi" metricLabel="Spesa" formatValue={formatCurrency} height={112}/> : <p className="liquid-empty">Nessuna spesa registrata in questo mese.</p>}
-          </section>
-
-        </div>
-      </div>
-      <div className="liquid-today-secondary">
-          <div className="liquid-overview-links">
-            <button onClick={()=>navigate(`/recap/${previousMonthKey(now)}`)}>Riepilogo di {previousMonthLabel(now)} <span>›</span></button>
-            <button onClick={p.onSeeInsights}>Tutti i consigli <span>›</span></button>
-          </div>
-          <details className="liquid-progressive"><summary>Altre statistiche</summary><button onClick={()=>setReorderOpen(true)}>Riordina statistiche</button>
-            {order.filter(id=>id!=='uscite'&&id!=='mossa').map(id=><div key={id}>{blocks[id]}</div>)}
-          </details>
-      </div>
-      <ReorderHomeSheet open={reorderOpen} order={order} onSave={saveHomeOrder} onClose={()=>setReorderOpen(false)}/>
-      <MonthRhythmSheet open={rhythmHistoryOpen} transactions={p.transactions} scheduled={cash.committedItems} now={now} onClose={()=>setRhythmHistoryOpen(false)} onSelectDay={iso=>navigate(`/transactions?date=${iso}`)}/>
-    </div>;
+    const firstDue=!p.hasPaymentPriority&&!nextMoveCard&&canSeeDue?upcoming[0]:null;
+    const priority=p.hasPaymentPriority?p.paymentPriority:nextMoveCard??(firstDue?<section className="liquid-priority"><p className="liquid-eyebrow">Prossima scadenza</p><button onClick={()=>navigate(`/budget?view=due&month=${localISO(now).slice(0,7)}`)}>{firstDue.description||'Uscita programmata'} · {formatCurrency(firstDue.amount)}<span>{firstDue.date.split('-').reverse().join('/')} · Apri scadenze ›</span></button></section>:null);
+    const otherRisks=p.hasPaymentPriority?risks:risks.filter(r=>r!==nextMove);
+    const otherDue=canSeeDue?upcoming.filter(item=>item!==firstDue):[];
+    const additional=<>
+      {otherRisks.length>0&&<section><h3>Analisi da rivedere</h3>{otherRisks.map((risk,i)=><button key={i} onClick={p.onSeeInsights}>{risk.title}<span>Vedi motivazione ›</span></button>)}</section>}
+      {otherDue.length>0&&<section><h3>Scadenze entro 7 giorni</h3>{otherDue.map((item,i)=><button key={i} onClick={()=>navigate(`/budget?view=due&month=${localISO(now).slice(0,7)}`)}>{item.description||'Uscita programmata'} · {formatCurrency(item.amount)}<span>{item.date.split('-').reverse().join('/')} · Apri scadenze ›</span></button>)}</section>}
+    </>;
+    return <Ui31Today user={p.user} userId={p.userId} greeting={p.greeting} rawTransactions={p.rawTransactions} transactionsLoading={p.transactionsLoading} transactionsError={p.transactionsError} transactions={p.transactions} projected={p.projected} balanceKnown={hasRecordedAccountBalance(accounts,p.accountBalances)}
+      liquidity={p.liquidity} priority={priority} additionalPriorities={additional} additionalPriorityCount={otherRisks.length+otherDue.length}
+      onEditTransaction={p.onEditTransaction} onImportCSV={p.onImportCSV}/>;
   }
 
   return (

@@ -18,5 +18,5 @@ export default defineConfig({
     { find: 'firebase/firestore', replacement: services },
     { find: 'firebase/functions', replacement: services },
   ] },
-  server: { host: '127.0.0.1', port: 4177, strictPort: true },
+  server: { host: '127.0.0.1', port: 4177, strictPort: true, hmr: process.env.SUNNY_PREVIEW_STATIC === '1' ? false : undefined },
 });
