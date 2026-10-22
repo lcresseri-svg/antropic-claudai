@@ -27,6 +27,7 @@ interface Props {
   reserve?: number;
   income: number;
   expenses: number;
+  /** Versamenti del mese finanziati dai conti, esclusi TFR e apporti esterni. */
   invested: number;
   /** Nasconde la colonna "Investito" quando gli investimenti sono disattivati. */
   showInvested?: boolean;
