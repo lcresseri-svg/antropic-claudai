@@ -157,9 +157,6 @@ export function DashboardV2(p: Props) {
   const nextMove = useMemo(() => pickNextMove(insights, ui3), [insights, ui3]);
 
   const flow = p.monthlyFlow;
-  // TOTALE investito nel mese: quota dai conti + apporti esterni (senza conto)
-  // + TFR. Solo la prima toglie liquidità.
-  const investedTotal = flow.investedFromAccounts + flow.externalContributions + flow.tfrExcluded;
 
   const openCategories = ui3 ? ()=>navigate('/category-spending',{state:{currentPeriod:true}}) : p.onSeeCategories ?? (() => navigate('/category-spending'));
 
@@ -169,7 +166,7 @@ export function DashboardV2(p: Props) {
       period={new Intl.DateTimeFormat('it-IT',{month:'long',year:'numeric'}).format(now)}
       freeCash={cash.available} liquidity={p.liquidity} committed={cash.committed}
       reserve={cash.reserve}
-      income={flow.cashIn - flow.refundsReceived} expenses={p.monthlyExpenses} invested={investedTotal}
+      income={flow.cashIn - flow.refundsReceived} expenses={p.monthlyExpenses} invested={flow.investedFromAccounts}
       showInvested={enableInvestments}
       onOpenIncome={() => navigate('/income',ui3?{state:{currentPeriod:true}}:undefined)}
       onOpenExpenses={openCategories}
