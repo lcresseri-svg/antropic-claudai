@@ -6,7 +6,7 @@ import { aggregateFlow } from '../../shared/financialFlow';
 import { formatCurrency } from '../../utils';
 import type { Transaction } from '../../types';
 
-const state = vi.hoisted(() => ({ version: '3.0' }));
+const state = vi.hoisted(() => ({ version: '2.0' }));
 const categories = [
   { id: 'fund', label: 'Fondo', kind: 'investment', icon: '', color: '#996600' },
   { id: 'food', label: 'Spesa', kind: 'expense', icon: '', color: '#996600' },
@@ -15,6 +15,9 @@ const categories = [
 vi.mock('../../shared/providers/UiVersionProvider', async original => ({
   ...await original<typeof import('../../shared/providers/UiVersionProvider')>(),
   useUiVersion: () => state.version,
+}));
+vi.mock('../../shared/hooks/useBudget', () => ({
+  useBudget: () => ({ budgetHistory: [], loading: false, error: null, fromCache: false, retry: () => {} }),
 }));
 vi.mock('../../shared/providers/settings', () => ({
   useSettings: () => ({
@@ -46,9 +49,9 @@ function investedValues(transactions: Transaction[]) {
 
 afterEach(() => vi.useRealTimers());
 
-describe.each(['2.0', '3.0'])('monthly Investito in UI%s', version => {
+// UI3.1 shows this account flow in Ui31FlowChart; this hero remains in UI2.
+describe('monthly Investito in UI2.0', () => {
   beforeEach(() => {
-    state.version = version;
     vi.useFakeTimers();
     vi.setSystemTime(new Date(2026, 9, 10, 12));
   });
