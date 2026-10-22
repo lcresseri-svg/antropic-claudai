@@ -1,0 +1,106 @@
+/* UI3 analysis surfaces only. No tokens or rules reach UI2 or Wrapped. */
+[data-liquid-ui="true"] :is(.ui31-analysis, .ui31-wealth) {
+  min-width: 0;
+  --ui31-analysis-line: var(--ui31-border, var(--border-strong));
+}
+[data-liquid-ui="true"] :is(.ui31-analysis, .ui31-wealth) :is(button, summary):focus-visible {
+  outline: 2px solid var(--accent-gold);
+  outline-offset: 4px;
+}
+[data-liquid-ui="true"] :is(.ui31-analysis, .ui31-wealth) :is(button, summary) { min-height: 44px; }
+[data-liquid-ui="true"] .ui31-analysis .ui-analysis-header { min-height: 76px; height: auto; align-items: flex-start; padding-block: 12px; }
+[data-liquid-ui="true"] .ui31-analysis .ui-analysis-header :is(h1, p) { white-space: normal; overflow: visible; text-overflow: clip; overflow-wrap: anywhere; }
+[data-liquid-ui="true"] .ui31-analysis .ui-analysis-header p { font-size: 13px; margin-top: 4px; }
+[data-liquid-ui="true"] :is(.ui31-analysis, .ui31-wealth) .balance-num { font-variant-numeric: tabular-nums; overflow-wrap: anywhere; min-width: 0; }
+[data-liquid-ui="true"] :is(.ui31-analysis-value, .ui31-analysis .text-\[38px\], .ui31-wealth .balance-num.text-\[38px\]) { font-size: clamp(1.8rem, 6vw, 2.8rem); line-height: 1.15; letter-spacing: -.045em; }
+[data-liquid-ui="true"] :is(.ui31-analysis, .ui31-wealth) .label-caps { font-size: 12px; line-height: 1.5; letter-spacing: .08em; }
+[data-liquid-ui="true"] .ui31-analysis :is(.text-\[10px\], .text-\[11px\], .text-\[11\.5px\]) { font-size: 12px; line-height: 1.5; }
+[data-liquid-ui="true"] .ui31-analysis :is(.ui31-analysis-hero, .ui31-history-overview > div) { min-width: 0; }
+[data-liquid-ui="true"] .ui31-analysis .ui31-analysis-grid { display: grid; gap: 16px; align-items: start; }
+[data-liquid-ui="true"] .ui31-analysis .ui31-analysis-grid > * { min-width: 0; margin-bottom: 0; }
+[data-liquid-ui="true"] .ui31-analysis .sticky > .flex { flex-wrap: wrap; gap: 8px; }
+[data-liquid-ui="true"] .ui31-analysis .sticky > .flex > .flex-1 { flex-basis: 100%; }
+[data-liquid-ui="true"] .ui31-analysis .sticky button { min-width: 44px; }
+[data-liquid-ui="true"] :is(.ui31-analysis, .ui31-wealth) .liquid-chart-legend { flex-wrap: wrap; gap: 6px 16px; font-size: 12px; justify-content: flex-start; }
+[data-liquid-ui="true"] .ui31-analysis :is(.liquid-donut-layout, .ui31-portfolio-metrics) { display: flex; flex-wrap: wrap; gap: 16px 24px; }
+[data-liquid-ui="true"] .ui31-analysis .liquid-donut-layout > ul { min-width: min(100%, 200px); }
+[data-liquid-ui="true"] .ui31-wealth .liquid-donut-layout { flex-wrap: wrap; align-items: center; }
+[data-liquid-ui="true"] .ui31-wealth .liquid-donut-layout > ul { flex-basis: 100%; }
+[data-liquid-ui="true"] :is(.ui31-analysis, .ui31-wealth) .liquid-chart-data { margin-top: 16px; padding-top: 8px; border-top: 1px solid var(--ui31-analysis-line); }
+[data-liquid-ui="true"] :is(.ui31-analysis, .ui31-wealth) .liquid-chart-data summary { display: flex; align-items: center; cursor: pointer; color: var(--text-2); font-size: 13px; }
+[data-liquid-ui="true"] .ui31-position-capital { white-space: normal; overflow-wrap: anywhere; margin-block: 3px; }
+[data-liquid-ui="true"] .ui31-analysis .ui31-data-row { flex-wrap: wrap; row-gap: 10px; }
+[data-liquid-ui="true"] .ui31-data-row > .flex-1 { min-width: min(120px, 50%); }
+[data-liquid-ui="true"] .ui31-data-row > :last-child.balance-num,
+[data-liquid-ui="true"] .ui31-data-row > .text-right { max-width: 100%; margin-left: auto; }
+[data-liquid-ui="true"] .ui31-history-overview { display: grid; gap: 16px; margin-bottom: 24px; }
+[data-liquid-ui="true"] .ui31-history-overview > div { margin: 0; }
+[data-liquid-ui="true"] .ui31-history-single { padding-block: 16px; }
+[data-liquid-ui="true"] .ui31-wealth-composition { margin-top: 24px; padding-top: 20px; border-top: 1px solid var(--ui31-analysis-line); }
+[data-liquid-ui="true"] .ui31-composition-track { display: flex; height: 10px; border-radius: 8px; gap: 3px; overflow: hidden; }
+[data-liquid-ui="true"] .ui31-composition-track > span { min-width: 0; }
+[data-liquid-ui="true"] .ui31-composition-labels { display: flex; flex-wrap: wrap; justify-content: space-between; gap: 8px 16px; margin-top: 10px; font-size: 12px; color: var(--text-2); }
+[data-liquid-ui="true"] .ui31-wealth .ui-card-heading { flex-wrap: wrap; gap: 8px; }
+[data-liquid-ui="true"] .ui31-wealth .ui-card-heading > button { text-align: left; }
+[data-liquid-ui="true"] .ui31-wealth-support { display: grid; gap: 24px; min-width: 0; }
+[data-liquid-ui="true"] .ui31-cash-summary { padding: 20px; border: 1px solid var(--ui31-border); border-radius: 22px; background: var(--ui31-surface); }
+[data-liquid-ui="true"] .ui31-cash-summary h2 { font-size: 18px; font-weight: 600; }
+[data-liquid-ui="true"] .ui31-cash-summary .ui-card-heading > span { font-size: 12px; color: var(--text-2); }
+[data-liquid-ui="true"] .ui31-cash-value { display: block; margin: 16px 0 10px; font-size: clamp(28px,4vw,38px); line-height: 1.15; letter-spacing: -.035em; font-variant-numeric: tabular-nums; overflow-wrap: anywhere; }
+[data-liquid-ui="true"] .ui31-cash-summary p { font-size: 14px; line-height: 1.6; color: var(--text-2); }
+[data-liquid-ui="true"] .ui31-cash-track { display: flex; height: 9px; gap: 3px; overflow: hidden; border-radius: 8px; margin: 20px 0 8px; }
+[data-liquid-ui="true"] .ui31-cash-legend { display: flex; flex-wrap: wrap; gap: 8px 16px; color: var(--text-2); font-size: 12px; }
+[data-liquid-ui="true"] .ui31-cash-legend span { display: inline-flex; align-items: center; gap: 6px; }
+[data-liquid-ui="true"] .ui31-cash-legend i { width: 7px; height: 7px; border-radius: 50%; }
+[data-liquid-ui="true"] .ui31-cash-summary summary { display: flex; align-items: center; min-height: 44px; cursor: pointer; font-size: 14px; margin-top: 8px; color: var(--ui-accent-text); }
+[data-liquid-ui="true"] .ui31-cash-summary .ui31-cash-deficit { color: var(--ui-negative); margin-block: 12px; }
+[data-liquid-ui="true"] .ui31-cash-items { margin-top: 12px; }
+[data-liquid-ui="true"] .ui31-cash-items li { display: flex; justify-content: space-between; gap: 12px; padding-block: 12px; border-top: 1px solid var(--ui31-border); font-size: 13px; }
+[data-liquid-ui="true"] .ui31-cash-items small { display: block; color: var(--text-2); margin-top: 3px; }
+@media (min-width: 768px) {
+  [data-liquid-ui="true"] .ui31-analysis .sticky > .flex > .flex-1 { flex-basis: auto; }
+  [data-liquid-ui="true"] .ui31-analysis .ui31-data-row { flex-wrap: nowrap; }
+  [data-liquid-ui="true"] .ui31-wealth .liquid-wealth-splits { gap: 20px; }
+  [data-liquid-ui="true"] .ui31-analysis .ui31-analysis-grid { gap: 24px; }
+}
+@media (min-width: 1100px) {
+  [data-liquid-ui="true"] .ui31-wealth .ui-wealth-layout { display: grid; grid-template-columns: minmax(0, 1.4fr) minmax(280px, 1fr); gap: 24px; align-items: start; }
+  [data-liquid-ui="true"] .ui31-wealth .ui-wealth-layout > * { width: auto; min-width: 0; }
+  [data-liquid-ui="true"] .ui31-analysis .ui31-analysis-grid { grid-template-columns: minmax(0, 1fr) minmax(0, 1.2fr); }
+  [data-liquid-ui="true"] .ui31-accounts .ui31-analysis-list { grid-column: 2; grid-row: 1 / span 2; }
+  [data-liquid-ui="true"] .ui31-categories .ui31-analysis-ranking { grid-column: 2; grid-row: 1 / span 4; }
+  [data-liquid-ui="true"] .ui31-categories .ui31-analysis-grid > :not(.ui31-analysis-ranking) { grid-column: 1; }
+  [data-liquid-ui="true"] .ui31-income .ui31-income-sources { grid-column: 2; grid-row: 2 / span 3; }
+  [data-liquid-ui="true"] .ui31-history-overview { grid-template-columns: minmax(0, .85fr) minmax(0, 1.25fr); align-items: stretch; }
+  [data-liquid-ui="true"] .ui31-investments { display: grid; grid-template-columns: minmax(0, 1.2fr) minmax(0, 1fr); gap: 24px; align-items: start; }
+  [data-liquid-ui="true"] .ui31-investments > * { margin-top: 0 !important; min-width: 0; }
+  [data-liquid-ui="true"] .ui31-investments > .ui-analysis-header { grid-column: 1 / -1; }
+  [data-liquid-ui="true"] .ui31-investments > :is(.ui31-analysis-hero, .ui31-valuation-notice, .ui31-investment-actions) { grid-column: 1; }
+  [data-liquid-ui="true"] .ui31-investments > .ui31-position-list { grid-column: 2; grid-row: 2 / span 3; }
+  [data-liquid-ui="true"] .ui31-investments > .ui-open-row { grid-column: 1 / -1; }
+}
+@media (max-width: 380px) {
+  [data-liquid-ui="true"] .ui31-wealth .liquid-wealth-splits { grid-template-columns: minmax(0, 1fr); }
+  [data-liquid-ui="true"] .ui31-analysis :is(.grid-cols-3, .grid-cols-2) { grid-template-columns: minmax(0, 1fr); }
+  [data-liquid-ui="true"] .ui31-analysis .ui31-data-row > .text-right { flex-basis: 100%; text-align: left; margin-left: 0; }
+}
+@media (prefers-reduced-motion: reduce) {
+  [data-liquid-ui="true"] :is(.ui31-analysis, .ui31-wealth) * { animation: none !important; transition: none !important; }
+}
+[data-liquid-ui="true"] :is(.ui31-analysis, .ui31-wealth) :is(.ui31-data-row, .liquid-donut-layout) .truncate {
+  overflow: visible;
+  white-space: normal;
+  text-overflow: clip;
+  overflow-wrap: anywhere;
+}
+[data-liquid-ui="true"] .ui31-analysis .ui31-chart-scale { overflow-wrap: anywhere; }
+[data-liquid-ui="true"] .ui31-wealth-advanced :is(dl > div, li.flex) { flex-wrap: wrap; gap: 8px 16px; }
+[data-liquid-ui="true"] .ui31-wealth-advanced :is(dd, li > :last-child) { overflow-wrap: anywhere; }
+[data-liquid-ui="true"] .ui31-wealth-advanced > .flex > button { width: auto; padding-inline: 8px; flex-shrink: 0; }
+[data-liquid-ui="true"] .ui31-wealth-advanced input { min-height: 44px; }
+@media (min-width: 1100px) {
+  [data-liquid-ui="true"] .ui31-wealth-advanced { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 24px; align-items: start; }
+  [data-liquid-ui="true"] .ui31-wealth-advanced > * { margin-top: 0 !important; min-width: 0; }
+  [data-liquid-ui="true"] .ui31-wealth-advanced > :first-child,
+  [data-liquid-ui="true"] .ui31-wealth-advanced > section:first-of-type { grid-column: 1 / -1; }
+}

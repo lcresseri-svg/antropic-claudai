@@ -9,8 +9,8 @@ const params = new URLSearchParams(location.search);
 export function resolveUiVersion(user: { uid?: string | null } | null, config?: UiVersionConfig) {
   return resolve(user, config ?? (params.get('ui') === '3' ? { ...UI_VERSION_CONFIG, pilotAdmin:'3.0' } : params.get('ui') === '2' ? { ...UI_VERSION_CONFIG, forceEveryone:'2.0' } : UI_VERSION_CONFIG));
 }
-export const categories: CategoryDef[] = DEFAULT_CATEGORIES.map(c => c.kind === 'investment' ? { ...c, initialBalance: c.id === 'azioni_etf' ? 8000 : 0, currentValue: c.id === 'azioni_etf' ? 9600 : 0, subscriptionDate: '2025-01-01' } : c);
-export const accounts: AccountDef[] = DEFAULT_ACCOUNTS.map((a,i) => ({ ...a, initialBalance: i === 0 ? 4800 : i === 1 ? 2000 : 0 }));
+export const categories: CategoryDef[] = DEFAULT_CATEGORIES.map(c => c.kind === 'investment' ? { ...c, initialBalance: !params.has('unknownBalance') && c.id === 'azioni_etf' ? 8000 : 0, currentValue: params.has('unknownBalance') ? undefined : c.id === 'azioni_etf' ? 9600 : 0, subscriptionDate: '2025-01-01' } : c);
+export const accounts: AccountDef[] = DEFAULT_ACCOUNTS.map((a,i) => ({ ...a, initialBalance: params.has('openingZero') ? 0 : params.has('unknownBalance') ? undefined : i === 0 ? 4800 : i === 1 ? 2000 : 0 }));
 const now = new Date();
 const iso = (months: number, day: number) => { const d = new Date(now.getFullYear(), now.getMonth()+months,day); return `${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,'0')}-${String(d.getDate()).padStart(2,'0')}`; };
 export const transactions: Transaction[] = params.has('empty') ? [] : params.has('pianoCase') ? [
@@ -71,7 +71,7 @@ function useFixtureSettings() {
   const [homeOrder,saveHomeOrder]=useState<string[]>([]);
   const [enableInvestments,saveEnableInvestments]=useState(!params.has('noInvest'));
   const [aiEnabled,saveAiEnabled]=useState(!params.has('noAi'));
-  const [enableBudget,saveEnableBudget]=useState(true);
+  const [enableBudget,saveEnableBudget]=useState(!params.has('noBudget'));
   const [includeInvestments,saveIncludeInvestments]=useState(true);
   const [cashReserve,saveCashReserve]=useState(1000);
   const [insightDepth,saveInsightDepth]=useState<'medium'|'advanced'|'minimal'>('medium');

@@ -8,12 +8,12 @@ await page.route('**/*',route=>new URL(route.request().url()).hostname==='127.0.
 try {
   for(const theme of ['light','dark']) {
     await page.goto(`http://127.0.0.1:4177/ui-preview/index.html?ui=3&theme=${theme}`);
-    await page.locator('.liquid-balance-overview').waitFor();await page.waitForTimeout(350);
+    await page.locator('.ui31-month-summary').waitFor();await page.waitForTimeout(350);
     const contrast=await page.evaluate(()=>{
       const rgb=s=>s.match(/[\d.]+/g)?.map(Number)??[0,0,0,0];
       const composite=(fg,bg)=>{const alpha=fg[3]??1;return fg.slice(0,3).map((v,i)=>v*alpha+bg[i]*(1-alpha));};
       const lum=c=>c.map(v=>v/255).map(v=>v<=.03928?v/12.92:((v+.055)/1.055)**2.4).reduce((sum,v,i)=>sum+v*[.2126,.7152,.0722][i],0);
-      return ['.ui3-month-line','.ui3-nav-link[aria-current]','.ui3-add','.ui3-more','.liquid-balance-overview .text-secondary','.liquid-balance-overview .text-gold'].map(selector=>{
+      return ['.ui31-today-heading p','.ui3-nav-link[aria-current]','.ui3-add','.ui3-more','.ui31-summary-status','.ui31-month-summary .ui31-primary-link'].map(selector=>{
         const el=document.querySelector(selector),s=getComputedStyle(el);let nodes=[];
         for(let node=el;node;node=node.parentElement)nodes.unshift(node);
         let background=[255,255,255];for(const node of nodes)background=composite(rgb(getComputedStyle(node).backgroundColor),background);

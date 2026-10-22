@@ -1,3 +1,4 @@
+import './login-ui31.css';
 import { useUiVersion } from '../providers/UiVersionProvider';
 // Primo avvio.
 //
@@ -21,18 +22,19 @@ const PROMISES = [
 export function LoginScreen({ onSignIn, error }: Props) {
   const ui3=useUiVersion()==='3.0';
   return (
-    <div data-liquid-ui={ui3?'true':undefined} className="min-h-screen bg-bg flex flex-col items-center justify-center px-8 animate-fade-in">
+    <div data-liquid-ui={ui3?'true':undefined} className="ui31-login min-h-screen bg-bg flex flex-col items-center justify-center px-8 animate-fade-in">
       <div className="w-full max-w-[420px] flex-1 flex flex-col items-center justify-center text-center">
         <ArcMark />
         <h1 className="font-serif text-[42px] md:text-[46px] text-primary mt-8 leading-none">Sunny</h1>
         <p className="text-secondary mt-3.5 text-[15.5px] max-w-[250px] leading-relaxed">
-          Finanza personale, senza compromessi.
+          {ui3 ? 'Capisci i tuoi soldi, senza stress.' : 'Finanza personale, senza compromessi.'}
         </p>
+        {ui3 && <p className="ui31-login-intro">Leggi il mese, ritrova un movimento e scegli il prossimo passo. I dettagli sono lì quando servono.</p>}
       </div>
 
-      <div className="w-full max-w-[360px] pb-14 space-y-4">
+      <div className="ui31-login-action w-full max-w-[360px] pb-14 space-y-4">
         <ul className="space-y-2">
-          {PROMISES.map(t => (
+          {(ui3 ? ['Nessun collegamento bancario richiesto', 'Manuale, CSV o dati di esempio: scegli tu', 'Piano e obiettivi facoltativi'] : PROMISES).map(t => (
             <li key={t} className="flex items-center gap-2.5 text-[12.5px] text-secondary">
               <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="rgb(var(--c-gold))"
                 strokeWidth="2.6" strokeLinecap="round" strokeLinejoin="round" className="flex-none">
@@ -43,7 +45,7 @@ export function LoginScreen({ onSignIn, error }: Props) {
           ))}
         </ul>
 
-        <button onClick={onSignIn}
+        <button type="button" onClick={onSignIn}
           className="w-full bg-primary text-bg py-4 rounded-[18px] font-semibold flex items-center justify-center gap-3
                      transition-all active:scale-[0.98] active:opacity-90"
           style={{ boxShadow: '0 12px 28px -14px rgba(26,23,20,.7)' }}>

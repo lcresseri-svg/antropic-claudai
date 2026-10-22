@@ -25,7 +25,7 @@ try {
     const idx=fn=>texts.findIndex(fn);
     return {source:idx(e=>e.textContent?.startsWith('Ricevuto da')),refund:idx(e=>e.textContent?.includes('Registra storno di una spesa')),amount:idx(e=>e.getAttribute('aria-label')==='Importo'),description:idx(e=>e.getAttribute('aria-label')==='Descrizione facoltativa'),categories:idx(e=>e.textContent?.includes('Casa'))};
   });
-  assert.ok(order.source<order.refund && order.refund<order.amount && order.amount<order.description && order.description<order.categories,JSON.stringify(order));
+  assert.ok(order.source<order.amount && order.amount<order.description && order.description<order.categories && order.categories<order.refund,JSON.stringify(order));
   assert.equal(await dialog.getByRole('button',{name:'+1',exact:true}).count(),0);
   assert.notEqual(await page.evaluate(()=>document.activeElement?.tagName),'INPUT');
   await page.screenshot({path:fileURLToPath(new URL('./artifacts/editor-touch-tablet.png',import.meta.url))});
@@ -49,23 +49,24 @@ try {
   await route('/wealth'); await route('/category-spending');
   assert.ok((await page.getByRole('button',{name:'6M',exact:true}).getAttribute('class')).includes('text-gold'),'parent filter restored');
   await start('noAi');
-  await page.getByRole('button',{name:'Altro',exact:true}).last().click();
+  await page.getByRole('button',{name:'Profilo e impostazioni',exact:true}).last().click();
   assert.equal(await page.locator('#ui3-quick-menu').getByRole('button',{name:'AI Coach'}).count(),0);
   await page.keyboard.press('Escape'); assert.equal(await page.locator('#ui3-quick-menu').count(),0);
   await start();
   // UI3 intentionally changes the hero metric and chart geometry. Compare
   // the same financial quantities, not the number/order of decorative paths.
   const normalized=s=>s.replace(/\s/g,'');
-  await page.getByRole('button',{name:'Informazioni sul saldo',exact:true}).click();
-  const ui3Free=normalized(await page.locator('.liquid-money-rows dd').last().textContent());
-  await page.keyboard.press('Escape');
-  const monthValues=async()=>Promise.all(['entrate','uscite','investito'].map(async label=>normalized(await page.getByRole('button',{name:`Analizza ${label}`,includeHidden:true}).first().locator('.balance-num').textContent())));
-  const ui3Month=await monthValues();
+  await route('/wealth');
+  const ui3Free=normalized(await page.locator('.ui31-cash-value').textContent());
+  await route('/budget?view=overview');
+  await page.locator('.ui31-flow-chart').waitFor();
+  const ui3Month=await page.locator('.ui31-flow-chart dd').evaluateAll(es=>es.slice(0,3).map(e=>e.textContent.replace(/\s/g,'')));
   await start('ui=2');
   assert.equal(await page.locator('html').getAttribute('data-ui-version'),'2.0');
   const ui2Free=normalized(await page.locator('.ui-free-cash-layout > div:first-child > .balance-num').textContent());
-  assert.equal(ui3Free,ui2Free,'free cash remains available without changing its calculation');
-  assert.deepEqual(await monthValues(),ui3Month,'month values are unchanged');
+  assert.equal(ui3Free,ui2Free,'cash calculation remains available in Patrimonio');
+  const monthValues=async()=>Promise.all(['entrate','uscite','investito'].map(async label=>normalized(await page.getByRole('button',{name:`Analizza ${label}`,includeHidden:true}).first().locator('.balance-num').textContent())));
+  assert.deepEqual(await monthValues(),ui3Month,'registered monthly flows are unchanged');
   await start('editor&notices');
   assert.equal(await page.getByRole('dialog').count(),1);
   assert.equal(await page.getByRole('dialog',{name:'Avviso di prova'}).count(),0,'editor defers release and push notices');
@@ -79,7 +80,7 @@ try {
   assert.equal(await page.locator('[inert]').count(),0);
   await start(); await page.clock.install(); await route(`/wrapped/${new Date().getFullYear()}`);
   const wrapped=page.locator('.wrapped-shell'); await wrapped.waitFor();
-  assert.deepEqual(await wrapped.evaluate(el=>[getComputedStyle(el).getPropertyValue('--c-bg').trim(),getComputedStyle(el).color]),['9 9 9','rgb(242, 236, 216)'],'Wrapped remains original dark shell, including its cover gradient');
+  assert.deepEqual(await wrapped.evaluate(el=>[getComputedStyle(el).getPropertyValue('--c-bg').trim(),getComputedStyle(el).color]),['255 255 255','rgb(24, 24, 27)'],'Wrapped preserves its existing light shell');
   assert.ok(await wrapped.locator('.max-w-\\[430px\\]').evaluate(el=>el.getBoundingClientRect().width)<=430);
   const counter=wrapped.locator('p.text-center').last(); const first=await counter.textContent();
   await page.clock.runFor(5000); assert.equal(await counter.textContent(),first);

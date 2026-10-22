@@ -1,0 +1,320 @@
+{
+  "date": "2026-10-19",
+  "kind": "Standalone design prototype; not production application tests",
+  "matrix": [
+    {
+      "width": 320,
+      "theme": "light",
+      "page": "oggi",
+      "errors": [],
+      "overflow": false
+    },
+    {
+      "width": 320,
+      "theme": "light",
+      "page": "mese",
+      "errors": [],
+      "overflow": false
+    },
+    {
+      "width": 320,
+      "theme": "light",
+      "page": "movimenti",
+      "errors": [],
+      "overflow": false
+    },
+    {
+      "width": 320,
+      "theme": "light",
+      "page": "patrimonio",
+      "errors": [],
+      "overflow": false
+    },
+    {
+      "width": 320,
+      "theme": "dark",
+      "page": "oggi",
+      "errors": [],
+      "overflow": false
+    },
+    {
+      "width": 320,
+      "theme": "dark",
+      "page": "mese",
+      "errors": [],
+      "overflow": false
+    },
+    {
+      "width": 320,
+      "theme": "dark",
+      "page": "movimenti",
+      "errors": [],
+      "overflow": false
+    },
+    {
+      "width": 320,
+      "theme": "dark",
+      "page": "patrimonio",
+      "errors": [],
+      "overflow": false
+    },
+    {
+      "width": 390,
+      "theme": "light",
+      "page": "oggi",
+      "errors": [],
+      "overflow": false
+    },
+    {
+      "width": 390,
+      "theme": "light",
+      "page": "mese",
+      "errors": [],
+      "overflow": false
+    },
+    {
+      "width": 390,
+      "theme": "light",
+      "page": "movimenti",
+      "errors": [],
+      "overflow": false
+    },
+    {
+      "width": 390,
+      "theme": "light",
+      "page": "patrimonio",
+      "errors": [],
+      "overflow": false
+    },
+    {
+      "width": 390,
+      "theme": "dark",
+      "page": "oggi",
+      "errors": [],
+      "overflow": false
+    },
+    {
+      "width": 390,
+      "theme": "dark",
+      "page": "mese",
+      "errors": [],
+      "overflow": false
+    },
+    {
+      "width": 390,
+      "theme": "dark",
+      "page": "movimenti",
+      "errors": [],
+      "overflow": false
+    },
+    {
+      "width": 390,
+      "theme": "dark",
+      "page": "patrimonio",
+      "errors": [],
+      "overflow": false
+    },
+    {
+      "width": 1440,
+      "theme": "light",
+      "page": "oggi",
+      "errors": [],
+      "overflow": false
+    },
+    {
+      "width": 1440,
+      "theme": "light",
+      "page": "mese",
+      "errors": [],
+      "overflow": false
+    },
+    {
+      "width": 1440,
+      "theme": "light",
+      "page": "movimenti",
+      "errors": [],
+      "overflow": false
+    },
+    {
+      "width": 1440,
+      "theme": "light",
+      "page": "patrimonio",
+      "errors": [],
+      "overflow": false
+    },
+    {
+      "width": 1440,
+      "theme": "dark",
+      "page": "oggi",
+      "errors": [],
+      "overflow": false
+    },
+    {
+      "width": 1440,
+      "theme": "dark",
+      "page": "mese",
+      "errors": [],
+      "overflow": false
+    },
+    {
+      "width": 1440,
+      "theme": "dark",
+      "page": "movimenti",
+      "errors": [],
+      "overflow": false
+    },
+    {
+      "width": 1440,
+      "theme": "dark",
+      "page": "patrimonio",
+      "errors": [],
+      "overflow": false
+    },
+    {
+      "scenario": "pending-income",
+      "width": 390,
+      "theme": "light",
+      "page": "oggi",
+      "errors": [],
+      "overflow": false
+    },
+    {
+      "scenario": "pending-income",
+      "width": 390,
+      "theme": "dark",
+      "page": "oggi",
+      "errors": [],
+      "overflow": false
+    },
+    {
+      "scenario": "negative",
+      "width": 390,
+      "theme": "light",
+      "page": "oggi",
+      "errors": [],
+      "overflow": false
+    },
+    {
+      "scenario": "negative",
+      "width": 390,
+      "theme": "dark",
+      "page": "oggi",
+      "errors": [],
+      "overflow": false
+    },
+    {
+      "scenario": "no-plan",
+      "width": 390,
+      "theme": "light",
+      "page": "oggi",
+      "errors": [],
+      "overflow": false
+    },
+    {
+      "scenario": "no-plan",
+      "width": 390,
+      "theme": "dark",
+      "page": "oggi",
+      "errors": [],
+      "overflow": false
+    },
+    {
+      "scenario": "empty",
+      "width": 390,
+      "theme": "light",
+      "page": "oggi",
+      "errors": [],
+      "overflow": false
+    },
+    {
+      "scenario": "empty",
+      "width": 390,
+      "theme": "dark",
+      "page": "oggi",
+      "errors": [],
+      "overflow": false
+    },
+    {
+      "scenario": "save-error",
+      "width": 390,
+      "theme": "light",
+      "page": "oggi",
+      "errors": [],
+      "overflow": false
+    },
+    {
+      "scenario": "save-error",
+      "width": 390,
+      "theme": "dark",
+      "page": "oggi",
+      "errors": [],
+      "overflow": false
+    }
+  ],
+  "flows": [
+    {
+      "name": "record-expense",
+      "passed": true
+    },
+    {
+      "name": "confirm-pending-payment",
+      "passed": true
+    },
+    {
+      "name": "remove-one-filter-keeps-search",
+      "passed": true
+    },
+    {
+      "name": "save-failure",
+      "passed": true
+    },
+    {
+      "name": "discard-and-continue",
+      "passed": true
+    },
+    {
+      "name": "edit-search-result",
+      "passed": true
+    },
+    {
+      "name": "history-and-month",
+      "passed": true
+    },
+    {
+      "name": "first-account",
+      "passed": true
+    }
+  ],
+  "limitations": [
+    "Chromium Linux only",
+    "No device Safari or screen reader checks",
+    "No 200% text scaling audit",
+    "No real persistence, authentication, offline or financial engines",
+    "Full production type coverage is outside this prototype"
+  ],
+  "summary": {
+    "views": 34,
+    "jsErrors": 0,
+    "pageOverflows": 0,
+    "flows": 8,
+    "passedFlows": 8
+  },
+  "prototypeSha256": "eb56e6e814f97958c628d5813129f5069a5c3ca61986591c1a59738b3a68cb5d",
+  "localeCheck": {
+    "locale": "it-IT",
+    "timezone": "Europe/Rome",
+    "nativeDate": "2026-10-12",
+    "expense": "24,90",
+    "margin": 525.1,
+    "passed": true
+  },
+  "newAccountChecks": {
+    "cash": 100,
+    "netWorth": 100,
+    "scheduled": 0,
+    "noInventedInvestments": true,
+    "noInventedDueItems": true,
+    "noUnrequestedPlanPresets": true,
+    "passed": true
+  }
+}

@@ -1,3 +1,4 @@
+import './ui31Analysis.css';
 import {useAnalysisPeriod} from '../../shared/hooks/useAnalysisPeriod';
 import { transactionRoute } from '../../shared/transactionRoute';
 // "Categorie" — analytics for how spending breaks down by category over time.
@@ -68,7 +69,7 @@ export function CategorySpendingScreen({ transactions, categoryBudgets }: Props)
   ).length;
 
   return (
-    <div className="pb-32">
+    <div className="ui31-analysis ui31-categories pb-32">
       <AnalysisHeader title="Spese per categoria"
         subtitle="Come cambiano le tue spese nel tempo" backTo="/" />
 
@@ -81,11 +82,11 @@ export function CategorySpendingScreen({ transactions, categoryBudgets }: Props)
           <p className="text-[13px] text-secondary">Nessuna spesa in questo periodo.</p>
         </div>
       ) : (
-        <>
+        <div className="ui31-analysis-grid">
           {/* Hero del periodo */}
-          <div className="hero-card rounded-[26px] shadow-elev-2 p-[22px] mb-3.5 animate-rise-in">
+          <div className="ui31-analysis-hero hero-card rounded-[26px] shadow-elev-2 p-[22px] mb-3.5 animate-rise-in">
             <p className="label-caps text-secondary mb-2">Totale spese periodo</p>
-            <p className="text-[38px] leading-none font-bold text-primary balance-num">{formatCurrency(agg.total)}</p>
+            <p className="ui31-analysis-value text-[38px] leading-none font-bold text-primary balance-num">{formatCurrency(agg.total)}</p>
             {showDelta && agg.deltaPercentage !== null && (
               <div className="flex items-center gap-1.5 mt-2.5">
                 <span className={`text-[11.5px] font-semibold balance-num px-2 py-[3px] rounded-full ${
@@ -142,7 +143,7 @@ export function CategorySpendingScreen({ transactions, categoryBudgets }: Props)
           )}
 
           {/* Ranking */}
-          <div className="glass-card rounded-[20px] shadow-elev-1 overflow-hidden">
+          <div className="ui31-analysis-ranking glass-card rounded-[20px] shadow-elev-1 overflow-hidden">
             {agg.categories.map((c, i) => (
               <CategoryRankingRow
                 key={c.categoryId}
@@ -155,7 +156,7 @@ export function CategorySpendingScreen({ transactions, categoryBudgets }: Props)
               />
             ))}
           </div>
-        </>
+        </div>
       )}
 
       {selected && (
@@ -206,7 +207,7 @@ function CategoryRankingRow({ summary, meta, maxAmount, depth, last, onClick }: 
       onClick={onClick}
       className={`w-full text-left px-4 py-3.5 active:bg-card-hover transition-colors ${last ? '' : 'border-b border-divider'}`}
     >
-      <div className="flex items-center gap-3 mb-2">
+      <div className="ui31-data-row flex items-center gap-3 mb-2">
         <span className="w-8 h-8 rounded-xl flex items-center justify-center text-sm flex-shrink-0" style={{ backgroundColor: meta.color + '1a' }}>
           {meta.icon}
         </span>

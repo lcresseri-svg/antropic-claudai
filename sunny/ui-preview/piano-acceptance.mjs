@@ -12,10 +12,19 @@ try{
   const start=async(q='')=>{
     await page.goto('http://127.0.0.1:4177/ui-preview/index.html?pianoCase&'+q);
     await page.locator('#preview-writes').waitFor();await page.evaluate(()=>localStorage.clear());
-    await page.getByRole('link',{name:'Piano',exact:true}).first().click();
+    await page.evaluate(()=>{history.pushState({},'', '/budget');dispatchEvent(new PopStateEvent('popstate'));});
     await page.locator('.piano-page').waitFor();
   };
   const number=()=>page.locator('.plan-number').textContent();
+  const shiftMonth=async(direction)=>{
+    const control=page.getByRole('combobox',{name:'Mese selezionato',exact:true});
+    const [year,month]=(await control.inputValue()).split('-').map(Number);
+    const index=year*12+month-1+(direction==='next'?1:-1);
+    const expected=`${Math.floor(index/12)}-${String(index%12+1).padStart(2,'0')}`;
+    await page.getByRole('button',{name:direction==='next'?'Mese successivo':'Mese precedente',exact:true}).click();
+    await page.waitForFunction(next=>document.querySelector('[aria-label="Mese selezionato"]')?.value===next,expected);
+  };
+
   const edit=()=>page.getByRole('dialog',{name:'Modifica piano',exact:true});
   const savings=()=>edit().getByRole('textbox',{name:'Risparmio da mantenere',exact:true});
   await start('theme=light');
@@ -37,7 +46,7 @@ try{
   assert.match(await page.locator('.plan-category-list').textContent(),/1.?250,00|1250,00/);
   assert.match(await page.locator('.plan-category-list').textContent(),/450,00/);
   // Copy targets/limits into a draft; no expense documents copied or created.
-  await page.getByRole('button',{name:'Mese successivo',exact:true}).click();
+  await shiftMonth('next');
   await page.getByRole('button',{name:'Modifica piano',exact:true}).click();
   await edit().getByRole('button',{name:'Copia dal mese precedente',exact:true}).click();
   await edit().getByRole('button',{name:'Applica copia alla bozza'}).click();
@@ -46,10 +55,10 @@ try{
   await edit().getByRole('checkbox',{name:/Ho verificato/}).check();
   await edit().getByRole('button',{name:'Salva bozza',exact:true}).click();await edit().waitFor({state:'detached'});
   assert.equal(await page.locator('#preview-writes').textContent(),'0');
-  await page.getByRole('button',{name:'Mese precedente',exact:true}).click();
+  await shiftMonth('prev');
   assert.match(await number(),/550,00/);
   // Historical correction never presents a confirmation of a closed month.
-  await page.getByRole('button',{name:'Mese precedente',exact:true}).click();
+  await shiftMonth('prev');
   await page.getByRole('button',{name:'Modifica piano storico',exact:true}).click();
   assert.equal(await page.getByRole('button',{name:'Conferma piano',exact:true}).count(),0);
   await page.keyboard.press('Escape');
@@ -86,13 +95,14 @@ try{
   await start();
   await page.clock.setFixedTime(new Date(2026,10,1,0,5));
   await page.evaluate(()=>window.dispatchEvent(new Event('focus')));
-  await page.waitForFunction(()=>document.querySelector('[aria-label="Mese del piano"]').value==='2026-11');
+  await page.waitForFunction(()=>document.querySelector('[aria-label="Mese selezionato"]')?.value==='2026-11');
   await page.clock.setFixedTime(new Date(2026,9,10,12));
   await start('legacy');
   // New production path never uses the unreviewed legacy availability.
   // pianoCase intentionally seeds explicit review; separate legacy fixture below.
   await page.goto('http://127.0.0.1:4177/ui-preview/index.html?legacy');
-  await page.locator('#preview-writes').waitFor();await page.getByRole('link',{name:'Piano',exact:true}).first().click();
+  await page.locator('#preview-writes').waitFor();await page.evaluate(()=>{history.pushState({},'', '/budget');dispatchEvent(new PopStateEvent('popstate'));});
+  await page.locator('.piano-page').waitFor();
   assert.equal(await page.locator('.plan-number').count(),0);
   assert.deepEqual(errors,[]);
   console.log('Piano acceptance: formula550/cushion100/transfer/copy/future/past/deficit/hidden-investments/user-switch/focus passed.');

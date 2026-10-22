@@ -1,6 +1,6 @@
-import { useEffect, useRef, useState } from 'react';
+import { useCallback, useEffect, useRef, useState } from 'react';
 import { User } from 'firebase/auth';
-import { useNavigate } from 'react-router-dom';
+import { useNavigate, useSearchParams } from 'react-router-dom';
 import { Transaction, ownShare } from '../../types';
 import { useBudget } from '../../shared/hooks/useBudget';
 import { useSettings } from '../../shared/providers/settings';
@@ -14,23 +14,27 @@ import { useMonthlyPlan, usePlanCalendar } from './useMonthlyPlan';
 import { PlanEditor, PlanEditorSection } from './PlanEditor';
 import { PlanDialog } from './PlanDialog';
 import { moveCategoryLimit, parsePlanAmount } from './planDraft';
+import { transactionRoute } from '../../shared/transactionRoute';
 import { formatCurrency } from '../../utils';
 import './plan.css';
 const money=(v:number|null)=>v===null?'Da completare':formatCurrency(v/100);
 const monthLabel=(m:string)=>new Date(Number(m.slice(0,4)),Number(m.slice(5))-1,1).toLocaleDateString('it-IT',{month:'long',year:'numeric'});
 const states={unlimited:'Senza limite',within:'Nei limiti','spent-over':'Limite superato','committed-over':'Con il programmato','forecast-risk':'Rischio stimato'};
-interface Props {user:User;transactions:Transaction[];loading?:boolean;error?:string|null;onAddScheduled?:(date:string)=>void}
+interface Props {user:User;transactions:Transaction[];loading?:boolean;error?:string|null;onAddScheduled?:(date:string)=>void;month?:string;onMonthChange?:(month:string)=>void;embedded?:boolean}
 export function PlanScreen(p:Props) {
   const ui3=useUiVersion()==='3.0';
   const store=useBudget(p.user),settings=useSettings(),now=usePlanCalendar(),navigate=useNavigate();
   const current=monthKeyOf(now);
-  const [month,setMonth]=useUiSessionState('budget.month',current);
+  const [localMonth,setLocalMonth]=useUiSessionState(p.month===undefined?'budget.month':'budget.embedded.month',current);
+  const month=p.month??localMonth;
+  const setMonth=useCallback((next:string)=>{if(p.onMonthChange)p.onMonthChange(next);else setLocalMonth(next);},[p.onMonthChange,setLocalMonth]);
+  const [query]=useSearchParams();
   const priorCurrent=useRef(current);
-  useEffect(()=>{if(priorCurrent.current!==current){if(month===priorCurrent.current)setMonth(current);priorCurrent.current=current;}},[current,month,setMonth]);
+  useEffect(()=>{if(priorCurrent.current!==current){if(!p.month&&month===priorCurrent.current)setMonth(current);priorCurrent.current=current;}},[current,month,setMonth,p.month]);
   const plan=store.budgetHistory.find(b=>b.month===month)??null;
   const view=useMonthlyPlan(month,now,plan,p.transactions,settings.categories,store.budgetHistory);
   const [editor,setEditor]=useState<{section:PlanEditorSection;category?:string;initialPlan?:MonthlyBudget}|null>(null);
-  const [detail,setDetail]=useState<string|null>(null),[calculation,setCalculation]=useState(false),[forecastDetail,setForecastDetail]=useState(false);
+  const [detail,setDetail]=useState<string|null>(()=>ui3?query.get('category'):null),[calculation,setCalculation]=useState(false),[forecastDetail,setForecastDetail]=useState(false);
   const [all,setAll]=useState(false),[reviewOnly,setReviewOnly]=useState(false),[allDue,setAllDue]=useState(false),[allActions,setAllActions]=useState(false);
   const [archive,setArchive]=useUiSessionState('budget.archive',false);
   const [transfer,setTransfer]=useState<PlanCategory|null>(null);
@@ -50,11 +54,11 @@ export function PlanScreen(p:Props) {
   if(store.loading||p.loading)return <div className="piano-page" role="status" aria-busy="true"><h1>Piano</h1><div className="plan-card plan-skeleton">Caricamento del piano…</div></div>;
   if(store.error||p.error)return <div className="piano-page"><h1>Piano</h1><p role="alert">Dati non disponibili: {store.error||p.error}. Il margine non viene calcolato su dati incompleti.</p><button onClick={store.retry}>Riprova</button></div>;
   return <div className="piano-page ui-family-budget">
-    <header className="plan-header"><div className="plan-title"><h1>Piano</h1><span className="plan-status">{status}</span></div><div className="plan-month-nav glass-card">
+    <header className="plan-header"><div className="plan-title">{p.embedded?<h2>Piano</h2>:<h1>Piano</h1>}<span className="plan-status">{status}</span></div>{!p.embedded&&<div className="plan-month-nav glass-card">
       <button aria-label="Mese precedente" disabled={month<=earliest} onClick={()=>setMonth(prevMonthKey(month))}>‹</button>
       <label><span className="sr-only">Mese del piano</span><select aria-label="Mese del piano" value={month} onChange={e=>setMonth(e.target.value)}>{months.map(m=><option value={m} key={m}>{monthLabel(m)}</option>)}</select></label>
       <button aria-label="Mese successivo" disabled={month>=latest} onClick={()=>setMonth(monthKeyOf(new Date(Number(month.slice(0,4)),Number(month.slice(5)),1)))}>›</button>
-    </div><button className="plan-edit-button cta-gold-fill" onClick={()=>edit()}><span aria-hidden="true">✎</span>{view.period==='past'?'Modifica piano storico':'Modifica piano'}</button></header>
+    </div>}<button className="plan-edit-button cta-gold-fill" onClick={()=>edit()}><span aria-hidden="true">✎</span>{view.period==='past'?'Modifica piano storico':'Modifica piano'}</button></header>
     {saved&&<p role="status">Piano salvato sul server.</p>}
     {store.fromCache&&<p className="plan-notice" role="status">Dati dalla cache: potrebbero non essere aggiornati. Le modifiche restano bozze locali fino al salvataggio online.</p>}
     <div className="plan-layout">
@@ -130,7 +134,7 @@ export function PlanScreen(p:Props) {
       </dl><CategoryForecast category={category} period={view.period}/>
       {view.period==='current'&&category.forecast!==null&&<p className="plan-caption">Totale stimato dal forecast, già comprensivo di speso e programmato. Non modifica il limite o il margine disponibile.</p>}
       <h3>Movimenti e scadenze</h3>{upcoming([...view.realized.filter(t=>t.type==='expense'),...view.upcoming].filter(t=>t.category===category.id))}
-      <div className="plan-button-row"><button onClick={()=>{setDetail(null);edit('expenses',category.id);}}>Modifica limite</button>
+      <div className="plan-button-row">{ui3&&<button onClick={()=>navigate(transactionRoute({cat:category.id,type:'expense'},new Date(Number(month.slice(0,4)),Number(month.slice(5))-1,1),new Date(Number(month.slice(0,4)),Number(month.slice(5)),0)))}>Movimenti e modifica</button>}<button onClick={()=>{setDetail(null);edit('expenses',category.id);}}>Modifica limite</button>
         {!category.archived&&<button onClick={()=>{setDetail(null);setTransfer(category);}}>Sposta budget</button>}</div></PlanDialog>}
     {transfer&&<PlanTransfer view={view} target={transfer} onClose={()=>setTransfer(null)} onApply={(limits)=>{
       setEditor({section:'expenses',category:transfer.id,initialPlan:{...(plan??initMonthlyBudget({month})),categoryBudgets:limits}});setTransfer(null);

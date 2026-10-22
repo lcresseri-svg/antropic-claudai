@@ -29,7 +29,7 @@ try {
     await route('/budget');
     await page.getByRole('heading',{name:'Piano',exact:true}).waitFor();
     await page.getByRole('button',{name:'Mese precedente',exact:true}).click();
-    const month=await page.getByRole('combobox',{name:'Mese del piano',exact:true}).inputValue();
+    const month=await page.getByRole('combobox',{name:'Mese selezionato',exact:true}).inputValue();
     const archive=page.getByRole('button',{name:/Riepiloghi mensili/}); await archive.click();
     const recapRow=page.locator('.ui-family-budget .plan-card').filter({has:archive}).locator('button').nth(1);
     const rowText=await recapRow.textContent();
@@ -37,7 +37,7 @@ try {
     await page.getByRole('button',{name:'Indietro',exact:true}).waitFor();
     await page.getByRole('button',{name:'Indietro',exact:true}).click();
     await page.getByRole('heading',{name:'Piano',exact:true}).waitFor();
-    assert.equal(await page.getByRole('combobox',{name:'Mese del piano',exact:true}).inputValue(),month,'Budget returns to the selected historical month');
+    assert.equal(await page.getByRole('combobox',{name:'Mese selezionato',exact:true}).inputValue(),month,'Budget returns to the selected historical month');
     assert.equal(await archive.getAttribute('aria-expanded'),'true','Budget archive expansion survives child navigation');
     await page.waitForTimeout(100);
     assert.equal(await page.evaluate(()=>document.activeElement?.textContent),rowText,'restore the archived recap-row focus');

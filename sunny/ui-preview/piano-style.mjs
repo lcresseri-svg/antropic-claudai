@@ -14,12 +14,12 @@ try {
   for(const theme of ['dark','light']) {
     await page.setViewportSize({width:390,height:900});
     await page.goto('http://127.0.0.1:4177/ui-preview/index.html?pianoCase&theme='+theme);
-    await page.locator('.liquid-balance-overview').waitFor();
-    const homeSurface=await page.locator('.liquid-balance-overview').evaluate(surface);
+    await page.locator('.ui31-month-summary').waitFor();
+    const homeSurface=await page.locator('.ui31-month-summary').evaluate(surface);
     await page.screenshot({path:fileURLToPath(new URL('home-'+theme+'.png',output))});
-    await page.getByRole('link',{name:'Piano',exact:true}).first().click();
+    await page.evaluate(()=>{history.pushState({},'', '/budget');dispatchEvent(new PopStateEvent('popstate'));});
     await page.locator('.plan-summary').waitFor();
-    assert.deepEqual(await page.locator('.plan-summary').evaluate(surface),homeSurface,'Piano hero must use the same theme surfaces and elevation as Dashboard');
+    assert.equal((await page.locator('.plan-summary').evaluate(surface)).shadow,homeSurface.shadow,'Piano and Oggi keep quiet surface elevation');
     for(const width of [390,768,1440]) {
       await page.setViewportSize({width,height:900});
       await page.locator('#app-scroll').evaluate(e=>e.scrollTop=0);

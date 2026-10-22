@@ -35,14 +35,15 @@ export function RecentMovementsCard({ transactions, onSeeAll, now, onOpenTransac
     }
     realized.sort((a, b) => (a.date === b.date ? (b.createdAt ?? 0) - (a.createdAt ?? 0) : b.date.localeCompare(a.date)));
     upcoming.sort((a, b) => a.date.localeCompare(b.date));
+    if (ui3) return realized.slice(0, REALIZED_ROWS).map(t => ({ t, pending: false }));
     const next = upcoming[0];
     return [
       ...realized.slice(0, next ? REALIZED_ROWS : REALIZED_ROWS + 1).map(t => ({ t, pending: false })),
       ...(next ? [{ t: next, pending: true }] : []),
     ];
-  }, [transactions, now]);
+  }, [transactions, now, ui3]);
 
-  if (rows.length === 0) return null;
+  if (rows.length === 0) return ui3 ? <section className="glass-card rounded-[22px] p-[18px]"><div className="ui31-section-heading"><h2>Ultimi movimenti</h2><button type="button" onClick={onSeeAll}>Tutti ›</button></div><p className="text-secondary">Nessun movimento registrato. Le date future sono nelle scadenze del mese.</p></section> : null;
 
   return (
     <section className="glass-card rounded-[22px] shadow-elev-1 px-[18px] pt-[18px] pb-2 animate-rise-in"

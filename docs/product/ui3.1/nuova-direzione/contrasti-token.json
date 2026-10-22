@@ -1,0 +1,223 @@
+{
+  "scope": "Nominal text colors on solid token surfaces. Does not audit transparency, control boundaries, focus area, all rendered states or certify WCAG.",
+  "pairs": [
+    {
+      "theme": "light",
+      "role": "foreground",
+      "foreground": "#17191d",
+      "background": "#ffffff",
+      "ratio": 17.6
+    },
+    {
+      "theme": "light",
+      "role": "foreground",
+      "foreground": "#17191d",
+      "background": "#f6f7f9",
+      "ratio": 16.42
+    },
+    {
+      "theme": "light",
+      "role": "foreground",
+      "foreground": "#17191d",
+      "background": "#fffbf2",
+      "ratio": 17.04
+    },
+    {
+      "theme": "light",
+      "role": "muted",
+      "foreground": "#606773",
+      "background": "#ffffff",
+      "ratio": 5.7
+    },
+    {
+      "theme": "light",
+      "role": "muted",
+      "foreground": "#606773",
+      "background": "#f6f7f9",
+      "ratio": 5.32
+    },
+    {
+      "theme": "light",
+      "role": "muted",
+      "foreground": "#606773",
+      "background": "#fffbf2",
+      "ratio": 5.52
+    },
+    {
+      "theme": "light",
+      "role": "gold",
+      "foreground": "#8b5a06",
+      "background": "#ffffff",
+      "ratio": 5.89
+    },
+    {
+      "theme": "light",
+      "role": "gold",
+      "foreground": "#8b5a06",
+      "background": "#f6f7f9",
+      "ratio": 5.5
+    },
+    {
+      "theme": "light",
+      "role": "gold",
+      "foreground": "#8b5a06",
+      "background": "#fffbf2",
+      "ratio": 5.71
+    },
+    {
+      "theme": "light",
+      "role": "positive",
+      "foreground": "#28683c",
+      "background": "#ffffff",
+      "ratio": 6.7
+    },
+    {
+      "theme": "light",
+      "role": "positive",
+      "foreground": "#28683c",
+      "background": "#f6f7f9",
+      "ratio": 6.25
+    },
+    {
+      "theme": "light",
+      "role": "positive",
+      "foreground": "#28683c",
+      "background": "#fffbf2",
+      "ratio": 6.48
+    },
+    {
+      "theme": "light",
+      "role": "negative",
+      "foreground": "#ab343c",
+      "background": "#ffffff",
+      "ratio": 6.39
+    },
+    {
+      "theme": "light",
+      "role": "negative",
+      "foreground": "#ab343c",
+      "background": "#f6f7f9",
+      "ratio": 5.96
+    },
+    {
+      "theme": "light",
+      "role": "negative",
+      "foreground": "#ab343c",
+      "background": "#fffbf2",
+      "ratio": 6.18
+    },
+    {
+      "theme": "dark",
+      "role": "foreground",
+      "foreground": "#f4f5f7",
+      "background": "#07090c",
+      "ratio": 18.27
+    },
+    {
+      "theme": "dark",
+      "role": "foreground",
+      "foreground": "#f4f5f7",
+      "background": "#12161c",
+      "ratio": 16.63
+    },
+    {
+      "theme": "dark",
+      "role": "foreground",
+      "foreground": "#f4f5f7",
+      "background": "#1c1811",
+      "ratio": 16.2
+    },
+    {
+      "theme": "dark",
+      "role": "muted",
+      "foreground": "#aeb5c0",
+      "background": "#07090c",
+      "ratio": 9.65
+    },
+    {
+      "theme": "dark",
+      "role": "muted",
+      "foreground": "#aeb5c0",
+      "background": "#12161c",
+      "ratio": 8.79
+    },
+    {
+      "theme": "dark",
+      "role": "muted",
+      "foreground": "#aeb5c0",
+      "background": "#1c1811",
+      "ratio": 8.56
+    },
+    {
+      "theme": "dark",
+      "role": "gold",
+      "foreground": "#f1c66e",
+      "background": "#07090c",
+      "ratio": 12.38
+    },
+    {
+      "theme": "dark",
+      "role": "gold",
+      "foreground": "#f1c66e",
+      "background": "#12161c",
+      "ratio": 11.27
+    },
+    {
+      "theme": "dark",
+      "role": "gold",
+      "foreground": "#f1c66e",
+      "background": "#1c1811",
+      "ratio": 10.98
+    },
+    {
+      "theme": "dark",
+      "role": "positive",
+      "foreground": "#9bd7ac",
+      "background": "#07090c",
+      "ratio": 12.07
+    },
+    {
+      "theme": "dark",
+      "role": "positive",
+      "foreground": "#9bd7ac",
+      "background": "#12161c",
+      "ratio": 10.98
+    },
+    {
+      "theme": "dark",
+      "role": "positive",
+      "foreground": "#9bd7ac",
+      "background": "#1c1811",
+      "ratio": 10.7
+    },
+    {
+      "theme": "dark",
+      "role": "negative",
+      "foreground": "#f8a9af",
+      "background": "#07090c",
+      "ratio": 10.71
+    },
+    {
+      "theme": "dark",
+      "role": "negative",
+      "foreground": "#f8a9af",
+      "background": "#12161c",
+      "ratio": 9.75
+    },
+    {
+      "theme": "dark",
+      "role": "negative",
+      "foreground": "#f8a9af",
+      "background": "#1c1811",
+      "ratio": 9.5
+    },
+    {
+      "theme": "both",
+      "role": "primary-button",
+      "foreground": "#281c07",
+      "background": "#f3c76d",
+      "ratio": 10.48
+    }
+  ],
+  "minimum": 5.32
+}

@@ -1,3 +1,5 @@
+import './ui31Analysis.css';
+import { PortfolioValuationSummary } from './PortfolioValuationSummary';
 import { PeriodSelector } from '../../shared/components/PeriodSelector';
 import { useMemo, useState, useRef, useLayoutEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
@@ -168,12 +170,7 @@ export function InvestmentsScreen({ investmentByCategory, investmentTotal, month
   const chartPoints = ui3 ? historyPeriod === 'all' ? fullHistory : fullHistory.slice(historyPeriod === '6m' ? -6 : -12) : trend12;
   const unknownOpeningDate = visibleCategories.some(c => c.kind === 'investment' && c.initialBalance && !isHistoryDate(c.subscriptionDate));
 
-  const datedValues = positions.filter(p => p.controvalore != null && isHistoryDate(p.cat.lastValueUpdate)).map(p => p.cat.lastValueUpdate!).sort();
-  const valuationStatus = positions.some(p => p.controvalore == null)
-    ? 'Valore parziale: alcune posizioni usano il capitale versato.'
-    : datedValues.length === positions.length && datedValues.length
-      ? `Valori aggiornati dal ${formatDateFull(datedValues[0])} al ${formatDateFull(datedValues[datedValues.length - 1])}.`
-      : 'Data di aggiornamento non disponibile per tutte le posizioni.';
+
 
   // Un solo avviso per i controvalori fermi, invece dell'azione ripetuta su
   // ogni riga: dice QUALI e da quanto, e porta direttamente alla prima.
@@ -184,7 +181,7 @@ export function InvestmentsScreen({ investmentByCategory, investmentTotal, month
   const openWithdraw = (catId?: string) => { setWithdrawPreselect(catId); setWithdrawOpen(true); };
 
   return (
-    <div className="ui-family-investments pb-32 space-y-5">
+    <div className="ui-family-investments ui31-analysis ui31-investments pb-32 space-y-5">
       <AnalysisHeader title="Investimenti" subtitle="Quanto vale il portafoglio e come si muove"
         backTo="/wealth"
         action={
@@ -209,10 +206,11 @@ export function InvestmentsScreen({ investmentByCategory, investmentTotal, month
       />
 
       {/* ── Hero: portfolio ── */}
-      <section className="hero-card rounded-[26px] shadow-elev-2 p-[22px] animate-rise-in">
+      <section className="ui31-analysis-hero hero-card rounded-[26px] shadow-elev-2 p-[22px] animate-rise-in">
+        {ui3 ? <PortfolioValuationSummary positions={positions} total={controvaloreTotale} deposited={versatoTotale} difference={plusMinusTotale} differencePct={pmPct} /> : <>
         <p className="label-caps text-secondary mb-2">Controvalore totale</p>
         <p className="text-[38px] leading-none font-bold balance-num text-primary">{formatCurrency(controvaloreTotale)}</p>
-        {ui3 && <p className="text-sm text-secondary mt-3">Ultimo valore noto · {valuationStatus}</p>}
+
         {versatoTotale > 0 && (
           <div className="flex items-center gap-2 mt-2.5 flex-wrap">
             <span className={`text-[11.5px] font-semibold balance-num px-2 py-[3px] rounded-full ${
@@ -222,13 +220,14 @@ export function InvestmentsScreen({ investmentByCategory, investmentTotal, month
             <span className="text-[11.5px] text-secondary balance-num">versato {formatCurrency(versatoTotale)}</span>
           </div>
         )}
+        </>}
         {(ui3 || trend12.length >= 2) && (
           <div className="mt-4" data-portfolio-history>
             {ui3 && <PeriodSelector label="Periodo del portafoglio" value={historyPeriod} onChange={setHistoryPeriod}
               options={[{value:'6m',label:'6 mesi'},{value:'1y',label:'1 anno'},{value:'all',label:'Tutto'}]} />}
             <InvestmentTrendChart points={chartPoints} fullDates={ui3}
               periodLabel={ui3 ? `${chartPoints.length} ${chartPoints.length===1?'mese disponibile':'mesi disponibili'}` : undefined}
-              controvalore={controvaloreTotale > 0 ? controvaloreTotale : null} />
+              controvalore={ui3 ? positions.length > 0 && positions.every(p => p.controvalore !== null) ? controvaloreTotale : null : controvaloreTotale > 0 ? controvaloreTotale : null} />
             {ui3 && unknownOpeningDate && <p className="text-xs text-secondary mt-2">Il capitale iniziale senza data è incluso per tutto il periodo disponibile.</p>}
           </div>
         )}
@@ -236,7 +235,7 @@ export function InvestmentsScreen({ investmentByCategory, investmentTotal, month
 
       {/* ── Un solo avviso per i controvalori fermi ── */}
       {stalePositions.length > 0 && (
-        <div className="ui-inline-notice rounded-[18px] border border-gold/30 bg-gold/10 px-4 py-3.5 flex items-start gap-3">
+        <div className="ui31-valuation-notice ui-inline-notice rounded-[18px] border border-gold/30 bg-gold/10 px-4 py-3.5 flex items-start gap-3">
           <span className="text-gold text-base flex-none">⏱️</span>
           <p className="flex-1 text-[12.5px] text-secondary leading-relaxed">
             {stalePositions.length === 1
@@ -249,7 +248,7 @@ export function InvestmentsScreen({ investmentByCategory, investmentTotal, month
       )}
 
       {/* ── Primary actions ── */}
-      <div className="flex gap-2.5">
+      <div className="ui31-investment-actions flex gap-2.5">
         <button onClick={() => setDepositOpen(true)}
           className="flex-1 py-3 rounded-2xl cta-gold-fill font-semibold text-sm transition-transform active:scale-[0.98]">
           + Versa
@@ -270,7 +269,7 @@ export function InvestmentsScreen({ investmentByCategory, investmentTotal, month
 
       {/* ── Positions ── */}
       {positions.length > 0 && (
-        <div className="ui-open-list space-y-2.5">
+        <div className="ui31-position-list ui-open-list space-y-2.5">
           <div className="flex items-center justify-between px-1">
             <p className="label-caps text-secondary">Posizioni</p>
             <p className="text-[11px] text-secondary">{positions.length} categorie</p>
@@ -288,11 +287,12 @@ export function InvestmentsScreen({ investmentByCategory, investmentTotal, month
                 onClick={() => setDetailCat(p.cat)}
                 className={`ui-open-row w-full text-left glass-card rounded-[18px] shadow-elev-1 p-4
                             active:scale-[0.99] transition-transform ${empty ? 'opacity-50' : ''}`}>
-                <div className="flex items-center gap-3">
+                <div className="ui31-data-row flex items-center gap-3">
                   <span className="w-9 h-9 rounded-xl flex items-center justify-center text-base flex-shrink-0"
                     style={{ backgroundColor: p.cat.color + '26' }}>{p.cat.icon}</span>
                   <div className="flex-1 min-w-0">
                     <p className="text-[15px] font-semibold text-primary truncate">{p.cat.label}</p>
+                    {ui3 && <p className="ui31-position-capital text-[12px] text-secondary">Versato {formatCurrency(p.versato)} · {p.controvalore !== null && isHistoryDate(p.cat.lastValueUpdate) ? `valore al ${formatDateFull(p.cat.lastValueUpdate)}` : p.controvalore !== null ? 'data valore non disponibile' : 'controvalore mancante'}</p>}
                     <p className="text-[11.5px] truncate">
                       {p.controvalore == null || p.stale ? (
                         <span className="text-gold">valore da aggiornare</span>
@@ -322,7 +322,7 @@ export function InvestmentsScreen({ investmentByCategory, investmentTotal, month
                 </div>
                 <div className="mt-3 h-2 rounded-full overflow-hidden progress-track">
                   <div className="h-full rounded-full bar-grow"
-                    style={{ width: `${Math.min(100, pctOf * 100)}%`, backgroundColor: p.cat.color }} />
+                    style={{ width: `${ui3 ? Math.max(0, Math.min(100, pctOf * 100)) : Math.min(100, pctOf * 100)}%`, backgroundColor: p.cat.color }} />
                 </div>
               </button>
             );

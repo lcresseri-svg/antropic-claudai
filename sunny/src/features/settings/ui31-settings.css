@@ -1,0 +1,34 @@
+[data-liquid-ui="true"] .ui31-settings { min-width: 0; }
+[data-liquid-ui="true"] .ui31-settings-intro { font-size: 16px; line-height: 1.6; color: rgb(var(--c-secondary)); max-width: 52ch; }
+[data-liquid-ui="true"] .ui31-settings-groups { display: grid; gap: 28px; align-items: start; }
+[data-liquid-ui="true"] .ui31-settings-group { min-width: 0; }
+[data-liquid-ui="true"] .ui31-settings-group > h2 { font-size: 12px; letter-spacing: .08em; margin-bottom: 10px; }
+[data-liquid-ui="true"] .ui31-settings-group > div { border: 1px solid var(--ui31-border, rgb(var(--c-divider))); border-radius: 18px; box-shadow: none; background: var(--ui31-surface, rgb(var(--c-card))); }
+[data-liquid-ui="true"] .ui31-settings .ui-settings-row { min-height: 72px; padding: 14px 16px; gap: 12px; }
+[data-liquid-ui="true"] .ui31-settings .ui-settings-label { white-space: normal; overflow: visible; text-overflow: clip; font-size: 16px; line-height: 1.35; }
+[data-liquid-ui="true"] .ui31-settings .ui-settings-caption { white-space: normal; overflow: visible; text-overflow: clip; font-size: 13px; line-height: 1.5; }
+[data-liquid-ui="true"] .ui31-settings :is(button, input, summary) { min-height: 44px; }
+[data-liquid-ui="true"] .ui31-settings :is(button, input, summary):focus-visible { outline: 2px solid rgb(var(--c-gold)); outline-offset: 3px; }
+[data-liquid-ui="true"] .ui31-settings .ui-settings-row > button[role="switch"] { min-height: 44px; flex-shrink: 0; }
+[data-liquid-ui="true"] .ui31-settings .ui-settings-row > span:first-child { background: transparent !important; color: rgb(var(--c-secondary)); }
+[data-liquid-ui="true"] .ui31-settings input[aria-label="Cerca nelle impostazioni"] { font-size: 16px; min-height: 48px; }
+[data-liquid-ui="true"] .ui31-settings-search-clear { position: absolute; right: 4px; top: 2px; width: 44px; font-size: 24px; color: rgb(var(--c-secondary)); }
+[data-liquid-ui="true"] .ui31-settings-search-status { color: rgb(var(--c-secondary)); font-size: 14px; line-height: 1.5; padding-inline: 4px; }
+[data-liquid-ui="true"] .ui31-settings .ui-settings-detail { max-width: 760px; }
+[data-liquid-ui="true"] .ui31-settings .ui-settings-detail p { line-height: 1.6; }
+[data-liquid-ui="true"] .ui31-settings-danger-heading { border-top: 1px solid var(--ui31-border, rgb(var(--c-divider))); padding-top: 28px; font-size: 14px; color: rgb(var(--c-secondary)); }
+[data-liquid-ui="true"] .ui31-settings-danger { border: 1px solid rgb(var(--c-red) / .25); }
+@media (min-width: 768px) and (max-width: 1099px) {
+  [data-liquid-ui="true"] .ui31-settings-groups { grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 24px; }
+  [data-liquid-ui="true"] .ui31-settings .ui-settings-row { min-height: 80px; }
+}
+@media (min-width: 1100px) {
+  [data-liquid-ui="true"] .ui31-settings-groups { grid-template-columns: repeat(2, minmax(0, 1fr)); column-gap: 32px; }
+  [data-liquid-ui="true"] .ui31-settings .ui-settings-row { min-height: 68px; }
+  [data-liquid-ui="true"] .ui31-settings .ui-settings-menu { max-width: 1000px; }
+}
+@media (max-width: 359px) {
+  [data-liquid-ui="true"] .ui31-settings .ui-settings-row { gap: 8px; padding-inline: 12px; }
+  [data-liquid-ui="true"] .ui31-settings .ui-settings-row > span:first-child { width: 24px; }
+}
+@media (prefers-reduced-motion: reduce) { [data-liquid-ui="true"] .ui31-settings * { animation: none !important; transition: none !important; } }

@@ -1,0 +1,37 @@
+## UI Pro Max Search Results
+**Domain:** ux | **Query:** success feedback
+**Source:** ux-guidelines.csv | **Found:** 3 results
+
+### Result 1
+- **Category:** Interaction
+- **Issue:** Success Feedback
+- **Platform:** All
+- **Description:** Confirm successful actions to users
+- **Do:** Show success message or visual change
+- **Don't:** No confirmation of completed action
+- **Code Example Good:** Toast notification or checkmark
+- **Code Example Bad:** Action completes silently
+- **Severity:** Medium
+
+### Result 2
+- **Category:** Touch
+- **Issue:** Haptic Feedback
+- **Platform:** Mobile
+- **Description:** Tactile feedback improves interaction feel
+- **Do:** Use for confirmations and important actions
+- **Don't:** Overuse vibration feedback
+- **Code Example Good:** navigator.vibrate(10)
+- **Code Example Bad:** Vibrate on every tap
+- **Severity:** Low
+
+### Result 3
+- **Category:** AI Interaction
+- **Issue:** Feedback Loop
+- **Platform:** All
+- **Description:** AI needs user feedback to improve
+- **Do:** Thumps up/down or 'Regenerate'
+- **Don't:** Static output only
+- **Code Example Good:** Feedback component
+- **Code Example Bad:** Read-only text
+- **Severity:** Low
+

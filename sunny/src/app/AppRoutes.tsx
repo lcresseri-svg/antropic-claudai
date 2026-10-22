@@ -24,6 +24,7 @@ const WealthHistoryScreen = lazy(() => import('../features/dashboard/WealthHisto
 const MonthlyRecapScreen = lazy(() => import('../features/recap/MonthlyRecapScreen').then(m => ({ default: m.MonthlyRecapScreen })));
 const InsightsScreenV2 = lazy(() => import('../features/insights/InsightsScreenV2').then(m => ({ default: m.InsightsScreenV2 })));
 const BudgetScreenV2 = lazy(() => import('../features/budget/BudgetScreenV2').then(m => ({ default: m.BudgetScreenV2 })));
+const Ui31MonthScreen = lazy(() => import('../features/budget/Ui31MonthScreen').then(m => ({ default: m.Ui31MonthScreen })));
 const TransactionList = lazy(() => import('../features/transactions/TransactionList').then(m => ({ default: m.TransactionList })));
 const SettingsScreen = lazy(() => import('../features/settings/SettingsScreen').then(m => ({ default: m.SettingsScreen })));
 const AICoachScreen = lazy(() => import('../features/aiCoach/AICoachScreen').then(m => ({ default: m.AICoachScreen })));
@@ -129,6 +130,7 @@ export function AppRoutes({ user, brand, tx, budget, editing, applePayPayments, 
           <div className={`md:mx-auto md:max-w-[720px] ${W.home}`}>
           {!ui3 && applePayCard}
           <DashboardV2
+            user={user} rawTransactions={tx.allTransactions} transactionsLoading={tx.loading} transactionsError={tx.error}
             paymentPriority={applePayCard} paymentPriorityCount={applePayPayments.length} hasPaymentPriority={applePayPayments.length>0 || !!applePayError}
             onEditTransaction={editing.openEdit}
             greeting={brand}
@@ -157,6 +159,8 @@ export function AppRoutes({ user, brand, tx, budget, editing, applePayPayments, 
         <Route path="/wealth" element={
           <div className={page(W.wide)}>
             <WealthScreen
+              showAvailableCash={isFeatureEnabled('available_cash', user)}
+              rawTransactions={tx.allTransactions} loading={tx.loading} error={tx.error}
               showCommitments={isFeatureEnabled('commitments', user)}
               transactions={tx.transactions}
               netWorth={tx.netWorth} liquidity={tx.liquidity} investmentTotal={tx.investmentTotal}
@@ -191,7 +195,7 @@ export function AppRoutes({ user, brand, tx, budget, editing, applePayPayments, 
         } />
         <Route path="/budget" element={
           <div className={page(W.wide)}>
-            {enableBudget ? (
+            {ui3 ? <Ui31MonthScreen user={user} transactions={tx.allTransactions} loading={tx.loading} error={tx.error} onAddScheduled={editing.openScheduledExpense} /> : enableBudget ? (
               <BudgetScreenV2
                 user={user}
                 transactions={tx.transactions}

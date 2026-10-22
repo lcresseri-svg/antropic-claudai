@@ -1,0 +1,37 @@
+## UI Pro Max Search Results
+**Domain:** ux | **Query:** back navigation hierarchy
+**Source:** ux-guidelines.csv | **Found:** 3 results
+
+### Result 1
+- **Category:** Navigation
+- **Issue:** Back Button
+- **Platform:** Mobile
+- **Description:** Users expect back to work predictably
+- **Do:** Preserve navigation history properly
+- **Don't:** Break browser/app back button behavior
+- **Code Example Good:** history.pushState()
+- **Code Example Bad:** location.replace()
+- **Severity:** High
+
+### Result 2
+- **Category:** Navigation
+- **Issue:** Breadcrumbs
+- **Platform:** Web
+- **Description:** Show user location in site hierarchy
+- **Do:** Use for sites with 3+ levels of depth
+- **Don't:** Use for flat single-level sites
+- **Code Example Good:** Home > Category > Product
+- **Code Example Bad:** Only on deep nested pages
+- **Severity:** Low
+
+### Result 3
+- **Category:** Accessibility
+- **Issue:** Heading Hierarchy
+- **Platform:** Web
+- **Description:** Screen readers use headings for navigation
+- **Do:** Use sequential heading levels h1-h6
+- **Don't:** Skip heading levels or misuse for styling
+- **Code Example Good:** h1 then h2 then h3
+- **Code Example Bad:** h1 then h4
+- **Severity:** Medium
+

@@ -1,3 +1,4 @@
+import './ui31Analysis.css';
 import {useAnalysisPeriod} from '../../shared/hooks/useAnalysisPeriod';
 import { ProgressiveSection } from '../../shared/components/ProgressiveSection';
 import { transactionRoute } from '../../shared/transactionRoute';
@@ -71,7 +72,7 @@ export function IncomeScreen({ transactions }: Props) {
   const CONCENTRATION_ALERT = 80;
 
   return (
-    <div className="pb-32">
+    <div className="ui31-analysis ui31-income pb-32">
       <AnalysisHeader title="Entrate"
         subtitle="Da dove arrivano e quanto sono stabili" backTo="/" />
 
@@ -84,11 +85,11 @@ export function IncomeScreen({ transactions }: Props) {
           <p className="text-[13px] text-secondary">Nessuna entrata in questo periodo.</p>
         </div>
       ) : (
-        <>
+        <div className="ui31-analysis-grid">
           {/* Totale periodo + ENTRATE NETTE */}
-          <div className="hero-card rounded-[26px] shadow-elev-2 p-[22px] mb-3.5 animate-rise-in">
+          <div className="ui31-analysis-hero hero-card rounded-[26px] shadow-elev-2 p-[22px] mb-3.5 animate-rise-in">
             <p className="label-caps text-secondary mb-2">Entrate del periodo</p>
-            <p className="text-[38px] leading-none font-bold text-green balance-num">{formatCurrency(cashIn)}</p>
+            <p className="ui31-analysis-value text-[38px] leading-none font-bold text-green balance-num">{formatCurrency(cashIn)}</p>
             {showDelta && agg.deltaPercentage !== null && (
               <div className="flex items-center gap-1.5 mt-2.5">
                 <span className={`text-[11.5px] font-semibold balance-num px-2 py-[3px] rounded-full ${
@@ -212,12 +213,12 @@ export function IncomeScreen({ transactions }: Props) {
           )}
 
           {/* Dettaglio per fonte */}
-          <div className="glass-card rounded-2xl p-4">
+          <div className="ui31-income-sources glass-card rounded-2xl p-4">
             <p className="label-caps text-secondary mb-1 px-1">Dettaglio per fonte</p>
             <div className="divide-y divide-divider">
               {agg.categories.map(c => (
                 <div key={c.categoryId} className="py-3">
-                  <div className="flex items-center gap-3">
+                  <div className="ui31-data-row flex items-center gap-3">
                     <span className="w-9 h-9 rounded-xl flex items-center justify-center text-base flex-shrink-0"
                       style={{ backgroundColor: getCat(c.categoryId).color + '22' }}>
                       {getCat(c.categoryId).icon}
@@ -246,7 +247,7 @@ export function IncomeScreen({ transactions }: Props) {
               ))}
             </div>
           </div>
-        </>
+        </div>
       )}
     </div>
   );

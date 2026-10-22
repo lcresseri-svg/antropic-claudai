@@ -5,10 +5,7 @@ import { useUiVersion } from '../shared/providers/UiVersionProvider';
 
 interface Props {
   brand: string;
-  /** Contesto del mese ("Agosto · giorno 24 di 31"). L'header mobile mostra
-   *  sempre questo, in ogni schermata: il saluto ("Buonasera, Luca") cambiava
-   *  a seconda dell'ora e non diceva dove sei. Il saluto resta su desktop,
-   *  dentro la dashboard. Assente → torna il brand. */
+  /** UI2 month context. UI3.1 shows the date within Oggi. */
   monthLine?: string;
   loading: boolean;
   isSettings: boolean;
@@ -24,19 +21,23 @@ export function AppHeader({ brand, monthLine, loading, isSettings, settingsOpen,
   const navigate = useNavigate();
   const version = useUiVersion();
   const menu = useRef<HTMLDivElement>(null);
+  const menuRoot = useRef<HTMLDivElement>(null);
   useEffect(() => {
     if(version!=='3.0' || !settingsOpen) return;
     menu.current?.querySelector('button')?.focus();
     const close=(e:KeyboardEvent)=>{if(e.key==='Escape'){e.preventDefault();onToggleSettings(false);document.getElementById('ui3-more-trigger')?.focus();}};
+    const outside=(e:PointerEvent)=>{if(e.target instanceof Node && !menuRoot.current?.contains(e.target)) onToggleSettings(false);};
     document.addEventListener('keydown',close);
-    return()=>document.removeEventListener('keydown',close);
+    document.addEventListener('pointerdown',outside);
+    return()=>{document.removeEventListener('keydown',close);document.removeEventListener('pointerdown',outside);};
   },[version,settingsOpen,onToggleSettings]);
   if (version === '3.0') return <header className="ui3-header glass-header">
     <button className="ui3-header-brand" onClick={() => navigate('/')} aria-label="Sunny · Vai a Oggi"><ArcLogo size={26} /><span>sunny</span></button>
-    <span className="ui3-month-line">{monthLine ?? brand}{loading && <span role="status"> · Caricamento…</span>}</span>
-    <div className="relative ml-auto">
-      <button id="ui3-more-trigger" aria-expanded={settingsOpen} aria-controls="ui3-quick-menu" onClick={() => onToggleSettings(!settingsOpen)} className="ui3-more">Altro <span aria-hidden>⋯</span></button>
+    {loading && <span className="ui31-header-status" role="status">Caricamento…</span>}
+    <div ref={menuRoot} className="relative ml-auto">
+      <button id="ui3-more-trigger" aria-label="Profilo e impostazioni" aria-expanded={settingsOpen} aria-controls="ui3-quick-menu" onClick={() => onToggleSettings(!settingsOpen)} className="ui3-more ui31-profile"><svg width="21" height="21" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.7" aria-hidden><circle cx="12" cy="8" r="3.5"/><path d="M5 21v-2a7 7 0 0 1 14 0v2"/></svg><span>Profilo</span></button>
       {settingsOpen && <div ref={menu} id="ui3-quick-menu" className="ui3-quick-menu glass-elevated">
+        <button onClick={() => { navigate('/budget'); onToggleSettings(false); }}>Il tuo mese</button>
         {showCommitments && <button onClick={()=>{navigate('/commitments');onToggleSettings(false);}}>Impegni</button>}
         <button onClick={() => { navigate('/insights'); onToggleSettings(false); }}>Consigli</button>
         {aiEnabled && <button onClick={() => { navigate('/ai-coach'); onToggleSettings(false); }}>AI Coach</button>}

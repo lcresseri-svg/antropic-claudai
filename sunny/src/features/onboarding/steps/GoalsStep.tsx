@@ -4,6 +4,8 @@
 // cosa cambiava. Ora ogni riga dice la CONSEGUENZA della scelta — "attiva il
 // Piano", "attiva il tab Investimenti" — perché è quella l'informazione che
 // serve per decidere, non l'icona.
+import { useUiVersion } from '../../../shared/providers/UiVersionProvider';
+import { SystemIcon } from '../../../shared/components/SystemIcon';
 import { OnboardingGoal } from '../onboardingTypes';
 
 interface Props {
@@ -27,6 +29,7 @@ const GOALS: { id: OnboardingGoal; label: string; icon: string; effect: string; 
 ];
 
 export function GoalsStep({ selected, onChange }: Props) {
+  const ui3 = useUiVersion() === '3.0';
   const toggle = (id: OnboardingGoal) => {
     onChange(selected.includes(id) ? selected.filter(g => g !== id) : [...selected, id]);
   };
@@ -36,10 +39,10 @@ export function GoalsStep({ selected, onChange }: Props) {
       <div className="space-y-2">
         <h2 className="text-[25px] font-bold text-primary tracking-[-0.03em] leading-tight"
           style={{ textWrap: 'pretty' } as React.CSSProperties}>
-          Da dove vuoi partire?
+          {ui3 ? 'Che cosa ti interessa?' : 'Da dove vuoi partire?'}
         </h2>
         <p className="text-[13.5px] text-secondary leading-[1.55]">
-          Scegline quanti vuoi. Ogni scelta accende una parte dell'app: si cambia quando vuoi dalle Impostazioni.
+          {ui3 ? 'Preferenze facoltative. Non attivano funzioni: puoi scegliere Piano, investimenti e AI dalle Impostazioni.' : "Scegline quanti vuoi. Ogni scelta accende una parte dell'app: si cambia quando vuoi dalle Impostazioni."}
         </p>
       </div>
 
@@ -53,10 +56,10 @@ export function GoalsStep({ selected, onChange }: Props) {
                 active ? 'border-[1.5px] border-gold' : 'border border-divider bg-card hover:bg-card-hover'}`}
               style={active ? { background: 'var(--hero-bg)' } : undefined}>
               <span className="w-8 h-8 rounded-[11px] flex items-center justify-center text-base flex-none"
-                style={{ background: `${goal.tint}29` }}>{goal.icon}</span>
+                style={{ background: `${goal.tint}29` }}><SystemIcon icon={goal.icon} /></span>
               <span className="min-w-0 flex-1">
                 <span className="block text-[14px] font-semibold text-primary truncate">{goal.label}</span>
-                <span className="block text-[11.5px] text-secondary truncate">{goal.effect}</span>
+                <span className="block text-[11.5px] text-secondary truncate">{ui3 ? ({understand_spending:'Leggi categorie e ritmo del mese',save_more:'Scegli un obiettivo quando ti serve',subscriptions:'Ritrova le spese ricorrenti',budget:'Il Piano resta una scelta separata',investments:'Consulta capitale e controvalore',ai_insights:'AI facoltativa, quando abilitata'}[goal.id]) : goal.effect}</span>
               </span>
               <span className={`w-5 h-5 rounded-full flex-none flex items-center justify-center ${
                 active ? 'bg-gold' : 'border border-[rgb(var(--c-primary)/0.16)]'}`}>

@@ -1,0 +1,54 @@
+[data-liquid-ui="true"] .ui31-ledger { min-width: 0; }
+[data-liquid-ui="true"] .ui31-ledger .liquid-movements-header { min-height: 64px; height: auto; }
+[data-liquid-ui="true"] .ui31-ledger h1 { font-size: clamp(1.5rem, 3vw, 2rem); }
+[data-liquid-ui="true"] .ui31-ledger-search { display: grid; gap: 8px; margin-bottom: 16px; }
+[data-liquid-ui="true"] .ui31-ledger-search input { font-size: 16px; min-height: 48px; border: 1px solid var(--ui31-border, var(--ui-border)); }
+[data-liquid-ui="true"] .ui31-ledger-search > div { border-radius: 18px; }
+[data-liquid-ui="true"] .ui31-ledger-toolbar { display: flex; align-items: center; gap: 12px; min-width: 0; }
+[data-liquid-ui="true"] .ui31-ledger-types { flex: 1; min-width: 0; margin: 0; padding: 4px 0; }
+[data-liquid-ui="true"] .ui31-ledger-toolbar > button { flex-shrink: 0; }
+[data-liquid-ui="true"] .ui31-ledger-toolbar button { min-height: 44px; }
+[data-liquid-ui="true"] .ui31-ledger-context { display: flex; flex-wrap: wrap; align-items: center; gap: 8px 16px; padding: 12px 0; }
+[data-liquid-ui="true"] .ui31-ledger-context > span:first-child { flex: 1; min-width: 160px; }
+[data-liquid-ui="true"] .ui31-ledger-context button, [data-liquid-ui="true"] .ui31-ledger-clear { min-height: 44px; padding-inline: 8px; }
+[data-liquid-ui="true"] .ui31-ledger-criteria { padding-block: 4px 12px; }
+[data-liquid-ui="true"] .ui31-ledger-criteria button { min-height: 44px; max-width: 100%; text-align: left; white-space: normal; overflow-wrap: anywhere; font-size: 13px; }
+[data-liquid-ui="true"] .ui31-ledger-criteria button svg { flex-shrink: 0; }
+[data-liquid-ui="true"] .ui31-ledger-selection { padding: 12px 16px; border: 1px solid var(--ui31-border, var(--ui-border)); border-radius: 16px; margin-block: 8px 16px; }
+[data-liquid-ui="true"] .ui31-ledger .ui-transaction-filters { width: min(340px, calc(100vw - 40px)); }
+[data-liquid-ui="true"] .ui31-ledger .ui-transaction-filters button { min-height: 44px; font-size: 14px; }
+[data-liquid-ui="true"] .ui31-ledger-bulk > div, [data-liquid-ui="true"] .ui31-ledger-bulk > div > div { flex-wrap: wrap; }
+[data-liquid-ui="true"] .ui31-ledger-bulk button { min-height: 44px; }
+[data-liquid-ui="true"] .ui31-ledger :focus-visible { outline: 2px solid var(--ui-accent); outline-offset: 3px; }
+@media (max-width: 389px) {
+  [data-liquid-ui="true"] .ui31-ledger-search > div { flex-wrap: wrap; }
+  [data-liquid-ui="true"] .ui31-ledger-search input { flex-basis: 100%; }
+}
+@media (min-width: 768px) {
+  [data-liquid-ui="true"] .ui31-ledger-bulk { left: var(--ui-nav-width, 88px); }
+}
+@media (min-width: 1100px) {
+  [data-liquid-ui="true"] .ui31-ledger-bulk { left: var(--ui-nav-width, 232px); }
+}
+
+[data-liquid-ui="true"].ui31-movement-editor .ui-amount-input { font-size: clamp(2.25rem, 7vw, 3.5rem); line-height: 1.2; }
+[data-liquid-ui="true"].ui31-movement-editor .ui31-movement-types { grid-template-columns: repeat(2, minmax(0, 1fr)) !important; }
+[data-liquid-ui="true"].ui31-movement-editor .ui31-movement-types button { white-space: normal; overflow-wrap: anywhere; font-size: 13px; }
+[data-liquid-ui="true"].ui31-movement-editor .ui-editor-footer { border-top: 1px solid var(--ui31-border, var(--ui-border)); }
+[data-liquid-ui="true"].ui31-movement-editor form > .overflow-y-auto { scroll-padding-block: 16px; }
+[data-liquid-ui="true"].ui31-movement-editor :focus-visible { outline: 2px solid var(--ui-accent); outline-offset: 3px; }
+[data-liquid-ui="true"].ui31-movement-editor label { font-size: 14px; }
+@media (min-width: 390px) {
+  [data-liquid-ui="true"].ui31-movement-editor .ui31-movement-types { grid-template-columns: repeat(3, minmax(0, 1fr)) !important; }
+  [data-liquid-ui="true"].ui31-movement-editor .ui31-movement-types:has(> button:nth-child(4)) { grid-template-columns: repeat(2, minmax(0, 1fr)) !important; }
+}
+/* Keep the footer within the visible viewport, including keyboard/landscape.
+   The form, title and payload builder stay mounted while fields scroll. */
+html[data-ui-version="3.0"] .ui-dialog-overlay[data-ui-compact-viewport="true"] > [data-liquid-ui="true"].ui31-movement-editor,
+html[data-ui-version="3.0"] .ui-dialog-overlay > [data-liquid-ui="true"].ui31-movement-editor { overflow: hidden; }
+html[data-ui-version="3.0"] .ui-dialog-overlay[data-ui-compact-viewport="true"] > [data-liquid-ui="true"].ui31-movement-editor form { flex: 1; min-height: 0; }
+html[data-ui-version="3.0"] .ui-dialog-overlay[data-ui-compact-viewport="true"] > [data-liquid-ui="true"].ui31-movement-editor form > .overflow-y-auto { flex: 1; overflow-y: auto; }
+@media (max-height: 599px) {
+  html[data-ui-version="3.0"] .ui-dialog-overlay > [data-liquid-ui="true"].ui31-movement-editor form { flex: 1; min-height: 0; }
+  html[data-ui-version="3.0"] .ui-dialog-overlay > [data-liquid-ui="true"].ui31-movement-editor form > .overflow-y-auto { flex: 1; overflow-y: auto; }
+}

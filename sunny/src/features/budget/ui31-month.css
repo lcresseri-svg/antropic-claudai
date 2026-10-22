@@ -1,0 +1,73 @@
+[data-liquid-ui="true"] .ui31-month { max-width:1240px;margin:0 auto;min-width:0;color:var(--text-1);font-size:16px;line-height:1.5; }
+[data-liquid-ui="true"] .ui31-month-heading { display:flex;align-items:center;justify-content:space-between;gap:20px;flex-wrap:wrap;margin-bottom:20px; }
+[data-liquid-ui="true"] .ui31-month h1 { font-size:clamp(28px,4vw,36px);line-height:1.2;letter-spacing:-.04em;font-weight:700; }
+[data-liquid-ui="true"] .ui31-month h2 { font-size:18px;line-height:1.35;letter-spacing:-.025em;font-weight:650; }
+[data-liquid-ui="true"] .ui31-month-heading p { color:var(--text-2);font-size:14px;margin-top:8px;max-width:42ch; }
+[data-liquid-ui="true"] .ui31-month a { text-decoration:none; }
+[data-liquid-ui="true"] .ui31-month .ui31-back-link { display:inline-flex;align-items:center;min-height:44px;font-size:14px;color:var(--text-2);margin-bottom:4px; }
+[data-liquid-ui="true"] .ui31-month-picker { display:flex;align-items:center;justify-content:space-between;max-width:100%;border:1px solid var(--ui31-border,var(--border));border-radius:14px;background:var(--ui31-surface,var(--surface-1)); }
+[data-liquid-ui="true"] .ui31-month-picker button { width:44px;min-height:48px;flex:none;font-size:24px; }
+[data-liquid-ui="true"] .ui31-month-picker button:disabled { opacity:.35; }
+[data-liquid-ui="true"] .ui31-month-picker label { min-width:0; }
+[data-liquid-ui="true"] .ui31-month-picker select { max-width:100%;min-height:48px;background:transparent;color:var(--text-1);border:0;font-size:14px;font-weight:600;padding:8px;cursor:pointer; }
+[data-liquid-ui="true"] .ui31-month-picker option { background:var(--surface-1); }
+[data-liquid-ui="true"] .ui31-month-tabs { display:flex;gap:4px;border-bottom:1px solid var(--ui31-border,var(--border));margin:0 0 24px; }
+[data-liquid-ui="true"] .ui31-month-tabs a { flex:1;display:flex;justify-content:center;align-items:center;text-align:center;min-height:48px;padding:12px 8px;font-size:14px;color:var(--text-2);border-bottom:2px solid transparent; }
+[data-liquid-ui="true"] .ui31-month-tabs a[aria-current] { color:var(--text-1);font-weight:600;border-bottom-color:var(--accent);background:var(--ui31-warm,var(--surface-1));border-radius:12px 12px 0 0; }
+[data-liquid-ui="true"] .ui31-month-card { min-width:0;padding:22px;border-radius:22px;border:1px solid var(--ui31-border,var(--border));background:var(--ui31-surface,var(--surface-1)); }
+[data-liquid-ui="true"] .ui31-month-card p { font-size:14px;color:var(--text-2);margin:10px 0; }
+[data-liquid-ui="true"] .ui31-month-card>a:not(.ui31-primary-link),[data-liquid-ui="true"] .ui31-month-card button { min-height:44px;display:inline-flex;align-items:center;gap:12px;font-size:14px; }
+[data-liquid-ui="true"] .ui31-month-overview { display:grid;gap:20px; }
+[data-liquid-ui="true"] .ui31-month-overview-summary { background:var(--ui31-warm,var(--surface-1)); }
+[data-liquid-ui="true"] .ui31-month-overview-summary>.ui31-metric-label { margin-top:0; }
+[data-liquid-ui="true"] .ui31-month-overview-summary .ui31-month-number { font-size:clamp(34px,6vw,48px); }
+[data-liquid-ui="true"] .ui31-month-notice { margin:12px 0 20px;padding:12px 16px;background:var(--ui31-warm,var(--surface-1));border:1px solid var(--ui31-border,var(--border));border-radius:12px;font-size:14px; }
+[data-liquid-ui="true"] .ui31-month-links { display:flex;flex-wrap:wrap;gap:8px 24px;border-top:1px solid var(--ui31-border,var(--border));padding:16px 0;margin-top:28px; }
+[data-liquid-ui="true"] .ui31-month-links a { min-height:44px;display:inline-flex;align-items:center;font-size:14px;color:var(--text-2); }
+[data-liquid-ui="true"] .ui31-optional-plan { max-width:680px; }
+[data-liquid-ui="true"] .ui31-optional-plan>a { display:flex;width:fit-content; }
+[data-liquid-ui="true"] .ui31-month-card .ui31-section-heading>span { color:var(--text-2);font-size:12px; }
+[data-liquid-ui="true"] .ui31-month-categories>ul { list-style:none;padding:0;margin:16px 0 0; }
+[data-liquid-ui="true"] .ui31-month-categories>ul>li { border-top:1px solid var(--ui31-border,var(--border)); }
+[data-liquid-ui="true"] .ui31-month-categories summary { list-style:none;cursor:pointer;display:grid;grid-template-columns:minmax(0,1fr) auto 16px;gap:8px 12px;padding:16px 0;min-height:48px;align-items:center; }
+[data-liquid-ui="true"] .ui31-month-categories summary::-webkit-details-marker { display:none; }
+[data-liquid-ui="true"] .ui31-category-label { display:flex;align-items:center;gap:10px;min-width:0;font-size:15px;overflow-wrap:anywhere; }
+[data-liquid-ui="true"] .ui31-category-label>span { font-size:20px;flex:none; }
+[data-liquid-ui="true"] .ui31-month-categories summary strong { font-size:15px;font-weight:600;font-variant-numeric:tabular-nums;overflow-wrap:anywhere; }
+[data-liquid-ui="true"] .ui31-category-track { grid-column:1/-1;height:5px;border-radius:8px;overflow:hidden;background:var(--progress-track); }
+[data-liquid-ui="true"] .ui31-category-track>span { display:block;height:100%;background:var(--ui31-chart-gold,var(--accent)); }
+[data-liquid-ui="true"] .ui31-category-stats { display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:12px;font-size:13px;margin:8px 0 16px; }
+[data-liquid-ui="true"] .ui31-category-stats dt { color:var(--text-2); }[data-liquid-ui="true"] .ui31-category-stats dd { font-variant-numeric:tabular-nums;overflow-wrap:anywhere; }
+[data-liquid-ui="true"] .ui31-category-transactions { list-style:none;padding:0;margin:0; }
+[data-liquid-ui="true"] .ui31-category-transactions li { display:flex;align-items:center;justify-content:space-between;gap:12px;padding:10px 0;border-top:1px solid var(--ui31-border,var(--border));font-size:14px; }
+[data-liquid-ui="true"] .ui31-category-transactions small { display:block;color:var(--text-2);font-size:12px;margin-top:2px; }
+[data-liquid-ui="true"] .ui31-category-transactions strong { font-size:14px;flex:none;font-variant-numeric:tabular-nums; }
+[data-liquid-ui="true"] .ui31-category-actions { display:flex;flex-wrap:wrap;gap:8px 20px;padding:8px 0 16px;font-size:14px; }
+[data-liquid-ui="true"] .ui31-category-actions a { min-height:44px;display:inline-flex;align-items:center; }
+[data-liquid-ui="true"] .ui31-chart-data { margin-top:16px;font-size:14px; }
+[data-liquid-ui="true"] .ui31-chart-data summary { min-height:44px;padding:12px 0;cursor:pointer; }
+[data-liquid-ui="true"] .ui31-chart-data ul { list-style:none;padding:0;margin:0; }
+[data-liquid-ui="true"] .ui31-chart-data a { display:flex;justify-content:space-between;align-items:center;gap:12px;min-height:44px;border-top:1px solid var(--ui31-border,var(--border)); }
+[data-liquid-ui="true"] .ui31-due>ul { list-style:none;padding:0;margin:24px 0 0; }
+[data-liquid-ui="true"] .ui31-due li { display:grid;grid-template-columns:44px minmax(0,1fr) auto;align-items:center;gap:12px;padding:16px 0;border-top:1px solid var(--ui31-border,var(--border));font-size:15px; }
+[data-liquid-ui="true"] .ui31-due li>strong { font-variant-numeric:tabular-nums;overflow-wrap:anywhere;max-width:14ch;text-align:right; }
+[data-liquid-ui="true"] .ui31-due li p { font-size:12px;margin:3px 0 0; }
+[data-liquid-ui="true"] .ui31-due li>a { grid-column:2/-1;min-height:44px;display:flex;align-items:center;justify-content:space-between;font-size:14px; }
+[data-liquid-ui="true"] .ui31-due-date { display:flex;flex-direction:column;align-items:center;justify-content:center;background:var(--ui31-warm,var(--surface-1));border-radius:10px;min-height:48px; }
+[data-liquid-ui="true"] .ui31-due-date span { font-size:20px;font-weight:600;line-height:1.1; }[data-liquid-ui="true"] .ui31-due-date small { color:var(--text-2);font-size:12px; }
+[data-liquid-ui="true"] .ui31-month :focus-visible { outline:2px solid var(--accent);outline-offset:4px; }
+/* Readable type inside the reused plan; the standalone UI2 contract stays local. */
+[data-liquid-ui="true"] .ui31-month .piano-page { font-size:16px;padding-bottom:0; }
+[data-liquid-ui="true"] .ui31-month .plan-caption,[data-liquid-ui="true"] .ui31-month .plan-category-list small,[data-liquid-ui="true"] .ui31-month .plan-lines small,[data-liquid-ui="true"] .ui31-month .plan-status { font-size:12px; }
+[data-liquid-ui="true"] .ui31-month .plan-eyebrow,[data-liquid-ui="true"] .ui31-month .plan-hero-description,[data-liquid-ui="true"] .ui31-month .plan-actions p,[data-liquid-ui="true"] .ui31-month .plan-explainer,[data-liquid-ui="true"] .ui31-month .plan-cushion { font-size:14px; }
+[data-liquid-ui="true"] .ui31-month .plan-hero-stats span { font-size:12px;letter-spacing:0;text-transform:none; }
+[data-liquid-ui="true"] .ui31-month .plan-header button,[data-liquid-ui="true"] .ui31-month .plan-card button,[data-liquid-ui="true"] .ui31-month .plan-category-title,[data-liquid-ui="true"] .ui31-month .plan-category-forecast { font-size:14px; }
+[data-liquid-ui="true"] .ui31-month .plan-hero-stats { grid-template-columns:repeat(auto-fit,minmax(min(100%,120px),1fr)); }
+@media(min-width:768px) { [data-liquid-ui="true"] .ui31-month-overview { grid-template-columns:repeat(2,minmax(0,1fr));align-items:start; }[data-liquid-ui="true"] .ui31-month-categories { grid-column:1/-1; }[data-liquid-ui="true"] .ui31-month-card { padding:24px; }[data-liquid-ui="true"] .ui31-month-tabs { max-width:600px; } }
+@media(min-width:1100px) { [data-liquid-ui="true"] .ui31-month-overview { grid-template-columns:minmax(0,1fr) minmax(0,1.15fr);gap:24px; }[data-liquid-ui="true"] .ui31-month-categories { grid-column:auto; }[data-liquid-ui="true"] .ui31-month .plan-layout { grid-template-columns:minmax(0,.9fr) minmax(0,1.1fr); } }
+@media(max-width:767px) { [data-liquid-ui="true"] .ui31-month-heading { gap:16px; }[data-liquid-ui="true"] .ui31-month-picker { width:100%; }[data-liquid-ui="true"] .ui31-month-picker label { flex:1;text-align:center; }[data-liquid-ui="true"] .ui31-month-card { padding:20px; }[data-liquid-ui="true"] .ui31-month .plan-header { display:flex; } }
+@media(max-width:359px) { [data-liquid-ui="true"] .ui31-month-card { padding:16px; }[data-liquid-ui="true"] .ui31-due li { grid-template-columns:36px minmax(0,1fr);gap:10px; }[data-liquid-ui="true"] .ui31-due li>strong { grid-column:2;text-align:left; } }
+@media(prefers-reduced-motion:reduce) { [data-liquid-ui="true"] .ui31-month * { animation:none!important;transition:none!important; } }
+[data-liquid-ui="true"] .ui31-month .ui31-metric-label { color:var(--text-2);font-size:14px;font-weight:500;margin-bottom:8px; }
+[data-liquid-ui="true"] .ui31-month .ui31-month-number { display:block;font-weight:650;line-height:1.1;letter-spacing:-.045em;font-variant-numeric:tabular-nums;overflow-wrap:anywhere; }
+[data-liquid-ui="true"] .ui31-month .ui31-primary-link { display:inline-flex;align-items:center;justify-content:space-between;gap:16px;min-height:48px;padding:12px 18px;border-radius:14px;background:var(--ui-accent);color:var(--ui-on-accent);font-weight:600;font-size:14px;margin-top:12px;max-width:100%; }

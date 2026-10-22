@@ -13,7 +13,7 @@ try {
   await page.route('**/*',r=>new URL(r.request().url()).hostname==='127.0.0.1'?r.continue():r.abort());
   const start=async(q)=>{
     await page.goto('http://127.0.0.1:4177/ui-preview/index.html?pianoCase&'+q);
-    await page.getByRole('link',{name:'Piano',exact:true}).first().click();
+    await page.evaluate(()=>{history.pushState({},'', '/budget');dispatchEvent(new PopStateEvent('popstate'));});
     await page.locator('.plan-category-list').waitFor();
   };
   await start('theme=dark');

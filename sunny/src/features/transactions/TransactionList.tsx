@@ -1,7 +1,7 @@
 import { readTransactionRange } from '../../shared/transactionRoute';
 import { useState, useMemo, useEffect, useRef, useLayoutEffect, useCallback } from 'react';
 import { useSearchParams } from 'react-router-dom';
-import { useUiSessionState, useUiVersion } from '../../shared/providers/UiVersionProvider';
+import { useUiSessionState, useUiVersion, useUiNavigationMemory } from '../../shared/providers/UiVersionProvider';
 import { Transaction, TransactionType, TYPE_META, TYPE_ORDER, TransactionPatch, typeColor, ownShare } from '../../types';
 import { formatCurrency, formatDate, formatDateFull, formatMonthLong, capitalize } from '../../utils';
 import { useSettings } from '../../shared/providers/settings';
@@ -12,6 +12,7 @@ import { TransactionRow } from './TransactionRow';
 import { MonthSummaryHeader } from './MonthSummaryHeader';
 import { buildMonthSections, dayLabel, longDayLabel } from './listGrouping';
 import { OptionSheet } from '../../shared/components/OptionSheet';
+import './transactions-ui31.css';
 
 const TODAY_ISO = new Date().toISOString().slice(0, 10);
 // Upcoming = a synthetic recurring projection OR a real planned (future-dated)
@@ -78,6 +79,7 @@ function projectedCutoffISO(v: ProjView, now: Date): string | null {
 
 export function TransactionList({ transactions, projected = [], onEdit, onDelete, onBulkUpdate, onBulkDelete, onAdd }: Props) {
   const ui3 = useUiVersion() === '3.0';
+  const session = useUiNavigationMemory();
   const { categories, accounts, getAcc, getCat, theme } = useSettings();
   // Optional category filter driven by the URL (?cat=<id>) — set when arriving
   // from the "Vedi tutti i movimenti" CTA of the Categorie analytics screen.
@@ -88,28 +90,28 @@ export function TransactionList({ transactions, projected = [], onEdit, onDelete
   const initialType:TransactionType|'all'=queryType&&queryType in TYPE_META?queryType as TransactionType:'all';
   const viewKey=searchParams.toString();
   const catFilter = searchParams.get('cat');
-  const clearCatFilter = () => setSearchParams(p => { p.delete('cat'); return p; }, { replace: true });
+  const clearCatFilter = () => clearCriteria(['cat']);
   // Optional investment-position filter (?investment=<categoryId>) — set by the
   // "Vedi tutti i movimenti" CTA of the InvestmentDetailSheet. Stable URL param.
   const investFilter = searchParams.get('investment');
-  const clearInvestFilter = () => setSearchParams(p => { p.delete('investment'); return p; }, { replace: true });
+  const clearInvestFilter = () => clearCriteria(['investment']);
   // Optional account filter (?account=<id>) — set when arriving from the "Vedi
   // tutti i movimenti" CTA of the Saldo-per-conto analytics. Matches either leg
   // of a transfer (account or toAccount).
   const accFilter = searchParams.get('account');
-  const clearAccFilter = () => setSearchParams(p => { p.delete('account'); return p; }, { replace: true });
+  const clearAccFilter = () => clearCriteria(['account']);
   // Optional series filter (?series=<seriesId>) — set by the SeriesDetailSheet's
   // "Vedi movimenti della serie". Matches instances (seriesId), the template
   // (seriesId, or its own id for legacy templates) and projected rows.
   const seriesFilter = searchParams.get('series');
-  const clearSeriesFilter = () => setSearchParams(p => { p.delete('series'); return p; }, { replace: true });
+  const clearSeriesFilter = () => clearCriteria(['series']);
   // Optional single-day filter (?date=YYYY-MM-DD) — set by the home calendar
   // "Ritmo del mese" when you tap a square. Matches the date exactly, così il
   // giorno tappato mostra esattamente i movimenti che hanno riempito la cella.
   const dateFilter = searchParams.get('date');
-  const clearDateFilter = () => setSearchParams(p => { p.delete('date'); return p; }, { replace: true });
+  const clearDateFilter = () => clearCriteria(['date']);
   const [search, setSearch] = useUiSessionState(`transactions.search:${viewKey}`,'');
-  // La ricerca non è più una barra sempre presente: è un'icona che si apre.
+  // UI2 keeps its compact search; UI3 exposes the field below a stable title.
   const [searchOpen, setSearchOpen] = useUiSessionState(`transactions.searchOpen:${viewKey}`,false);
   const [typeFilter, setTypeFilter] = useUiSessionState<TransactionType | 'all'>(`transactions.type:${viewKey}`,initialType);
   // Per giorno è la vista di default: è come si guarda il mese in corso.
@@ -118,6 +120,27 @@ export function TransactionList({ transactions, projected = [], onEdit, onDelete
   const [sortDir, setSortDir] = useUiSessionState<SortDir>(`transactions.direction:${viewKey}`,'desc');
   const [period, setPeriod] = useUiSessionState<PeriodFilter>(`transactions.period:${viewKey}`,'all');
   const [projView, setProjView] = useUiSessionState<ProjView>(`transactions.projected:${viewKey}`,PROJ_DEFAULT);
+  // Removing a URL criterion remounts this route. Carry the current display
+  // state into that exact destination before navigation, without turning every
+  // deep link into a shared global selection. The provider discards this RAM
+  // on user/version changes.
+  const clearCriteria = (keys: string[], reset?: { period?: PeriodFilter; type?: TransactionType | 'all'; projected?: ProjView }) => {
+    const next = new URLSearchParams(searchParams);
+    keys.forEach(key => next.delete(key));
+    if (ui3) {
+      const display = { search, searchOpen, type: reset?.type ?? typeFilter,
+        group: groupMode, sort: sortKey, direction: sortDir,
+        period: reset?.period ?? period, projected: reset?.projected ?? projView };
+      for (const [name, value] of Object.entries(display)) session?.set(`transactions.${name}:${next.toString()}`, value);
+    }
+    setSearchParams(next, { replace: true });
+  };
+  const resetCriteria = () => {
+    setTypeFilter('all'); setPeriod('all'); setProjView(PROJ_DEFAULT);
+    clearCriteria(['cat', 'investment', 'account', 'series', 'date', 'from', 'to', 'type'], { type: 'all', period: 'all', projected: PROJ_DEFAULT });
+  };
+  const searchInput = useRef<HTMLInputElement>(null);
+  const clearSearch = () => { setSearch(''); searchInput.current?.focus({ preventScroll: true }); };
   const [filterOpen, setFilterOpen] = useState(false);
   const filterPanel = useRef<HTMLDivElement>(null);
   const filterTrigger = useRef<HTMLButtonElement>(null);
@@ -257,6 +280,25 @@ export function TransactionList({ transactions, projected = [], onEdit, onDelete
       });
   }, [transactions, projected, projView, typeFilter, period, search, sortKey, sortDir, categories, accounts, catFilter, accFilter, seriesFilter, investFilter, dateFilter, rangeFrom, rangeTo]);
 
+  const lastEdited = useRef<{ tx: Transaction; snapshot: Transaction[] } | null>(null);
+  const [editNotice, setEditNotice] = useState('');
+  const openMovement = (tx: Transaction) => {
+    setEditNotice('');
+    if (ui3 && !tx.projected) lastEdited.current = { tx, snapshot: transactions };
+    onEdit(tx);
+  };
+  useEffect(() => {
+    const previous = lastEdited.current;
+    if (!ui3 || !previous || previous.snapshot === transactions) return;
+    const current = transactions.find(tx => tx.id === previous.tx.id);
+    // Firestore may emit unrelated snapshots while the editor is open.
+    if (current && JSON.stringify(current) === JSON.stringify(previous.tx)) return;
+    const stillVisible = filtered.some(tx => tx.id === previous.tx.id ||
+      (previous.tx.groupId && tx.groupId === previous.tx.groupId && tx.type === previous.tx.type));
+    if (!stillVisible) setEditNotice('Il movimento modificato non rientra nei criteri attuali. Ricerca e filtri sono conservati.');
+    lastEdited.current = null;
+  }, [transactions, ui3]);
+
   // Human name for the active series filter pill ("Serie: Netflix").
   const seriesFilterLabel = seriesFilter
     ? (transactions.find(t => t.seriesId === seriesFilter || t.id === seriesFilter)?.description ?? 'serie')
@@ -371,6 +413,7 @@ export function TransactionList({ transactions, projected = [], onEdit, onDelete
   const selectedTypes=new Set(transactions.filter(t=>selected.has(t.id)).map(t=>t.type));
   const categoryOptions=categories.filter(c=>!c.archived&&selectedTypes.size===1&&selectedTypes.has(c.kind));
 
+  const criteriaActive = typeFilter !== 'all' || period !== 'all' || projView !== PROJ_DEFAULT || !!(catFilter || accFilter || seriesFilter || investFilter || dateFilter || explicitRange);
   const filterActive = period !== 'all' || sortKey !== 'date' || sortDir !== 'desc' || projView !== PROJ_DEFAULT || groupMode !== 'day';
   const periodLabel = PERIOD_OPTS.find(o => o.value === period)!.label;
   const projLabel = PROJ_OPTS.find(o => o.value === projView)!.label;
@@ -378,11 +421,14 @@ export function TransactionList({ transactions, projected = [], onEdit, onDelete
     ? [['desc', 'Più alto'], ['asc', 'Più basso']]
     : [['desc', 'Più recenti'], ['asc', 'Meno recenti']];
 
+  const filterButton = <PillBtn active={(ui3 && criteriaActive) || filterActive || filterOpen} buttonRef={filterTrigger} expanded={ui3 ? filterOpen : undefined} controls={ui3 ? 'transaction-filters' : undefined} onClick={() => filterOpen ? closeFilters() : setFilterOpen(true)}
+    icon={<svg aria-hidden="true" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round"><path d="M4 6h16M7 12h10M10 18h4" /></svg>}>Filtri</PillBtn>;
+
   return (
-    <div className="pb-28" aria-busy={bulkBusy} onClickCapture={e=>{if(bulkBusy){e.preventDefault();e.stopPropagation();}}}>
+    <div className={ui3 ? 'ui31-ledger pb-28' : 'pb-28'} aria-busy={bulkBusy} onClickCapture={e=>{if(bulkBusy){e.preventDefault();e.stopPropagation();}}}>
       {/* Header 56px — titolo, ricerca a icona, selezione multipla */}
       <div className="liquid-movements-header h-14 flex items-center gap-2">
-        {searchOpen ? (
+        {!ui3 && searchOpen ? (
           <div className="relative flex-1">
             <svg className="absolute left-3.5 top-1/2 -translate-y-1/2 text-secondary" width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
               <circle cx="11" cy="11" r="7"/><path d="m21 21-4.35-4.35"/>
@@ -397,7 +443,7 @@ export function TransactionList({ transactions, projected = [], onEdit, onDelete
           <h1 className="flex-1 text-[17px] md:text-xl font-semibold text-primary tracking-[-0.03em]">Movimenti</h1>
         )}
         <div className="flex items-center gap-1 flex-none">
-          <HeaderIconBtn
+          {!ui3 && <HeaderIconBtn
             active={searchOpen || !!search}
             label={searchOpen ? 'Chiudi la ricerca' : 'Cerca'}
             onClick={() => { if (searchOpen) setSearch(''); setSearchOpen(o => !o); }}>
@@ -410,7 +456,7 @@ export function TransactionList({ transactions, projected = [], onEdit, onDelete
                 <circle cx="11" cy="11" r="7"/><path d="m21 21-4.35-4.35"/>
               </svg>
             )}
-          </HeaderIconBtn>
+          </HeaderIconBtn>}
           <HeaderIconBtn active={selectMode} label={selectMode ? 'Annulla selezione' : 'Seleziona'}
             onClick={() => (selectMode ? exitSelect() : setSelectMode(true))}>
             <svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.75" strokeLinecap="round" strokeLinejoin="round">
@@ -423,10 +469,18 @@ export function TransactionList({ transactions, projected = [], onEdit, onDelete
         </div>
       </div>
 
+      {ui3 && <div className="ui31-ledger-search">
+        <label htmlFor="movement-search" className="text-sm font-medium text-secondary">Cerca movimenti</label>
+        <div className="flex items-center gap-2">
+          <input ref={searchInput} id="movement-search" type="search" aria-label="Cerca movimenti" value={search} onChange={e => setSearch(e.target.value)} placeholder="Nome, importo, data, conto…" className="min-w-0 flex-1 rounded-2xl bg-card px-4 py-3 text-primary" />
+          {search && <button type="button" aria-label="Cancella ricerca" onClick={clearSearch} className="ui31-ledger-clear text-secondary">Cancella ricerca</button>}
+        </div>
+      </div>}
+
       {/* Una riga sola di filtri. Il pannello vive FUORI dallo scroller
           orizzontale, altrimenti verrebbe tagliato dall'overflow. */}
-      <div className="relative">
-        <div className="flex gap-1.5 overflow-x-auto scrollbar-hide -mx-1 px-1 py-1">
+      <div className={ui3 ? "ui31-ledger-toolbar relative" : "relative"}>
+        <div className="ui31-ledger-types flex gap-1.5 overflow-x-auto scrollbar-hide -mx-1 px-1 py-1">
           <PillBtn active={typeFilter === 'all'} onClick={() => setTypeFilter('all')}>
             Tutte · {filtered.length}
           </PillBtn>
@@ -436,15 +490,9 @@ export function TransactionList({ transactions, projected = [], onEdit, onDelete
               {TYPE_META[t].label}
             </PillBtn>
           ))}
-          <PillBtn active={filterActive || filterOpen} buttonRef={filterTrigger} expanded={ui3 ? filterOpen : undefined} controls={ui3 ? "transaction-filters" : undefined} onClick={() => filterOpen ? closeFilters() : setFilterOpen(true)}
-            icon={
-              <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round">
-                <line x1="4" y1="6" x2="20" y2="6"/><line x1="7" y1="12" x2="17" y2="12"/><line x1="10" y1="18" x2="14" y2="18"/>
-              </svg>
-            }>
-            Filtri
-          </PillBtn>
+          {!ui3 && filterButton}
         </div>
+        {ui3 && filterButton}
             {filterOpen && (
               <>
                 <div className="fixed inset-0 z-40" onClick={() => closeFilters()} />
@@ -495,7 +543,7 @@ export function TransactionList({ transactions, projected = [], onEdit, onDelete
                   <p className="label-caps text-secondary mb-1.5 px-1">Periodo</p>
                   <div className="space-y-1">
                     {PERIOD_OPTS.map(opt => (
-                      <button key={opt.value} onClick={() => { setPeriod(opt.value); closeFilters(); }}
+                      <button key={opt.value} onClick={() => { if (ui3 && (explicitRange || dateFilter)) clearCriteria(['date', 'from', 'to'], { period: opt.value }); setPeriod(opt.value); closeFilters(); }}
                         className={`w-full flex items-center justify-between px-3 py-1.5 rounded-xl text-[13px] transition-colors ${
                           period === opt.value ? 'bg-gold/10 text-gold font-medium' : 'text-primary hover:bg-card'
                         }`}>
@@ -529,16 +577,23 @@ export function TransactionList({ transactions, projected = [], onEdit, onDelete
                       </div>
                     </>
                   )}
+                  {ui3 && (sortKey !== 'date' || sortDir !== 'desc' || groupMode !== 'day') && <button className="w-full px-3 py-2 text-sm text-secondary" onClick={() => { setSortKey('date'); setSortDir('desc'); changeGroup('day'); }}>Ripristina ordine e gruppi</button>}
                 </div>
               </>
             )}
       </div>
 
+      {ui3 && <div className="ui31-ledger-context text-sm text-secondary">
+        <span>{explicitRange ? `${formatDateFull(explicitRange.from)} – ${formatDateFull(explicitRange.to)}` : dateFilter ? formatDateFull(dateFilter) : periodLabel}</span>
+        <span>{filtered.length} {filtered.length === 1 ? 'movimento' : 'movimenti'}</span>
+        {criteriaActive && <button type="button" onClick={resetCriteria} className="text-gold font-medium">Azzera filtri</button>}
+      </div>}
+      {ui3 && selectMode && <p className="ui31-ledger-selection text-sm text-secondary" role="status">Selezione multipla · {selected.size} selezionati. Le proiezioni non sono selezionabili. Categoria modificabile per movimenti dello stesso tipo.</p>}
       {/* Filtri attivi — pill rimovibili */}
         {(period !== 'all' || projView !== PROJ_DEFAULT || catFilter || accFilter || seriesFilter || investFilter || dateFilter || explicitRange) && (
-          <div className="flex flex-wrap gap-2">
+          <div className={ui3 ? "ui31-ledger-criteria flex flex-wrap gap-2" : "flex flex-wrap gap-2"}>
             {investFilter && (
-              <button onClick={clearInvestFilter}
+              <button aria-label={ui3 ? 'Rimuovi investimento' : undefined} onClick={clearInvestFilter}
                 className="inline-flex items-center gap-1.5 bg-gold/10 text-gold rounded-full pl-3 pr-2 py-1 text-xs font-medium">
                 📈 Investimento: {getCat(investFilter).icon} {getCat(investFilter).label}
                 <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round">
@@ -547,7 +602,7 @@ export function TransactionList({ transactions, projected = [], onEdit, onDelete
               </button>
             )}
             {seriesFilter && (
-              <button onClick={clearSeriesFilter}
+              <button aria-label={ui3 ? 'Rimuovi serie' : undefined} onClick={clearSeriesFilter}
                 className="inline-flex items-center gap-1.5 bg-gold/10 text-gold rounded-full pl-3 pr-2 py-1 text-xs font-medium">
                 🔁 Serie: {seriesFilterLabel}
                 <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round">
@@ -555,9 +610,9 @@ export function TransactionList({ transactions, projected = [], onEdit, onDelete
                 </svg>
               </button>
             )}
-            {explicitRange&&<button className="px-3 py-2 rounded-full bg-elevated text-sm" onClick={()=>setSearchParams(p=>{p.delete('from');p.delete('to');return p;},{replace:true})} aria-label="Azzera periodo">{formatDateFull(explicitRange.from)} – {formatDateFull(explicitRange.to)} ✕</button>}
+            {explicitRange&&<button className="px-3 py-2 rounded-full bg-elevated text-sm" onClick={()=>clearCriteria(['from', 'to'])} aria-label="Azzera periodo">{formatDateFull(explicitRange.from)} – {formatDateFull(explicitRange.to)} ✕</button>}
             {dateFilter && (
-              <button onClick={clearDateFilter}
+              <button aria-label={ui3 ? 'Rimuovi giorno' : undefined} onClick={clearDateFilter}
                 className="inline-flex items-center gap-1.5 bg-gold/10 text-gold rounded-full pl-3 pr-2 py-1 text-xs font-medium">
                 📅 {formatDateFull(dateFilter)}
                 <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round">
@@ -566,7 +621,7 @@ export function TransactionList({ transactions, projected = [], onEdit, onDelete
               </button>
             )}
             {catFilter && (
-              <button onClick={clearCatFilter}
+              <button aria-label={ui3 ? 'Rimuovi categoria' : undefined} onClick={clearCatFilter}
                 className="inline-flex items-center gap-1.5 bg-gold/10 text-gold rounded-full pl-3 pr-2 py-1 text-xs font-medium">
                 {getCat(catFilter).icon} {getCat(catFilter).label}
                 <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round">
@@ -575,7 +630,7 @@ export function TransactionList({ transactions, projected = [], onEdit, onDelete
               </button>
             )}
             {accFilter && (
-              <button onClick={clearAccFilter}
+              <button aria-label={ui3 ? 'Rimuovi conto' : undefined} onClick={clearAccFilter}
                 className="inline-flex items-center gap-1.5 bg-gold/10 text-gold rounded-full pl-3 pr-2 py-1 text-xs font-medium">
                 {getAcc(accFilter).icon} {getAcc(accFilter).label}
                 <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round">
@@ -604,12 +659,16 @@ export function TransactionList({ transactions, projected = [], onEdit, onDelete
           </div>
         )}
 
+      {ui3 && editNotice && <p role="status" className="ui31-ledger-selection text-sm text-secondary">{editNotice}</p>}
+
       {/* Vista di default: mese → giorno. Gli altri raggruppamenti restano
           disponibili dal pannello filtri e usano la lista collassabile. */}
       {filtered.length === 0 ? (
         <div className="glass-card rounded-2xl p-10 text-center mt-3">
           <p className="text-3xl mb-3 opacity-60">🔍</p>
           <p className="text-sm text-secondary">{search ? `Nessun risultato per "${search}"` : 'Nessuna transazione'}</p>
+          {ui3 && search && <button onClick={clearSearch} className="mt-3 px-3 py-2 text-sm font-medium text-gold">Cancella ricerca</button>}
+          {ui3 && criteriaActive && <p className="mt-2 text-sm text-secondary">Puoi rimuovere un criterio qui sopra o aprire Filtri.</p>}
           {!search && <button onClick={onAdd} className="mt-3 text-sm font-medium text-gold">+ Aggiungi</button>}
         </div>
       ) : groupMode === 'day' ? (
@@ -653,7 +712,7 @@ export function TransactionList({ transactions, projected = [], onEdit, onDelete
                             seriesFreq={tx.seriesId ? seriesFreqById.get(tx.seriesId) : undefined}
                             installmentPaid={installmentIndexById.get(tx.id)}
                             selectable={selectMode && !tx.projected} selected={selected.has(tx.id)}
-                            onToggle={toggle} onClick={onEdit} />
+                            onToggle={toggle} onClick={openMovement} />
                         ))}
                       </div>
                     </div>
@@ -732,7 +791,7 @@ export function TransactionList({ transactions, projected = [], onEdit, onDelete
                       seriesFreq={tx.seriesId ? seriesFreqById.get(tx.seriesId) : undefined}
                       installmentPaid={installmentIndexById.get(tx.id)}
                       selectable={selectMode && !tx.projected} selected={selected.has(tx.id)}
-                      onToggle={toggle} onClick={onEdit} />
+                      onToggle={toggle} onClick={openMovement} />
                   ))}
                 </div>
               )}
@@ -747,7 +806,7 @@ export function TransactionList({ transactions, projected = [], onEdit, onDelete
       {bulkBusy&&<p role="status">Salvataggio in corso…</p>}
       {/* Bulk action bar */}
       {selectMode && selected.size > 0 && (
-        <div className="fixed bottom-0 inset-x-0 z-40 p-3 safe-bottom animate-sheet-up">
+        <div className={`${ui3 ? "ui31-ledger-bulk " : ""}fixed bottom-0 inset-x-0 z-40 p-3 safe-bottom animate-sheet-up`}>
           <div className="max-w-2xl mx-auto bg-elevated/95 backdrop-blur rounded-2xl shadow-float p-3 flex items-center gap-2">
             <span className="text-sm font-semibold text-primary px-2 whitespace-nowrap">{selected.size} sel.</span>
             <div className="flex-1 flex gap-2 justify-end">
