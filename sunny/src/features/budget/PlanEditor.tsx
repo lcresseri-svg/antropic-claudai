@@ -40,6 +40,8 @@ export function PlanEditor(p:Props) {
   const [deficitAccepted,setDeficitAccepted]=useState(false),[copy,setCopy]=useState(false);
   const [storageError,setStorageError]=useState(false);
   const historical=p.month<`${p.now.getFullYear()}-${String(p.now.getMonth()+1).padStart(2,'0')}`;
+  const showSaveHelp=ui3&&!singleCategory&&!historical;
+  const showConfirmation=!singleCategory&&!historical&&draft.base.status!=='confirmed'&&(ui3||step===2);
   const change=(d:PlanDraft)=>{setDraft(d);setDirty(true);setError('');setMessage('');setDeficitAccepted(false);};
   useEffect(()=>{
     if(!dirty)return;
@@ -137,8 +139,12 @@ export function PlanEditor(p:Props) {
         <button onClick={()=>{if(singleCategory){const refreshed=createPlanDraft(p.plan??initMonthlyBudget({month:p.month}));const value=draft.limits[singleCategory];if(value===undefined)delete refreshed.limits[singleCategory];else refreshed.limits[singleCategory]=value;setDraft(refreshed);setDeficitAccepted(false);}setRevision(revisionOf(p.plan));setError('');setMessage('Piano aggiornato ricaricato. Confronta Prima e Anteprima: il prossimo salvataggio applicherà la tua bozza.');}}>Ricarica piano</button></div>}
       {storageError&&<p role="alert">Memoria locale non disponibile: lascia aperto l’editor per non perdere la bozza.</p>}
       {message&&<p role="status">{message}</p>}
-      <footer><button disabled={busy} onClick={close}>Annulla</button><button className={candidate?.status==='confirmed'?'plan-primary cta-gold-fill':''} disabled={busy||(!!singleCategory&&(!dirty||revisionOf(p.plan)!==revision))} onClick={()=>void save(false)}>{singleCategory?'Salva limite':candidate?.status==='confirmed'?'Salva modifiche':'Salva bozza'}</button>
-        {!singleCategory&&(step<2?<button onClick={()=>setStep(step+1)}>Avanti</button>:!historical&&draft.base.status!=='confirmed'&&<button className="plan-primary cta-gold-fill" disabled={busy||!candidate} onClick={()=>void save(true)}>Conferma piano</button>)}</footer>
+      <footer><button disabled={busy} onClick={close}>Annulla</button><button className={candidate?.status==='confirmed'?'plan-primary cta-gold-fill':''} aria-describedby={showSaveHelp?'plan-confirmation-help':undefined} disabled={busy||(!!singleCategory&&(!dirty||revisionOf(p.plan)!==revision))} onClick={()=>void save(false)}>{singleCategory?'Salva limite':candidate?.status==='confirmed'?'Salva modifiche':'Salva bozza'}</button>
+        {!singleCategory&&step<2&&<button onClick={()=>setStep(step+1)}>Avanti</button>}
+        {showSaveHelp&&<p id="plan-confirmation-help" className="plan-confirmation-help" role="status">
+          {!candidate?`${validation} Completa o correggi i dati nei passaggi del piano.`:deficit&&!deficitAccepted?'Il piano è in disavanzo. Per salvarlo, seleziona «Continua con piano in disavanzo».':draft.base.status==='confirmed'?'Il piano è già confermato. «Salva modifiche» aggiorna il piano definitivo.':'Puoi confermare il piano. I limiti per categoria sono facoltativi.'}
+        </p>}
+        {showConfirmation&&<button className={`plan-primary cta-gold-fill${ui3?' plan-confirm':''}`} aria-describedby={ui3?'plan-confirmation-help':undefined} disabled={busy||!candidate} onClick={()=>void save(true)}>Conferma piano</button>}</footer>
       {busy&&<p role="status">Salvataggio in corso… La bozza resta qui fino alla conferma del server.</p>}
     </fieldset></div>
     {exit&&<DiscardConfirmation onContinue={()=>setExit(false)} description={singleCategory?"Le modifiche a questo limite saranno eliminate. Gli altri budget e le altre bozze rimangono invariati.":"La bozza locale di questo mese sarà eliminata. Il piano già salvato rimane invariato."} onDiscard={()=>{try{localStorage.removeItem(key);}catch{}p.onClose();}}/>}
