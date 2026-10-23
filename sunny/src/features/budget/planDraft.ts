@@ -13,6 +13,10 @@ export interface PlanDraft {
   base:MonthlyBudget; income:Record<string,string>; savings:string; cash:Record<string,string>;
   limits:Record<string,string>; cashReviewed:boolean;
 }
+/** A legacy confirmation does not confirm inputs that still require review. */
+export function isReviewedAndConfirmed(plan:MonthlyBudget):boolean {
+  return plan.status==='confirmed'&&!!plan.planningV3?.inputsReviewedAt;
+}
 export function createPlanDraft(base:MonthlyBudget):PlanDraft {
   return {base,income:strings(base.incomeBudgets),savings:base.source==='auto_initialized'&&!base.planningV3?'':inputAmount(base.savingsTarget),
     cash:strings(base.planningV3?.cashInvestmentBudgets??{}),limits:strings(base.categoryBudgets),
@@ -25,7 +29,7 @@ export function resolvePlanDraft(d:PlanDraft,confirm:boolean,now=Date.now()):Mon
   const result:MonthlyBudget={...d.base,incomeBudgets:map(d.income),savingsTarget:parse(d.savings),
     categoryBudgets:Object.fromEntries(Object.entries(map(d.limits)).filter(([,v])=>v>0)),
     planningV3:{schemaVersion:1,inputsReviewedAt:now,cashInvestmentBudgets:map(d.cash)},
-    status:confirm?'confirmed':d.base.status==='confirmed'?'confirmed':'draft',source:'manual',updatedAt:now,
+    status:confirm||isReviewedAndConfirmed(d.base)?'confirmed':'draft',source:'manual',updatedAt:now,
     ...(confirm?{confirmedAt:now}:{})};
   validateMonthlyBudget(result);return result;
 }

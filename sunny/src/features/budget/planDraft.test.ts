@@ -25,6 +25,17 @@ describe('controlled Piano draft',()=>{
     expect(draftKey('a','2026-10')).not.toBe(draftKey('b','2026-10'));
     expect(draftKey('a','2026-10')).not.toBe(draftKey('a','2026-11'));
   });
+  it.each([undefined,{schemaVersion:1 as const,inputsReviewedAt:0,cashInvestmentBudgets:{}}])('requires a new explicit confirmation after missing or invalidated review: %j',planningV3=>{
+    const base={...initMonthlyBudget({month:'2026-10'}),status:'confirmed' as const,planningV3};
+    const draft={...createPlanDraft(base),income:{expected:'2400'},savings:'300',cashReviewed:true};
+    expect(resolvePlanDraft(draft,false,1000).status).toBe('draft');
+    expect(resolvePlanDraft(draft,true,1000)).toMatchObject({status:'confirmed',confirmedAt:1000});
+  });
+  it('keeps edits to a reviewed confirmed plan definitive',()=>{
+    const base={...initMonthlyBudget({month:'2026-10'}),status:'confirmed' as const,incomeBudgets:{expected:2400},
+      planningV3:{schemaVersion:1 as const,inputsReviewedAt:1,cashInvestmentBudgets:{}}};
+    expect(resolvePlanDraft({...createPlanDraft(base),savings:'300'},false,1000).status).toBe('confirmed');
+  });
   it('adds transfer deltas to recovered limits without replacing goals or other edits',()=>{
     const d={...createPlanDraft(initMonthlyBudget({month:'2026-10'})),savings:'123,45',limits:{a:'120',b:'25',other:'99'}};
     expect(applyLimitTransferToDraft(d,{a:100,b:20},{a:50,b:70})).toMatchObject({savings:'123,45',limits:{a:'70',b:'75',other:'99'}});
