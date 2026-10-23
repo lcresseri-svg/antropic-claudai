@@ -13,6 +13,17 @@ export interface PlanDraft {
   base:MonthlyBudget; income:Record<string,string>; savings:string; cash:Record<string,string>;
   limits:Record<string,string>; cashReviewed:boolean;
 }
+export type PlanDraftField='income'|'savings'|'cash'|'cashReviewed'|'limits';
+export class PlanDraftValidationError extends Error {
+  constructor(public readonly field:PlanDraftField,public readonly category?:string) {
+    super({income:'Indica le entrate attese con un importo valido, anche zero (es. 12,50).',
+      savings:'Indica un risparmio valido, anche zero (es. 12,50).',
+      cash:'Completa l’obiettivo di investimento con un importo valido (es. 12,50).',
+      cashReviewed:'Verifica gli investimenti dai conti, anche se sono zero.',
+      limits:'Completa il limite con un importo valido (es. 12,50) oppure rimuovilo.'}[field]);
+    this.name='PlanDraftValidationError';
+  }
+}
 /** A legacy confirmation does not confirm inputs that still require review. */
 export function isReviewedAndConfirmed(plan:MonthlyBudget):boolean {
   return plan.status==='confirmed'&&!!plan.planningV3?.inputsReviewedAt;
@@ -23,12 +34,14 @@ export function createPlanDraft(base:MonthlyBudget):PlanDraft {
     cashReviewed:!!base.planningV3?.inputsReviewedAt};
 }
 export function resolvePlanDraft(d:PlanDraft,confirm:boolean,now=Date.now()):MonthlyBudget {
-  const parse=(s:string)=>{const v=parsePlanAmount(s);if(v===null)throw new Error('Completa gli importi con numeri validi, anche zero.');return v;};
-  const map=(m:Record<string,string>)=>Object.fromEntries(Object.entries(m).map(([k,v])=>[k,parse(v)]));
-  if(!Object.keys(d.income).length||!d.cashReviewed)throw new Error('Conferma entrate e investimenti dai conti, anche zero.');
-  const result:MonthlyBudget={...d.base,incomeBudgets:map(d.income),savingsTarget:parse(d.savings),
-    categoryBudgets:Object.fromEntries(Object.entries(map(d.limits)).filter(([,v])=>v>0)),
-    planningV3:{schemaVersion:1,inputsReviewedAt:now,cashInvestmentBudgets:map(d.cash)},
+  const parse=(s:string,field:PlanDraftField,category?:string)=>{const v=parsePlanAmount(s);if(v===null)throw new PlanDraftValidationError(field,category);return v;};
+  const map=(m:Record<string,string>,field:PlanDraftField)=>Object.fromEntries(Object.entries(m).map(([k,v])=>[k,parse(v,field,k)]));
+  if(!Object.keys(d.income).length)throw new PlanDraftValidationError('income');
+  const incomeBudgets=map(d.income,'income'),savingsTarget=parse(d.savings,'savings'),cashInvestmentBudgets=map(d.cash,'cash');
+  if(!d.cashReviewed)throw new PlanDraftValidationError('cashReviewed');
+  const result:MonthlyBudget={...d.base,incomeBudgets,savingsTarget,
+    categoryBudgets:Object.fromEntries(Object.entries(map(d.limits,'limits')).filter(([,v])=>v>0)),
+    planningV3:{schemaVersion:1,inputsReviewedAt:now,cashInvestmentBudgets},
     status:confirm||isReviewedAndConfirmed(d.base)?'confirmed':'draft',source:'manual',updatedAt:now,
     ...(confirm?{confirmedAt:now}:{})};
   validateMonthlyBudget(result);return result;

@@ -1,11 +1,11 @@
 import { useUiVersion } from '../../shared/providers/UiVersionProvider';
 import { withCategoryLimit } from './categoryLimit';
 import { DiscardConfirmation } from '../../shared/components/DiscardConfirmation';
-import { useEffect, useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import { CategoryDef, Transaction, ownShare } from '../../types';
 import { MonthlyBudget, initMonthlyBudget, prevMonthKey } from './monthlyBudget';
 import { revisionOf } from './monthlyBudgetStore';
-import { createPlanDraft, draftKey, inputAmount, parsePlanAmount, resolvePlanDraft, isReviewedAndConfirmed, applyLimitTransferToDraft, planDifferences, type PlanDraft } from './planDraft';
+import { createPlanDraft, draftKey, inputAmount, parsePlanAmount, resolvePlanDraft, isReviewedAndConfirmed, applyLimitTransferToDraft, planDifferences, PlanDraftValidationError, type PlanDraft, type PlanDraftField } from './planDraft';
 import { selectMonthlyPlan, planTransactions, cents } from './monthlyPlanSelectors';
 import { PlanDialog } from './PlanDialog';
 import { formatCurrency } from '../../utils';
@@ -39,13 +39,22 @@ export function PlanEditor(p:Props) {
   const [exit,setExit]=useState(false),[busy,setBusy]=useState(false),[error,setError]=useState(''),[message,setMessage]=useState(loaded.message??'');
   const [deficitAccepted,setDeficitAccepted]=useState(false),[copy,setCopy]=useState(false);
   const [storageError,setStorageError]=useState(false);
+  const editorRef=useRef<HTMLDivElement>(null);
+  const [validationTarget,setValidationTarget]=useState<{field:PlanDraftField|'deficit'|'error';category?:string}|null>(null);
   const historical=p.month<`${p.now.getFullYear()}-${String(p.now.getMonth()+1).padStart(2,'0')}`;
   const showSaveHelp=ui3&&!singleCategory&&!historical;
   const confirmed=!!p.plan&&isReviewedAndConfirmed(p.plan)&&isReviewedAndConfirmed(draft.base);
   // A recovered local draft cannot override the current plan's need for review.
   const draftToSave:PlanDraft=confirmed?draft:{...draft,base:{...draft.base,status:'draft'}};
   const showConfirmation=!singleCategory&&!historical&&!confirmed&&(ui3||step===2);
-  const change=(d:PlanDraft)=>{setDraft(d);setDirty(true);setError('');setMessage('');setDeficitAccepted(false);};
+  const change=(d:PlanDraft)=>{setDraft(d);setDirty(true);setError('');setMessage('');setDeficitAccepted(false);setValidationTarget(null);};
+  useEffect(()=>{
+    if(!validationTarget)return;
+    const input=Array.from(editorRef.current?.querySelectorAll<HTMLInputElement>('[data-plan-field]')??[])
+      .find(el=>el.dataset.planField===validationTarget.field&&(!validationTarget.category||el.dataset.planCategory===validationTarget.category));
+    const target=input??editorRef.current?.querySelector<HTMLElement>('#plan-save-error');
+    target?.focus({preventScroll:true});target?.scrollIntoView({block:'center',behavior:'auto'});
+  },[validationTarget]);
   useEffect(()=>{
     if(!dirty)return;
     try{localStorage.setItem(key,JSON.stringify({draft,revision}));setStorageError(false);}catch{setStorageError(true);}
@@ -55,7 +64,8 @@ export function PlanEditor(p:Props) {
     window.addEventListener('beforeunload',warn);return ()=>window.removeEventListener('beforeunload',warn);
   },[dirty]);
   let candidate:MonthlyBudget|null=null,validation='';
-  try{candidate=singleCategory?withCategoryLimit(draft.base,singleCategory,draft.limits[singleCategory]??null):resolvePlanDraft(draftToSave,false,p.now.getTime());}catch(e){validation=(e as Error).message;}
+  let validationIssue:PlanDraftValidationError|null=null;
+  try{candidate=singleCategory?withCategoryLimit(draft.base,singleCategory,draft.limits[singleCategory]??null):resolvePlanDraft(draftToSave,false,p.now.getTime());}catch(e){validation=(e as Error).message;if(e instanceof PlanDraftValidationError)validationIssue=e;}
   const view=selectMonthlyPlan({month:p.month,now:p.now,plan:candidate,transactions:p.transactions,categories:p.categories});
   const before=selectMonthlyPlan({month:p.month,now:p.now,plan:p.plan,transactions:p.transactions,categories:p.categories});
   const deficit=(view.M!==null&&view.M<0)||(view.U!==null&&view.U<0);
@@ -63,21 +73,33 @@ export function PlanEditor(p:Props) {
   const updateMap=(field:'income'|'cash'|'limits',id:string,value:string)=>change({...draft,[field]:{...draft[field],[id]:value}});
   const remove=(field:'cash'|'limits',id:string)=>{const map={...draft[field]};delete map[id];change({...draft,[field]:map});};
   const close=()=>{if(busy)return;if(dirty)setExit(true);else p.onClose();};
+  const fieldProps=(field:PlanDraftField|'deficit',category?:string)=>{
+    const invalid=!!error&&validationTarget?.field===field&&validationTarget.category===category;
+    return {'data-plan-field':field,'data-plan-category':category,'aria-invalid':invalid||undefined,'aria-describedby':invalid?'plan-save-error':undefined};
+  };
   const save=async(confirm:boolean)=>{
     setError('');setMessage('');
     if(!candidate){
-      if(confirm||singleCategory){setError(validation);return;}
+      if(confirm||singleCategory){
+        setError(validationIssue?.category?`${labels(validationIssue.category)}: ${validation}`:validation);
+        if(ui3&&confirm&&validationIssue){
+          setStep(validationIssue.field==='income'?0:validationIssue.field==='limits'?2:1);
+          if(validationIssue.field==='limits')setActiveLimit(validationIssue.category??null);
+          setValidationTarget({field:validationIssue.field,category:validationIssue.category??(validationIssue.field==='income'?incomeIds[0]:undefined)});
+        }else setValidationTarget({field:'error'});
+        return;
+      }
       try{localStorage.setItem(key,JSON.stringify({draft,revision}));setMessage('Bozza locale conservata su questo dispositivo. Completa gli importi per salvarla sul server.');}
       catch{setError('Impossibile conservare la bozza sul dispositivo. Non chiudere questa finestra.');}
       return;
     }
-    if((confirm||candidate.status==='confirmed')&&deficit&&!deficitAccepted){setError('Scegli esplicitamente se continuare con il piano in disavanzo.');return;}
+    if((confirm||candidate.status==='confirmed')&&deficit&&!deficitAccepted){setError('Scegli esplicitamente se continuare con il piano in disavanzo.');setValidationTarget({field:'deficit'});return;}
     setBusy(true);
     try{
       await p.onSave(p.month,singleCategory?candidate:resolvePlanDraft(draftToSave,confirm,p.now.getTime()),revision);
       try{localStorage.removeItem(key);}catch{/* save is already confirmed by server */}
       setDirty(false);p.onClose();
-    }catch(e){setError((e as Error).message||'Salvataggio non riuscito. Bozza locale conservata, riprova con la rete disponibile.');}
+    }catch(e){setError((e as Error).message||'Salvataggio non riuscito. Bozza locale conservata, riprova con la rete disponibile.');setValidationTarget({field:'error'});}
     finally{setBusy(false);}
   };
   const incomeCats=p.categories.filter(c=>c.kind==='income'&&!c.archived);
@@ -102,28 +124,28 @@ export function PlanEditor(p:Props) {
     if(ui3&&field==='limits'&&!selected)return <div className="plan-limit-picker">{ids.map(id=><button key={id} onClick={()=>setActiveLimit(id)}>{labels(id)}<span>{id in draft.limits?'Modifica limite':'Imposta limite'} ›</span></button>)}</div>;
     return ids.filter(id=>!ui3||field!=='limits'||id===selected).map(id=><div className="plan-field-row" key={id}>
       {id in draft[field]||singleCategory?<><label>{labels(id)}{p.categories.find(c=>c.id===id)?.archived?' · Archiviata':''}
-        <input inputMode="decimal" aria-label={`${field==='limits'?'Limite':'Investimenti'} ${labels(id)}`} value={draft[field][id]??''} onChange={e=>updateMap(field,id,e.target.value)} /></label>
+        <input {...fieldProps(field,id)} inputMode="decimal" aria-label={`${field==='limits'?'Limite':'Investimenti'} ${labels(id)}`} value={draft[field][id]??''} onChange={e=>updateMap(field,id,e.target.value)} /></label>
         <button onClick={()=>remove(field,id)}>{field==='limits'?'Rimuovi limite':'Rimuovi obiettivo'}</button></>
         :<><button onClick={()=>updateMap(field,id,'')}>+ {labels(id)} · {field==='limits'?'Imposta limite':'Obiettivo dai conti'}</button>
           {field==='limits'&&historicLimits[id]>0&&<button onClick={()=>updateMap(field,id,inputAmount(historicLimits[id]/100))}>Usa storico del mese precedente: {formatCurrency(historicLimits[id]/100)}</button>}</>}
     </div>);
   };
   return <PlanDialog title={singleCategory?`Limite · ${labels(singleCategory)}`:historical?'Modifica piano storico':'Modifica piano'} onClose={close}>
-    <div className="plan-editor"><fieldset disabled={busy} aria-busy={busy}>
+    <div ref={editorRef} className="plan-editor"><fieldset disabled={busy} aria-busy={busy}>
       {!singleCategory&&<nav aria-label="Passi del piano">{['Entrate','Obiettivi','Spese'].map((s,i)=><button key={s} aria-current={step===i?'step':undefined} onClick={()=>setStep(i)}>{i+1}. {s}</button>)}</nav>}
       {singleCategory?<div className="plan-category-preview" aria-live="polite"><p>{p.month} · {historical?'Piano storico':'Limite mensile'}</p><dl className="plan-arithmetic">{([['Speso',view.categories.find(c=>c.id===singleCategory)?.spent??0],['Programmato',view.categories.find(c=>c.id===singleCategory)?.scheduled??0],['Residuo',view.categories.find(c=>c.id===singleCategory)?.remaining??null]] as const).map(([label,value])=><div key={label}><dt>{label}</dt><dd>{value===null?'Senza limite':money(value)}</dd></div>)}</dl><p>Cuscinetto dopo la modifica: {money(view.U)}</p></div>:<div className="plan-draft-summary" aria-live="polite"><span>Anteprima · {p.month}</span><strong>Margine {money(view.M)}</strong><span>Cuscinetto {money(view.U)}</span>
         <small>Prima: margine {money(before.M)} · risparmio {money(before.S)} → {money(view.S)}</small></div>}
       {!singleCategory&&!p.plan?.planningV3&&Object.keys(initial.investmentBudgets).length>0&&<p>Gli obiettivi di investimento precedenti ({formatCurrency(Object.values(initial.investmentBudgets).reduce((a,b)=>a+b,0))}) restano intatti. Rivedi la sola quota personale dai conti, senza TFR o contributi esterni.</p>}
       {step===0&&<section><h3>Quali entrate ti aspetti?</h3><p>Conferma gli importi, anche zero. Gli incassi non cambiano il piano automaticamente.</p>
-        {incomeIds.map(id=><label key={id}>{labels(id)}<input inputMode="decimal" aria-label={`Entrate ${labels(id)}`} value={draft.income[id]??''}
+        {incomeIds.map(id=><label key={id}>{labels(id)}<input {...fieldProps('income',id)} inputMode="decimal" aria-label={`Entrate ${labels(id)}`} value={draft.income[id]??''}
           onChange={e=>updateMap('income',id,e.target.value)}/></label>)}
         {[['Ricorrenze ancora da incassare nel mese',suggestIncome],['Storico del mese precedente',pastIncome]] .map(([source,map])=>Object.keys(map).length>0&&<button key={String(source)} onClick={()=>change({...draft,income:Object.fromEntries(Object.entries(map).map(([k,v])=>[k,inputAmount(v as number)]))})}>
           Usa suggerimento · {String(source)}: {formatCurrency(Object.values(map).reduce((a:number,b)=>a+Number(b),0))}</button>)}
       </section>}
-      {step===1&&<section><h3>Obiettivi, anche zero</h3><label>Risparmio da mantenere<input aria-label="Risparmio da mantenere" inputMode="decimal" value={draft.savings} onChange={e=>change({...draft,savings:e.target.value})}/></label>
+      {step===1&&<section><h3>Obiettivi, anche zero</h3><label>Risparmio da mantenere<input {...fieldProps('savings')} aria-label="Risparmio da mantenere" inputMode="decimal" value={draft.savings} onChange={e=>change({...draft,savings:e.target.value})}/></label>
         <p>Quota delle entrate da non destinare a spese o investimenti: è un obiettivo, non denaro già accantonato.</p>
         <h3>Investimenti dai conti</h3><p>Solo risorse personali. TFR e contributi esterni non consumano questo margine.</p>{fields('cash','investment')}
-        <label className="plan-check"><input type="checkbox" checked={draft.cashReviewed} onChange={e=>change({...draft,cashReviewed:e.target.checked})}/>Ho verificato gli investimenti dai conti (anche zero).</label>
+        <label className="plan-check"><input {...fieldProps('cashReviewed')} type="checkbox" checked={draft.cashReviewed} onChange={e=>change({...draft,cashReviewed:e.target.checked})}/>Ho verificato gli investimenti dai conti (anche zero).</label>
       </section>}
       {step===2&&<section>{!singleCategory&&<h3>Limiti facoltativi</h3>}{ui3&&!singleCategory&&activeLimit&&<button onClick={()=>setActiveLimit(null)}>‹ Tutte le categorie</button>}{singleCategory?<p>Zero rimuove il limite. Le spese restano nel totale del Piano.</p>:<p>Spese già programmate: {money(suggestions.C)}. Puoi lasciare categorie senza limite; gli importi restano nel totale.</p>}
         {!singleCategory&&suggestions.upcoming.slice(0,3).map(t=><p key={t.id}>{t.date} · {t.description} · {formatCurrency(t.amount)}</p>)}
@@ -136,8 +158,8 @@ export function PlanEditor(p:Props) {
         risparmio {draft.savings||'da completare'} → {formatCurrency(p.previous.savingsTarget)}. Limiti e obiettivi saranno sostituiti nella bozza. Scadenze e una tantum non vengono copiate.</p>
         <PlanChanges before={candidate??initial} after={p.previous} categories={p.categories}/>
         <button onClick={()=>{change(createPlanDraft({...initMonthlyBudget({month:p.month,previous:p.previous}),status:'draft'}));setCopy(false);setStep(0);}}>Applica copia alla bozza</button></div>}
-      {deficit&&<label className="plan-check plan-negative"><input type="checkbox" checked={deficitAccepted} onChange={e=>setDeficitAccepted(e.target.checked)}/>Continua con piano in disavanzo</label>}
-      {error&&<p role="alert" className="plan-negative">{error}</p>}
+      {deficit&&<label className="plan-check plan-negative"><input {...fieldProps('deficit')} type="checkbox" checked={deficitAccepted} onChange={e=>setDeficitAccepted(e.target.checked)}/>Continua con piano in disavanzo</label>}
+      {error&&<p id="plan-save-error" tabIndex={-1} role="alert" className="plan-negative">{error}</p>}
       {revisionOf(p.plan)!==revision&&<div className="plan-notice"><p>Il piano sul server è cambiato. La bozza è conservata. Ricarica per confrontare, poi salva esplicitamente i tuoi valori.</p>
         <button onClick={()=>{if(singleCategory){const refreshed=createPlanDraft(p.plan??initMonthlyBudget({month:p.month}));const value=draft.limits[singleCategory];if(value===undefined)delete refreshed.limits[singleCategory];else refreshed.limits[singleCategory]=value;setDraft(refreshed);setDeficitAccepted(false);}setRevision(revisionOf(p.plan));setError('');setMessage('Piano aggiornato ricaricato. Confronta Prima e Anteprima: il prossimo salvataggio applicherà la tua bozza.');}}>Ricarica piano</button></div>}
       {storageError&&<p role="alert">Memoria locale non disponibile: lascia aperto l’editor per non perdere la bozza.</p>}
@@ -145,9 +167,9 @@ export function PlanEditor(p:Props) {
       <footer><button disabled={busy} onClick={close}>Annulla</button><button className={candidate?.status==='confirmed'?'plan-primary cta-gold-fill':''} aria-describedby={showSaveHelp?'plan-confirmation-help':undefined} disabled={busy||(!!singleCategory&&(!dirty||revisionOf(p.plan)!==revision))} onClick={()=>void save(false)}>{singleCategory?'Salva limite':candidate?.status==='confirmed'?'Salva modifiche':'Salva bozza'}</button>
         {!singleCategory&&step<2&&<button onClick={()=>setStep(step+1)}>Avanti</button>}
         {showSaveHelp&&<p id="plan-confirmation-help" className="plan-confirmation-help" role="status">
-          {!candidate?`${validation} Completa o correggi i dati nei passaggi del piano.`:deficit&&!deficitAccepted?'Il piano è in disavanzo. Per salvarlo, seleziona «Continua con piano in disavanzo».':confirmed?'Il piano è già confermato. «Salva modifiche» aggiorna il piano definitivo.':'Puoi confermare il piano. I limiti per categoria sono facoltativi.'}
+          {!candidate?validation:deficit&&!deficitAccepted?'Il piano è in disavanzo. Per salvarlo, seleziona «Continua con piano in disavanzo».':confirmed?'Il piano è già confermato. «Salva modifiche» aggiorna il piano definitivo.':'Puoi confermare il piano. I limiti per categoria sono facoltativi.'}
         </p>}
-        {showConfirmation&&<button className={`plan-primary cta-gold-fill${ui3?' plan-confirm':''}`} aria-describedby={ui3?'plan-confirmation-help':undefined} disabled={busy||!candidate} onClick={()=>void save(true)}>Conferma piano</button>}</footer>
+        {showConfirmation&&<button className={`plan-primary cta-gold-fill${ui3?' plan-confirm':''}`} aria-describedby={ui3?'plan-confirmation-help':undefined} disabled={busy||(!ui3&&!candidate)} onClick={()=>void save(true)}>Conferma piano</button>}</footer>
       {busy&&<p role="status">Salvataggio in corso… La bozza resta qui fino alla conferma del server.</p>}
     </fieldset></div>
     {exit&&<DiscardConfirmation onContinue={()=>setExit(false)} description={singleCategory?"Le modifiche a questo limite saranno eliminate. Gli altri budget e le altre bozze rimangono invariati.":"La bozza locale di questo mese sarà eliminata. Il piano già salvato rimane invariato."} onDiscard={()=>{try{localStorage.removeItem(key);}catch{}p.onClose();}}/>}

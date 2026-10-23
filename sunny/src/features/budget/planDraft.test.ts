@@ -1,6 +1,7 @@
 import {describe,it,expect} from 'vitest';
 import {parsePlanAmount,createPlanDraft,resolvePlanDraft,moveCategoryLimit,draftKey,applyLimitTransferToDraft,planDifferences} from './planDraft';
 import {initMonthlyBudget} from './monthlyBudget';
+import type {PlanDraft} from './planDraft';
 describe('controlled Piano draft',()=>{
   it('keeps empty distinct from zero and accepts Italian cents',()=>{
     expect(parsePlanAmount('')).toBeNull();expect(parsePlanAmount('0')).toBe(0);
@@ -50,5 +51,23 @@ describe('controlled Piano draft',()=>{
       expect.objectContaining({field:'cashInvestmentBudgets',id:'fund',before:200,after:300}),
       expect.objectContaining({field:'incomeBudgets',id:'salary',before:1000,after:1200}),
     ]));
+  });
+});
+
+
+describe('Piano validation targets',()=>{
+  const cases:{patch:Partial<PlanDraft>;field:string;category?:string}[]=[
+    {patch:{income:{}},field:'income'},
+    {patch:{income:{expected:'12,345'}},field:'income',category:'expected'},
+    {patch:{savings:''},field:'savings'},
+    {patch:{cash:{fund:''}},field:'cash',category:'fund'},
+    {patch:{cashReviewed:false},field:'cashReviewed'},
+    {patch:{limits:{food:''}},field:'limits',category:'food'},
+  ];
+  it.each(cases)('identifies the field that prevents confirmation: $field',({patch,field,category})=>{
+    const base={...initMonthlyBudget({month:'2026-10'}),source:'manual' as const,savingsTarget:300,incomeBudgets:{expected:2400},
+      planningV3:{schemaVersion:1 as const,inputsReviewedAt:1,cashInvestmentBudgets:{}}};
+    try { resolvePlanDraft({...createPlanDraft(base),...patch},true); throw new Error('Expected validation failure'); }
+    catch(error) { expect(error).toMatchObject({field,...(category?{category}:{})}); }
   });
 });
