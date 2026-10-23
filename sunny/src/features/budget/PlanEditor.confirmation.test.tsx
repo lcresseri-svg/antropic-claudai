@@ -31,11 +31,11 @@ describe('UI3 plan confirmation', () => {
     expect(confirmationButton(render(planFor('2026-11'), 'goals'))).toBeDefined();
   });
 
-  it('explains the unmet review requirement beside the disabled confirmation', () => {
+  it('keeps confirmation actionable while explaining the required review', () => {
     const plan = { ...planFor('2026-10'), planningV3: undefined };
     const html = render(plan, 'expenses');
-    expect(confirmationButton(html)).toContain('disabled');
-    expect(html).toContain('Conferma entrate e investimenti dai conti, anche zero.');
+    expect(confirmationButton(html)).not.toContain('disabled');
+    expect(html).toContain('Verifica gli investimenti dai conti, anche se sono zero.');
     expect(html).toContain('aria-describedby="plan-confirmation-help"');
   });
 
@@ -51,8 +51,8 @@ describe('UI3 plan confirmation', () => {
 
   it.each([undefined, { schemaVersion: 1 as const, inputsReviewedAt: 0, cashInvestmentBudgets: {} }])('offers confirmation for an older confirmed plan requiring review: %j', planningV3 => {
     const html = render({ ...planFor('2026-10'), status: 'confirmed', planningV3 }, 'goals');
-    expect(confirmationButton(html)).toContain('disabled');
-    expect(html).toContain('Conferma entrate e investimenti dai conti, anche zero.');
+    expect(confirmationButton(html)).not.toContain('disabled');
+    expect(html).toContain('Verifica gli investimenti dai conti, anche se sono zero.');
   });
 
   it('uses the displayed plan confirmation even when a recovered local draft has an old confirmed base', () => {
