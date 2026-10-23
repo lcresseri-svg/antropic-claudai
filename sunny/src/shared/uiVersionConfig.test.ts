@@ -7,8 +7,8 @@ const config: UiVersionConfig = {
 };
 
 describe('UI version visibility, independent of feature authorization', () => {
-  it('enables the production pilot only for the authorized admin', () => {
-    expect(resolveUiVersion(pilot)).toBe('3.0');
+  it('keeps the production admin and other users on UI2', () => {
+    expect(resolveUiVersion(pilot)).toBe('2.0');
     expect(resolveUiVersion({ uid: 'ordinary' })).toBe('2.0');
     expect(resolveUiVersion(null)).toBe('2.0');
   });

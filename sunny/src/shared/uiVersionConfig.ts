@@ -12,7 +12,7 @@ export interface UiVersionConfig {
  * Rollback: forceEveryone: '2.0'. Public rollout: forceEveryone: '3.0'. */
 export const UI_VERSION_CONFIG: UiVersionConfig = {
   everyone: '2.0',
-  pilotAdmin: '3.0',
+  pilotAdmin: '2.0',
   pilotAdminUids: ['qPtCOJGRrwOZ2EfjxMHwW6ZISXX2'],
   forceEveryone: null,
 };
