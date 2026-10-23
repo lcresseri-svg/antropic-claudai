@@ -1,7 +1,8 @@
-import { describe, expect, it, vi } from 'vitest';
+import { afterEach, describe, expect, it, vi } from 'vitest';
 import { renderToStaticMarkup } from 'react-dom/server';
 import { PlanEditor, type PlanEditorSection } from './PlanEditor';
 import { initMonthlyBudget, type MonthlyBudget } from './monthlyBudget';
+import { createPlanDraft } from './planDraft';
 
 vi.mock('../../shared/providers/UiVersionProvider', () => ({ useUiVersion: () => '3.0' }));
 vi.mock('./PlanDialog', () => ({ PlanDialog: ({ children }: any) => <section>{children}</section> }));
@@ -17,6 +18,7 @@ const render = (plan: MonthlyBudget, section: PlanEditorSection) => renderToStat
   onSave={async (_, next) => next} onClose={() => {}}
 />);
 const confirmationButton = (html: string) => html.match(/<button\b[^>]*>Conferma piano<\/button>/)?.[0];
+afterEach(() => vi.unstubAllGlobals());
 
 describe('UI3 plan confirmation', () => {
   it.each(['income', 'goals', 'expenses'] as const)('can confirm a complete current plan from %s', section => {
@@ -47,9 +49,18 @@ describe('UI3 plan confirmation', () => {
     expect(html).toContain('Salva modifiche');
   });
 
-  it('explains required inputs when revisiting an older confirmed plan without a review', () => {
-    const html = render({ ...planFor('2026-10'), status: 'confirmed', planningV3: undefined }, 'goals');
-    expect(confirmationButton(html)).toBeUndefined();
+  it.each([undefined, { schemaVersion: 1 as const, inputsReviewedAt: 0, cashInvestmentBudgets: {} }])('offers confirmation for an older confirmed plan requiring review: %j', planningV3 => {
+    const html = render({ ...planFor('2026-10'), status: 'confirmed', planningV3 }, 'goals');
+    expect(confirmationButton(html)).toContain('disabled');
     expect(html).toContain('Conferma entrate e investimenti dai conti, anche zero.');
+  });
+
+  it('uses the displayed plan confirmation even when a recovered local draft has an old confirmed base', () => {
+    const cached = createPlanDraft({ ...planFor('2026-10'), status: 'confirmed' });
+    vi.stubGlobal('localStorage', { getItem: () => JSON.stringify({ draft: cached, revision: 1 }) });
+    const html = render({ ...planFor('2026-10'), status: 'confirmed', planningV3: undefined }, 'goals');
+    expect(confirmationButton(html)).toBeDefined();
+    expect(html).toContain('Salva bozza');
+    expect(html).not.toContain('Salva modifiche');
   });
 });

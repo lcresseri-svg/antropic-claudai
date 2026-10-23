@@ -5,7 +5,7 @@ import { useEffect, useState } from 'react';
 import { CategoryDef, Transaction, ownShare } from '../../types';
 import { MonthlyBudget, initMonthlyBudget, prevMonthKey } from './monthlyBudget';
 import { revisionOf } from './monthlyBudgetStore';
-import { createPlanDraft, draftKey, inputAmount, parsePlanAmount, resolvePlanDraft, applyLimitTransferToDraft, planDifferences, type PlanDraft } from './planDraft';
+import { createPlanDraft, draftKey, inputAmount, parsePlanAmount, resolvePlanDraft, isReviewedAndConfirmed, applyLimitTransferToDraft, planDifferences, type PlanDraft } from './planDraft';
 import { selectMonthlyPlan, planTransactions, cents } from './monthlyPlanSelectors';
 import { PlanDialog } from './PlanDialog';
 import { formatCurrency } from '../../utils';
@@ -41,7 +41,10 @@ export function PlanEditor(p:Props) {
   const [storageError,setStorageError]=useState(false);
   const historical=p.month<`${p.now.getFullYear()}-${String(p.now.getMonth()+1).padStart(2,'0')}`;
   const showSaveHelp=ui3&&!singleCategory&&!historical;
-  const showConfirmation=!singleCategory&&!historical&&draft.base.status!=='confirmed'&&(ui3||step===2);
+  const confirmed=!!p.plan&&isReviewedAndConfirmed(p.plan)&&isReviewedAndConfirmed(draft.base);
+  // A recovered local draft cannot override the current plan's need for review.
+  const draftToSave:PlanDraft=confirmed?draft:{...draft,base:{...draft.base,status:'draft'}};
+  const showConfirmation=!singleCategory&&!historical&&!confirmed&&(ui3||step===2);
   const change=(d:PlanDraft)=>{setDraft(d);setDirty(true);setError('');setMessage('');setDeficitAccepted(false);};
   useEffect(()=>{
     if(!dirty)return;
@@ -52,7 +55,7 @@ export function PlanEditor(p:Props) {
     window.addEventListener('beforeunload',warn);return ()=>window.removeEventListener('beforeunload',warn);
   },[dirty]);
   let candidate:MonthlyBudget|null=null,validation='';
-  try{candidate=singleCategory?withCategoryLimit(draft.base,singleCategory,draft.limits[singleCategory]??null):resolvePlanDraft(draft,false,p.now.getTime());}catch(e){validation=(e as Error).message;}
+  try{candidate=singleCategory?withCategoryLimit(draft.base,singleCategory,draft.limits[singleCategory]??null):resolvePlanDraft(draftToSave,false,p.now.getTime());}catch(e){validation=(e as Error).message;}
   const view=selectMonthlyPlan({month:p.month,now:p.now,plan:candidate,transactions:p.transactions,categories:p.categories});
   const before=selectMonthlyPlan({month:p.month,now:p.now,plan:p.plan,transactions:p.transactions,categories:p.categories});
   const deficit=(view.M!==null&&view.M<0)||(view.U!==null&&view.U<0);
@@ -71,7 +74,7 @@ export function PlanEditor(p:Props) {
     if((confirm||candidate.status==='confirmed')&&deficit&&!deficitAccepted){setError('Scegli esplicitamente se continuare con il piano in disavanzo.');return;}
     setBusy(true);
     try{
-      await p.onSave(p.month,singleCategory?candidate:resolvePlanDraft(draft,confirm,p.now.getTime()),revision);
+      await p.onSave(p.month,singleCategory?candidate:resolvePlanDraft(draftToSave,confirm,p.now.getTime()),revision);
       try{localStorage.removeItem(key);}catch{/* save is already confirmed by server */}
       setDirty(false);p.onClose();
     }catch(e){setError((e as Error).message||'Salvataggio non riuscito. Bozza locale conservata, riprova con la rete disponibile.');}
@@ -142,7 +145,7 @@ export function PlanEditor(p:Props) {
       <footer><button disabled={busy} onClick={close}>Annulla</button><button className={candidate?.status==='confirmed'?'plan-primary cta-gold-fill':''} aria-describedby={showSaveHelp?'plan-confirmation-help':undefined} disabled={busy||(!!singleCategory&&(!dirty||revisionOf(p.plan)!==revision))} onClick={()=>void save(false)}>{singleCategory?'Salva limite':candidate?.status==='confirmed'?'Salva modifiche':'Salva bozza'}</button>
         {!singleCategory&&step<2&&<button onClick={()=>setStep(step+1)}>Avanti</button>}
         {showSaveHelp&&<p id="plan-confirmation-help" className="plan-confirmation-help" role="status">
-          {!candidate?`${validation} Completa o correggi i dati nei passaggi del piano.`:deficit&&!deficitAccepted?'Il piano è in disavanzo. Per salvarlo, seleziona «Continua con piano in disavanzo».':draft.base.status==='confirmed'?'Il piano è già confermato. «Salva modifiche» aggiorna il piano definitivo.':'Puoi confermare il piano. I limiti per categoria sono facoltativi.'}
+          {!candidate?`${validation} Completa o correggi i dati nei passaggi del piano.`:deficit&&!deficitAccepted?'Il piano è in disavanzo. Per salvarlo, seleziona «Continua con piano in disavanzo».':confirmed?'Il piano è già confermato. «Salva modifiche» aggiorna il piano definitivo.':'Puoi confermare il piano. I limiti per categoria sono facoltativi.'}
         </p>}
         {showConfirmation&&<button className={`plan-primary cta-gold-fill${ui3?' plan-confirm':''}`} aria-describedby={ui3?'plan-confirmation-help':undefined} disabled={busy||!candidate} onClick={()=>void save(true)}>Conferma piano</button>}</footer>
       {busy&&<p role="status">Salvataggio in corso… La bozza resta qui fino alla conferma del server.</p>}

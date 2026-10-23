@@ -93,6 +93,7 @@ const budget={savingsTarget:500,categoryBudgets:{casa:700,spesa:300,ristoranti:1
 const currentMonth=iso(0,1).slice(0,7);
 const monthly:MonthlyBudget={...budget,month:currentMonth,status:'confirmed',source:'manual',revision:1,
   planningV3:params.has('legacy')?undefined:{schemaVersion:1,inputsReviewedAt:1,cashInvestmentBudgets:{azioni_etf:350}}};
+if(params.has('reviewNeeded')&&monthly.planningV3)monthly.planningV3.inputsReviewedAt=0;
 if(params.has('pianoCase'))Object.assign(monthly,{savingsTarget:400,incomeBudgets:{stipendio:2400},categoryBudgets:{spesa:1200,casa:500},
   planningV3:{schemaVersion:1,inputsReviewedAt:1,cashInvestmentBudgets:{azioni_etf:200}}});
 const noop=()=>{};
