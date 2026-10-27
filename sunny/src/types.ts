@@ -49,6 +49,8 @@ export const FUND_TYPE_ORDER: FundType[] = ['pension', 'bond', 'equity'];
 
 /** User-editable category. Stored in Firestore per user. */
 export interface CategoryDef {
+  /** Optional expense grouping for analytics; never replaces transaction category. */
+  macroCategory?: string;
   id: string;
   label: string;
   icon: string;   // single emoji
