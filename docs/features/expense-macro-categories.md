@@ -36,3 +36,13 @@ Nell’analisi Spese per categoria il selettore Categorie / Macro mantiene perio
 - Revisione indipendente: corretto il rischio di scrittura prima del caricamento iniziale con blocco della pagina e delle funzioni di salvataggio. Nessun altro rilievo concreto.
 
 [Evidenze, log e screenshot](../evidence/macro-definitions/). Prove con dati illustrativi, nessun accesso agli account privati o prova su Safari fisico.
+
+## Sunny 2.1.0 — annuncio a tutti
+
+La gestione è disponibile a utenti normali e admin, in UI2 e UI3. Nessuna modifica al resolver UI3, agli altri rollout o ai permessi. Versione applicazione, registro e metadati npm aggiornati a 2.1.0 (27 ottobre 2026).
+
+La release attiva l’avviso Novità esistente all’ingresso: spiega dove creare la macro e come assegnarla alle categorie, con l’esempio Casa = Affitto 700 € + Bollette 100 € + Arredamento 50 € = 850 €. Il pulsante Configura le macrocategorie apre Impostazioni / Gestione / Macrocategorie.
+
+La conferma è memorizzata per utente e versione nel browser/dispositivo corrente. Un secondo account sullo stesso browser riceve il proprio annuncio; una conferma non vale su altri dispositivi. La decisione di sospendere il secondo avviso di release resta coerente con la stessa chiave.
+
+Verifiche: build/TypeScript e 961 unit passati, 5 skipped; dodici combinazioni browser (utente normale UI2 / admin UI3 × due temi × 320/390/1440). Verificati testo dell’esempio, versione, CTA, creazione di una macro da parte di entrambi i ruoli e mancata riapertura dopo conferma. Caso aggiuntivo con cambio account sullo stesso browser ed Escape. Revisione indipendente senza rilievi. Evidenze in [macro-release](../evidence/macro-release/). Chromium con fixture; nessuna lettura di account privati.

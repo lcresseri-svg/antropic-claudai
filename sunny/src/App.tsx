@@ -212,7 +212,7 @@ function Main({ user, onLogOut, onDeleteAccount }: {
   const [settingsOpen, setSettingsOpen] = useState(false);
   const [showPushPromo, setShowPushPromo] = useState(false);
   // Deciso una volta sola: vedi il commento al montaggio di ReleaseNotice.
-  const [whatsNewPending] = useState(isWhatsNewPending);
+  const [whatsNewPending] = useState(()=>isWhatsNewPending(user.uid));
 
   const isSettings = location.pathname.startsWith('/settings');
   const firstName = user.displayName?.split(' ')[0] ?? 'utente';
@@ -420,7 +420,7 @@ function Main({ user, onLogOut, onDeleteAccount }: {
       />
 
       {/* "Novità" popup — shown once per highlighted release, to all users. */}
-      <WhatsNewModal />
+      <WhatsNewModal userId={user.uid} />
 
       {/* One-shot release notice — once per user per notice id, only after the
           initial data load (never over the loading state). Mai due popup
