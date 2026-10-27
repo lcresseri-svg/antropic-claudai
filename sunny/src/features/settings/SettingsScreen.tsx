@@ -6,7 +6,7 @@ import {useOriginBack} from '../../shared/hooks/useOriginBack';
 import { useState, useEffect, useLayoutEffect, useRef, Children, isValidElement, ReactNode } from 'react';
 import { useNavigate, useLocation } from 'react-router-dom';
 import { User } from 'firebase/auth';
-import { CategoryDef, AccountDef, Transaction, TransactionType, TYPE_META, TYPE_ORDER, typeColor } from '../../types';
+import { MacroCategoryDef, CategoryDef, AccountDef, Transaction, TransactionType, TYPE_META, TYPE_ORDER, typeColor } from '../../types';
 import { useSettings } from '../../shared/providers/settings';
 import { useUiVersion } from '../../shared/providers/UiVersionProvider';
 import { usePush } from '../../shared/hooks/usePush';
@@ -14,7 +14,7 @@ import { EditDefSheet, DefDraft } from './EditDefSheet';
 import { FeedbackSheet } from '../feedback/FeedbackSheet';
 import { ExpenseShortcutSection } from './ExpenseShortcutSection';
 import { ArchivedCategories } from './ArchivedCategories';
-import { MacroCategoryEditor } from '../dashboard/MacroCategoryEditor';
+import {assignCategoryMacro,resolveMacroId,validateMacroName} from '../../shared/macroCategories';
 import { removeCategoryDef, removeAccountDef, visibleDefs } from './softDelete';
 import { buildExportPayload, downloadJson, downloadCsv, BudgetExportInput } from './dataExport';
 import { isForecastV4EnabledForUser } from '../forecast/forecastFeatureGate';
@@ -35,7 +35,7 @@ interface Props {
 }
 
 const newId = () => `x_${Date.now().toString(36)}`;
-type Sub = 'menu' | 'generali' | 'gestione' | 'dati' | 'accounts' | 'categories' | 'info' | 'versioni'
+type Sub = 'macros' | 'menu' | 'generali' | 'gestione' | 'dati' | 'accounts' | 'categories' | 'info' | 'versioni'
   | 'aspetto' | 'budget' | 'investimenti' | 'ai' | 'notifiche' | 'avanzate' | 'shortcut' | 'riserva';
 
 type DragState = {
@@ -57,10 +57,9 @@ export function SettingsScreen({ user, transactions, budgetExport, onImport, onL
   const back=useOriginBack('/');
   const ui3 = useUiVersion() === '3.0';
   const location = useLocation();
-  const { settingsLoaded, categories, accounts, visibleCategories, visibleAccounts, theme, includeInvestments, enableInvestments, enableBudget, insightDepth, aiEnabled, aiCoachWidgetEnabled, detailedInvestments, cashReserve, saveCategories, restoreCategory, saveAccounts, saveTheme, saveIncludeInvestments, saveEnableInvestments, saveEnableBudget, saveInsightDepth, saveAiEnabled, saveAiCoachWidgetEnabled, saveCashReserve } = useSettings();
-  const [editingMacros,setEditingMacros] = useState(false);
+  const { macroCategories, saveMacroCategories, settingsLoaded, categories, accounts, visibleCategories, visibleAccounts, theme, includeInvestments, enableInvestments, enableBudget, insightDepth, aiEnabled, aiCoachWidgetEnabled, detailedInvestments, cashReserve, saveCategories, restoreCategory, saveAccounts, saveTheme, saveIncludeInvestments, saveEnableInvestments, saveEnableBudget, saveInsightDepth, saveAiEnabled, saveAiCoachWidgetEnabled, saveCashReserve } = useSettings();
   const [sub, setSub] = useState<Sub>('menu');
-  const [editing, setEditing] = useState<{ kind: 'category' | 'account'; draft: DefDraft; isNew: boolean; withKind?: boolean } | null>(null);
+  const [editing, setEditing] = useState<{ kind: 'macro' | 'category' | 'account'; draft: DefDraft; isNew: boolean; withKind?: boolean } | null>(null);
   const [confirmReset, setConfirmReset] = useState(false);
   const [feedbackOpen, setFeedbackOpen] = useState(false);
   /** Filtro del menu impostazioni (solo la schermata elenco). */
@@ -95,12 +94,12 @@ export function SettingsScreen({ user, transactions, budgetExport, onImport, onL
   // sub-section (used by the "Attiva budget" shortcut on the disabled screen).
   useEffect(() => {
     const s = new URLSearchParams(location.search).get('section');
-    const valid: Sub[] = ['generali', 'gestione', 'dati', 'accounts', 'categories', 'info', 'versioni',
+    const valid: Sub[] = ['macros', 'generali', 'gestione', 'dati', 'accounts', 'categories', 'info', 'versioni',
       'aspetto', 'budget', 'investimenti', 'ai', 'notifiche', 'avanzate', 'riserva'];
     if (s && (valid as string[]).includes(s)) setSub(s as Sub);
   }, [location.search]);
 
-  const exportJson = () => downloadJson(buildExportPayload(user, categories, accounts, transactions, budgetExport));
+  const exportJson = () => downloadJson({...buildExportPayload(user, categories, accounts, transactions, budgetExport),macroCategories});
   const exportCsv = () => downloadCsv(transactions);
 
   // Admin-only entry point to the Forecast screen (which hosts the V4 panel).
@@ -179,24 +178,29 @@ export function SettingsScreen({ user, transactions, budgetExport, onImport, onL
   const openCategory = (c?: CategoryDef, forKind?: TransactionType) => setEditing({
     kind: 'category', isNew: !c,
     withKind: !forKind,
-    draft: c ? { ...c } : { id: newId(), label: '', icon: '•', color: '#8A9270', kind: forKind ?? 'expense' },
+    draft: c ? { ...c,macroCategoryId:resolveMacroId(c,macroCategories) } : { id: newId(), label: '', icon: '•', color: '#8A9270', kind: forKind ?? 'expense' },
   });
   const openAccount = (a?: AccountDef) => setEditing({
     kind: 'account', isNew: !a,
     draft: a ? { ...a } : { id: newId(), label: '', icon: '🏦', color: '#6FA8DC' },
   });
 
-  const save = (d: DefDraft) => {
+  const openMacro=(m?:MacroCategoryDef)=>setEditing({kind:'macro',isNew:!m,draft:m?{...m}:{id:newId(),label:'',icon:'🏷️',color:'#8A9270'}});
+  const save = async (d: DefDraft) => {
     if (!editing) return;
-    if (editing.kind === 'category') {
+    if(editing.kind==='macro'){
+      const def:MacroCategoryDef={id:d.id,label:validateMacroName(d.label,d.id,macroCategories),icon:d.icon,color:d.color};
+      await saveMacroCategories(editing.isNew?[...macroCategories,def]:macroCategories.map(m=>m.id===d.id?def:m));
+    } else if (editing.kind === 'category') {
       const kind = d.kind ?? 'expense';
       // Start from the EXISTING definition so fields the sheet doesn't edit
       // (currentValue, lastValueUpdate, archived) survive the edit — the
       // controvalore sync depends on them.
       const prev = categories.find(c => c.id === d.id);
-      const def: CategoryDef = { ...(prev ?? {}), id: d.id, label: d.label, icon: d.icon, color: d.color, kind };
+      let def: CategoryDef = { ...(prev ?? {}), id: d.id, label: d.label, icon: d.icon, color: d.color, kind };
       delete def.initialBalance; delete def.fundType; delete def.tfrAmount; delete def.subscriptionDate;
       delete def.financedAmount;
+      def=assignCategoryMacro(def,d.macroCategoryId??'',macroCategories);
       if (kind === 'investment') {
         if (d.initialBalance !== undefined) def.initialBalance = d.initialBalance;
         if (d.fundType) def.fundType = d.fundType;
@@ -207,7 +211,7 @@ export function SettingsScreen({ user, transactions, budgetExport, onImport, onL
         delete def.currentValue; delete def.lastValueUpdate;
         if (kind === 'expense' && d.financedAmount !== undefined) def.financedAmount = d.financedAmount;
       }
-      saveCategories(editing.isNew ? [...categories, def] : categories.map(c => c.id === d.id ? def : c));
+      await saveCategories(editing.isNew ? [...categories, def] : categories.map(c => c.id === d.id ? def : c),{persistFirst:true});
     } else {
       const prev = accounts.find(a => a.id === d.id);
       const def: AccountDef = { ...(prev ?? {}), id: d.id, label: d.label, icon: d.icon, color: d.color };
@@ -225,9 +229,10 @@ export function SettingsScreen({ user, transactions, budgetExport, onImport, onL
   // in the full array so getCat/getAcc resolve it), otherwise hard-removed.
   // Silent — no toast/banner. (removeCategoryDef/removeAccountDef return the full
   // array; saveCategories/saveAccounts always persist the full array.)
-  const remove = (id: string) => {
+  const remove = async (id: string) => {
     if (!editing) return;
-    if (editing.kind === 'category') saveCategories(removeCategoryDef(categories, id, transactions));
+    if(editing.kind==='macro') await saveMacroCategories(macroCategories.filter(m=>m.id!==id));
+    else if (editing.kind === 'category') await saveCategories(removeCategoryDef(categories, id, transactions));
     else saveAccounts(removeAccountDef(accounts, id, transactions));
     setEditing(null);
   };
@@ -639,7 +644,7 @@ export function SettingsScreen({ user, transactions, budgetExport, onImport, onL
           <div className="bg-card rounded-2xl divide-y divide-divider md:bg-transparent md:divide-y-0 md:grid md:grid-cols-2 md:gap-3">
             <Row icon="🏦" color="#6FA8DC" label="Gestisci conti" sub="Saldi iniziali, ordine" onClick={() => enterSub('accounts')} />
             <Row icon="🏷️" color="#8A9270" label="Gestisci categorie" sub="Icone, colori, tipo" onClick={() => enterSub('categories')} />
-            {settingsLoaded && <Row icon="🏷️" color="#8A9270" label="Macrocategorie" sub="Raggruppa le categorie di spesa" onClick={()=>setEditingMacros(true)}/> }
+            {settingsLoaded && <Row icon="🏷️" color="#8A9270" label="Macrocategorie" sub="Raggruppa le categorie di spesa" onClick={()=>enterSub('macros')}/> }
           </div>
         </>
       )}
@@ -751,6 +756,18 @@ export function SettingsScreen({ user, transactions, budgetExport, onImport, onL
         </>
       )}
 
+      {sub === 'macros' && !settingsLoaded && <p role="status" className="text-sm text-secondary">Caricamento macrocategorie…</p>}
+      {sub === 'macros' && settingsLoaded && <>
+        <ManageHeader title="Macrocategorie" editMode={false} onBack={exitToGestione} onToggleEdit={()=>{}} hideEdit/>
+        <p className="text-sm text-secondary">Crea le macrocategorie con nome, emoji e colore. Le assegni creando o modificando una categoria di spesa.</p>
+        <div className="space-y-3 md:max-w-xl">
+          <div className="bg-card rounded-2xl divide-y divide-divider">
+            {macroCategories.map(m=><ManageRow key={m.id} icon={m.icon} color={m.color} label={m.label} sub={`${categories.filter(c=>resolveMacroId(c,macroCategories)===m.id).length} categorie`} editMode={false} selected={false} onClick={()=>openMacro(m)}/>)}
+          </div>
+          {macroCategories.length===0&&<p className="text-sm text-secondary">Nessuna macrocategoria creata.</p>}
+          <button type="button" className="w-full py-3 rounded-2xl bg-card text-gold text-sm font-semibold" onClick={()=>openMacro()}>+ Aggiungi macrocategoria</button>
+        </div>
+      </>}
       {sub === 'categories' && (
         <>
           <ManageHeader title="Categorie" editMode={editMode} onBack={exitToGestione} onToggleEdit={toggleEditMode} />
@@ -768,7 +785,7 @@ export function SettingsScreen({ user, transactions, budgetExport, onImport, onL
                   {items.length > 0 && (
                     <div className="bg-card rounded-2xl divide-y divide-divider">
                       {items.map((c) => (
-                        <ManageRow key={c.id} icon={c.icon} color={c.color} label={c.label}
+                        <ManageRow key={c.id} icon={c.icon} color={c.color} label={c.label} sub={macroCategories.find(m=>m.id===resolveMacroId(c,macroCategories))?.label}
                           editMode={false} selected={false}
                           showHandle={editMode}
                           isDragging={c.id === draggingId}
@@ -872,6 +889,7 @@ export function SettingsScreen({ user, transactions, budgetExport, onImport, onL
 
       </SettingsPane>
       <EditDefSheet
+        entity={editing?.kind==='macro'?'macro':undefined}
         open={!!editing}
         draft={editing?.draft ?? null}
         withKind={editing?.kind === 'category' && (editing?.withKind ?? true)}
@@ -883,7 +901,6 @@ export function SettingsScreen({ user, transactions, budgetExport, onImport, onL
         onClose={() => setEditing(null)}
       />
 
-      {editingMacros && <MacroCategoryEditor onClose={()=>setEditingMacros(false)}/>}
       <FeedbackSheet open={feedbackOpen} user={user} onClose={() => setFeedbackOpen(false)} />
     </div>
   );
@@ -938,6 +955,8 @@ function ManageRow({ icon, color, label, sub, editMode, selected, onClick, showH
 }) {
   return (
     <div
+      role={onClick?'button':undefined} tabIndex={onClick?0:undefined}
+      onKeyDown={e=>{if(onClick&&e.target===e.currentTarget&&(e.key==='Enter'||e.key===' ')){e.preventDefault();onClick();}}}
       onClick={onClick}
       className={`ui-settings-row w-full flex items-center gap-3.5 p-3.5 text-left transition-all first:rounded-t-2xl last:rounded-b-2xl select-none
         ${onClick ? 'cursor-pointer active:bg-card-hover' : 'cursor-default'}

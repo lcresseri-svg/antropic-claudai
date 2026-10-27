@@ -1,4 +1,4 @@
-import { Transaction, CategoryDef, AccountDef, BudgetState } from '../../types';
+import { Transaction, MacroCategoryDef, CategoryDef, AccountDef, BudgetState } from '../../types';
 import { MonthlyBudget, monthlyToBudgetState } from '../budget/monthlyBudget';
 
 /** One month of budget configuration in the export (section 17.9). */
@@ -27,6 +27,7 @@ export interface ExportPayload {
   app: 'Sunny';
   schemaVersion: 1;
   user: { uid: string; email: string | null; displayName: string | null };
+  macroCategories?: MacroCategoryDef[];
   categories: CategoryDef[];
   accounts: AccountDef[];
   transactions: Transaction[];

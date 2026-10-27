@@ -1,8 +1,9 @@
+import {categorySettingsPayload,legacyMacroDefinitions} from '../../shared/macroCategories';
 import { createContext, useContext, useEffect, useState, useCallback, useMemo, ReactNode } from 'react';
 import { doc, onSnapshot, setDoc } from 'firebase/firestore';
 import { User } from 'firebase/auth';
 import { db } from '../../lib/firebase';
-import { CategoryDef, AccountDef, ApplePayCardMapping } from '../../types';
+import { MacroCategoryDef, CategoryDef, AccountDef, ApplePayCardMapping } from '../../types';
 import {
   DEFAULT_CATEGORIES, DEFAULT_ACCOUNTS, FALLBACK_CATEGORY, FALLBACK_ACCOUNT,
   SYSTEM_CATEGORIES,
@@ -14,6 +15,8 @@ type Theme = 'dark' | 'light';
 export type InsightDepth = 'minimal' | 'medium' | 'advanced';
 
 interface SettingsValue {
+  macroCategories: MacroCategoryDef[];
+  saveMacroCategories: (macros: MacroCategoryDef[]) => Promise<void>;
   categories: CategoryDef[];           // full source of truth (incl. archived) — editing + getCat
   accounts: AccountDef[];              // full source of truth (incl. archived) — editing + getAcc
   applePayCardMappings: ApplePayCardMapping[];
@@ -88,6 +91,8 @@ function initialTheme(): Theme {
 }
 
 export function SettingsProvider({ user, children }: { user: User | null; children: ReactNode }) {
+  const [macroDefinitionsStored,setMacroDefinitionsStored]=useState(false);
+  const [macroCategories,setMacroCategories]=useState<MacroCategoryDef[]>([]);
   const [categories, setCategories] = useState<CategoryDef[]>(DEFAULT_CATEGORIES);
   const [accounts, setAccounts] = useState<AccountDef[]>(DEFAULT_ACCOUNTS);
   const [applePayCardMappings, setApplePayCardMappings] = useState<ApplePayCardMapping[]>([]);
@@ -112,6 +117,7 @@ export function SettingsProvider({ user, children }: { user: User | null; childr
   useEffect(() => {
     if (!user) {
       setCategories(DEFAULT_CATEGORIES);
+      setMacroCategories([]);setMacroDefinitionsStored(false);
       setAccounts(DEFAULT_ACCOUNTS);
       setApplePayCardMappings([]);
       setTheme(initialTheme());
@@ -141,7 +147,10 @@ export function SettingsProvider({ user, children }: { user: User | null; childr
         return;
       }
       const d = snap.data();
-      setCategories((d.categories as CategoryDef[]) ?? DEFAULT_CATEGORIES);
+      const loadedCategories=(d.categories as CategoryDef[]) ?? DEFAULT_CATEGORIES;
+      setCategories(loadedCategories);
+      setMacroDefinitionsStored(Array.isArray(d.macroCategories));
+      setMacroCategories(Array.isArray(d.macroCategories)?d.macroCategories as MacroCategoryDef[]:legacyMacroDefinitions(loadedCategories));
       setAccounts((d.accounts as AccountDef[]) ?? DEFAULT_ACCOUNTS);
       setApplePayCardMappings(
         Array.isArray(d.applePayCardMappings)
@@ -172,10 +181,17 @@ export function SettingsProvider({ user, children }: { user: User | null; childr
   );
 
   const saveCategories = useCallback(async (c: CategoryDef[], options?: { persistFirst?: boolean }) => {
+    if(options?.persistFirst&&!settingsLoaded)throw Error('Attendi il caricamento delle impostazioni.');
     if (!options?.persistFirst) setCategories(c);
-    if (user) await setDoc(settingsRef(), { categories: c }, MERGE);
+    if (user) await setDoc(settingsRef(), categorySettingsPayload(c,macroCategories,!settingsLoaded||macroDefinitionsStored), MERGE);
     if (options?.persistFirst) setCategories(c);
-  }, [user, settingsRef]);
+  }, [user, settingsRef,macroDefinitionsStored,macroCategories,settingsLoaded]);
+
+  const saveMacroCategories = useCallback(async (macros: MacroCategoryDef[]) => {
+    if(!settingsLoaded)throw Error('Attendi il caricamento delle impostazioni.');
+    if(user)await setDoc(settingsRef(),{macroCategories:macros},MERGE);
+    setMacroCategories(macros);setMacroDefinitionsStored(true);
+  },[user,settingsRef,settingsLoaded]);
 
   const saveAccounts = useCallback((a: AccountDef[]) => {
     setAccounts(a);
@@ -282,7 +298,7 @@ export function SettingsProvider({ user, children }: { user: User | null; childr
   );
 
   return (
-    <SettingsContext.Provider value={{ categories, accounts, applePayCardMappings, visibleCategories, visibleAccounts, theme, includeInvestments, enableInvestments, enableBudget, insightDepth, aiEnabled, aiCoachWidgetEnabled, cashReserve, homeOrder, detailedInvestments, settingsLoaded, getCat, getAcc, saveCategories, restoreCategory, saveAccounts, saveApplePayCardMapping, removeApplePayCardMapping, saveTheme, saveIncludeInvestments, saveEnableInvestments, saveEnableBudget, saveInsightDepth, saveAiEnabled, saveAiCoachWidgetEnabled, saveCashReserve, saveHomeOrder, saveCurrentValue }}>
+    <SettingsContext.Provider value={{ macroCategories, saveMacroCategories, categories, accounts, applePayCardMappings, visibleCategories, visibleAccounts, theme, includeInvestments, enableInvestments, enableBudget, insightDepth, aiEnabled, aiCoachWidgetEnabled, cashReserve, homeOrder, detailedInvestments, settingsLoaded, getCat, getAcc, saveCategories, restoreCategory, saveAccounts, saveApplePayCardMapping, removeApplePayCardMapping, saveTheme, saveIncludeInvestments, saveEnableInvestments, saveEnableBudget, saveInsightDepth, saveAiEnabled, saveAiCoachWidgetEnabled, saveCashReserve, saveHomeOrder, saveCurrentValue }}>
       {children}
     </SettingsContext.Provider>
   );

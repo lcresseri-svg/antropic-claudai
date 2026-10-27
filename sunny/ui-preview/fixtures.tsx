@@ -1,7 +1,8 @@
+import {legacyMacroDefinitions} from '../src/shared/macroCategories';
 import { createContext, useContext, useLayoutEffect, useState, type ReactNode } from 'react';
 import { DEFAULT_ACCOUNTS, DEFAULT_CATEGORIES, FALLBACK_ACCOUNT, FALLBACK_CATEGORY } from '../src/defaults';
 import { resolveUiVersion as resolve, UI_VERSION_CONFIG, type UiVersionConfig } from '../src/shared/uiVersionConfig.ts';
-import type { AccountDef, CategoryDef, Transaction } from '../src/types';
+import type { MacroCategoryDef, AccountDef, CategoryDef, Transaction } from '../src/types';
 import { MonthlyBudget } from '../src/features/budget/monthlyBudget';
 import { revisionOf, validateMonthlyBudget } from '../src/features/budget/monthlyBudgetStore';
 
@@ -67,6 +68,7 @@ if(params.has('edgeCategories')){
 
 function useFixtureSettings() {
   const [theme,setTheme] = useState<'light'|'dark'>(params.get('theme') === 'dark' ? 'dark' : 'light');
+  const [macroCategories,setMacroCategories]=useState<MacroCategoryDef[]>(()=>legacyMacroDefinitions(categories));
   const [cats,setCats]=useState(categories), [accs,setAccs]=useState(accounts);
   const [homeOrder,saveHomeOrder]=useState<string[]>([]);
   const [enableInvestments,saveEnableInvestments]=useState(!params.has('noInvest'));
@@ -77,11 +79,11 @@ function useFixtureSettings() {
   const [insightDepth,saveInsightDepth]=useState<'medium'|'advanced'|'minimal'>('medium');
   const [aiCoachWidgetEnabled,saveAiCoachWidgetEnabled]=useState(false);
   useLayoutEffect(() => { document.documentElement.classList.toggle('light', theme === 'light'); },[theme]);
-  return { categories:cats,accounts:accs,visibleCategories:cats.filter(c=>!c.archived),visibleAccounts:accs.filter(a=>!a.archived),theme,
+  return { macroCategories,saveMacroCategories:async(next:MacroCategoryDef[])=>{if(params.has('failSave'))throw Error('Fixture: rete non disponibile');setMacroCategories(next);},categories:cats,accounts:accs,visibleCategories:cats.filter(c=>!c.archived),visibleAccounts:accs.filter(a=>!a.archived),theme,
     getCat:(id:string)=>cats.find(c=>c.id===id)??FALLBACK_CATEGORY(id),getAcc:(id:string)=>accs.find(a=>a.id===id)??FALLBACK_ACCOUNT(id),
     homeOrder,saveHomeOrder,enableInvestments,saveEnableInvestments,includeInvestments,saveIncludeInvestments,
     enableBudget,saveEnableBudget,aiEnabled,saveAiEnabled,aiCoachWidgetEnabled,saveAiCoachWidgetEnabled,
-    cashReserve,saveCashReserve,insightDepth,saveInsightDepth,detailedInvestments:true,settingsLoaded:true,
+    cashReserve,saveCashReserve,insightDepth,saveInsightDepth,detailedInvestments:true,settingsLoaded:!params.has('loadingSettings'),
     applePayCardMappings:[],saveApplePayCardMapping() {},removeApplePayCardMapping() {},
     saveTheme:setTheme,saveCategories:async(next:CategoryDef[])=>{if(params.has('failSave'))throw Error('Fixture: rete non disponibile');setCats(next);},saveAccounts:setAccs,saveCurrentValue:async(id:string,value:number)=>{if(params.has('failSave'))throw Error('Fixture: rete non disponibile');setCats(cs=>cs.map(c=>c.id===id?{...c,currentValue:value}:c));},restoreCategory:async(id:string)=>setCats(cs=>cs.map(c=>c.id===id?{...c,archived:false}:c)),
   };

@@ -13,6 +13,7 @@ export interface DefDraft {
   label: string;
   icon: string;
   color: string;
+  macroCategoryId?: string;
   kind?: TransactionType;
   initialBalance?: number;
   isInvestment?: boolean;
@@ -26,19 +27,22 @@ export interface DefDraft {
 }
 
 interface Props {
+  entity?: 'macro';
   open: boolean;
   draft: DefDraft | null;
   withKind: boolean;
   canDelete: boolean;
   showFundType?: boolean;   // detailed-investments mode (per-user gated)
   showFinancing?: boolean;  // loan tracking on expense categories (admin-only rollout)
-  onSave: (d: DefDraft) => void;
-  onDelete?: (id: string) => void;
+  onSave: (d: DefDraft) => void | Promise<void>;
+  onDelete?: (id: string) => void | Promise<void>;
   onClose: () => void;
 }
 
-export function EditDefSheet({ open, draft, withKind, canDelete, showFundType, showFinancing, onSave, onDelete, onClose }: Props) {
-  const { theme } = useSettings();
+export function EditDefSheet({ entity, open, draft, withKind, canDelete, showFundType, showFinancing, onSave, onDelete, onClose }: Props) {
+  const { theme,macroCategories=[] } = useSettings();
+  const [macroCategoryId,setMacroCategoryId]=useState('');
+  const [saving,setSaving]=useState(false),[error,setError]=useState('');
   const [label, setLabel] = useState('');
   const [icon, setIcon] = useState('•');
   const [color, setColor] = useState(COLOR_CHOICES[0]);
@@ -54,6 +58,7 @@ export function EditDefSheet({ open, draft, withKind, canDelete, showFundType, s
 
   useEffect(() => {
     if (!open || !draft) return;
+    setMacroCategoryId(draft.macroCategoryId??'');setError('');
     setLabel(draft.label); setIcon(draft.icon); setColor(draft.color);
     setKind(draft.kind ?? 'expense');
     setInitialBalance(draft.initialBalance !== undefined ? String(draft.initialBalance) : '');
@@ -67,8 +72,8 @@ export function EditDefSheet({ open, draft, withKind, canDelete, showFundType, s
   }, [open, draft]);
 
   const ui3=useUiVersion()==='3.0';
-  const dismiss=useDraftDismiss({open,signature:JSON.stringify([label,icon,color,kind,initialBalance,excludeFromNetWorth,fundType,tfrAmount,subscriptionDate,financedAmount]),saving:false,onClose});
-  const requestClose=()=>{if(false||!ui3)onClose();else dismiss.requestDismiss();};
+  const dismiss=useDraftDismiss({open,signature:JSON.stringify([label,icon,color,kind,initialBalance,excludeFromNetWorth,fundType,tfrAmount,subscriptionDate,financedAmount,macroCategoryId]),saving,onClose});
+  const requestClose=()=>{if(saving)return;if(!ui3)onClose();else dismiss.requestDismiss();};
   useEscapeKey(requestClose, open&&!dismiss.confirm);
 
   if (!open || !draft) return null;
@@ -77,24 +82,25 @@ export function EditDefSheet({ open, draft, withKind, canDelete, showFundType, s
   // `withKind` only controls whether the type *selector* is shown (it's hidden
   // when adding inside a specific section), so it must NOT decide the kind —
   // doing so dropped the section's kind and made everything an expense.
-  const isCategory = draft.kind !== undefined;
+  const isMacro=entity==='macro';
+  const isCategory = !isMacro && draft.kind !== undefined;
   const isInvestmentCategory = isCategory && kind === 'investment';
-  const showBalance = (!isCategory && !draft.isInvestment) || isInvestmentCategory;
+  const showBalance = (!isMacro && !isCategory && !draft.isInvestment) || isInvestmentCategory;
   const showFunds = isInvestmentCategory && !!showFundType;
   const isExpenseCategory = isCategory && kind === 'expense';
   const showFinancingField = isExpenseCategory && !!showFinancing;
 
-  const noun = isCategory ? 'categoria' : 'conto';
+  const noun = isMacro?'macrocategoria':isCategory ? 'categoria' : 'conto';
   const sheetTitle = canDelete
     ? `Modifica ${noun}`
-    : `${isCategory ? 'Nuova' : 'Nuovo'} ${noun}`;
+    : `${isCategory||isMacro ? 'Nuova' : 'Nuovo'} ${noun}`;
 
   const todayISO = new Date().toISOString().slice(0, 10);
   // Never in the future — the date anchors past history for duration/XIRR.
   const validSubscription = subscriptionDate !== '' && subscriptionDate <= todayISO
     ? subscriptionDate : undefined;
 
-  const save = () => {
+  const save = async () => {
     if (!label.trim()) return;
     const parsedBalance = initialBalance !== '' ? parseFloat(initialBalance) : undefined;
     const validBalance = parsedBalance !== undefined && !isNaN(parsedBalance) ? parsedBalance : undefined;
@@ -102,7 +108,8 @@ export function EditDefSheet({ open, draft, withKind, canDelete, showFundType, s
     const validTfr = parsedTfr !== undefined && !isNaN(parsedTfr) ? parsedTfr : undefined;
     const parsedFinanced = financedAmount !== '' ? parseFloat(financedAmount) : undefined;
     const validFinanced = parsedFinanced !== undefined && !isNaN(parsedFinanced) ? parsedFinanced : undefined;
-    onSave({
+    setSaving(true);setError('');
+    try {await onSave({
       id: draft.id, label: label.trim(), icon, color,
       kind: isCategory ? kind : undefined,
       initialBalance: showBalance ? validBalance : undefined,
@@ -111,7 +118,8 @@ export function EditDefSheet({ open, draft, withKind, canDelete, showFundType, s
       tfrAmount: showFunds && fundType === 'pension' ? validTfr : undefined,
       subscriptionDate: isInvestmentCategory ? validSubscription : undefined,
       financedAmount: showFinancingField ? validFinanced : undefined,
-    });
+      macroCategoryId: isExpenseCategory ? macroCategoryId : undefined,
+    });}catch(e){setError(e instanceof Error?e.message:'Salvataggio non riuscito. Riprova.');}finally{setSaving(false);}
   };
 
   return (
@@ -119,19 +127,20 @@ export function EditDefSheet({ open, draft, withKind, canDelete, showFundType, s
       onClick={e => { if (e.target === e.currentTarget) requestClose(); }}>
       <div className="absolute inset-0 bg-black/60 backdrop-blur-sm animate-fade-in-fast" />
       <DialogSurface onInputCapture={dismiss.capture} onChangeCapture={dismiss.capture} onPointerDownCapture={dismiss.capture} onKeyDownCapture={dismiss.capture} title={sheetTitle} onDismiss={requestClose} kind="detail" className="relative w-full max-w-md glass-elevated rounded-3xl p-6 shadow-float animate-sheet-up max-h-[90dvh] overflow-y-auto overscroll-contain scrollbar-hide">
+        <fieldset disabled={saving} className="min-w-0">
         <h2 className="text-base font-semibold text-primary mb-4">{sheetTitle}</h2>
         <p className="text-xs font-medium text-secondary mb-2 px-1">Nome e icona</p>
         <div className="flex items-center gap-3 mb-5">
           <span className="w-12 h-12 rounded-full flex items-center justify-center text-xl" style={{ backgroundColor: color + '22' }}>{icon}</span>
-          <input value={label} onChange={e => setLabel(e.target.value)} placeholder="Nome" maxLength={24} autoFocus
+          <input value={label} onChange={e => setLabel(e.target.value)} placeholder="Nome" aria-label="Nome" maxLength={isMacro?80:24} autoFocus
             onKeyDown={e => { if (e.key === 'Enter') { e.preventDefault(); save(); } }}
-            className="flex-1 bg-elevated rounded-2xl px-4 py-3 text-primary placeholder:text-secondary/50 outline-none focus:ring-1 focus:ring-gold/40" />
+            className="flex-1 min-w-0 bg-elevated rounded-2xl px-4 py-3 text-primary placeholder:text-secondary/50 outline-none focus:ring-1 focus:ring-gold/40" />
         </div>
 
         {withKind && (
           <div className="mb-5">
             <p className="text-xs font-medium text-secondary mb-2 px-1">Tipo</p>
-            <div className="grid grid-cols-4 gap-1.5 bg-surface rounded-2xl p-1.5">
+            <div className={`ui-def-type-picker grid ${ui3?'grid-cols-2 sm:grid-cols-4':'grid-cols-4'} gap-1.5 bg-surface rounded-2xl p-1.5`}>
               {TYPE_ORDER.map(t => (
                 <button key={t} onClick={() => setKind(t)}
                   className={`py-2 rounded-xl text-[11px] font-semibold transition-all ${kind === t ? 'shadow-sm' : 'text-secondary'}`}
@@ -143,6 +152,12 @@ export function EditDefSheet({ open, draft, withKind, canDelete, showFundType, s
           </div>
         )}
 
+        {isExpenseCategory && <label className="block mb-5 text-sm text-secondary">Macrocategoria
+          <select aria-label="Macrocategoria" value={macroCategoryId} onChange={e=>setMacroCategoryId(e.target.value)} className="block w-full min-w-0 rounded-xl bg-elevated px-3 py-3 mt-2 text-primary">
+            <option value="">Senza macrocategoria</option>
+            {macroCategories.map(m=><option key={m.id} value={m.id}>{m.icon} {m.label}</option>)}
+          </select>
+        </label>}
         <p className="text-xs font-medium text-secondary mb-2 px-1">Icona</p>
         <div className="ui-icon-picker grid grid-cols-8 gap-1.5">
           {(emojiExpanded ? EMOJI_CHOICES : EMOJI_CHOICES.slice(0, 24)).map(e => (
@@ -162,13 +177,13 @@ export function EditDefSheet({ open, draft, withKind, canDelete, showFundType, s
         <p className="text-xs font-medium text-secondary mb-2 px-1">Colore</p>
         <div className="flex flex-wrap gap-2 mb-6">
           {COLOR_CHOICES.map(c => (
-            <button key={c} onClick={() => setColor(c)}
+            <button aria-label={`Colore ${c}`} key={c} onClick={() => setColor(c)}
               className={`w-8 h-8 rounded-full transition-transform ${color === c ? 'ring-2 ring-offset-2 ring-offset-bg ring-primary scale-110' : ''}`}
               style={{ backgroundColor: c }} />
           ))}
         </div>
 
-        {!isCategory && (
+        {!isCategory && !isMacro && (
           <label className="mb-6 flex items-center gap-3 rounded-2xl bg-elevated px-4 py-3.5 cursor-pointer">
             <span className="flex-1 min-w-0">
               <span className="block text-sm font-medium text-primary">Escludi dal patrimonio</span>
@@ -292,10 +307,12 @@ export function EditDefSheet({ open, draft, withKind, canDelete, showFundType, s
           </div>
         )}
 
+        {error&&<p role="alert" className="text-sm text-red mb-3">{error}</p>}
+        {isMacro&&canDelete&&<p className="text-xs text-secondary mb-3">Se elimini la macro, le categorie restano e appariranno senza macrocategoria.</p>}
         <div className="flex gap-2">
           {canDelete && onDelete && (
             confirmingDelete
-              ? <button onClick={() => onDelete(draft.id)}
+              ? <button onClick={async () => {setSaving(true);setError('');try{await onDelete(draft.id);}catch{setError('Eliminazione non riuscita. Riprova.');}finally{setSaving(false);}}}
                   className="px-4 py-3.5 rounded-2xl font-semibold text-[#E08B8B] bg-[#E08B8B]/20 text-sm">
                   Conferma
                 </button>
@@ -310,6 +327,7 @@ export function EditDefSheet({ open, draft, withKind, canDelete, showFundType, s
           </button>
           <button onClick={save} className="flex-1 py-3.5 rounded-2xl font-semibold bg-gold text-bg">Salva</button>
         </div>
+        </fieldset>
         {ui3&&dismiss.confirm&&<DiscardConfirmation onContinue={dismiss.continueEditing} onDiscard={onClose}/>}
       </DialogSurface>
     </div>
