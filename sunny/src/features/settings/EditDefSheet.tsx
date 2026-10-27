@@ -4,7 +4,8 @@ import { useUiVersion } from '../../shared/providers/UiVersionProvider';
 import { DialogSurface } from '../../shared/components/DialogSurface';
 import { useState, useEffect, useId, useRef } from 'react';
 import { TransactionType, TYPE_META, TYPE_ORDER, FundType, FUND_TYPE_META, FUND_TYPE_ORDER, typeColor, typeOnColor } from '../../types';
-import { EMOJI_CHOICES, COLOR_CHOICES, COLOR_PREVIEW_CHOICES } from '../../defaults';
+import { COLOR_CHOICES, COLOR_PREVIEW_CHOICES } from '../../defaults';
+import {useEmojiCatalog} from '../../shared/providers/EmojiCatalogProvider';
 import { useSettings } from '../../shared/providers/settings';
 import { useEscapeKey } from '../../shared/hooks/useEscapeKey';
 import { macroKind } from '../../shared/macroCategories';
@@ -42,6 +43,7 @@ interface Props {
 
 export function EditDefSheet({ entity, open, draft, withKind, canDelete, showFundType, showFinancing, onSave, onDelete, onClose }: Props) {
   const { theme,macroCategories=[] } = useSettings();
+  const {emojis}=useEmojiCatalog();
   const [macroCategoryId,setMacroCategoryId]=useState('');
   const [saving,setSaving]=useState(false),[error,setError]=useState('');
   const [label, setLabel] = useState('');
@@ -169,14 +171,14 @@ export function EditDefSheet({ entity, open, draft, withKind, canDelete, showFun
         </label>}
         <p className="text-xs font-medium text-secondary mb-2 px-1">Icona</p>
         <div id={`${pickerId}-icons`} className="ui-icon-picker grid grid-cols-8 gap-1.5">
-          {(emojiExpanded ? EMOJI_CHOICES : EMOJI_CHOICES.slice(0, 24)).map(e => (
+          {(emojiExpanded ? emojis : emojis.slice(0, 24)).map(e => (
             <button type="button" key={e} aria-pressed={icon===e} onClick={() => { setIcon(e); if(emojiExpanded)emojiToggle.current?.focus({preventScroll:true}); setEmojiExpanded(false); }}
               className={`aspect-square rounded-xl flex items-center justify-center text-lg transition-colors ${
                 icon === e ? 'bg-gold/20 ring-1 ring-gold' : 'bg-elevated'
               }`}>{e}</button>
           ))}
         </div>
-        {EMOJI_CHOICES.length > 24 && (
+        {emojis.length > 24 && (
           <button type="button" ref={emojiToggle} aria-expanded={emojiExpanded} aria-controls={`${pickerId}-icons`} onClick={() => setEmojiExpanded(v => !v)}
             className="w-full mt-2 mb-5 py-1.5 text-xs font-medium text-gold">
             {emojiExpanded ? 'Mostra meno' : 'Mostra altre icone'}

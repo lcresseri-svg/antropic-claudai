@@ -367,6 +367,19 @@ service cloud.firestore {
       }
     }
 
+    // Global native emoji additions. Existing choices are shipped in the app;
+    // only the admin can append entries, and every signed-in user may read them.
+    match /emojiCatalog/{emojiId} {
+      allow read: if signedIn();
+      allow create: if isAdmin()
+        && request.resource.data.keys().hasOnly(['emoji', 'createdAt'])
+        && request.resource.data.emoji is string
+        && request.resource.data.emoji.size() > 0
+        && request.resource.data.emoji.size() <= 64
+        && request.resource.data.createdAt == request.time;
+      allow update, delete: if false;
+    }
+
     // User feedback: any signed-in user submits a document stamped with their own
     // uid; only the admin may read them back. Create-only (no updates/deletes).
     match /feedback/{fid} {

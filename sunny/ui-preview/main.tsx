@@ -1,4 +1,5 @@
 import {SettingsHeaderProvider} from '../src/shared/providers/SettingsHeaderProvider';
+import {EmojiCatalogProvider} from '../src/shared/providers/EmojiCatalogProvider';
 import { OnboardingScreen } from '../src/features/onboarding/OnboardingScreen';
 import { LoginScreen } from '../src/shared/components/LoginScreen';
 import { ImportModal } from '../src/features/transactions/ImportModal';
@@ -30,7 +31,7 @@ const userFor=(uid:string)=>({uid,displayName:'Luca · dati illustrativi',email:
 function Preview() {
   const [uid,setUid]=useState(query.get('user')==='normal'?'ordinary':pilotUid);
   return <UiVersionProvider user={uid ? userFor(uid) : null}><SettingsProvider key={uid}>
-    <SettingsHeaderProvider><PreviewShell key={uid} uid={uid} onSwitch={setUid} /></SettingsHeaderProvider>
+    <EmojiCatalogProvider uid={uid}><SettingsHeaderProvider><PreviewShell key={uid} uid={uid} onSwitch={setUid} /></SettingsHeaderProvider></EmojiCatalogProvider>
   </SettingsProvider></UiVersionProvider>;
 }
 function PreviewShell({uid,onSwitch}:{uid:string;onSwitch:(uid:string)=>void}) {

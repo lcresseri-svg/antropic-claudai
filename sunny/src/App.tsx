@@ -1,4 +1,5 @@
 import {SettingsHeaderProvider} from './shared/providers/SettingsHeaderProvider';
+import {EmojiCatalogProvider} from './shared/providers/EmojiCatalogProvider';
 import { useState, useEffect, useMemo, useRef, type ComponentProps } from 'react';
 import { useLocation, useNavigate } from 'react-router-dom';
 import { doc, setDoc } from 'firebase/firestore';
@@ -80,7 +81,7 @@ export default function App() {
         <LoginScreen onSignIn={signIn} error={authError} />
       ) : (
         <SettingsProvider key={user.uid} user={user}>
-          <SettingsHeaderProvider><OnboardingGate user={user} onLogOut={logOut} onDeleteAccount={deleteAccount} /></SettingsHeaderProvider>
+          <EmojiCatalogProvider uid={user.uid}><SettingsHeaderProvider><OnboardingGate user={user} onLogOut={logOut} onDeleteAccount={deleteAccount} /></SettingsHeaderProvider></EmojiCatalogProvider>
         </SettingsProvider>
       )}
       </UiVersionProvider>

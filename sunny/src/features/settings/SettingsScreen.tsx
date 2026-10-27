@@ -13,6 +13,7 @@ import { useSettings } from '../../shared/providers/settings';
 import { useUiVersion } from '../../shared/providers/UiVersionProvider';
 import { usePush } from '../../shared/hooks/usePush';
 import { EditDefSheet, DefDraft } from './EditDefSheet';
+import {EmojiCatalogManager} from './EmojiCatalogManager';
 import { FeedbackSheet } from '../feedback/FeedbackSheet';
 import { ExpenseShortcutSection } from './ExpenseShortcutSection';
 import { ArchivedCategories } from './ArchivedCategories';
@@ -57,6 +58,7 @@ export function SettingsScreen({ user, transactions, budgetExport, onImport, onL
   const navigate = useNavigate();
   const back=useOriginBack('/');
   const ui3 = useUiVersion() === '3.0';
+  const isAdmin = isAdminUser(user);
   const headerContext=useSettingsHeader();
   const location = useLocation();
   const { macroCategories, saveMacroCategories, settingsLoaded, categories, accounts, visibleCategories, visibleAccounts, theme, includeInvestments, enableInvestments, enableBudget, insightDepth, aiEnabled, aiCoachWidgetEnabled, detailedInvestments, cashReserve, saveCategories, restoreCategory, saveAccounts, saveTheme, saveIncludeInvestments, saveEnableInvestments, saveEnableBudget, saveInsightDepth, saveAiEnabled, saveAiCoachWidgetEnabled, saveCashReserve } = useSettings();
@@ -98,8 +100,8 @@ export function SettingsScreen({ user, transactions, budgetExport, onImport, onL
   useEffect(() => {
     const s = new URLSearchParams(location.search).get('section');
     const valid=Object.keys(SETTINGS_TITLES) as Sub[];
-    setSub(s && (valid as string[]).includes(s)?s as Sub:'menu');
-  }, [location.search]);
+    setSub(s && (valid as string[]).includes(s)&&(s!=='emoji'||isAdmin)?s as Sub:'menu');
+  }, [location.search,isAdmin]);
 
   const exportJson = () => downloadJson({...buildExportPayload(user, categories, accounts, transactions, budgetExport),macroCategories});
   const exportCsv = () => downloadCsv(transactions);
@@ -110,8 +112,7 @@ export function SettingsScreen({ user, transactions, budgetExport, onImport, onL
   const forecastV4Enabled = isForecastV4EnabledForUser(user);
   // Admin-only entry to the metrics dashboard. This is admin DATA access (the
   // metrics/* collection is admin-readable in firestore.rules), the one
-  // legitimate use of the admin identity for UI — not feature-hiding.
-  const isAdmin = isAdminUser(user);
+  // genuine admin data access, separate from feature rollouts.
   // Il Wrapped si apre da solo il 20 dicembre. Questa riga serve a guardarlo
   // fuori stagione, con i dati che ci sono in quel momento: da qui a marzo
   // racconta gennaio-marzo, non un anno finto.
@@ -653,6 +654,7 @@ export function SettingsScreen({ user, transactions, budgetExport, onImport, onL
             <Row icon="🏦" color="#6FA8DC" label="Gestisci conti" sub="Saldi iniziali, ordine" onClick={() => enterSub('accounts')} />
             <Row icon="🏷️" color="#8A9270" label="Gestisci categorie" sub="Icone, colori, tipo" onClick={() => enterSub('categories')} />
             {settingsLoaded && <Row icon="🏷️" color="#8A9270" label="Macrocategorie" sub="Raggruppa spese e investimenti" onClick={()=>enterSub('macros')}/> }
+            {isAdmin&&<Row icon="🎨" color="#B5A8C8" label="Catalogo emoji (admin)" sub="Consulta e aggiungi emoji per tutti" onClick={()=>enterSub('emoji')}/>}
           </div>
         </>
       )}
@@ -764,6 +766,7 @@ export function SettingsScreen({ user, transactions, budgetExport, onImport, onL
         </>
       )}
 
+      {sub==='emoji'&&isAdmin&&<><ManageHeader title="Catalogo emoji" editMode={false} onBack={exitToGestione} onToggleEdit={()=>{}} hideEdit/><EmojiCatalogManager/></>}
       {sub === 'macros' && !settingsLoaded && <p role="status" className="text-sm text-secondary">Caricamento macrocategorie…</p>}
       {sub === 'macros' && settingsLoaded && <>
         <ManageHeader title="Macrocategorie" editMode={false} onBack={exitToGestione} onToggleEdit={()=>{}} hideEdit/>

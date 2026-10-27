@@ -9,6 +9,7 @@ export default defineConfig({
   plugins: [react()],
   optimizeDeps: { entries: ['ui-preview/index.html'] },
   resolve: { alias: [
+    { find: /^(?:\.\.\/)+emojiCatalogStore$/, replacement: fileURLToPath(new URL('./emojiCatalogServices.ts', import.meta.url)) },
     { find: './expenseShortcut', replacement: fileURLToPath(new URL('./expenseShortcutServices.ts', import.meta.url)) },
     { find: /^(?:\.\.\/)+shared\/providers\/settings$/, replacement: fixture },
     { find: /^(?:\.\.\/)+shared\/hooks\/(?:useBudget|usePush)$/, replacement: fixture },
