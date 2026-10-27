@@ -50,11 +50,18 @@ export const FALLBACK_ACCOUNT = (id: string): AccountDef => ({
   id, label: id || 'Conto', icon: '•', color: '#8B8B8B',
 });
 
-/** Emoji palette offered when creating categories/accounts. */
+/** Shared emoji palette for accounts, categories and macro categories. */
 export const EMOJI_CHOICES = [
   '🛒','🏠','🍽️','🚗','🛍️','🩺','🔁','💼','💻','💹','↩️','📈','₿','🏛️','🏦',
   '💰','💳','💵','📊','✈️','🎬','🎮','📚','🐶','👶','🎁','⚡','💡','📱','☕',
   '🍺','💪','✂️','🧾','🌍','❤️','⭐','🚬','⛽','👗','👔','👕','👖','🅿️','🐷','•',
+  // Cura personale, unghie, parrucchiere e benessere
+  '💅','💅🏻','💅🏽','💅🏿','💇‍♀️','💇‍♂️','💇🏻‍♀️','💇🏻‍♂️','💇🏽‍♀️','💇🏽‍♂️','💈',
+  '💆‍♀️','💆‍♂️','🧖‍♀️','🧖‍♂️','💄','🧼','🪥','🪒','🫧','🪮',
+  // Persone e famiglia: varianti di carnagione, capelli e professioni
+  '👩','👩🏻','👩🏽','👩🏿','👨','👨🏻','👨🏽','👨🏿','👩🏻‍🦱','👨🏻‍🦱',
+  '👩‍🦰','👨‍🦰','👩‍🦳','👨‍🦳','🧑','🧑🏻','🧑🏽','🧑🏿','👵','👴',
+  '🧑‍🍳','👩‍⚕️','👨‍⚕️','🧑‍🏫','👪','🫶',
   // Sport
   '⚽','🏀','🎾','🏊','🚴','🏋️','🧘','🎽','🥊','🏃','⛷️','🏂','🤸','🏌️','🎯',
   // Natura & montagna
@@ -63,6 +70,13 @@ export const EMOJI_CHOICES = [
   '🏪','🏬','🎀','💎','👠','👟','🧴','🛋️','🖼️','🪴','🧸','🔑','🪞','🧺','🛍',
   // Cibo & ristoranti
   '🍕','🍔','🌮','🍣','🍜','🥗','🍷','🥂','🍰','🧁','🍳','🥩','🍱','🍴','🥄',
+  '🥢','🥡','🥟','🍚','🍙','🍛','🍤','🫖','🧋','🥖','🥐','🧀','🍎','🥑','🍝','🍦','🥤','🍻',
+  // Casa, manutenzione e servizi
+  '🚿','🛁','🧹','🧻','🛏️','🧯','🛠️','🔨','🪚','🪛','🧰','🪑','📦','📬','🪟','🚪',
+  // Mobilità e viaggi
+  '🚆','🚇','🚌','🚕','🛵','🏍️','🚲','🚢','🛫','🛳️','🛞','🚘','🏖️','🏨','🧳',
+  // Tempo libero, creatività e animali
+  '🎵','🎸','🎹','🎤','🎭','🎨','🧵','🧶','🎲','🧩','🎳','🎟️','🎡','🎢','🐱','🐕','🐾','🐟','🐰','🦜',
   // Tech & computer
   '🖥️','⌨️','🖱️','🖨️','💾','💿','🔌','🎧','🔋','🤖','👾','🧑‍💻','📷','📹','🛜',
   // Arrampicata & outdoor
@@ -71,8 +85,26 @@ export const EMOJI_CHOICES = [
   '🏐','🏈','🏉','🏓','🏸','🥅','🛹','🛼','🤿','🏄','🚣','🥋','🏑','🏒','🥌',
 ];
 
-/** Color palette offered when creating categories/accounts. */
+/** Ordered by color family, with related light and dark shades together.
+ * Keep existing values selectable: this palette never recolors saved data. */
 export const COLOR_CHOICES = [
-  '#E6B95C','#8A9270','#D4956A','#7B9E87','#B5A8C8','#E08B8B','#88B0C0',
-  '#6FA8DC','#6BAA8E','#C9B05B','#9DB85B','#E0A05C','#8FB0A0','#B0A0C8','#9A9A9A',
+  '#FECACA','#E08B8B','#EF4444','#B91C1C', // Rossi
+  '#FED7AA','#D4956A','#E0A05C','#F97316','#C2410C', // Arancioni
+  '#FEF08A','#E6B95C','#C9B05B','#EAB308','#A16207', // Gialli e oro
+  '#D9F99D','#9DB85B','#8A9270','#65A30D', // Lime e oliva
+  '#BBF7D0','#8FB0A0','#7B9E87','#6BAA8E','#22C55E','#15803D', // Verdi
+  '#99F6E4','#2DD4BF','#0F766E', // Verde acqua
+  '#A5F3FC','#88B0C0','#06B6D4','#0E7490', // Ciano
+  '#BFDBFE','#6FA8DC','#3B82F6','#1D4ED8', // Blu
+  '#C7D2FE','#818CF8','#4F46E5', // Indaco
+  '#E9D5FF','#B5A8C8','#B0A0C8','#A855F7','#7E22CE', // Viola
+  '#FBCFE8','#F472B6','#DB2777','#9D174D', // Rosa
+  '#E7D5C5','#B08968','#7F5539','#582F0E', // Terra
+  '#FFFFFF','#D4D4D4','#9A9A9A','#525252','#171717', // Neutri
+];
+
+/** Familiar choices in the compact view; full palette order is retained. */
+export const COLOR_PREVIEW_CHOICES = [
+  '#E08B8B','#D4956A','#E0A05C','#E6B95C','#C9B05B','#9DB85B','#8A9270',
+  '#8FB0A0','#7B9E87','#6BAA8E','#88B0C0','#6FA8DC','#B5A8C8','#B0A0C8','#9A9A9A',
 ];
