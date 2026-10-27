@@ -1,0 +1,32 @@
+[
+  {
+    "ui": "3",
+    "theme": "light",
+    "width": 320,
+    "pass": true
+  },
+  {
+    "ui": "3",
+    "theme": "light",
+    "width": 390,
+    "pass": true
+  },
+  {
+    "ui": "3",
+    "theme": "dark",
+    "width": 320,
+    "pass": true
+  },
+  {
+    "ui": "3",
+    "theme": "dark",
+    "width": 390,
+    "pass": true
+  },
+  {
+    "saveFailureDraftRetained": true
+  },
+  {
+    "loadingBlocksCreation": true
+  }
+]

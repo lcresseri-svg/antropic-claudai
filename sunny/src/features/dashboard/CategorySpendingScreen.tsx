@@ -1,6 +1,5 @@
 import './ui31Analysis.css';
 import {groupExpenseMacros} from './macroCategories';
-import {MacroCategoryEditor} from './MacroCategoryEditor';
 import {useAnalysisPeriod} from '../../shared/hooks/useAnalysisPeriod';
 import { transactionRoute } from '../../shared/transactionRoute';
 // "Categorie" — analytics for how spending breaks down by category over time.
@@ -35,9 +34,8 @@ const deltaColor = (d: number) => (d > 0 ? 'text-[#E08B8B]' : d < 0 ? 'text-[#7B
 export function CategorySpendingScreen({ transactions, categoryBudgets }: Props) {
   const navigate = useNavigate(),location=useLocation();
   const ui3=useUiVersion()==='3.0';
-  const { getCat, insightDepth, categories, settingsLoaded } = useSettings();
+  const { getCat, insightDepth, categories, macroCategories } = useSettings();
   const [grouping,setGrouping]=useState<'categories'|'macro'>('categories');
-  const [editingMacros,setEditingMacros]=useState(false);
   const {period,setPeriod,offset,setOffset}=useAnalysisPeriod('categories');
   const [selectedId, setSelectedId] = useState<string | null>(null);
 
@@ -50,7 +48,7 @@ export function CategorySpendingScreen({ transactions, categoryBudgets }: Props)
     () => aggregateCategorySpending(transactions, range, prevRange, { categoryBudgets, now }),
     [transactions, range, prevRange, categoryBudgets, now],
   );
-  const macros=useMemo(()=>groupExpenseMacros(agg.categories,categories,agg.total),[agg,categories]);
+  const macros=useMemo(()=>groupExpenseMacros(agg.categories,categories,agg.total,macroCategories),[agg,categories,macroCategories]);
   const composition = useMemo(() => grouping==='categories'
     ? buildComposition(agg.categories, agg.total, 4).map(seg=>({...seg,label:seg.categoryId==='__other__'?'Altro':getCat(seg.categoryId).label,color:seg.categoryId==='__other__'?OTHER_COLOR:getCat(seg.categoryId).color}))
     : macros.map(g=>({categoryId:g.id,amount:g.amount,percentage:g.percentage,label:g.label,color:g.color})), [agg,grouping,macros,getCat]);
@@ -88,9 +86,8 @@ export function CategorySpendingScreen({ transactions, categoryBudgets }: Props)
           {(['categories','macro'] as const).map(value=><button key={value} type="button" aria-pressed={grouping===value} onClick={()=>setGrouping(value)}
             className={`rounded-xl px-4 py-2 text-sm ${grouping===value?'glass-active-pill text-gold font-semibold':'text-secondary'}`}>{value==='macro'?'Macro':'Categorie'}</button>)}
         </div>
-        <button type="button" disabled={!settingsLoaded} className="text-sm text-gold px-2 py-2 ml-auto disabled:opacity-50" onClick={()=>setEditingMacros(true)}>Gestisci macro</button>
+        <button type="button" className="text-sm text-gold px-2 py-2 ml-auto disabled:opacity-50" onClick={()=>navigate('/settings?section=macros')}>Gestisci macro</button>
       </div>
-      {editingMacros&&<MacroCategoryEditor onClose={()=>setEditingMacros(false)}/>}
       {agg.total === 0 ? (
         <div className="glass-card rounded-2xl px-5 py-12 text-center">
           <p className="text-3xl mb-3 opacity-50">📊</p>
@@ -159,7 +156,7 @@ export function CategorySpendingScreen({ transactions, categoryBudgets }: Props)
           {/* Ranking */}
           <div className="ui31-analysis-ranking glass-card rounded-[20px] shadow-elev-1 overflow-hidden">
             {grouping==='macro'?macros.map(group=><details key={group.id} className="border-b border-divider">
-              <summary className="cursor-pointer px-4 py-4 text-primary"><span className="inline-flex w-[90%] min-w-0 flex-wrap items-baseline justify-between gap-2"><span className="font-semibold [overflow-wrap:anywhere] min-w-0 max-w-full">{group.label}</span><span className="font-semibold balance-num">{formatCurrency(group.amount)}</span><span className="w-full text-xs text-secondary">{Math.round(group.percentage)}% del totale · {group.children.length} categorie</span></span></summary>
+              <summary className="cursor-pointer px-4 py-4 text-primary"><span className="inline-flex w-[90%] min-w-0 flex-wrap items-baseline justify-between gap-2"><span className="font-semibold [overflow-wrap:anywhere] min-w-0 max-w-full">{group.icon} {group.label}</span><span className="font-semibold balance-num">{formatCurrency(group.amount)}</span><span className="w-full text-xs text-secondary">{Math.round(group.percentage)}% del totale · {group.children.length} categorie</span></span></summary>
               <div className="pl-3">{group.children.map((c,i)=><CategoryRankingRow key={c.categoryId} summary={c} meta={getCat(c.categoryId)} maxAmount={maxAmount} depth={insightDepth} last={i===group.children.length-1} onClick={()=>setSelectedId(c.categoryId)}/>)}</div>
             </details>):agg.categories.map((c, i) => (
               <CategoryRankingRow
