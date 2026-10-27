@@ -1,3 +1,4 @@
+import {PageToolbar} from '../../shared/components/PageToolbar';
 interface Props {
   onActivate: () => void;
 }
@@ -10,7 +11,7 @@ interface Props {
 export function BudgetDisabled({ onActivate }: Props) {
   return (
     <div className="pb-32 space-y-6">
-      <h1 className="text-2xl font-bold text-primary tracking-[-0.03em]">Budget</h1>
+      <PageToolbar title="Piano"/>
 
       <div className="bg-card rounded-2xl p-6 text-center">
         <div className="w-14 h-14 mx-auto rounded-2xl flex items-center justify-center text-2xl mb-4"

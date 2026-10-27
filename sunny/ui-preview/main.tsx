@@ -1,3 +1,4 @@
+import {SettingsHeaderProvider} from '../src/shared/providers/SettingsHeaderProvider';
 import { OnboardingScreen } from '../src/features/onboarding/OnboardingScreen';
 import { LoginScreen } from '../src/shared/components/LoginScreen';
 import { ImportModal } from '../src/features/transactions/ImportModal';
@@ -29,7 +30,7 @@ const userFor=(uid:string)=>({uid,displayName:'Luca · dati illustrativi',email:
 function Preview() {
   const [uid,setUid]=useState(query.get('user')==='normal'?'ordinary':pilotUid);
   return <UiVersionProvider user={uid ? userFor(uid) : null}><SettingsProvider key={uid}>
-    <PreviewShell key={uid} uid={uid} onSwitch={setUid} />
+    <SettingsHeaderProvider><PreviewShell key={uid} uid={uid} onSwitch={setUid} /></SettingsHeaderProvider>
   </SettingsProvider></UiVersionProvider>;
 }
 function PreviewShell({uid,onSwitch}:{uid:string;onSwitch:(uid:string)=>void}) {
@@ -70,6 +71,7 @@ function PreviewShell({uid,onSwitch}:{uid:string;onSwitch:(uid:string)=>void}) {
   if(query.has('onboarding')&&!onboardingDone)return <OnboardingScreen uid={uid} onboarding={{completed:false,version:1,currentStep:0,goals:[],dataMode:null}} transactions={tx.transactions} transactionsLoading={tx.loading} updateOnboarding={()=>{}} completeOnboarding={()=>setOnboardingDone(true)} skipOnboarding={()=>setOnboardingDone(true)} onImport={rows=>save([],rows)}/>;
   const isSettings=route.pathname.startsWith('/settings');
   return <div data-liquid-ui={uiVersion==='3.0'&&!route.pathname.startsWith('/wrapped/')?'true':undefined} data-ui-version={uiVersion} className={uiVersion==='3.0'?'h-full app-shell ui3-shell':'h-full md:flex ui-v2'}>
+    {menu&&(!isSettings||uiVersion==='3.0')&&<div className="fixed inset-0 z-[35]" onClick={()=>setMenu(false)}/>}
     {uiVersion==='3.0'?<AdaptiveNav onAdd={openAdd} onImport={()=>setImportOpen(true)} aiEnabled={settings.aiEnabled} showCommitments isSettings={isSettings}/>:<SideNav onAdd={openAdd} onImport={()=>setImportOpen(true)} aiEnabled={settings.aiEnabled} transactions={rows} showCommitments/>}
     <div className={`app-content flex-1 min-w-0 flex flex-col h-full overflow-hidden ${uiVersion==='2.0'?'md:ml-[220px]':''}`}>
       <AppHeader brand="Ciao, Luca" monthLine={monthContext()} loading={false} isSettings={isSettings} settingsOpen={menu} onToggleSettings={setMenu} onImport={()=>setImportOpen(true)} aiEnabled={settings.aiEnabled} showCommitments/>

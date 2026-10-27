@@ -1,3 +1,4 @@
+import {PageToolbar} from '../../shared/components/PageToolbar';
 import '../dashboard/ui31Analysis.css';
 import {DataHeadline} from '../../shared/components/DataHeadline';
 import {useUiVersion} from '../../shared/providers/UiVersionProvider';
@@ -99,7 +100,7 @@ export function WealthScreen(p: Props) {
 
   const share = (v: number) => (p.netWorth > 0 ? Math.round((v / p.netWorth) * 100) : 0);
 
-  if(ui3 && (p.loading || p.error || settingsLoaded === false || (!balanceKnown && p.investmentTotal === 0))) return <div className="ui-family-wealth ui31-wealth"><h1 className="text-xl font-semibold mb-6">Patrimonio</h1><section className="ui31-cash-summary" role={p.error?'alert':p.loading||settingsLoaded===false?'status':undefined}>
+  if(ui3 && (p.loading || p.error || settingsLoaded === false || (!balanceKnown && p.investmentTotal === 0))) return <div className="ui-family-wealth ui31-wealth"><PageToolbar title="Patrimonio"/><section className="ui31-cash-summary" role={p.error?'alert':p.loading||settingsLoaded===false?'status':undefined}>
     <h2>{p.error?'Sintesi non disponibile':p.loading||settingsLoaded===false?'Caricamento del patrimonio…':'Saldo iniziale non indicato'}</h2>
     <p>{p.error?'I dati non sono affidabili al momento. Nessun patrimonio o liquidità viene presunto.':p.loading||settingsLoaded===false?'Sto caricando conti e movimenti.':'Puoi indicare un saldo iniziale o registrare i primi movimenti. Un saldo assente resta distinto da uno zero dichiarato.'}</p>
     {p.error?<button onClick={()=>window.location.reload()}>Ricarica dati</button>:!p.loading&&settingsLoaded!==false&&<button onClick={()=>navigate('/settings?section=accounts')}>Indica un saldo iniziale</button>}
@@ -107,13 +108,7 @@ export function WealthScreen(p: Props) {
 
   return (
     <div className="ui-family-wealth ui31-wealth pb-32 md:pb-6">
-      <div className="h-14 flex items-center justify-between md:h-auto md:mb-5">
-        <h1 className="text-[17px] md:text-xl font-semibold text-primary tracking-[-0.03em]">Patrimonio</h1>
-        <button type="button" onClick={() => navigate('/wealth-history')}
-          className="text-[12px] font-medium text-gold">
-          Storico ›
-        </button>
-      </div>
+      <PageToolbar title="Patrimonio"><button type="button" onClick={()=>navigate('/wealth-history')} className="text-sm text-gold">Storico ›</button></PageToolbar>
 
       {/* Desktop: due colonne indipendenti in altezza, come la home. */}
       <div className="ui-wealth-layout flex flex-col wide:flex-row gap-3.5 md:gap-4 ultra:gap-6 wide:items-start">

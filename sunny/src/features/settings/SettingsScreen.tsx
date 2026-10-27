@@ -1,4 +1,6 @@
 import './ui31-settings.css';
+import {useRegisterSettingsHeader,useSettingsHeader} from '../../shared/providers/SettingsHeaderProvider';
+import {SETTINGS_TITLES,settingsParent,type SettingsSection} from './settingsNavigation';
 import { SettingsMenuResults } from './SettingsMenuResults';
 import { matchesSettingsQuery } from './settingsSearch';
 import { SystemIcon } from '../../shared/components/SystemIcon';
@@ -14,7 +16,7 @@ import { EditDefSheet, DefDraft } from './EditDefSheet';
 import { FeedbackSheet } from '../feedback/FeedbackSheet';
 import { ExpenseShortcutSection } from './ExpenseShortcutSection';
 import { ArchivedCategories } from './ArchivedCategories';
-import {assignCategoryMacro,resolveMacroId,validateMacroName} from '../../shared/macroCategories';
+import {assignCategoryMacro,macroKind,resolveMacroId,validateMacroName,validateMacroScopeChange} from '../../shared/macroCategories';
 import { removeCategoryDef, removeAccountDef, visibleDefs } from './softDelete';
 import { buildExportPayload, downloadJson, downloadCsv, BudgetExportInput } from './dataExport';
 import { isForecastV4EnabledForUser } from '../forecast/forecastFeatureGate';
@@ -35,8 +37,7 @@ interface Props {
 }
 
 const newId = () => `x_${Date.now().toString(36)}`;
-type Sub = 'macros' | 'menu' | 'generali' | 'gestione' | 'dati' | 'accounts' | 'categories' | 'info' | 'versioni'
-  | 'aspetto' | 'budget' | 'investimenti' | 'ai' | 'notifiche' | 'avanzate' | 'shortcut' | 'riserva';
+type Sub = SettingsSection;
 
 type DragState = {
   list: 'accounts' | TransactionType;
@@ -56,6 +57,7 @@ export function SettingsScreen({ user, transactions, budgetExport, onImport, onL
   const navigate = useNavigate();
   const back=useOriginBack('/');
   const ui3 = useUiVersion() === '3.0';
+  const headerContext=useSettingsHeader();
   const location = useLocation();
   const { macroCategories, saveMacroCategories, settingsLoaded, categories, accounts, visibleCategories, visibleAccounts, theme, includeInvestments, enableInvestments, enableBudget, insightDepth, aiEnabled, aiCoachWidgetEnabled, detailedInvestments, cashReserve, saveCategories, restoreCategory, saveAccounts, saveTheme, saveIncludeInvestments, saveEnableInvestments, saveEnableBudget, saveInsightDepth, saveAiEnabled, saveAiCoachWidgetEnabled, saveCashReserve } = useSettings();
   const [sub, setSub] = useState<Sub>('menu');
@@ -79,24 +81,24 @@ export function SettingsScreen({ user, transactions, budgetExport, onImport, onL
   // sub-screen leaves you scrolled down with no visible way back.
   const menuReturn = useRef<{ top: number; text: string | null }>({top:0,text:null});
   useLayoutEffect(() => {
-    if(ui3) {
+    if(ui3||headerContext) {
       const scroller=document.getElementById('app-scroll');
       if(scroller) scroller.scrollTop=sub==='menu'?menuReturn.current.top:0;
-      const target=sub==='menu' ? Array.from(document.querySelectorAll<HTMLButtonElement>('.ui-settings-menu button')).find(el=>el.textContent===menuReturn.current.text) : document.querySelector<HTMLElement>('.ui-settings-detail h1');
+      const target=sub==='menu' ? Array.from(document.querySelectorAll<HTMLButtonElement>('.ui-settings-menu button,#page-content button')).find(el=>el.textContent===menuReturn.current.text&&el.getClientRects().length)??document.getElementById('settings-header-title') : document.getElementById('settings-header-title')??document.querySelector<HTMLElement>('.ui-settings-detail h1');
       if(target) { if(target.tabIndex<0 && !target.hasAttribute('tabindex')) target.tabIndex=-1; target.focus({preventScroll:true}); }
       return;
     }
+    document.getElementById('app-scroll')?.scrollTo(0,0);
     window.scrollTo({ top: 0 });
     document.scrollingElement?.scrollTo({ top: 0 });
-  }, [sub]);
+  }, [sub,!!headerContext]);
 
   // Deep-link support: e.g. /settings?section=generali jumps straight to a
   // sub-section (used by the "Attiva budget" shortcut on the disabled screen).
   useEffect(() => {
     const s = new URLSearchParams(location.search).get('section');
-    const valid: Sub[] = ['macros', 'generali', 'gestione', 'dati', 'accounts', 'categories', 'info', 'versioni',
-      'aspetto', 'budget', 'investimenti', 'ai', 'notifiche', 'avanzate', 'riserva'];
-    if (s && (valid as string[]).includes(s)) setSub(s as Sub);
+    const valid=Object.keys(SETTINGS_TITLES) as Sub[];
+    setSub(s && (valid as string[]).includes(s)?s as Sub:'menu');
   }, [location.search]);
 
   const exportJson = () => downloadJson({...buildExportPayload(user, categories, accounts, transactions, budgetExport),macroCategories});
@@ -185,11 +187,13 @@ export function SettingsScreen({ user, transactions, budgetExport, onImport, onL
     draft: a ? { ...a } : { id: newId(), label: '', icon: '🏦', color: '#6FA8DC' },
   });
 
-  const openMacro=(m?:MacroCategoryDef)=>setEditing({kind:'macro',isNew:!m,draft:m?{...m}:{id:newId(),label:'',icon:'🏷️',color:'#8A9270'}});
+  const openMacro=(m?:MacroCategoryDef)=>setEditing({kind:'macro',isNew:!m,draft:m?{...m,kind:macroKind(m)}:{id:newId(),label:'',icon:'🏷️',color:'#8A9270',kind:'expense'}});
   const save = async (d: DefDraft) => {
     if (!editing) return;
     if(editing.kind==='macro'){
-      const def:MacroCategoryDef={id:d.id,label:validateMacroName(d.label,d.id,macroCategories),icon:d.icon,color:d.color};
+      const kind=d.kind==='investment'?'investment':'expense';
+      validateMacroScopeChange(d.id,kind,categories,macroCategories);
+      const def:MacroCategoryDef={id:d.id,label:validateMacroName(d.label,d.id,macroCategories,kind),icon:d.icon,color:d.color,kind};
       await saveMacroCategories(editing.isNew?[...macroCategories,def]:macroCategories.map(m=>m.id===d.id?def:m));
     } else if (editing.kind === 'category') {
       const kind = d.kind ?? 'expense';
@@ -238,12 +242,16 @@ export function SettingsScreen({ user, transactions, budgetExport, onImport, onL
   };
 
   const enterSub = (s: Sub) => {
-    if(ui3 && sub==='menu') menuReturn.current={top:document.getElementById('app-scroll')?.scrollTop??0,text:document.activeElement?.textContent??null};
+    if(sub==='menu') menuReturn.current={top:document.getElementById('app-scroll')?.scrollTop??0,text:document.activeElement?.textContent??null};
     setSub(s); setEditMode(false);
   };
   const exitToMenu = () => { setSub('menu'); setEditMode(false); };
   const exitToGestione = () => { setSub('gestione'); setEditMode(false); };
   const toggleEditMode = () => { setEditMode(m => !m); setDrag(null); };
+  const compactHeader=useRegisterSettingsHeader(SETTINGS_TITLES[sub],()=>{
+    const parent=settingsParent(sub);
+    if(parent==='gestione')exitToGestione();else if(parent==='menu')exitToMenu();else if(ui3)back();else if((window.history.state?.idx??0)>0)navigate(-1);else navigate('/');
+  },sub==='accounts'||sub==='categories'?{label:editMode?'Fine':'Riordina',onClick:toggleEditMode}:undefined);
   // Management lists show only VISIBLE (non-archived) definitions.
   const catsByKind = (k: TransactionType) => visibleCategories.filter(c => c.kind === k);
 
@@ -427,15 +435,15 @@ export function SettingsScreen({ user, transactions, budgetExport, onImport, onL
     <div className="ui31-settings ui-settings space-y-6 pb-28 animate-fade-in" data-settings-sub={ui3 ? sub : undefined}>
       {(sub === 'menu' || ui3) && (
         <SettingsPane menu>
-          <div className="flex items-center gap-2">
+          {!compactHeader && <div className="flex items-center gap-2">
             <button onClick={() => ui3 ? back() : navigate(-1 as any)} aria-label="Indietro"
               className={ui3 ? 'ui-back' : 'w-9 h-9 -ml-2 flex items-center justify-center text-secondary active:text-primary'}>
               {ui3 ? '‹ Indietro' : <ChevronLeft />}
             </button>
             <h1 className="text-2xl font-bold text-primary tracking-[-0.03em] flex-1">{ui3 ? 'Profilo e impostazioni' : 'Impostazioni'}</h1>
-          </div>
+          </div>}
 
-          {ui3 && <p className="ui31-settings-intro">Preferenze, funzioni e dati. Scegli come usare Sunny.</p>}
+          {ui3 && !compactHeader && <p className="ui31-settings-intro">Preferenze, funzioni e dati. Scegli come usare Sunny.</p>}
           {/* Profilo */}
           <div className="glass-card rounded-[20px] shadow-elev-1 p-4 flex items-center gap-3.5">
             {user.photoURL
@@ -644,7 +652,7 @@ export function SettingsScreen({ user, transactions, budgetExport, onImport, onL
           <div className="bg-card rounded-2xl divide-y divide-divider md:bg-transparent md:divide-y-0 md:grid md:grid-cols-2 md:gap-3">
             <Row icon="🏦" color="#6FA8DC" label="Gestisci conti" sub="Saldi iniziali, ordine" onClick={() => enterSub('accounts')} />
             <Row icon="🏷️" color="#8A9270" label="Gestisci categorie" sub="Icone, colori, tipo" onClick={() => enterSub('categories')} />
-            {settingsLoaded && <Row icon="🏷️" color="#8A9270" label="Macrocategorie" sub="Raggruppa le categorie di spesa" onClick={()=>enterSub('macros')}/> }
+            {settingsLoaded && <Row icon="🏷️" color="#8A9270" label="Macrocategorie" sub="Raggruppa spese e investimenti" onClick={()=>enterSub('macros')}/> }
           </div>
         </>
       )}
@@ -759,11 +767,15 @@ export function SettingsScreen({ user, transactions, budgetExport, onImport, onL
       {sub === 'macros' && !settingsLoaded && <p role="status" className="text-sm text-secondary">Caricamento macrocategorie…</p>}
       {sub === 'macros' && settingsLoaded && <>
         <ManageHeader title="Macrocategorie" editMode={false} onBack={exitToGestione} onToggleEdit={()=>{}} hideEdit/>
-        <p className="text-sm text-secondary">Crea le macrocategorie con nome, emoji e colore. Le assegni creando o modificando una categoria di spesa.</p>
+        <p className="text-sm text-secondary">Crea le macrocategorie con nome, emoji e colore, scegliendo tra spese e investimenti. Le assegni creando o modificando una categoria dello stesso tipo.</p>
         <div className="space-y-3 md:max-w-xl">
-          <div className="bg-card rounded-2xl divide-y divide-divider">
-            {macroCategories.map(m=><ManageRow key={m.id} icon={m.icon} color={m.color} label={m.label} sub={`${categories.filter(c=>resolveMacroId(c,macroCategories)===m.id).length} categorie`} editMode={false} selected={false} onClick={()=>openMacro(m)}/>)}
-          </div>
+          {(['expense','investment'] as const).map(kind=><section key={kind} aria-label={`Macrocategorie ${kind==='expense'?'spese':'investimenti'}`}>
+            <p className="label-caps text-secondary px-1 mb-2">{kind==='expense'?'Spese':'Investimenti'}</p>
+            <div className="bg-card rounded-2xl divide-y divide-divider">
+              {macroCategories.filter(m=>macroKind(m)===kind).map(m=><ManageRow key={m.id} icon={m.icon} color={m.color} label={m.label} sub={`${categories.filter(c=>resolveMacroId(c,macroCategories)===m.id).length} categorie`} editMode={false} selected={false} onClick={()=>openMacro(m)}/>)}
+            </div>
+            {!macroCategories.some(m=>macroKind(m)===kind)&&macroCategories.length>0&&<p className="text-xs text-secondary px-1">Nessuna macrocategoria {kind==='expense'?'di spesa':'di investimento'}.</p>}
+          </section>)}
           {macroCategories.length===0&&<p className="text-sm text-secondary">Nessuna macrocategoria creata.</p>}
           <button type="button" className="w-full py-3 rounded-2xl bg-card text-gold text-sm font-semibold" onClick={()=>openMacro()}>+ Aggiungi macrocategoria</button>
         </div>
@@ -916,8 +928,10 @@ function ManageHeader({ title, editMode, onBack, onToggleEdit, hideEdit, deleteC
 }) {
   const [confirming, setConfirming] = useState(false);
   const ui3 = useUiVersion() === '3.0';
+  const header=useSettingsHeader();
   useEffect(() => { if (!editMode || (deleteCount ?? 0) === 0) setConfirming(false); }, [editMode, deleteCount]);
 
+  if(header)return null;
   return (
     <div className="flex items-center gap-2">
       <button onClick={onBack} aria-label="Indietro"

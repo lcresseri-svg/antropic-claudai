@@ -1,0 +1,122 @@
+[
+  {
+    "ui": "2",
+    "theme": "light",
+    "width": 320,
+    "groupsMatchPortfolio": true,
+    "detailsRetained": true,
+    "scopeIsolation": true,
+    "categoryCreation": true,
+    "financialFieldsPreserved": true
+  },
+  {
+    "ui": "2",
+    "theme": "light",
+    "width": 390,
+    "groupsMatchPortfolio": true,
+    "detailsRetained": true,
+    "scopeIsolation": true,
+    "categoryCreation": true,
+    "financialFieldsPreserved": true
+  },
+  {
+    "ui": "2",
+    "theme": "light",
+    "width": 1440,
+    "groupsMatchPortfolio": true,
+    "detailsRetained": true,
+    "scopeIsolation": true,
+    "categoryCreation": true,
+    "financialFieldsPreserved": true
+  },
+  {
+    "ui": "2",
+    "theme": "dark",
+    "width": 320,
+    "groupsMatchPortfolio": true,
+    "detailsRetained": true,
+    "scopeIsolation": true,
+    "categoryCreation": true,
+    "financialFieldsPreserved": true
+  },
+  {
+    "ui": "2",
+    "theme": "dark",
+    "width": 390,
+    "groupsMatchPortfolio": true,
+    "detailsRetained": true,
+    "scopeIsolation": true,
+    "categoryCreation": true,
+    "financialFieldsPreserved": true
+  },
+  {
+    "ui": "2",
+    "theme": "dark",
+    "width": 1440,
+    "groupsMatchPortfolio": true,
+    "detailsRetained": true,
+    "scopeIsolation": true,
+    "categoryCreation": true,
+    "financialFieldsPreserved": true
+  },
+  {
+    "ui": "3",
+    "theme": "light",
+    "width": 320,
+    "groupsMatchPortfolio": true,
+    "detailsRetained": true,
+    "scopeIsolation": true,
+    "categoryCreation": true,
+    "financialFieldsPreserved": true
+  },
+  {
+    "ui": "3",
+    "theme": "light",
+    "width": 390,
+    "groupsMatchPortfolio": true,
+    "detailsRetained": true,
+    "scopeIsolation": true,
+    "categoryCreation": true,
+    "financialFieldsPreserved": true
+  },
+  {
+    "ui": "3",
+    "theme": "light",
+    "width": 1440,
+    "groupsMatchPortfolio": true,
+    "detailsRetained": true,
+    "scopeIsolation": true,
+    "categoryCreation": true,
+    "financialFieldsPreserved": true
+  },
+  {
+    "ui": "3",
+    "theme": "dark",
+    "width": 320,
+    "groupsMatchPortfolio": true,
+    "detailsRetained": true,
+    "scopeIsolation": true,
+    "categoryCreation": true,
+    "financialFieldsPreserved": true
+  },
+  {
+    "ui": "3",
+    "theme": "dark",
+    "width": 390,
+    "groupsMatchPortfolio": true,
+    "detailsRetained": true,
+    "scopeIsolation": true,
+    "categoryCreation": true,
+    "financialFieldsPreserved": true
+  },
+  {
+    "ui": "3",
+    "theme": "dark",
+    "width": 1440,
+    "groupsMatchPortfolio": true,
+    "detailsRetained": true,
+    "scopeIsolation": true,
+    "categoryCreation": true,
+    "financialFieldsPreserved": true
+  }
+]

@@ -1,3 +1,4 @@
+import {PageToolbar} from '../../shared/components/PageToolbar';
 import { useCallback, useEffect, useRef, useState } from 'react';
 import { User } from 'firebase/auth';
 import { useNavigate, useSearchParams } from 'react-router-dom';
@@ -51,14 +52,16 @@ export function PlanScreen(p:Props) {
   const nextDate=month>current?`${month}-01`:localDay(new Date(now.getFullYear(),now.getMonth(),now.getDate()+1));
   const status=view.period==='past'?'Consuntivo':!view.reviewed?'Da completare':plan?.status==='confirmed'?'Confermato':'Bozza';
   const upcoming=(items:Transaction[])=><ul className="plan-lines">{items.map(t=><li key={t.id}><span>{t.description||'Spesa programmata'}<small>{t.date.split('-').reverse().join('/')} · {settings.categories.find(c=>c.id===t.category)?.label??`Categoria ${t.category}`}</small></span><strong>{formatCurrency(ownShare(t))}</strong></li>)}</ul>;
-  if(store.loading||p.loading)return <div className="piano-page" role="status" aria-busy="true"><h1>Piano</h1><div className="plan-card plan-skeleton">Caricamento del piano…</div></div>;
-  if(store.error||p.error)return <div className="piano-page"><h1>Piano</h1><p role="alert">Dati non disponibili: {store.error||p.error}. Il margine non viene calcolato su dati incompleti.</p><button onClick={store.retry}>Riprova</button></div>;
+  if(store.loading||p.loading)return <div className="piano-page" role="status" aria-busy="true">{p.embedded?<h2>Piano</h2>:<PageToolbar title="Piano"/>}<div className="plan-card plan-skeleton">Caricamento del piano…</div></div>;
+  if(store.error||p.error)return <div className="piano-page">{p.embedded?<h2>Piano</h2>:<PageToolbar title="Piano"/>}<p role="alert">Dati non disponibili: {store.error||p.error}. Il margine non viene calcolato su dati incompleti.</p><button onClick={store.retry}>Riprova</button></div>;
+  const editAction=<button className="plan-edit-button cta-gold-fill rounded-xl px-3 py-2 text-sm" onClick={()=>edit()}><span aria-hidden="true">✎</span>{view.period==='past'?'Modifica piano storico':'Modifica piano'}</button>;
   return <div className="piano-page ui-family-budget">
-    <header className="plan-header"><div className="plan-title">{p.embedded?<h2>Piano</h2>:<h1>Piano</h1>}<span className="plan-status">{status}</span></div>{!p.embedded&&<div className="plan-month-nav glass-card">
+    {!p.embedded&&<PageToolbar title="Piano"><button aria-label={view.period==='past'?'Modifica piano storico':'Modifica piano'} title={view.period==='past'?'Modifica piano storico':'Modifica piano'} className="cta-gold-fill rounded-xl px-3 py-2 text-sm" onClick={()=>edit()}><span aria-hidden="true">✎</span><span className="app-bar-action-label"> {view.period==='past'?'Modifica piano storico':'Modifica piano'}</span></button></PageToolbar>}
+    <header className="plan-header"><div className="plan-title">{p.embedded&&<h2>Piano</h2>}<span className="plan-status">{status}</span></div>{!p.embedded&&<div className="plan-month-nav glass-card">
       <button aria-label="Mese precedente" disabled={month<=earliest} onClick={()=>setMonth(prevMonthKey(month))}>‹</button>
       <label><span className="sr-only">Mese del piano</span><select aria-label="Mese del piano" value={month} onChange={e=>setMonth(e.target.value)}>{months.map(m=><option value={m} key={m}>{monthLabel(m)}</option>)}</select></label>
       <button aria-label="Mese successivo" disabled={month>=latest} onClick={()=>setMonth(monthKeyOf(new Date(Number(month.slice(0,4)),Number(month.slice(5)),1)))}>›</button>
-    </div>}<button className="plan-edit-button cta-gold-fill" onClick={()=>edit()}><span aria-hidden="true">✎</span>{view.period==='past'?'Modifica piano storico':'Modifica piano'}</button></header>
+    </div>}{p.embedded&&editAction}</header>
     {saved&&<p role="status">Piano salvato sul server.</p>}
     {store.fromCache&&<p className="plan-notice" role="status">Dati dalla cache: potrebbero non essere aggiornati. Le modifiche restano bozze locali fino al salvataggio online.</p>}
     <div className="plan-layout">

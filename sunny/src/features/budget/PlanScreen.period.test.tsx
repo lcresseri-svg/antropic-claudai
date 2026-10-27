@@ -6,7 +6,7 @@ import type { User } from 'firebase/auth';
 import { PlanScreen } from './PlanScreen';
 vi.mock('../../shared/hooks/useBudget',()=>({useBudget:()=>({budgetHistory:[],loading:false,error:null,fromCache:false,retry:()=>{}})}));
 vi.mock('../../shared/providers/settings',()=>({useSettings:()=>({categories:[],enableInvestments:false,aiEnabled:false})}));
-vi.mock('../../shared/providers/UiVersionProvider',()=>({useUiVersion:()=> '3.0',useUiSessionState:(_key:string,initial:any)=>useState(initial)}));
+vi.mock('../../shared/providers/UiVersionProvider',()=>({useUiVersion:()=> '3.0',useUiNavigationMemory:()=>null,useUiSessionState:(_key:string,initial:any)=>useState(initial)}));
 vi.mock('../aiCoach/CoachEntryCard',()=>({CoachEntryCard:()=>null}));
 vi.mock('./PlanEditor',()=>({PlanEditor:()=>null}));
 vi.mock('./useMonthlyPlan',async importOriginal=>({...await importOriginal<any>(),usePlanCalendar:()=>new Date(2026,9,19,12)}));

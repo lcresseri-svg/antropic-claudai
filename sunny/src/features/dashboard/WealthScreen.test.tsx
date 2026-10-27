@@ -7,8 +7,8 @@ const settings = vi.hoisted(() => ({
   getAcc: () => ({ id: 'cash', label: 'Conto', icon: 'A', color: '#888' }),
 }));
 vi.mock('../../shared/providers/settings', () => ({ useSettings: () => settings }));
-vi.mock('../../shared/providers/UiVersionProvider', () => ({ useUiVersion: () => '3.0' }));
-vi.mock('react-router-dom', () => ({ useNavigate: () => () => {} }));
+vi.mock('../../shared/providers/UiVersionProvider', () => ({ useUiVersion: () => '3.0', useUiNavigationMemory:()=>null }));
+vi.mock('react-router-dom', () => ({ useNavigate: () => () => {},useLocation:()=>({pathname:'/wealth',key:'test'}) }));
 vi.mock('../../shared/hooks/useMediaQuery', () => ({ useIsDesktop: () => false }));
 const base = { transactions: [], netWorth: 50, liquidity: -50, investmentTotal: 100, accountBalances: {cash:-50}, investmentByCategory: {} };
 describe('wealth composition boundaries', () => {

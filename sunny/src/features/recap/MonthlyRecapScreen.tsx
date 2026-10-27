@@ -1,3 +1,4 @@
+import {PageToolbar} from '../../shared/components/PageToolbar';
 import {useUiVersion} from '../../shared/providers/UiVersionProvider';
 import {useOriginBack} from '../../shared/hooks/useOriginBack';
 import { useMemo, useState } from 'react';
@@ -51,7 +52,7 @@ export function MonthlyRecapScreen({ transactions }: { transactions: Transaction
       {/* Header */}
       <header className="recap-card">
         <p className="label-caps text-secondary">Riepilogo mensile</p>
-        <h1 className="text-[29px] font-bold text-primary tracking-[-0.03em] mt-1 leading-none">{recap.label}</h1>
+        <h2 className="text-[29px] font-bold text-primary tracking-[-0.03em] mt-1 leading-none">{recap.label}</h2>
         <p className="text-[11.5px] text-tertiary mt-2">
           {recap.isPartial ? 'Mese in corso · dati parziali' : 'Mese chiuso'}
           {' · '}{recap.movements.length} movimenti
@@ -168,17 +169,9 @@ export function MonthlyRecapScreen({ transactions }: { transactions: Transaction
 function BackBar({ onBack, onExport, canExport }: { onBack: () => void; onExport: () => void; canExport: boolean }) {
   const ui3=useUiVersion()==='3.0';
   return (
-    <div className="flex items-center justify-between gap-3 no-print">
-      <button onClick={onBack} aria-label={ui3?"Indietro":undefined} className="flex items-center gap-1.5 text-sm text-secondary hover:text-primary transition-colors">
-        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round"><path d="m15 18-6-6 6-6" /></svg>
-        {ui3?'Indietro':'Piano'}
-      </button>
-      {canExport && (
-        <button onClick={onExport} className="text-[12.5px] font-medium text-gold">
-          Esporta
-        </button>
-      )}
-    </div>
+    <PageToolbar title="Riepilogo mensile" backTo="/budget" onBack={onBack}>
+      {canExport&&<button onClick={onExport} className="text-sm text-gold">Esporta</button>}
+    </PageToolbar>
   );
 }
 

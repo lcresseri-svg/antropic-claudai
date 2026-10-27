@@ -1,3 +1,4 @@
+import {PageToolbar} from '../../shared/components/PageToolbar';
 // Piano mensile V2 (admin-only, flag `monthly_plan_v2`): il PIANO del mese —
 // entrate attese, obiettivi, budget categoria, eventi — sempre distinto dal
 // consuntivo e dal forecast. Semina da mese precedente o da ricorrenti, con
@@ -96,16 +97,7 @@ export function MonthlyPlanScreen({ user, transactions, monthlyIncome, monthlyIn
 
   return (
     <div className="pb-32 space-y-5 max-w-lg">
-      <div className="flex items-center gap-3">
-        <button type="button" onClick={() => ui3 ? navigate('/budget') : navigate(-1)} aria-label="Indietro"
-          className="w-11 h-11 -ml-2 flex items-center justify-center text-secondary hover:text-primary rounded-full">
-          {ui3 ? '‹ Indietro' : <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M15 18l-6-6 6-6"/></svg>}
-        </button>
-        <div>
-          <h1 className="text-2xl font-bold text-primary tracking-[-0.03em]">Piano di {formatMonthLong(month)}</h1>
-          <p className="text-xs text-secondary">Anteprima admin · piano ≠ consuntivo ≠ previsione</p>
-        </div>
-      </div>
+      <PageToolbar title={`Piano di ${formatMonthLong(month)}`} backTo="/budget"/>
 
       {!loaded ? (
         <p className="text-sm text-secondary" role="status">Caricamento…</p>

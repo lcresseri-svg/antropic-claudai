@@ -64,7 +64,6 @@ export function CommitmentsScreen({ transactions }: Props) {
   return (
     <div className="pb-32 md:pb-6">
       <AnalysisHeader title="Impegni" subtitle="Quanto del mese è già deciso" backTo="/wealth" />
-      {!ui3 && <PageHead title="Impegni" subtitle="Quanto del mese è già deciso, prima che tu decida qualcosa" />}
 
       <div className="flex flex-col wide:flex-row gap-3.5 md:gap-4 wide:items-start">
         <div className="flex flex-col gap-3.5 md:gap-4 wide:flex-1 wide:min-w-0">

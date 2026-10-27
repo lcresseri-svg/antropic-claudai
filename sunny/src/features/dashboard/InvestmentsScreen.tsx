@@ -1,5 +1,6 @@
 import './ui31Analysis.css';
 import { PortfolioValuationSummary } from './PortfolioValuationSummary';
+import { InvestmentPositions } from './InvestmentPositions';
 import { PeriodSelector } from '../../shared/components/PeriodSelector';
 import { useMemo, useState, useRef, useLayoutEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
@@ -35,7 +36,7 @@ export function InvestmentsScreen({ investmentByCategory, investmentTotal, month
   const navigate = useNavigate();
   // Allocation lists enumerate VISIBLE investment categories (archived ones are
   // hidden); getCat still resolves archived categories on the operations rows.
-  const { getCat, getAcc, visibleCategories, detailedInvestments, saveCurrentValue } = useSettings();
+  const { getCat, getAcc, visibleCategories, macroCategories, detailedInvestments, saveCurrentValue } = useSettings();
 
   const [menuOpen, setMenuOpen] = useState(false);
   const [depositOpen, setDepositOpen] = useState(false);
@@ -269,12 +270,7 @@ export function InvestmentsScreen({ investmentByCategory, investmentTotal, month
 
       {/* ── Positions ── */}
       {positions.length > 0 && (
-        <div className="ui31-position-list ui-open-list space-y-2.5">
-          <div className="flex items-center justify-between px-1">
-            <p className="label-caps text-secondary">Posizioni</p>
-            <p className="text-[11px] text-secondary">{positions.length} categorie</p>
-          </div>
-          {positions.map(p => {
+        <InvestmentPositions positions={positions} macros={macroCategories} renderPosition={p => {
             const empty = p.versato <= 0 && p.controvalore == null;
             const pctOf = controvaloreTotale > 0 ? p.weightValue / controvaloreTotale : 0;
             const pmPctCat = p.pm != null && p.versato > 0 ? (p.pm / p.versato) * 100 : null;
@@ -326,8 +322,7 @@ export function InvestmentsScreen({ investmentByCategory, investmentTotal, month
                 </div>
               </button>
             );
-          })}
-        </div>
+          }}/>
       )}
 
       {/* ── 6-month net contributions ── */}

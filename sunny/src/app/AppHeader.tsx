@@ -1,5 +1,9 @@
-import { useNavigate } from 'react-router-dom';
-import { useEffect, useRef } from 'react';
+import './app-header.css';
+import {useSettingsHeader} from '../shared/providers/SettingsHeaderProvider';
+import {useOriginBack} from '../shared/hooks/useOriginBack';
+import {pageNavigation} from './pageNavigation';
+import { useNavigate,useLocation } from 'react-router-dom';
+import { useEffect, useLayoutEffect, useRef } from 'react';
 import { ArcLogo } from '../shared/components/ArcLogo';
 import { useUiVersion } from '../shared/providers/UiVersionProvider';
 
@@ -20,9 +24,18 @@ interface Props {
 export function AppHeader({ brand, monthLine, loading, isSettings, settingsOpen, onToggleSettings, onImport, aiEnabled, showCommitments }: Props) {
   const navigate = useNavigate();
   const version = useUiVersion();
+  const navigation=useSettingsHeader()?.header;
+  const location=useLocation();
+  const fallback=pageNavigation(location.pathname,version==='3.0');
+  const routeBack=useOriginBack(fallback?.backTo??'/');
+  const contextual=fallback?(navigation?.owner===location.pathname?navigation:{...fallback,onBack:routeBack,action:undefined,actions:undefined}):null;
+  const titleRef=useRef<HTMLHeadingElement>(null);
+  useLayoutEffect(()=>{if(contextual&&contextual.title!=='Impostazioni')titleRef.current?.focus({preventScroll:true});},[contextual?.title]);
+  useEffect(()=>{onToggleSettings(false);},[location.pathname,onToggleSettings]);
   const menu = useRef<HTMLDivElement>(null);
   const menuRoot = useRef<HTMLDivElement>(null);
   useEffect(() => {
+    if(isSettings&&contextual){if(settingsOpen)onToggleSettings(false);return;}
     if(version!=='3.0' || !settingsOpen) return;
     menu.current?.querySelector('button')?.focus();
     const close=(e:KeyboardEvent)=>{if(e.key==='Escape'){e.preventDefault();onToggleSettings(false);document.getElementById('ui3-more-trigger')?.focus();}};
@@ -30,10 +43,8 @@ export function AppHeader({ brand, monthLine, loading, isSettings, settingsOpen,
     document.addEventListener('keydown',close);
     document.addEventListener('pointerdown',outside);
     return()=>{document.removeEventListener('keydown',close);document.removeEventListener('pointerdown',outside);};
-  },[version,settingsOpen,onToggleSettings]);
-  if (version === '3.0') return <header className="ui3-header glass-header">
-    <button className="ui3-header-brand" onClick={() => navigate('/')} aria-label="Sunny · Vai a Oggi"><ArcLogo size={26} /><span>sunny</span></button>
-    {loading && <span className="ui31-header-status" role="status">Caricamento…</span>}
+  },[version,settingsOpen,onToggleSettings,isSettings,!!contextual]);
+  const quickMenu=version==='3.0'?(
     <div ref={menuRoot} className="relative ml-auto">
       <button id="ui3-more-trigger" aria-label="Profilo e impostazioni" aria-expanded={settingsOpen} aria-controls="ui3-quick-menu" onClick={() => onToggleSettings(!settingsOpen)} className="ui3-more ui31-profile"><svg width="21" height="21" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.7" aria-hidden><circle cx="12" cy="8" r="3.5"/><path d="M5 21v-2a7 7 0 0 1 14 0v2"/></svg><span>Profilo</span></button>
       {settingsOpen && <div ref={menu} id="ui3-quick-menu" className="ui3-quick-menu glass-elevated">
@@ -45,21 +56,7 @@ export function AppHeader({ brand, monthLine, loading, isSettings, settingsOpen,
         <button onClick={() => { navigate('/settings'); onToggleSettings(false); }}>Impostazioni</button>
       </div>}
     </div>
-  </header>;
-  return (
-    <header className="shrink-0 z-[40] glass-header md:hidden">
-      <div className="max-w-2xl mx-auto px-4 h-14 flex items-center justify-between">
-        <div className="flex items-center gap-2.5 min-w-0">
-          <button type="button" onClick={() => navigate('/')} aria-label="Vai alla dashboard"
-            className="flex items-center gap-2.5 min-w-0 active:opacity-70 transition-opacity">
-            <ArcLogo size={monthLine ? 26 : 28} />
-            {monthLine
-              ? <span className="text-[13px] text-secondary truncate">{monthLine}</span>
-              : <span className="font-semibold text-primary tracking-[-0.02em] truncate">{brand}</span>}
-          </button>
-          {loading && <span className="w-1.5 h-1.5 rounded-full bg-gold animate-pulse flex-shrink-0" />}
-        </div>
-        {!isSettings && (
+  ):(
           <div className="relative">
             <button type="button" onClick={() => onToggleSettings(!settingsOpen)}
               aria-label="Menu rapido" aria-expanded={settingsOpen}
@@ -80,7 +77,33 @@ export function AppHeader({ brand, monthLine, loading, isSettings, settingsOpen,
               </div>
             )}
           </div>
-        )}
+  );
+  if(contextual)return <header className={`app-header app-header-settings glass-header ${version==='3.0'?'ui3-header':''}`}>
+    <button type="button" onClick={()=>{onToggleSettings(false);contextual.onBack();}} aria-label="Indietro" className="app-header-back"><svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" aria-hidden="true"><path d="m15 5-7 7 7 7"/></svg></button>
+    <h1 id="settings-header-title" ref={titleRef} tabIndex={-1}>{contextual.title}</h1>
+    {contextual.actions&&<div className="app-header-actions">{contextual.actions}</div>}
+    {contextual.action&&<button type="button" className="app-header-action" onClick={contextual.action.onClick}>{contextual.action.label}</button>}
+    {!isSettings&&quickMenu}
+  </header>;
+  if (version === '3.0') return <header className="app-header ui3-header glass-header">
+    <button className="ui3-header-brand" onClick={() => navigate('/')} aria-label="Sunny · Vai a Oggi"><ArcLogo size={26} /><span>sunny</span></button>
+    {loading && <span className="ui31-header-status" role="status">Caricamento…</span>}
+    {quickMenu}
+  </header>;
+  return (
+    <header className="app-header shrink-0 z-[40] glass-header md:hidden">
+      <div className="max-w-2xl mx-auto px-4 h-14 flex items-center justify-between">
+        <div className="flex items-center gap-2.5 min-w-0">
+          <button type="button" onClick={() => navigate('/')} aria-label="Vai alla dashboard"
+            className="flex items-center gap-2.5 min-w-0 active:opacity-70 transition-opacity">
+            <ArcLogo size={monthLine ? 26 : 28} />
+            {monthLine
+              ? <span className="text-[13px] text-secondary truncate">{monthLine}</span>
+              : <span className="font-semibold text-primary tracking-[-0.02em] truncate">{brand}</span>}
+          </button>
+          {loading && <span className="w-1.5 h-1.5 rounded-full bg-gold animate-pulse flex-shrink-0" />}
+        </div>
+        {!isSettings && quickMenu}
       </div>
     </header>
   );

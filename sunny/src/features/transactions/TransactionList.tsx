@@ -1,3 +1,4 @@
+import {PageToolbar} from '../../shared/components/PageToolbar';
 import { readTransactionRange } from '../../shared/transactionRoute';
 import { useState, useMemo, useEffect, useRef, useLayoutEffect, useCallback } from 'react';
 import { useSearchParams } from 'react-router-dom';
@@ -426,23 +427,7 @@ export function TransactionList({ transactions, projected = [], onEdit, onDelete
 
   return (
     <div className={ui3 ? 'ui31-ledger pb-28' : 'pb-28'} aria-busy={bulkBusy} onClickCapture={e=>{if(bulkBusy){e.preventDefault();e.stopPropagation();}}}>
-      {/* Header 56px — titolo, ricerca a icona, selezione multipla */}
-      <div className="liquid-movements-header h-14 flex items-center gap-2">
-        {!ui3 && searchOpen ? (
-          <div className="relative flex-1">
-            <svg className="absolute left-3.5 top-1/2 -translate-y-1/2 text-secondary" width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-              <circle cx="11" cy="11" r="7"/><path d="m21 21-4.35-4.35"/>
-            </svg>
-            <input
-              autoFocus type="text" value={search} onChange={e => setSearch(e.target.value)}
-              placeholder="Cerca per nome, importo, data, conto…"
-              className="w-full bg-card rounded-2xl pl-9 pr-3 py-2.5 text-sm text-primary placeholder:text-secondary/50 outline-none focus:ring-1 focus:ring-gold/40"
-            />
-          </div>
-        ) : (
-          <h1 className="flex-1 text-[17px] md:text-xl font-semibold text-primary tracking-[-0.03em]">Movimenti</h1>
-        )}
-        <div className="flex items-center gap-1 flex-none">
+      <PageToolbar title="Movimenti">        <div className="flex items-center gap-1 flex-none" onClickCapture={e=>{if(bulkBusy){e.preventDefault();e.stopPropagation();}}}>
           {!ui3 && <HeaderIconBtn
             active={searchOpen || !!search}
             label={searchOpen ? 'Chiudi la ricerca' : 'Cerca'}
@@ -466,8 +451,17 @@ export function TransactionList({ transactions, projected = [], onEdit, onDelete
               <path d="m14 17.5 2 2 4-4"/>
             </svg>
           </HeaderIconBtn>
-        </div>
-      </div>
+        </div></PageToolbar>
+      {!ui3&&searchOpen&&(          <div className="relative flex-1">
+            <svg className="absolute left-3.5 top-1/2 -translate-y-1/2 text-secondary" width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+              <circle cx="11" cy="11" r="7"/><path d="m21 21-4.35-4.35"/>
+            </svg>
+            <input
+              autoFocus type="text" value={search} onChange={e => setSearch(e.target.value)}
+              placeholder="Cerca per nome, importo, data, conto…"
+              className="w-full bg-card rounded-2xl pl-9 pr-3 py-2.5 text-sm text-primary placeholder:text-secondary/50 outline-none focus:ring-1 focus:ring-gold/40"
+            />
+          </div>)}
 
       {ui3 && <div className="ui31-ledger-search">
         <label htmlFor="movement-search" className="text-sm font-medium text-secondary">Cerca movimenti</label>

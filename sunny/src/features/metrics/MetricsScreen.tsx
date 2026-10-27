@@ -1,3 +1,4 @@
+import {PageToolbar} from '../../shared/components/PageToolbar';
 import { useEffect, useState } from 'react';
 import { collection, getDocs, query, orderBy, limit } from 'firebase/firestore';
 import { db } from '../../lib/firebase';
@@ -92,7 +93,7 @@ export function MetricsScreen() {
 function Shell({ children }: { children: React.ReactNode }) {
   return (
     <div className="pb-24">
-      <h1 className="text-2xl font-bold text-primary tracking-[-0.03em] mb-5">Metriche</h1>
+      <PageToolbar title="Metriche" backTo="/settings"/>
       {children}
     </div>
   );

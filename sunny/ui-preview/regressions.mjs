@@ -14,7 +14,7 @@ try {
     await page.setViewportSize({width:390,height:844}); await route('/settings');
     const entry=page.getByRole('button',{name:/Investimenti.*Portafoglio/});
     await entry.click(); await page.getByRole('heading',{name:'Investimenti',exact:true}).waitFor();
-    await page.locator('.ui-settings-detail').getByRole('button',{name:'Indietro',exact:true}).click();
+    await page.locator('header.app-header').getByRole('button',{name:'Indietro',exact:true}).click();
     assert.equal(await entry.evaluate(el=>el.tabIndex),0,'returning to Settings must retain the native menu tab stop');
     assert.equal(await entry.evaluate(el=>el===document.activeElement),true,'return focus to the original settings entry');
   }

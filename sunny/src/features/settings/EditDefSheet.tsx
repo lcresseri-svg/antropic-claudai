@@ -7,6 +7,7 @@ import { TransactionType, TYPE_META, TYPE_ORDER, FundType, FUND_TYPE_META, FUND_
 import { EMOJI_CHOICES, COLOR_CHOICES } from '../../defaults';
 import { useSettings } from '../../shared/providers/settings';
 import { useEscapeKey } from '../../shared/hooks/useEscapeKey';
+import { macroKind } from '../../shared/macroCategories';
 
 export interface DefDraft {
   id: string;
@@ -88,6 +89,8 @@ export function EditDefSheet({ entity, open, draft, withKind, canDelete, showFun
   const showBalance = (!isMacro && !isCategory && !draft.isInvestment) || isInvestmentCategory;
   const showFunds = isInvestmentCategory && !!showFundType;
   const isExpenseCategory = isCategory && kind === 'expense';
+  const hasMacroCategory = isExpenseCategory || isInvestmentCategory;
+  const availableMacros = macroCategories.filter(m=>macroKind(m)===kind);
   const showFinancingField = isExpenseCategory && !!showFinancing;
 
   const noun = isMacro?'macrocategoria':isCategory ? 'categoria' : 'conto';
@@ -111,14 +114,14 @@ export function EditDefSheet({ entity, open, draft, withKind, canDelete, showFun
     setSaving(true);setError('');
     try {await onSave({
       id: draft.id, label: label.trim(), icon, color,
-      kind: isCategory ? kind : undefined,
+      kind: isCategory || isMacro ? kind : undefined,
       initialBalance: showBalance ? validBalance : undefined,
       excludeFromNetWorth: !isCategory && excludeFromNetWorth ? true : undefined,
       fundType: showFunds && fundType ? fundType : undefined,
       tfrAmount: showFunds && fundType === 'pension' ? validTfr : undefined,
       subscriptionDate: isInvestmentCategory ? validSubscription : undefined,
       financedAmount: showFinancingField ? validFinanced : undefined,
-      macroCategoryId: isExpenseCategory ? macroCategoryId : undefined,
+      macroCategoryId: hasMacroCategory ? macroCategoryId : undefined,
     });}catch(e){setError(e instanceof Error?e.message:'Salvataggio non riuscito. Riprova.');}finally{setSaving(false);}
   };
 
@@ -137,26 +140,27 @@ export function EditDefSheet({ entity, open, draft, withKind, canDelete, showFun
             className="flex-1 min-w-0 bg-elevated rounded-2xl px-4 py-3 text-primary placeholder:text-secondary/50 outline-none focus:ring-1 focus:ring-gold/40" />
         </div>
 
-        {withKind && (
+        {(withKind || isMacro) && (
           <div className="mb-5">
             <p className="text-xs font-medium text-secondary mb-2 px-1">Tipo</p>
-            <div className={`ui-def-type-picker grid ${ui3?'grid-cols-2 sm:grid-cols-4':'grid-cols-4'} gap-1.5 bg-surface rounded-2xl p-1.5`}>
-              {TYPE_ORDER.map(t => (
-                <button key={t} onClick={() => setKind(t)}
+            <div className={`ui-def-type-picker grid ${isMacro?'grid-cols-2':ui3?'grid-cols-2 sm:grid-cols-4':'grid-cols-4'} gap-1.5 bg-surface rounded-2xl p-1.5`}>
+              {(isMacro ? (['expense','investment'] as const) : TYPE_ORDER).map(t => (
+                <button type="button" key={t} aria-pressed={kind===t} onClick={() => {if(t!==kind)setMacroCategoryId('');setKind(t);}}
                   className={`py-2 rounded-xl text-[11px] font-semibold transition-all ${kind === t ? 'shadow-sm' : 'text-secondary'}`}
                   style={kind === t ? { backgroundColor: typeColor(t, theme), color: typeOnColor(theme) } : undefined}>
-                  {TYPE_META[t].label}
+                  {isMacro?(t==='expense'?'Spese':'Investimenti'):TYPE_META[t].label}
                 </button>
               ))}
             </div>
           </div>
         )}
 
-        {isExpenseCategory && <label className="block mb-5 text-sm text-secondary">Macrocategoria
+        {hasMacroCategory && <label className="block mb-5 text-sm text-secondary">Macrocategoria
           <select aria-label="Macrocategoria" value={macroCategoryId} onChange={e=>setMacroCategoryId(e.target.value)} className="block w-full min-w-0 rounded-xl bg-elevated px-3 py-3 mt-2 text-primary">
             <option value="">Senza macrocategoria</option>
-            {macroCategories.map(m=><option key={m.id} value={m.id}>{m.icon} {m.label}</option>)}
+            {availableMacros.map(m=><option key={m.id} value={m.id}>{m.icon} {m.label}</option>)}
           </select>
+          {availableMacros.length===0&&<span className="block mt-2 text-xs">Puoi creare le macrocategorie {isInvestmentCategory?'di investimento':'di spesa'} in Impostazioni · Gestione.</span>}
         </label>}
         <p className="text-xs font-medium text-secondary mb-2 px-1">Icona</p>
         <div className="ui-icon-picker grid grid-cols-8 gap-1.5">

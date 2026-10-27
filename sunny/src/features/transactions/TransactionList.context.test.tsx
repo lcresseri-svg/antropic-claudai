@@ -1,5 +1,6 @@
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 import type { ReactElement, ReactNode } from 'react';
+import {PageToolbar} from '../../shared/components/PageToolbar';
 import { TransactionList } from './TransactionList';
 
 const state = vi.hoisted(() => ({ query: new URLSearchParams(), session: new Map<string, unknown>(), version: '3.0', locals: [] as unknown[], refs: [] as {current:any}[], index: 0, refIndex: 0, effects: [] as (()=>void)[], dirty: false }));
@@ -67,7 +68,7 @@ describe('Movimenti independent context', () => {
   });
   it('keeps the title and labeled search visible, with Filtri outside the type scroller', () => {
     const tree = view();
-    expect(tree.some(el => el.type === 'h1' && el.props.children === 'Movimenti')).toBe(true);
+    expect(tree.some(el => el.type === PageToolbar && el.props.title === 'Movimenti')).toBe(true);
     const scroller = tree.find(el => el.props.className?.includes('overflow-x-auto'))!;
     expect(nodes(scroller).some(el => el.props.children === 'Filtri')).toBe(false);
     expect(tree.some(el => el.props.children === 'Filtri')).toBe(true);

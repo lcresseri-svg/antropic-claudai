@@ -1,3 +1,4 @@
+import {PageToolbar} from '../../shared/components/PageToolbar';
 import { useEffect, useMemo, useState } from 'react';
 import { User } from 'firebase/auth';
 import { Transaction } from '../../types';
@@ -75,20 +76,7 @@ export function AICoachScreen({ user, transactions, liquidity, savingsTarget, on
 
   return (
     <div className="pb-32 md:pb-6">
-      <div className="md:hidden mb-4">
-        <div className="flex items-baseline justify-between gap-3">
-          <h1 className="text-[17px] font-semibold text-primary tracking-[-0.03em]">AI Coach</h1>
-          {remaining !== null && (
-            <span className="text-[11.5px] text-tertiary flex-none">{counterLabel}</span>
-          )}
-        </div>
-        <p className="text-[12.5px] text-secondary mt-0.5">Descrivi un acquisto e ti dico se i tuoi numeri lo reggono.</p>
-      </div>
-      <PageHead title="AI Coach"
-        subtitle="Descrivi un acquisto e ti dico se i tuoi numeri lo reggono"
-        action={remaining !== null
-          ? <span className="text-[12px] text-tertiary">{counterLabel}</span>
-          : undefined} />
+      <PageToolbar title="AI Coach">{remaining!==null&&<span className="text-xs text-secondary">{counterLabel}</span>}</PageToolbar>
 
       {status === 'done' && result ? (
         <div className="flex flex-col wide:flex-row gap-3.5 md:gap-4 wide:items-start">

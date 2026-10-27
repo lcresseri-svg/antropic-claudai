@@ -8,7 +8,7 @@ import { Transaction } from '../../types';
 const state=vi.hoisted(()=>({enabled:true}));
 vi.mock('../../shared/hooks/useBudget',()=>({useBudget:()=>({budgetHistory:[],loading:false,error:null,fromCache:false,retry:()=>{}})}));
 vi.mock('../../shared/providers/settings',()=>({useSettings:()=>({enableBudget:state.enabled,categories:[{id:'food',label:'Alimentari',kind:'expense',color:'#888',icon:'🍎'}]})}));
-vi.mock('../../shared/providers/UiVersionProvider',()=>({useUiVersion:()=> '3.0',useUiSessionState:(_key:string,initial:any)=>useState(initial)}));
+vi.mock('../../shared/providers/UiVersionProvider',()=>({useUiVersion:()=> '3.0',useUiNavigationMemory:()=>null,useUiSessionState:(_key:string,initial:any)=>useState(initial)}));
 vi.mock('./PlanScreen',()=>({PlanScreen:({month,embedded}:any)=><div data-plan-month={month} data-embedded={embedded}/> }));
 vi.mock('./useMonthlyPlan',async importOriginal=>({...await importOriginal<any>(),usePlanCalendar:()=>new Date(2026,9,19,12)}));
 const tx:Transaction={id:'grocery',amount:40,type:'expense',category:'food',account:'bank',date:'2026-09-04',description:'Mercato'};
