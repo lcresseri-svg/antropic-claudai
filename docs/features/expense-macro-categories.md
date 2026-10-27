@@ -21,3 +21,7 @@ Scelta tecnica: campo opzionale `macroCategory` su CategoryDef (solo spese), sal
 - Limiti: fixture illustrative, nessuna prova su Safari fisico o account privati. Nomi come identificatori di gruppo: per unire categorie si usa lo stesso nome; per separarle si cambia o svuota l’assegnazione. Nessuna migrazione dei movimenti.
 
 [Evidenze e screenshot](../evidence/macro-categories/).
+
+## CI server
+
+La prima CI è stata bloccata dall’audit high su body-parser 1.20.8, già nel lockfile server della base. Aggiornata soltanto la patch a 1.20.9 (tre righe del lockfile), senza modifiche al codice delle funzioni. Compilazione funzioni e audit con soglia high passati localmente; rimangono otto segnalazioni moderate preesistenti.
