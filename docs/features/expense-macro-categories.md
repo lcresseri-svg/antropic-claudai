@@ -25,3 +25,9 @@ Scelta tecnica: campo opzionale `macroCategory` su CategoryDef (solo spese), sal
 ## CI server
 
 La prima CI è stata bloccata dall’audit high su body-parser 1.20.8, già nel lockfile server della base. Aggiornata soltanto la patch a 1.20.9 (tre righe del lockfile), senza modifiche al codice delle funzioni. Compilazione funzioni e audit con soglia high passati localmente; rimangono otto segnalazioni moderate preesistenti.
+
+## Configurazione nelle Impostazioni
+
+Disponibile la voce Macrocategorie nel menu principale (ricercabile tramite “macro”) e in Conti e categorie / Gestione, per UI2 e UI3. Entrambi gli accessi aprono lo stesso editor già usato nell’analisi; la voce è disponibile dopo il caricamento delle impostazioni.
+
+Verifiche: build/TypeScript; otto combinazioni browser UI2/UI3 × chiaro/scuro × 390/1440. Ricerca, entrambi gli accessi, salvataggio, condivisione con l’analisi, riapertura, assenza di overflow ed errori JS; in UI3 scarto/continua e focus al trigger. Passata anche la regressione Settings esistente. Revisione indipendente senza rilievi sul prodotto. Evidenze in [macro-settings](../evidence/macro-settings/). Prove Chromium con fixture.

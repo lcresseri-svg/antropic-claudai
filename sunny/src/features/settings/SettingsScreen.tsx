@@ -14,6 +14,7 @@ import { EditDefSheet, DefDraft } from './EditDefSheet';
 import { FeedbackSheet } from '../feedback/FeedbackSheet';
 import { ExpenseShortcutSection } from './ExpenseShortcutSection';
 import { ArchivedCategories } from './ArchivedCategories';
+import { MacroCategoryEditor } from '../dashboard/MacroCategoryEditor';
 import { removeCategoryDef, removeAccountDef, visibleDefs } from './softDelete';
 import { buildExportPayload, downloadJson, downloadCsv, BudgetExportInput } from './dataExport';
 import { isForecastV4EnabledForUser } from '../forecast/forecastFeatureGate';
@@ -56,7 +57,8 @@ export function SettingsScreen({ user, transactions, budgetExport, onImport, onL
   const back=useOriginBack('/');
   const ui3 = useUiVersion() === '3.0';
   const location = useLocation();
-  const { categories, accounts, visibleCategories, visibleAccounts, theme, includeInvestments, enableInvestments, enableBudget, insightDepth, aiEnabled, aiCoachWidgetEnabled, detailedInvestments, cashReserve, saveCategories, restoreCategory, saveAccounts, saveTheme, saveIncludeInvestments, saveEnableInvestments, saveEnableBudget, saveInsightDepth, saveAiEnabled, saveAiCoachWidgetEnabled, saveCashReserve } = useSettings();
+  const { settingsLoaded, categories, accounts, visibleCategories, visibleAccounts, theme, includeInvestments, enableInvestments, enableBudget, insightDepth, aiEnabled, aiCoachWidgetEnabled, detailedInvestments, cashReserve, saveCategories, restoreCategory, saveAccounts, saveTheme, saveIncludeInvestments, saveEnableInvestments, saveEnableBudget, saveInsightDepth, saveAiEnabled, saveAiCoachWidgetEnabled, saveCashReserve } = useSettings();
+  const [editingMacros,setEditingMacros] = useState(false);
   const [sub, setSub] = useState<Sub>('menu');
   const [editing, setEditing] = useState<{ kind: 'category' | 'account'; draft: DefDraft; isNew: boolean; withKind?: boolean } | null>(null);
   const [confirmReset, setConfirmReset] = useState(false);
@@ -461,9 +463,10 @@ export function SettingsScreen({ user, transactions, budgetExport, onImport, onL
               {ui3 && <MenuSection title="Aspetto" query={menuQuery}>
                 <SwitchRow icon="🌙" color="#8B8B8B" label="Tema scuro" sub="Chiaro o scuro" on={theme==='dark'} onToggle={()=>saveTheme(theme==='dark'?'light':'dark')}/>
               </MenuSection>}
-              {ui3 && <MenuSection title="Conti e categorie" query={menuQuery}>
-                <Row icon="🗂️" color="#6FA8DC" label="Conti e categorie" sub="Saldi, emoji e ordine" onClick={()=>enterSub('gestione')}/>
-              </MenuSection>}
+              <MenuSection title="Conti e categorie" query={menuQuery}>
+                {ui3 && <Row icon="🗂️" color="#6FA8DC" label="Conti e categorie" sub="Saldi, emoji e ordine" onClick={()=>enterSub('gestione')}/>}
+                {settingsLoaded && <Row icon="🏷️" color="#8A9270" label="Macrocategorie" sub="Raggruppa le categorie di spesa" onClick={()=>setEditingMacros(true)}/>}
+              </MenuSection>
               <MenuSection title={ui3?'Funzioni':"Come si comporta l'app"} query={menuQuery}>
                 {!ui3 && <SwitchRow icon="🌙" color="#8B8B8B" label="Tema scuro" sub="Chiaro o scuro"
                   on={theme === 'dark'} onToggle={() => saveTheme(theme === 'dark' ? 'light' : 'dark')} />}
@@ -637,6 +640,7 @@ export function SettingsScreen({ user, transactions, budgetExport, onImport, onL
           <div className="bg-card rounded-2xl divide-y divide-divider md:bg-transparent md:divide-y-0 md:grid md:grid-cols-2 md:gap-3">
             <Row icon="🏦" color="#6FA8DC" label="Gestisci conti" sub="Saldi iniziali, ordine" onClick={() => enterSub('accounts')} />
             <Row icon="🏷️" color="#8A9270" label="Gestisci categorie" sub="Icone, colori, tipo" onClick={() => enterSub('categories')} />
+            {settingsLoaded && <Row icon="🏷️" color="#8A9270" label="Macrocategorie" sub="Raggruppa le categorie di spesa" onClick={()=>setEditingMacros(true)}/> }
           </div>
         </>
       )}
@@ -880,6 +884,7 @@ export function SettingsScreen({ user, transactions, budgetExport, onImport, onL
         onClose={() => setEditing(null)}
       />
 
+      {editingMacros && <MacroCategoryEditor onClose={()=>setEditingMacros(false)}/>}
       <FeedbackSheet open={feedbackOpen} user={user} onClose={() => setFeedbackOpen(false)} />
     </div>
   );
