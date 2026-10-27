@@ -6,7 +6,7 @@ In Impostazioni → Gestione → Macrocategorie si creano e modificano definizio
 
 Nel modulo di creazione o modifica di una categoria di spesa compare il selettore Macrocategoria, con le definizioni esistenti e Senza macrocategoria. La scelta è facoltativa. Conti, entrate e investimenti non mostrano questo campo.
 
-Nell’analisi Spese per categoria il selettore Categorie / Macro mantiene periodo e totale. Ogni macro usa nome, emoji e colore configurati; i gruppi sono espandibili fino alle categorie e ai relativi movimenti. Il collegamento Gestisci macro porta alla gestione delle definizioni nelle Impostazioni.
+Nell’analisi Spese per categoria il selettore Categorie / Macro mantiene periodo e totale. Ogni macro usa nome, emoji e colore configurati; i gruppi sono espandibili fino alle categorie e ai relativi movimenti. La configurazione delle macro è accessibile soltanto da Impostazioni → Gestione → Macrocategorie.
 
 ## Dati e compatibilità
 
