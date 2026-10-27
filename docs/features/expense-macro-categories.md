@@ -28,6 +28,6 @@ La prima CI è stata bloccata dall’audit high su body-parser 1.20.8, già nel 
 
 ## Configurazione nelle Impostazioni
 
-Disponibile la voce Macrocategorie nel menu principale (ricercabile tramite “macro”) e in Conti e categorie / Gestione, per UI2 e UI3. Entrambi gli accessi aprono lo stesso editor già usato nell’analisi; la voce è disponibile dopo il caricamento delle impostazioni.
+La configurazione si trova esclusivamente nella sezione Gestione, accanto a Gestisci conti e Gestisci categorie. Si raggiunge dal menu principale tramite Conti e categorie, per UI2 e UI3. La voce apre lo stesso editor dell’analisi ed è disponibile dopo il caricamento delle impostazioni.
 
-Verifiche: build/TypeScript; otto combinazioni browser UI2/UI3 × chiaro/scuro × 390/1440. Ricerca, entrambi gli accessi, salvataggio, condivisione con l’analisi, riapertura, assenza di overflow ed errori JS; in UI3 scarto/continua e focus al trigger. Passata anche la regressione Settings esistente. Revisione indipendente senza rilievi sul prodotto. Evidenze in [macro-settings](../evidence/macro-settings/). Prove Chromium con fixture.
+Verifiche aggiornate: build/TypeScript; otto combinazioni browser UI2/UI3 × chiaro/scuro × 390/1440. Confermata assenza della voce diretta dal menu principale, navigazione verso Gestione, salvataggio condiviso con l’analisi, riapertura e chiusura, assenza di overflow ed errori JS; in UI3 scarto/continua e ritorno del focus. Revisione indipendente senza rilievi prodotto. Evidenze in [macro-gestione](../evidence/macro-gestione/). Prove Chromium con fixture.

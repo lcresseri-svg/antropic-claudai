@@ -463,10 +463,9 @@ export function SettingsScreen({ user, transactions, budgetExport, onImport, onL
               {ui3 && <MenuSection title="Aspetto" query={menuQuery}>
                 <SwitchRow icon="🌙" color="#8B8B8B" label="Tema scuro" sub="Chiaro o scuro" on={theme==='dark'} onToggle={()=>saveTheme(theme==='dark'?'light':'dark')}/>
               </MenuSection>}
-              <MenuSection title="Conti e categorie" query={menuQuery}>
-                {ui3 && <Row icon="🗂️" color="#6FA8DC" label="Conti e categorie" sub="Saldi, emoji e ordine" onClick={()=>enterSub('gestione')}/>}
-                {settingsLoaded && <Row icon="🏷️" color="#8A9270" label="Macrocategorie" sub="Raggruppa le categorie di spesa" onClick={()=>setEditingMacros(true)}/>}
-              </MenuSection>
+              {ui3 && <MenuSection title="Conti e categorie" query={menuQuery}>
+                <Row icon="🗂️" color="#6FA8DC" label="Conti e categorie" sub="Saldi, emoji e ordine" onClick={()=>enterSub('gestione')}/>
+              </MenuSection>}
               <MenuSection title={ui3?'Funzioni':"Come si comporta l'app"} query={menuQuery}>
                 {!ui3 && <SwitchRow icon="🌙" color="#8B8B8B" label="Tema scuro" sub="Chiaro o scuro"
                   on={theme === 'dark'} onToggle={() => saveTheme(theme === 'dark' ? 'light' : 'dark')} />}
