@@ -15,6 +15,7 @@ import { useUiRouteFocus } from '../src/shared/hooks/useUiRouteFocus';
 import { AppRoutes } from '../src/app/AppRoutes';
 import { TransactionModal } from '../src/features/transactions/TransactionModal';
 import { RefundSheet } from '../src/features/transactions/RefundSheet';
+import {WhatsNewModal} from '../src/shared/components/WhatsNewModal';
 import { ReleaseDialog } from '../src/shared/components/ReleaseDialog';
 import { PushPromoSheet } from '../src/shared/components/PushPromoSheet';
 import { aggregateFlow, accountDelta } from '../src/shared/financialFlow';
@@ -85,6 +86,7 @@ function PreviewShell({uid,onSwitch}:{uid:string;onSwitch:(uid:string)=>void}) {
     {createPortal(<TransactionModal title={query.has('applePay') ? 'Conferma Apple Pay' : undefined} saveLabel={query.has('applePay') ? 'Conferma pagamento' : undefined} open={modal} editing={editing} defaultType={defaultType} transactions={rows} sourceBanner={scheduledDate?'Spesa programmata registrata: Salva crea un movimento futuro, non una simulazione.':query.has('applePay')?'Ricevuto da Carta test. Controlla i dati.':undefined} initialValues={scheduledDate?{date:scheduledDate}:query.has('applePay')?{source:'apple_pay',sourceId:'fixture-1',description:'Supermercato',amount:45}:undefined} typeLocked={query.has('applePay')} singleSave={query.has('singleSave')} awaitSave={query.has('awaitSave')} onSave={save} onClose={()=>{setModal(false);setScheduledDate(undefined);}} onRegisterRefund={()=>{setModal(false);setRefund(true);}}/>,document.body)}
     <ImportModal open={importOpen} onClose={()=>setImportOpen(false)} onImport={rows=>save([],rows)}/>
     <RefundSheet open={refund} transactions={rows} onClose={()=>setRefund(false)} onSave={()=>{}}/>
+    {query.has('whatsNew')&&uid&&<WhatsNewModal userId={uid}/>}
     <ReleaseDialog open={notice} title="Avviso di prova" onClose={()=>setNotice(false)} bullets={['Solo anteprima locale.']}/>
     <PushPromoSheet open={promo} onClose={()=>setPromo(false)} onGoToSettings={()=>setPromo(false)}/>
   </div>;

@@ -1,4 +1,4 @@
-export const APP_VERSION = '2.0.1';
+export const APP_VERSION = '2.1.0';
 
 /**
  * Release channel. While in 'beta' the app is still under active development
@@ -29,6 +29,23 @@ export interface VersionEntry {
 
 /** Registro versioni mostrato in Impostazioni → Registro versioni. */
 export const VERSIONS: VersionEntry[] = [
+  {
+    version: '2.1.0', date: '2026-10-27', title: 'Sono arrivate le macrocategorie',
+    highlight: true,
+    subtitle: 'Unisci le categorie di spesa in gruppi scelti da te, per leggere meglio i tuoi totali.',
+    highlights: [
+      {icon:'🏷️',title:'Crea una macro',detail:'Scegli nome, emoji e colore in Impostazioni → Gestione → Macrocategorie.'},
+      {icon:'🏠',title:'Un esempio: Casa',detail:'Crea la macro Casa e assegnala alle categorie Affitto, Bollette e Arredamento, dal campo Macrocategoria nel modulo di ciascuna categoria.'},
+      {icon:'📊',title:'Leggi le spese per macro',detail:'In Spese per categoria scegli Macro: Affitto 700 € + Bollette 100 € + Arredamento 50 € diventano Casa 850 €. Espandi Casa per vedere le singole voci.'},
+    ],
+    primaryAction: {label:'Configura le macrocategorie',to:'/settings?section=macros'},
+    changes: [
+      'Macrocategorie disponibili a tutti: crea gruppi personali con nome, emoji e colore in Impostazioni → Gestione → Macrocategorie.',
+      'Assegna la macro creando o modificando una categoria di spesa, oppure scegli Senza macrocategoria.',
+      'Nell’analisi Spese per categoria passa da Categorie a Macro ed espandi i gruppi per vedere categorie e movimenti.',
+      'Le assegnazioni valgono anche per lo storico. Rinominare una macro mantiene i collegamenti; eliminarla lascia le categorie senza macro.',
+    ],
+  },
   {
     version: '2.0.1', date: '2026-08-24', title: 'Deposito, riordino e rifiniture',
     changes: [

@@ -6,44 +6,41 @@
 // Wrapper sottile: la presentazione sta tutta in ReleaseDialog (condivisa con
 // ReleaseNotice); qui resta SOLO la logica del "già visto", che è per-versione.
 //
-// "Already seen" is tracked per-version in localStorage (per browser/device).
+// "Already seen" is tracked per-version in localStorage (per user and browser/device).
 // FUTURE (multi-device): move the flag to a per-user Firestore field
 // (e.g. users/{uid}/meta/settings.whatsNewSeen) so it follows the user across
-// devices instead of being per-browser.
+// devices instead of being local to this device.
 // ─────────────────────────────────────────────────────────────────────────────
 
 import { useState, useEffect } from 'react';
 import { VERSIONS } from '../../appInfo';
 import { ReleaseDialog } from './ReleaseDialog';
-
-const seenKey = (version: string) => `sunny_whatsnew_seen_${version}`;
+import {hasSeenWhatsNew,markWhatsNewSeen} from './whatsNewStorage';
 
 /** Most recent highlighted release (VERSIONS is newest-first). */
 const highlighted = () => VERSIONS.find(v => v.highlight);
 
 /** True quando il popup Novità sta per aprirsi: serve al chiamante per non
  *  mostrare un secondo popup nella stessa sessione (mai due insieme). */
-export function isWhatsNewPending(): boolean {
+export function isWhatsNewPending(userId: string): boolean {
   const entry = highlighted();
   if (!entry) return false;
-  try { return localStorage.getItem(seenKey(entry.version)) !== '1'; } catch { return false; }
+  return !hasSeenWhatsNew(userId,entry.version);
 }
 
-export function WhatsNewModal() {
+export function WhatsNewModal({userId}:{userId:string}) {
   const entry = highlighted();
 
   const [open, setOpen] = useState(false);
 
   useEffect(() => {
     if (!entry) return;
-    let alreadySeen = false;
-    try { alreadySeen = localStorage.getItem(seenKey(entry.version)) === '1'; } catch { /* ignore */ }
-    if (!alreadySeen) setOpen(true);
-  }, [entry?.version]);
+    setOpen(!hasSeenWhatsNew(userId,entry.version));
+  }, [userId,entry?.version]);
 
   const close = () => {
     if (entry) {
-      try { localStorage.setItem(seenKey(entry.version), '1'); } catch { /* ignore */ }
+      markWhatsNewSeen(userId,entry.version);
     }
     setOpen(false);
   };
