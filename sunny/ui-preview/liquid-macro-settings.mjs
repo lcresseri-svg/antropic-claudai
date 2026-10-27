@@ -7,7 +7,10 @@ try{for(const ui of ['2','3'])for(const theme of ['light','dark'])for(const widt
  const page=await browser.newPage({viewport:{width,height:900}}),errors=[];page.on('pageerror',e=>errors.push(e.message));
  await page.goto(`http://127.0.0.1:4177/ui-preview/index.html?ui=${ui}&theme=${theme}`);await page.locator('#preview-writes').waitFor();
  const route=async path=>page.evaluate(path=>{history.pushState({},'',path);dispatchEvent(new PopStateEvent('popstate'));},path);
- await route('/settings');await page.getByRole('textbox',{name:'Cerca nelle impostazioni'}).fill('macro');
+ await route('/settings');await page.getByRole('textbox',{name:'Cerca nelle impostazioni'}).waitFor();
+ assert.equal(await page.getByRole('button',{name:/Macrocategorie.*Raggruppa/}).count(),0);
+ await page.getByRole('button',{name:/Conti e categorie.*Saldi/}).click();
+ await page.getByRole('heading',{name:'Gestione',exact:true}).waitFor();
  const entry=page.getByRole('button',{name:/Macrocategorie.*Raggruppa/});await entry.click();
  const input=page.getByRole('combobox',{name:'Macrocategoria di Casa',exact:true});await input.fill('Essenziali');
  if(ui==='3'){
