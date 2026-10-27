@@ -37,7 +37,7 @@ interface SettingsValue {
   settingsLoaded: boolean;      // true after first Firestore snapshot resolves
   getCat: (id: string) => CategoryDef;
   getAcc: (id: string) => AccountDef;
-  saveCategories: (c: CategoryDef[]) => void;
+  saveCategories: (c: CategoryDef[], options?: { persistFirst?: boolean }) => Promise<void>;
   restoreCategory: (id: string) => Promise<void>;
   saveAccounts: (a: AccountDef[]) => void;
   saveApplePayCardMapping: (mapping: ApplePayCardMapping) => void;
@@ -171,9 +171,10 @@ export function SettingsProvider({ user, children }: { user: User | null; childr
     [user],
   );
 
-  const saveCategories = useCallback((c: CategoryDef[]) => {
-    setCategories(c);
-    if (user) setDoc(settingsRef(), { categories: c }, MERGE);
+  const saveCategories = useCallback(async (c: CategoryDef[], options?: { persistFirst?: boolean }) => {
+    if (!options?.persistFirst) setCategories(c);
+    if (user) await setDoc(settingsRef(), { categories: c }, MERGE);
+    if (options?.persistFirst) setCategories(c);
   }, [user, settingsRef]);
 
   const saveAccounts = useCallback((a: AccountDef[]) => {

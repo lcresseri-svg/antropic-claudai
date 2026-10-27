@@ -1,0 +1,15 @@
+
+> sunny-finance@0.1.0 test
+> vitest run
+
+7:59:09 AM [vite] warning: `esbuild` option was specified by "vite:react-babel" plugin. This option is deprecated, please use `oxc` instead.
+7:59:09 AM [vite] warning: `optimizeDeps.esbuildOptions` option was specified by "vite:react-babel" plugin. This option is deprecated, please use `optimizeDeps.rolldownOptions` instead.
+Both esbuild and oxc options were set. oxc options will be used and esbuild options will be ignored. The following esbuild options were set: `{ jsx: 'automatic', jsxImportSource: undefined }`
+
+ RUN  v4.1.7 /workspace/antropic-claudai/sunny
+
+
+ Test Files  95 passed | 1 skipped (96)
+      Tests  957 passed | 5 skipped (962)
+   Start at  07:59:09
+   Duration  27.78s (transform 2.94s, setup 0ms, import 7.78s, tests 3.54s, environment 12ms)

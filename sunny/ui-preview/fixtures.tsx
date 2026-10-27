@@ -83,7 +83,7 @@ function useFixtureSettings() {
     enableBudget,saveEnableBudget,aiEnabled,saveAiEnabled,aiCoachWidgetEnabled,saveAiCoachWidgetEnabled,
     cashReserve,saveCashReserve,insightDepth,saveInsightDepth,detailedInvestments:true,settingsLoaded:true,
     applePayCardMappings:[],saveApplePayCardMapping() {},removeApplePayCardMapping() {},
-    saveTheme:setTheme,saveCategories:setCats,saveAccounts:setAccs,saveCurrentValue:async(id:string,value:number)=>{if(params.has('failSave'))throw Error('Fixture: rete non disponibile');setCats(cs=>cs.map(c=>c.id===id?{...c,currentValue:value}:c));},restoreCategory:async(id:string)=>setCats(cs=>cs.map(c=>c.id===id?{...c,archived:false}:c)),
+    saveTheme:setTheme,saveCategories:async(next:CategoryDef[])=>{if(params.has('failSave'))throw Error('Fixture: rete non disponibile');setCats(next);},saveAccounts:setAccs,saveCurrentValue:async(id:string,value:number)=>{if(params.has('failSave'))throw Error('Fixture: rete non disponibile');setCats(cs=>cs.map(c=>c.id===id?{...c,currentValue:value}:c));},restoreCategory:async(id:string)=>setCats(cs=>cs.map(c=>c.id===id?{...c,archived:false}:c)),
   };
 }
 const SettingsContext=createContext<ReturnType<typeof useFixtureSettings>|null>(null);
