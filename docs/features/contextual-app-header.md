@@ -24,7 +24,7 @@ I selettori del periodo restano accanto ai dati. Le intestazioni dei modali e de
 | AI Coach | Titolo, Indietro, quota |
 | Riepilogo mensile | Titolo, Indietro, export; mese e report nel contenuto |
 | Previsione V3 / Patrimonio V2 / Impegni / Metriche | Titolo, Indietro; dati e controlli originali |
-| Impostazioni e 17 sezioni | Titolo della sezione e Indietro; Conti/Categorie/Macro tornano a Gestione; Riordina/Fine nella barra |
+| Impostazioni e 18 sezioni | Titolo della sezione e Indietro; Conti/Categorie/Macro e Catalogo emoji admin tornano a Gestione; Riordina/Fine nella barra |
 | Wrapped | Escluso dalla nuova registrazione; nessuna modifica al codice Wrapped |
 
 ## Macro investimenti

@@ -2,9 +2,10 @@ import { useDraftDismiss } from '../../shared/hooks/useDraftDismiss';
 import { DiscardConfirmation } from '../../shared/components/DiscardConfirmation';
 import { useUiVersion } from '../../shared/providers/UiVersionProvider';
 import { DialogSurface } from '../../shared/components/DialogSurface';
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useId, useRef } from 'react';
 import { TransactionType, TYPE_META, TYPE_ORDER, FundType, FUND_TYPE_META, FUND_TYPE_ORDER, typeColor, typeOnColor } from '../../types';
-import { EMOJI_CHOICES, COLOR_CHOICES } from '../../defaults';
+import { COLOR_CHOICES, COLOR_PREVIEW_CHOICES } from '../../defaults';
+import {useEmojiCatalog} from '../../shared/providers/EmojiCatalogProvider';
 import { useSettings } from '../../shared/providers/settings';
 import { useEscapeKey } from '../../shared/hooks/useEscapeKey';
 import { macroKind } from '../../shared/macroCategories';
@@ -42,6 +43,7 @@ interface Props {
 
 export function EditDefSheet({ entity, open, draft, withKind, canDelete, showFundType, showFinancing, onSave, onDelete, onClose }: Props) {
   const { theme,macroCategories=[] } = useSettings();
+  const {emojis}=useEmojiCatalog();
   const [macroCategoryId,setMacroCategoryId]=useState('');
   const [saving,setSaving]=useState(false),[error,setError]=useState('');
   const [label, setLabel] = useState('');
@@ -56,6 +58,9 @@ export function EditDefSheet({ entity, open, draft, withKind, canDelete, showFun
   const [financedAmount, setFinancedAmount] = useState('');
   const [confirmingDelete, setConfirmingDelete] = useState(false);
   const [emojiExpanded, setEmojiExpanded] = useState(false);
+  const [colorsExpanded, setColorsExpanded] = useState(false);
+  const pickerId=useId();
+  const emojiToggle=useRef<HTMLButtonElement>(null);
 
   useEffect(() => {
     if (!open || !draft) return;
@@ -70,6 +75,7 @@ export function EditDefSheet({ entity, open, draft, withKind, canDelete, showFun
     setFinancedAmount(draft.financedAmount !== undefined ? String(draft.financedAmount) : '');
     setConfirmingDelete(false);
     setEmojiExpanded(false);
+    setColorsExpanded(false);
   }, [open, draft]);
 
   const ui3=useUiVersion()==='3.0';
@@ -91,6 +97,7 @@ export function EditDefSheet({ entity, open, draft, withKind, canDelete, showFun
   const isExpenseCategory = isCategory && kind === 'expense';
   const hasMacroCategory = isExpenseCategory || isInvestmentCategory;
   const availableMacros = macroCategories.filter(m=>macroKind(m)===kind);
+  const colors=colorsExpanded?COLOR_CHOICES:COLOR_CHOICES.filter(c=>COLOR_PREVIEW_CHOICES.includes(c)||c===color);
   const showFinancingField = isExpenseCategory && !!showFinancing;
 
   const noun = isMacro?'macrocategoria':isCategory ? 'categoria' : 'conto';
@@ -163,29 +170,35 @@ export function EditDefSheet({ entity, open, draft, withKind, canDelete, showFun
           {availableMacros.length===0&&<span className="block mt-2 text-xs">Puoi creare le macrocategorie {isInvestmentCategory?'di investimento':'di spesa'} in Impostazioni · Gestione.</span>}
         </label>}
         <p className="text-xs font-medium text-secondary mb-2 px-1">Icona</p>
-        <div className="ui-icon-picker grid grid-cols-8 gap-1.5">
-          {(emojiExpanded ? EMOJI_CHOICES : EMOJI_CHOICES.slice(0, 24)).map(e => (
-            <button key={e} onClick={() => { setIcon(e); setEmojiExpanded(false); }}
+        <div id={`${pickerId}-icons`} className="ui-icon-picker grid grid-cols-8 gap-1.5">
+          {(emojiExpanded ? emojis : emojis.slice(0, 24)).map(e => (
+            <button type="button" key={e} aria-pressed={icon===e} onClick={() => { setIcon(e); if(emojiExpanded)emojiToggle.current?.focus({preventScroll:true}); setEmojiExpanded(false); }}
               className={`aspect-square rounded-xl flex items-center justify-center text-lg transition-colors ${
                 icon === e ? 'bg-gold/20 ring-1 ring-gold' : 'bg-elevated'
               }`}>{e}</button>
           ))}
         </div>
-        {EMOJI_CHOICES.length > 24 && (
-          <button type="button" onClick={() => setEmojiExpanded(v => !v)}
+        {emojis.length > 24 && (
+          <button type="button" ref={emojiToggle} aria-expanded={emojiExpanded} aria-controls={`${pickerId}-icons`} onClick={() => setEmojiExpanded(v => !v)}
             className="w-full mt-2 mb-5 py-1.5 text-xs font-medium text-gold">
             {emojiExpanded ? 'Mostra meno' : 'Mostra altre icone'}
           </button>
         )}
 
         <p className="text-xs font-medium text-secondary mb-2 px-1">Colore</p>
-        <div className="flex flex-wrap gap-2 mb-6">
-          {COLOR_CHOICES.map(c => (
-            <button aria-label={`Colore ${c}`} key={c} onClick={() => setColor(c)}
-              className={`w-8 h-8 rounded-full transition-transform ${color === c ? 'ring-2 ring-offset-2 ring-offset-bg ring-primary scale-110' : ''}`}
-              style={{ backgroundColor: c }} />
+        <div id={`${pickerId}-colors`} className="ui-color-picker flex flex-wrap gap-2">
+          {colors.map(c => (
+            <button type="button" aria-label={`Colore ${c}`} aria-pressed={color===c} key={c} onClick={() => setColor(c)}
+              className="w-11 h-11 flex items-center justify-center rounded-full">
+              <span className={`w-8 h-8 rounded-full border border-divider transition-transform ${color === c ? 'ring-2 ring-offset-2 ring-offset-bg ring-primary scale-110' : ''}`}
+                style={{ backgroundColor: c }} />
+            </button>
           ))}
         </div>
+        <button type="button" aria-expanded={colorsExpanded} aria-controls={`${pickerId}-colors`} onClick={()=>setColorsExpanded(v=>!v)}
+          className="w-full mt-2 mb-6 py-1.5 text-xs font-medium text-gold">
+          {colorsExpanded?'Mostra meno colori':'Mostra altri colori'}
+        </button>
 
         {!isCategory && !isMacro && (
           <label className="mb-6 flex items-center gap-3 rounded-2xl bg-elevated px-4 py-3.5 cursor-pointer">

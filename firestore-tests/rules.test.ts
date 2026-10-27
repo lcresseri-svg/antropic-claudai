@@ -17,11 +17,12 @@ import { resolve } from 'node:path';
 import { fileURLToPath } from 'node:url';
 import { beforeAll, afterAll, beforeEach, describe, it, expect } from 'vitest';
 import { ensureMonthlyBudget, saveMonthlyBudget, editLegacyBudget, revisionOf } from '../sunny/src/features/budget/monthlyBudgetStore';
+import { insertCatalogEmojiInto, subscribeCatalogFrom } from '../sunny/src/shared/emojiCatalogStore';
 import {
   initializeTestEnvironment, assertSucceeds, assertFails,
   type RulesTestEnvironment,
 } from '@firebase/rules-unit-testing';
-import { doc, setDoc, getDoc, deleteDoc, updateDoc } from 'firebase/firestore';
+import { collection, doc, setDoc, getDoc, getDocs, deleteDoc, updateDoc, serverTimestamp, Timestamp } from 'firebase/firestore';
 
 let env: RulesTestEnvironment;
 const A = 'userA';
@@ -48,6 +49,66 @@ beforeEach(async () => { await env.clearFirestore(); });
 
 const dbOf = (uid: string | null) =>
   (uid ? env.authenticatedContext(uid) : env.unauthenticatedContext()).firestore();
+
+describe('global emoji catalog', () => {
+  const entry = (over: Record<string, unknown> = {}) => ({ emoji: '🦦', createdAt: serverTimestamp(), ...over });
+
+  it('admin creates; every signed-in user can read and list; anonymous users cannot', async () => {
+    await assertSucceeds(setDoc(doc(dbOf(ADMIN), 'emojiCatalog/1f9a6'), entry()));
+    const read = await assertSucceeds(getDoc(doc(dbOf(A), 'emojiCatalog/1f9a6')));
+    expect(read.data()?.emoji).toBe('🦦');
+    await assertSucceeds(getDocs(collection(dbOf(B), 'emojiCatalog')));
+    await assertFails(getDoc(doc(dbOf(null), 'emojiCatalog/1f9a6')));
+    await assertFails(getDocs(collection(dbOf(null), 'emojiCatalog')));
+  });
+
+  it('regular users and anonymous users cannot create', async () => {
+    for (const uid of [A, B, null])
+      await assertFails(setDoc(doc(dbOf(uid), 'emojiCatalog/1f9a6'), entry()));
+  });
+
+  it('updates and deletes remain forbidden to admins and regular users', async () => {
+    await assertSucceeds(setDoc(doc(dbOf(ADMIN), 'emojiCatalog/1f9a6'), entry()));
+    for (const uid of [ADMIN, A]) {
+      await assertFails(updateDoc(doc(dbOf(uid), 'emojiCatalog/1f9a6'), { emoji: '🦭' }));
+      await assertFails(deleteDoc(doc(dbOf(uid), 'emojiCatalog/1f9a6')));
+    }
+  });
+
+  it('rejects unknown fields, missing or forged time, invalid types and empty or oversized emoji', async () => {
+    const db = dbOf(ADMIN);
+    const invalid = [entry({ extra: true }), { emoji: '🦦' }, { createdAt: serverTimestamp() },
+      entry({ createdAt: Timestamp.fromMillis(1) }), entry({ createdAt: 1 }),
+      entry({ emoji: '' }), entry({ emoji: 3 }), entry({ emoji: '🦦'.repeat(65) })];
+    for (let i = 0; i < invalid.length; i++)
+      await assertFails(setDoc(doc(db, `emojiCatalog/bad-${i}`), invalid[i]));
+  });
+
+  it('production repository stores a deterministic id and only one concurrent presentation variant', async () => {
+    const db = dbOf(ADMIN);
+    const results = await Promise.allSettled([insertCatalogEmojiInto(db, '🦦'), insertCatalogEmojiInto(db, '🦦️')]);
+    expect(results.filter(result => result.status === 'fulfilled')).toHaveLength(1);
+    const failure = results.find(result => result.status === 'rejected');
+    expect(failure?.status === 'rejected' && failure.reason.message).toMatch(/già presente/i);
+    const docs = await getDocs(collection(dbOf(A), 'emojiCatalog'));
+    expect(docs.size).toBe(1);
+    expect(docs.docs[0].id).toBe('1f9a6');
+    expect(docs.docs[0].data().createdAt).toBeInstanceOf(Timestamp);
+    await expect(insertCatalogEmojiInto(db, '🦦')).rejects.toThrow(/già presente/i);
+  });
+
+  it('production subscription receives additions made by the admin', async () => {
+    let stop = () => {};
+    try {
+      const received = new Promise<string[]>((resolve, reject) => {
+        stop = subscribeCatalogFrom(dbOf(A), emojis => { if (emojis.includes('🦦')) resolve(emojis); }, reject);
+      });
+      void received.catch(() => {}); // Awaited below, after the write completes.
+      await insertCatalogEmojiInto(dbOf(ADMIN), '🦦');
+      expect(await received).toEqual(['🦦']);
+    } finally { stop(); }
+  });
+});
 
 describe('planningV3 validation',()=>{
   const plan=(v:unknown)=>({month:'2026-10',savingsTarget:0,categoryBudgets:{},incomeBudgets:{},investmentBudgets:{},

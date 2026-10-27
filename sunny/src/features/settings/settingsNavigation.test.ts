@@ -2,7 +2,7 @@ import {describe,it,expect} from 'vitest';
 import {settingsParent,SETTINGS_TITLES} from './settingsNavigation';
 describe('settings header hierarchy',()=>{
  it('returns management lists to Gestione, then to the settings menu',()=>{
-  for(const section of ['accounts','categories','macros'] as const)expect(settingsParent(section)).toBe('gestione');
+  for(const section of ['accounts','categories','macros','emoji'] as const)expect(settingsParent(section)).toBe('gestione');
   expect(settingsParent('gestione')).toBe('menu');expect(settingsParent('menu')).toBeNull();
  });
  it('provides a title and a parent for every leaf, including direct links',()=>{
