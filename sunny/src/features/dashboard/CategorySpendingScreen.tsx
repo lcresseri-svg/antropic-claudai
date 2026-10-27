@@ -86,7 +86,6 @@ export function CategorySpendingScreen({ transactions, categoryBudgets }: Props)
           {(['categories','macro'] as const).map(value=><button key={value} type="button" aria-pressed={grouping===value} onClick={()=>setGrouping(value)}
             className={`rounded-xl px-4 py-2 text-sm ${grouping===value?'glass-active-pill text-gold font-semibold':'text-secondary'}`}>{value==='macro'?'Macro':'Categorie'}</button>)}
         </div>
-        <button type="button" className="text-sm text-gold px-2 py-2 ml-auto disabled:opacity-50" onClick={()=>navigate('/settings?section=macros')}>Gestisci macro</button>
       </div>
       {agg.total === 0 ? (
         <div className="glass-card rounded-2xl px-5 py-12 text-center">
