@@ -1,0 +1,40 @@
+{
+  "unit": {
+    "passed": 974,
+    "skipped": 5,
+    "failed": 0
+  },
+  "build": "pass",
+  "settings": {
+    "combinations": 12,
+    "sections": 17,
+    "views": 204,
+    "passed": true
+  },
+  "pages": {
+    "combinations": 12,
+    "routes": 16,
+    "views": 192,
+    "passed": true,
+    "ui3HeaderActionFocusRestored": true,
+    "quickMenuPreserved": true
+  },
+  "investmentMacros": {
+    "combinations": 12,
+    "passed": true,
+    "samePortfolioTotal": 10975,
+    "createAssignBothScopes": true,
+    "positionDetailsRetained": true
+  },
+  "regressions": {
+    "dismiss": 8,
+    "bulkFailurePreservesSelection": "pass",
+    "pianoSaveCancelErrorConflictZero": "pass",
+    "budgetHistoryState": "pass",
+    "printPalette": "pass",
+    "settingsFocus": "pass",
+    "investmentNestedFocus": "pass"
+  },
+  "review": "Independent review found header-action return-focus regression; corrected and reproduced successfully. No remaining findings.",
+  "limits": "Chromium with local illustrative fixtures and external requests blocked; no physical Safari/iPhone validation or private account reads."
+}

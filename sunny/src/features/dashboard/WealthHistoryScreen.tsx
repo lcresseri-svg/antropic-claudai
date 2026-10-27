@@ -1,3 +1,4 @@
+import {PageToolbar} from '../../shared/components/PageToolbar';
 import './ui31Analysis.css';
 import {useOriginBack} from '../../shared/hooks/useOriginBack';
 import { ProgressiveSection } from '../../shared/components/ProgressiveSection';
@@ -62,21 +63,7 @@ export function WealthHistoryScreen({ transactions }: Props) {
 
   return (
     <div className="ui31-analysis ui31-history pb-32">
-      {/* Header */}
-      <div className="flex items-center gap-3 mb-1">
-        <button
-          onClick={() => ui3 ? back() : navigate(-1)}
-          aria-label={ui3?"Indietro":"Torna indietro"}
-          className={ui3 ? 'ui-back' : 'w-9 h-9 rounded-2xl bg-elevated flex items-center justify-center text-secondary active:scale-95 transition-transform flex-shrink-0'}
-        >
-          {ui3 ? '‹ Indietro' : <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
-            <path d="m15 18-6-6 6-6" />
-          </svg>}
-        </button>
-        <h1 className="text-xl font-bold text-primary tracking-[-0.03em]">Andamento patrimonio</h1>
-      </div>
-      <p className="text-[13px] text-secondary mb-5 ml-12">Liquidità e investimenti insieme, nel tempo.</p>
-
+      <PageToolbar title="Andamento patrimonio" backTo="/wealth"/>
       {ui3 && <p className="text-sm text-secondary mb-5">Saldo dei conti inclusi e capitale investito. Lo storico non rappresenta i controvalori di mercato.</p>}
 
       {/* Sticky period selector */}

@@ -1,3 +1,4 @@
+import {SettingsHeaderProvider} from './shared/providers/SettingsHeaderProvider';
 import { useState, useEffect, useMemo, useRef, type ComponentProps } from 'react';
 import { useLocation, useNavigate } from 'react-router-dom';
 import { doc, setDoc } from 'firebase/firestore';
@@ -79,7 +80,7 @@ export default function App() {
         <LoginScreen onSignIn={signIn} error={authError} />
       ) : (
         <SettingsProvider key={user.uid} user={user}>
-          <OnboardingGate user={user} onLogOut={logOut} onDeleteAccount={deleteAccount} />
+          <SettingsHeaderProvider><OnboardingGate user={user} onLogOut={logOut} onDeleteAccount={deleteAccount} /></SettingsHeaderProvider>
         </SettingsProvider>
       )}
       </UiVersionProvider>

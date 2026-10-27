@@ -48,7 +48,12 @@ export const FUND_TYPE_META: Record<FundType, { label: string; color: string; ic
 export const FUND_TYPE_ORDER: FundType[] = ['pension', 'bond', 'equity'];
 
 /** User-editable category. Stored in Firestore per user. */
-export interface MacroCategoryDef { id: string; label: string; icon: string; color: string; }
+export type MacroCategoryKind = 'expense' | 'investment';
+export interface MacroCategoryDef {
+  id: string; label: string; icon: string; color: string;
+  /** Missing on existing definitions means expense; IDs and assignments stay intact. */
+  kind?: MacroCategoryKind;
+}
 
 export interface CategoryDef {
   macroCategoryId?: string;

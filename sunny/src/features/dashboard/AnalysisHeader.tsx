@@ -5,6 +5,7 @@
 // Sta qui e non in ognuna delle quattro perché erano quattro header diversi
 // per la stessa identica cosa.
 
+import {useRegisterPageHeader} from '../../shared/providers/SettingsHeaderProvider';
 import {useOriginBack} from '../../shared/hooks/useOriginBack';
 import { useUiVersion } from '../../shared/providers/UiVersionProvider';
 
@@ -20,6 +21,8 @@ interface Props {
 export function AnalysisHeader({ title, subtitle, backTo = '/', action }: Props) {
   const back=useOriginBack(backTo);
   const ui3 = useUiVersion() === '3.0';
+  const compact=useRegisterPageHeader(title,back,action);
+  if(compact)return null;
   return (
     <div className="ui-analysis-header h-14 flex items-center gap-3">
       <button type="button" onClick={back} aria-label="Indietro"

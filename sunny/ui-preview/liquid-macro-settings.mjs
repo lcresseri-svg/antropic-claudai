@@ -26,7 +26,7 @@ try{for(const ui of (process.env.SUNNY_MACRO_UIS||'2,3').split(','))for(const th
  await page.screenshot({path:`${out}/macro-form-ui${ui}-${theme}-${width}.png`});await save();
  await detail().getByRole('button',{name:/Essenziali/}).click();
  await page.getByRole('textbox',{name:'Nome',exact:true}).fill('Casa e vita');await save();
- await detail().getByRole('button',{name:'Indietro',exact:true}).click();
+ await page.locator('header.app-header').getByRole('button',{name:'Indietro',exact:true}).click();
  await page.getByRole('button',{name:/Gestisci categorie/}).click();
  await detail().getByRole('button',{name:/Casa/}).first().click();
  if(ui==='3')assert.equal(await page.locator('.ui-def-type-picker button').evaluateAll(es=>es.some(e=>e.scrollWidth>e.clientWidth)),false);
@@ -58,7 +58,7 @@ try{for(const ui of (process.env.SUNNY_MACRO_UIS||'2,3').split(','))for(const th
   await page.getByRole('heading',{name:'Modifica categoria',exact:true}).waitFor();
   assert.equal(await page.getByText('Capitale già investito',{exact:true}).count(),1);
   assert.equal(await page.locator('input[type="date"]').inputValue(),'2025-01-01');
-  assert.equal(await page.getByRole('combobox',{name:'Macrocategoria',exact:true}).count(),0);
+  assert.equal(await page.getByRole('combobox',{name:'Macrocategoria',exact:true}).count(),1);
   await save();
  }
  assert.equal(await page.evaluate(()=>document.documentElement.scrollWidth>innerWidth),false);assert.deepEqual(errors,[]);

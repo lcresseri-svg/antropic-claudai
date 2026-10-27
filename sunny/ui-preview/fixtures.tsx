@@ -12,6 +12,19 @@ export function resolveUiVersion(user: { uid?: string | null } | null, config?: 
 }
 export const categories: CategoryDef[] = DEFAULT_CATEGORIES.map(c => c.kind === 'investment' ? { ...c, initialBalance: !params.has('unknownBalance') && c.id === 'azioni_etf' ? 8000 : 0, currentValue: params.has('unknownBalance') ? undefined : c.id === 'azioni_etf' ? 9600 : 0, subscriptionDate: '2025-01-01' } : c);
 export const accounts: AccountDef[] = DEFAULT_ACCOUNTS.map((a,i) => ({ ...a, initialBalance: params.has('openingZero') ? 0 : params.has('unknownBalance') ? undefined : i === 0 ? 4800 : i === 1 ? 2000 : 0 }));
+const investmentMacros:MacroCategoryDef[]=params.has('investmentMacros')?[
+  {id:'fixture-growth',kind:'investment',label:'Crescita e obiettivi di lungo periodo',icon:'🌱',color:'#8A9270'},
+  {id:'fixture-protection',kind:'investment',label:'Protezione',icon:'🛡️',color:'#88B0C0'},
+  {id:'fixture-expense',label:'Casa e vita',icon:'🏠',color:'#6FA8DC'},
+]:[];
+if(params.has('investmentMacros')){
+  Object.assign(categories.find(c=>c.id==='azioni_etf')!,{macroCategoryId:'fixture-growth'});
+  Object.assign(categories.find(c=>c.id==='crypto')!,{macroCategoryId:'fixture-growth',initialBalance:900,currentValue:undefined});
+  Object.assign(categories.find(c=>c.id==='obbligazioni')!,{initialBalance:200,currentValue:0});
+  Object.assign(categories.find(c=>c.id==='fondi')!,{macroCategoryId:'fixture-protection',initialBalance:350,currentValue:400,fundType:'pension',tfrAmount:150});
+  categories.push({id:'fixture-unassigned',kind:'investment',label:'Liquidità investita',icon:'💰',color:'#B0A0C8',initialBalance:75});
+  categories.push({id:'fixture-archived',kind:'investment',label:'Investimento archiviato',icon:'📁',color:'#888888',currentValue:999999,initialBalance:999999,archived:true,macroCategoryId:'fixture-growth'});
+}
 const now = new Date();
 const iso = (months: number, day: number) => { const d = new Date(now.getFullYear(), now.getMonth()+months,day); return `${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,'0')}-${String(d.getDate()).padStart(2,'0')}`; };
 export const transactions: Transaction[] = params.has('empty') ? [] : params.has('pianoCase') ? [
@@ -68,7 +81,7 @@ if(params.has('edgeCategories')){
 
 function useFixtureSettings() {
   const [theme,setTheme] = useState<'light'|'dark'>(params.get('theme') === 'dark' ? 'dark' : 'light');
-  const [macroCategories,setMacroCategories]=useState<MacroCategoryDef[]>(()=>legacyMacroDefinitions(categories));
+  const [macroCategories,setMacroCategories]=useState<MacroCategoryDef[]>(()=>[...legacyMacroDefinitions(categories),...investmentMacros]);
   const [cats,setCats]=useState(categories), [accs,setAccs]=useState(accounts);
   const [homeOrder,saveHomeOrder]=useState<string[]>([]);
   const [enableInvestments,saveEnableInvestments]=useState(!params.has('noInvest'));

@@ -1,0 +1,134 @@
+[
+  {
+    "ui": "2",
+    "theme": "light",
+    "width": 390,
+    "sections": 17,
+    "parents": true,
+    "noDuplicateHeading": true,
+    "toolbar": true,
+    "flatHeader": true,
+    "resetOnExit": true
+  },
+  {
+    "ui": "2",
+    "theme": "light",
+    "width": 1440,
+    "sections": 17,
+    "parents": true,
+    "noDuplicateHeading": true,
+    "toolbar": true,
+    "flatHeader": true,
+    "resetOnExit": true
+  },
+  {
+    "ui": "2",
+    "theme": "dark",
+    "width": 390,
+    "sections": 17,
+    "parents": true,
+    "noDuplicateHeading": true,
+    "toolbar": true,
+    "flatHeader": true,
+    "resetOnExit": true
+  },
+  {
+    "ui": "2",
+    "theme": "dark",
+    "width": 1440,
+    "sections": 17,
+    "parents": true,
+    "noDuplicateHeading": true,
+    "toolbar": true,
+    "flatHeader": true,
+    "resetOnExit": true
+  },
+  {
+    "ui": "3",
+    "theme": "light",
+    "width": 320,
+    "sections": 17,
+    "parents": true,
+    "noDuplicateHeading": true,
+    "toolbar": true,
+    "flatHeader": true,
+    "resetOnExit": true
+  },
+  {
+    "ui": "3",
+    "theme": "light",
+    "width": 390,
+    "sections": 17,
+    "parents": true,
+    "noDuplicateHeading": true,
+    "toolbar": true,
+    "flatHeader": true,
+    "resetOnExit": true
+  },
+  {
+    "ui": "3",
+    "theme": "light",
+    "width": 834,
+    "sections": 17,
+    "parents": true,
+    "noDuplicateHeading": true,
+    "toolbar": true,
+    "flatHeader": true,
+    "resetOnExit": true
+  },
+  {
+    "ui": "3",
+    "theme": "light",
+    "width": 1440,
+    "sections": 17,
+    "parents": true,
+    "noDuplicateHeading": true,
+    "toolbar": true,
+    "flatHeader": true,
+    "resetOnExit": true
+  },
+  {
+    "ui": "3",
+    "theme": "dark",
+    "width": 320,
+    "sections": 17,
+    "parents": true,
+    "noDuplicateHeading": true,
+    "toolbar": true,
+    "flatHeader": true,
+    "resetOnExit": true
+  },
+  {
+    "ui": "3",
+    "theme": "dark",
+    "width": 390,
+    "sections": 17,
+    "parents": true,
+    "noDuplicateHeading": true,
+    "toolbar": true,
+    "flatHeader": true,
+    "resetOnExit": true
+  },
+  {
+    "ui": "3",
+    "theme": "dark",
+    "width": 834,
+    "sections": 17,
+    "parents": true,
+    "noDuplicateHeading": true,
+    "toolbar": true,
+    "flatHeader": true,
+    "resetOnExit": true
+  },
+  {
+    "ui": "3",
+    "theme": "dark",
+    "width": 1440,
+    "sections": 17,
+    "parents": true,
+    "noDuplicateHeading": true,
+    "toolbar": true,
+    "flatHeader": true,
+    "resetOnExit": true
+  }
+]

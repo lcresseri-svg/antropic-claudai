@@ -14,11 +14,13 @@ export function useUiRouteFocus() {
   const legacyPath=useRef<string|null>(null);
   const visits = useRef(new Map<string, { top: number; label?: string; href?: string; text?: string }>());
   useLayoutEffect(() => {
-    if(version==='3.0' && navigationType==='PUSH' && previous.current && previous.current.key!==key) memory?.set(`origin:${key}`,previous.current.url);
+    if(navigationType==='PUSH' && previous.current && previous.current.key!==key) memory?.set(`origin:${key}`,previous.current.url);
     previous.current={key,url:pathname+search};
     const scroller = document.getElementById('app-scroll');
     const main = document.getElementById('page-content');
     if (!scroller || !main) return;
+    const focusRoot=main.closest('.app-content')??main;
+    const isPageTrigger=(el:HTMLElement)=>main.contains(el)||!!el.closest('.app-header-actions')||el.matches('.app-header-action');
     if (version !== '3.0') { if(legacyPath.current!==pathname){scroller.scrollTo(0,0); window.scrollTo(0,0);legacyPath.current=pathname;} return; }
     legacyPath.current=null;
     // POP restores the exact entry; an explicit parent link can create a new
@@ -36,8 +38,8 @@ export function useUiRouteFocus() {
         if (main.querySelector('[aria-label="Caricamento"]')) return;
         scroller.scrollTop = saved?.top ?? 0;
         if (!restored) {
-          const target = saved && Array.from(main.querySelectorAll<HTMLElement>('button,a')).find(el =>
-            el.getClientRects().length && (saved.href ? el.getAttribute('href') === saved.href : saved.label ? el.getAttribute('aria-label') === saved.label : saved.text && el.textContent === saved.text));
+          const target = saved && Array.from(focusRoot.querySelectorAll<HTMLElement>('button,a')).find(el =>
+            isPageTrigger(el) && el.getClientRects().length && (saved.href ? el.getAttribute('href') === saved.href : saved.label ? el.getAttribute('aria-label') === saved.label : saved.text && el.textContent === saved.text));
           (target || main).focus({preventScroll:true}); restored = true;
         }
       });
@@ -48,11 +50,11 @@ export function useUiRouteFocus() {
     const onScroll = () => { if (restored) state.top = scroller.scrollTop; };
     const onFocus = (e: FocusEvent) => {
       const el=e.target as HTMLElement;
-      if (main.contains(el) && el.matches('button,a')) {
+      if (isPageTrigger(el) && el.matches('button,a')) {
         state.label=el.getAttribute('aria-label')??undefined; state.href=el.getAttribute('href')??undefined; state.text=el.textContent??undefined;
       }
     };
-    scroller.addEventListener('scroll',onScroll); main.addEventListener('focusin',onFocus);
-    return () => { cancelAnimationFrame(frame); observer.disconnect(); scroller.removeEventListener('scroll',onScroll); main.removeEventListener('focusin',onFocus); };
+    scroller.addEventListener('scroll',onScroll); focusRoot.addEventListener('focusin',onFocus as EventListener);
+    return () => { cancelAnimationFrame(frame); observer.disconnect(); scroller.removeEventListener('scroll',onScroll); focusRoot.removeEventListener('focusin',onFocus as EventListener); };
   },[identity,version,memory,navigationType]);
 }

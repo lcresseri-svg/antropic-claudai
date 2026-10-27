@@ -1,3 +1,4 @@
+import {PageToolbar} from '../../shared/components/PageToolbar';
 import { useEffect, useRef } from 'react';
 import type { User } from 'firebase/auth';
 import { Link, useSearchParams, useNavigate } from 'react-router-dom';
@@ -42,7 +43,8 @@ export function Ui31MonthScreen(p:Ui31MonthScreenProps) {
   const error=p.error||(settings.enableBudget?store.error:null),loading=!!p.loading||(settings.enableBudget&&store.loading);
   const {start,end}=bounds(month);
   return <div className="ui31-month">
-    <header className="ui31-month-heading"><div><Link className="ui31-back-link" to="/">‹ Oggi</Link><h1>Il tuo mese</h1><p>Osserva le spese, scegli il piano, ritrova le scadenze.</p></div>
+    <PageToolbar title="Il tuo mese"/>
+    <header className="ui31-month-heading">
       <div className="ui31-month-picker"><button aria-label="Mese precedente" disabled={month<=earliest} onClick={()=>changeMonth(prevMonthKey(month))}>‹</button><label><span className="sr-only">Mese selezionato</span><select aria-label="Mese selezionato" value={month} onChange={e=>changeMonth(e.target.value)}>{months.map(m=><option key={m} value={m}>{label(m)}</option>)}</select></label><button aria-label="Mese successivo" disabled={month>=latest} onClick={()=>changeMonth(monthKeyOf(new Date(Number(month.slice(0,4)),Number(month.slice(5)),1)))}>›</button></div>
     </header>
     <nav className="ui31-month-tabs" aria-label="Sezioni del mese">{([['overview','Riepilogo'],['plan','Piano'],['due','Scadenze']] as const).map(([key,title])=><Link key={key} aria-current={section===key?'page':undefined} to={url(key)}>{title}</Link>)}</nav>

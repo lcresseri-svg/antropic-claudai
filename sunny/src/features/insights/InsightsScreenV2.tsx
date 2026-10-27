@@ -1,3 +1,4 @@
+import {PageToolbar} from '../../shared/components/PageToolbar';
 import { useUiVersion } from '../../shared/providers/UiVersionProvider';
 import { useEffect, useState } from 'react';
 import { User } from 'firebase/auth';
@@ -130,9 +131,7 @@ export function InsightsScreenV2(p: Props) {
 
   return (
     <div className="ui-family-insights pb-32">
-      <div className="h-14 flex items-center">
-        <h1 className="text-[17px] md:text-xl font-semibold text-primary tracking-[-0.03em]">Consigli</h1>
-      </div>
+      <PageToolbar title="Consigli"/>
 
       {/* Una sola priorità in evidenza. Via la card di debug del ranking
           (priorità / impatto / dominio): erano numeri per chi ha scritto il

@@ -1,3 +1,4 @@
+import {PageToolbar} from '../../shared/components/PageToolbar';
 /**
  * Admin-only screen for Forecast Engine V3.
  * Shows V3 forecast with per-category behavior badges, confidence intervals,
@@ -98,13 +99,13 @@ export function ForecastV3Screen({
 
   return (
     <div className="ui-forecast space-y-6 pb-24">
-      {/* Header */}
+      <PageToolbar title="Previsione V3" backTo="/settings"/>
+      {/* Experimental status */}
       <div>
         <div className="flex items-center gap-2 mb-1 flex-wrap">
           <span className="text-xs font-medium px-2 py-0.5 rounded-full bg-gold/10 text-gold">Admin · Sperimentale</span>
           <span className="text-xs text-tertiary">Motore V3</span>
         </div>
-        <h1 className="text-2xl font-bold text-primary tracking-[-0.03em]">Previsione V3</h1>
         <p className="text-sm text-secondary mt-0.5">
           Anti double-count · stale detection · cadenze periodiche · intervalli di confidenza
         </p>
