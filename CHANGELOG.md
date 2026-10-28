@@ -19,6 +19,8 @@ git.
 
 ## 2026-10-28
 
+- **[Codex]** Nel modulo conto, Carta di credito nasconde Saldo iniziale. Disattivando il flag il campo riappare; il valore esistente viene conservato anche al salvataggio. Verificato nei due temi di UI2/UI3. `(pending)`
+
 - **[Codex]** Sunny 2.2.0: conti carta con istruzioni datate, distinta mensile automatica banca→carta e cassa differita, riconciliazione backend idempotente. Rimborsi multipli proporzionali alle spese originali, eccedenza come guadagno e ricevute atomiche con controlli di concorrenza condivisi con gli storni singoli. Saldi, patrimonio, impegni, statistiche e consigli coerenti; fix del focus dopo conferma di scarto e del cambio giorno a schermata aperta. Verifiche ed evidenze in `docs/evidence/credit-cards-refunds/`. `95209c3`
 
 ## 2026-08-26

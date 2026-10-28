@@ -262,7 +262,7 @@ export function EditDefSheet({ entity, open, draft, withKind, canDelete, showFun
           </label>}
         </div>}
 
-        {showBalance && (
+        {showBalance && (!isCreditCard || isInvestmentCategory) && (
           <div className="mb-6">
             <p className="text-xs font-medium text-secondary mb-2 px-1">
               {isInvestmentCategory ? 'Capitale già investito' : 'Saldo iniziale'}
