@@ -66,6 +66,12 @@ describe('monthly Investito in UI2.0', () => {
     for (const value of values) expect(value).toBe(formatCurrency(100));
   });
 
+  it('keeps a deferred card investment in movement-date statistics', () => {
+    const values = investedValues([tx({cashDelta:0})]);
+    expect(values.length).toBeGreaterThan(0);
+    for (const value of values) expect(value).toBe(formatCurrency(100));
+  });
+
   it('shows zero when contributions are entirely TFR or external', () => {
     const values = investedValues([
       tx({ amount: 200, tfr: 200 }),

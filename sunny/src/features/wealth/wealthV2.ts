@@ -21,6 +21,8 @@
  */
 import { Transaction, AccountDef, CategoryDef, investSign, STALE_DAYS } from '../../types';
 import { aggregateFlow, accountDelta } from '../../shared/financialFlow';
+import { resolveCreditCardTransactions } from '../../../../functions/src/domain/creditCards';
+import { todayRomeISO } from '../../shared/romeDate';
 import {
   WealthPeriod, WealthPeriodSummary, WealthComparison,
   buildWealthPeriodSummary, buildWealthComparisons, getWealthRange,
@@ -60,7 +62,7 @@ export interface WealthV2MarketToday {
   marketGain: number;
   /** marketGain / investedCapital, null when capital ≈ 0. */
   marketGainPct: number | null;
-  /** Total net worth at market value (liquidity + marketValue). */
+  /** Total net worth at market value, including deferred card liabilities. */
   netWorthAtMarket: number;
 }
 
@@ -99,8 +101,8 @@ export interface WealthV2Summary {
   warnings: string[];
 }
 
-/** "Today" must match the dashboard convention (UTC toISOString). */
-const dashboardToday = (now: Date) => now.toISOString().slice(0, 10);
+/** Same Rome product calendar as the dashboard and card settlements. */
+const dashboardToday = todayRomeISO;
 
 /** Realized (non-projected, non-future) transactions inside the selected range. */
 function realizedInPeriod(
@@ -121,6 +123,7 @@ export function buildWealthV2Summary(
   opts?: { now?: Date; customStart?: string; customEnd?: string },
 ): WealthV2Summary {
   const now = opts?.now ?? new Date();
+  transactions = resolveCreditCardTransactions(transactions, accounts, dashboardToday(now));
 
   const base = buildWealthPeriodSummary(transactions, accounts, categories, period, opts);
   const range = getWealthRange(period, transactions, opts);
@@ -135,7 +138,9 @@ export function buildWealthV2Summary(
   }
   // Components kept SEPARATE (never folded into "risparmio"): external
   // contributions and TFR quotas grow the total without being income.
-  const flow = aggregateFlow(inPeriod);
+  // This decomposition explains ledger wealth at purchase date, so derived
+  // cash-only card annotations must not move its savings to payment date.
+  const flow = aggregateFlow(inPeriod.map(({ cashDelta: _cash, ...t }) => t));
   const netSavings = r2(flow.ordinaryIncome - flow.expenses);
   const externalContributions = flow.externalContributions;
   const tfrContributions = flow.tfrExcluded;
@@ -178,14 +183,13 @@ export function buildWealthV2Summary(
   for (const e of investmentEntries) e.share = marketValue > 0 ? r2(e.value / marketValue) : 0;
   investmentEntries.sort((a, b) => b.value - a.value);
 
-  const liquidityToday = base.liquidity.endValue;
   const marketGain = r2(marketValue - investedCapital);
   const marketToday: WealthV2MarketToday = {
     investedCapital: r2(investedCapital),
     marketValue: r2(marketValue),
     marketGain,
     marketGainPct: investedCapital > 0.005 ? r2((marketGain / investedCapital) * 100) : null,
-    netWorthAtMarket: r2(liquidityToday + marketValue),
+    netWorthAtMarket: r2(base.total.endValue - base.investments.endValue + marketValue),
   };
 
   // ── Composition: cash per account (today) — shared accountDelta math ───────

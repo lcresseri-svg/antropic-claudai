@@ -13,7 +13,9 @@ export function Ui31SpendingComposition({registered,scheduled}:{registered:numbe
 export function Ui31FlowChart({flow}:{flow:FlowBreakdown}) {
   const rows=[{label:'Entrate ordinarie',value:flow.ordinaryIncome,color:'green'},{label:'Spese dai conti (lordo storni)',value:flow.expenses,color:'gold'},
     {label:'Investimenti dai conti',value:flow.investedFromAccounts,color:'purple'}, {label:'Storni ricevuti',value:flow.refundsReceived,color:'blue'},
-    {label:'Capitale disinvestito',value:flow.capitalReturned,color:'blue'}];
+    {label:'Capitale disinvestito',value:flow.capitalReturned,color:'blue'},
+    ...((flow.creditCardPayments??0)>0?[{label:'Addebiti carte',value:flow.creditCardPayments!,color:'gold'}]:[]),
+    ...((flow.creditCardCredits??0)>0?[{label:'Accrediti da carte',value:flow.creditCardCredits!,color:'blue'}]:[])];
   const max=Math.max(...rows.map(r=>r.value),1);
   return <figure className="ui31-flow-chart"><figcaption>Flussi registrati</figcaption><p>I movimenti effettivi dei conti, distinti per natura. Le spese sono al lordo degli storni ricevuti.</p><dl>{rows.map(r=><div key={r.label} className={`ui31-flow-${r.color}`}><dt>{r.label}</dt><dd>{formatCurrency(r.value)}</dd><span className="ui31-flow-track" aria-hidden="true"><span style={{width:`${Math.max(0,r.value)/max*100}%`}}/></span></div>)}</dl>
     <div className="ui31-flow-net"><span>Variazione della liquidità</span><strong>{formatCurrency(flow.netFlow)}</strong></div>

@@ -1,3 +1,5 @@
+import type {CreditCardPolicy,CreditCardSettlement} from '../../functions/src/domain/creditCards';
+export type {CreditCardPolicy,CreditCardSettlement} from '../../functions/src/domain/creditCards';
 export type TransactionType = 'income' | 'expense' | 'investment' | 'transfer' | 'refund';
 
 export const TYPE_META: Record<TransactionType, { label: string; color: string }> = {
@@ -94,6 +96,8 @@ export interface AccountDef {
   color: string;
   initialBalance?: number;
   isInvestment?: boolean;
+  /** Dated instructions; older periods retain their original cash treatment. */
+  creditCardPolicies?: CreditCardPolicy[];
   /** When true, the account remains usable but its balance is omitted from
    *  aggregate liquidity and net-worth calculations. Missing means included. */
   excludeFromNetWorth?: boolean;
@@ -184,6 +188,12 @@ export interface Transaction {
   /** Refunds only (type 'refund'): id of the EXPENSE being refunded. Lo storno
    *  eredita la categoria di quella spesa e non ne ha una propria. */
   refundOf?: string;
+  /** Allocations of one multi-expense receipt (separate from shared groupId). */
+  refundGroupId?: string;
+  /** Automatic bank-to-card transfer; only the server persists these rows. */
+  creditCardSettlement?: CreditCardSettlement;
+  /** CLIENT ONLY. Total cash effect after excluding deferred card legs. */
+  cashDelta?: number;
   /** Expenses only — CLIENT-ONLY derived field, NEVER persisted to Firestore
    *  (come `projected`). Totale già stornato su questa spesa, calcolato da
    *  `applyRefunds` all'ingresso dei dati: è ciò che rende `ownShare` la spesa

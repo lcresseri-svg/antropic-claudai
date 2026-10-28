@@ -1,0 +1,124 @@
+finance-client-no-rules-deps
+
+> sunny-finance@2.2.0 test
+> vitest run
+
+2:14:11 AM [vite] warning: `esbuild` option was specified by "vite:react-babel" plugin. This option is deprecated, please use `oxc` instead.
+2:14:11 AM [vite] warning: `optimizeDeps.esbuildOptions` option was specified by "vite:react-babel" plugin. This option is deprecated, please use `optimizeDeps.rolldownOptions` instead.
+Both esbuild and oxc options were set. oxc options will be used and esbuild options will be ignored. The following esbuild options were set: `{ jsx: 'automatic', jsxImportSource: undefined }`
+
+ RUN  v4.1.7 /workspace/antropic-claudai/sunny
+
+
+ Test Files  113 passed (113)
+      Tests  1111 passed (1111)
+   Start at  02:14:11
+   Duration  21.82s (transform 2.41s, setup 0ms, import 5.69s, tests 2.60s, environment 10ms)
+
+
+finance-client-no-rules-deps-build
+dist/assets/AICoachScreen-BQLoPvt3.js             31.49 kB │ gzip:  11.03 kB
+dist/assets/BudgetScreenV2-tvqbgFyL.js            35.17 kB │ gzip:  10.10 kB
+dist/assets/TransactionList-B9pMPWFS.js           36.07 kB │ gzip:  10.84 kB
+dist/assets/PlanScreen-CaFXE4nV.js                38.48 kB │ gzip:  12.21 kB
+dist/assets/InvestmentsScreen-pp_iqWqN.js         62.03 kB │ gzip:  18.71 kB
+dist/assets/SettingsScreen-Bi5FezGQ.js            82.86 kB │ gzip:  24.21 kB
+dist/assets/ForecastV3Screen-3BJS6OIi.js          91.67 kB │ gzip:  25.21 kB
+dist/assets/firebase-auth-CvFOk1p6.js            111.87 kB │ gzip:  22.84 kB
+dist/assets/react-D7rv8Q1m.js                    140.87 kB │ gzip:  45.26 kB
+dist/assets/xlsx-D_0l8YDs.js                     429.03 kB │ gzip: 143.08 kB
+dist/assets/firebase-firestore-DQqomrZl.js       434.75 kB │ gzip: 108.28 kB
+dist/assets/index-D4e9DXmz.js                    559.99 kB │ gzip: 169.81 kB
+
+(!) Some chunks are larger than 500 kB after minification. Consider:
+- Using dynamic import() to code-split the application
+- Use build.rollupOptions.output.manualChunks to improve chunking: https://rollupjs.org/configuration-options/#output-manualchunks
+- Adjust chunk size limit for this warning via build.chunkSizeWarningLimit.
+✓ built in 6.86s
+
+finance-final-repositories
+
+> sunny-finance@2.2.0 test
+> vitest run src/features/investments/investmentRefundGuards.emulator.test.ts src/features/transactions/refundReceiptStore.emulator.test.ts
+
+2:15:08 AM [vite] warning: `esbuild` option was specified by "vite:react-babel" plugin. This option is deprecated, please use `oxc` instead.
+2:15:08 AM [vite] warning: `optimizeDeps.esbuildOptions` option was specified by "vite:react-babel" plugin. This option is deprecated, please use `optimizeDeps.rolldownOptions` instead.
+Both esbuild and oxc options were set. oxc options will be used and esbuild options will be ignored. The following esbuild options were set: `{ jsx: 'automatic', jsxImportSource: undefined }`
+
+ RUN  v4.1.7 /workspace/antropic-claudai/sunny
+
+
+ Test Files  2 passed (2)
+      Tests  21 passed (21)
+   Start at  02:15:08
+   Duration  7.20s (transform 129ms, setup 0ms, import 512ms, tests 6.36s, environment 0ms)
+
+
+finance-final-rules-backend
+
+> sunny-firestore-tests@0.0.0 test
+> vitest run
+
+
+ RUN  v4.1.11 /workspace/antropic-claudai/firestore-tests
+
+(node:57499) MetadataLookupWarning: received unexpected error = Request failed with status code 403 code = UNKNOWN
+(Use `node --trace-warnings ...` to show where the warning was created)
+
+ Test Files  5 passed (5)
+      Tests  77 passed (77)
+   Start at  01:56:05
+   Duration  21.83s (transform 770ms, setup 0ms, import 1.91s, tests 18.95s, environment 1ms)
+
+
+finance-final-functions-build
+
+> build
+> tsc
+
+
+finance-final-functions-audit
+  teeny-request  3.9.1 - 9.0.0
+  Depends on vulnerable versions of uuid
+  node_modules/teeny-request
+    @google-cloud/storage  2.2.0 - 2.5.0 || 5.19.0 - 8.0.0
+    Depends on vulnerable versions of retry-request
+    Depends on vulnerable versions of teeny-request
+    node_modules/@google-cloud/storage
+    retry-request  7.0.0 - 7.0.2
+    Depends on vulnerable versions of teeny-request
+    node_modules/retry-request
+
+8 moderate severity vulnerabilities
+
+To address issues that do not require attention, run:
+  npm audit fix
+
+To address all issues (including breaking changes), run:
+  npm audit fix --force
+
+finance-browser-final
+PASS credit cards/refunds ui2-light-390
+PASS credit cards/refunds ui2-light-1440
+PASS credit cards/refunds ui2-dark-390
+PASS credit cards/refunds ui2-dark-1440
+PASS credit cards/refunds ui3-light-390
+PASS credit cards/refunds ui3-light-1440
+PASS credit cards/refunds ui3-dark-390
+PASS credit cards/refunds ui3-dark-1440
+
+finance-dismiss
+4/4 dismissal scenarios passed
+
+finance-month-browser
+4/4 monthly cash scenarios passed
+
+finance-legacy-dismiss
+PASS 844 light transaction
+PASS 844 light plan
+PASS 844 dark transaction
+PASS 844 dark plan
+PASS 500 light transaction
+PASS 500 light plan
+PASS 500 dark transaction
+PASS 500 dark plan

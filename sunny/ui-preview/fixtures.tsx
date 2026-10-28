@@ -7,11 +7,19 @@ import { MonthlyBudget } from '../src/features/budget/monthlyBudget';
 import { revisionOf, validateMonthlyBudget } from '../src/features/budget/monthlyBudgetStore';
 
 const params = new URLSearchParams(location.search);
+const calendarToday = new Intl.DateTimeFormat('en-CA', { timeZone:'Europe/Rome', year:'numeric', month:'2-digit', day:'2-digit' }).format(new Date());
+export const financeToday = /^\d{4}-\d{2}-\d{2}$/.test(params.get('financeDate') ?? '') ? params.get('financeDate')! : calendarToday;
+export const financeMonth = /^\d{4}-(0[1-9]|1[0-2])$/.test(params.get('financeMonth') ?? '') ? params.get('financeMonth')! : calendarToday.slice(0,7);
+export const financeExpenseIds = ['finance-expense-60','finance-expense-40'];
 export function resolveUiVersion(user: { uid?: string | null } | null, config?: UiVersionConfig) {
   return resolve(user, config ?? (params.get('ui') === '3' ? { ...UI_VERSION_CONFIG, pilotAdmin:'3.0' } : params.get('ui') === '2' ? { ...UI_VERSION_CONFIG, forceEveryone:'2.0' } : UI_VERSION_CONFIG));
 }
-export const categories: CategoryDef[] = DEFAULT_CATEGORIES.map(c => c.kind === 'investment' ? { ...c, initialBalance: !params.has('unknownBalance') && c.id === 'azioni_etf' ? 8000 : 0, currentValue: params.has('unknownBalance') ? undefined : c.id === 'azioni_etf' ? 9600 : 0, subscriptionDate: '2025-01-01' } : c);
-export const accounts: AccountDef[] = DEFAULT_ACCOUNTS.map((a,i) => ({ ...a, initialBalance: params.has('openingZero') ? 0 : params.has('unknownBalance') ? undefined : i === 0 ? 4800 : i === 1 ? 2000 : 0 }));
+export const categories: CategoryDef[] = DEFAULT_CATEGORIES.map(c => c.kind === 'investment' ? { ...c, initialBalance: !params.has('financeCase') && !params.has('unknownBalance') && c.id === 'azioni_etf' ? 8000 : 0, currentValue: params.has('unknownBalance') ? undefined : !params.has('financeCase') && c.id === 'azioni_etf' ? 9600 : 0, subscriptionDate: '2025-01-01' } : c);
+export const accounts: AccountDef[] = params.has('financeCase') ? [
+  { ...DEFAULT_ACCOUNTS[0], id:'conto_corrente', label:'Banca test', initialBalance:1000 },
+  { id:'carta_fixture', label:'Carta test', icon:'💳', color:'#88B0C0', initialBalance:0,
+    creditCardPolicies:[{fromMonth:financeMonth,enabled:true,paymentDay:10,paymentAccountId:'conto_corrente'}] },
+] : DEFAULT_ACCOUNTS.map((a,i) => ({ ...a, initialBalance: params.has('openingZero') ? 0 : params.has('unknownBalance') ? undefined : i === 0 ? 4800 : i === 1 ? 2000 : 0 }));
 const investmentMacros:MacroCategoryDef[]=params.has('investmentMacros')?[
   {id:'fixture-growth',kind:'investment',label:'Crescita e obiettivi di lungo periodo',icon:'🌱',color:'#8A9270'},
   {id:'fixture-protection',kind:'investment',label:'Protezione',icon:'🛡️',color:'#88B0C0'},
@@ -27,7 +35,10 @@ if(params.has('investmentMacros')){
 }
 const now = new Date();
 const iso = (months: number, day: number) => { const d = new Date(now.getFullYear(), now.getMonth()+months,day); return `${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,'0')}-${String(d.getDate()).padStart(2,'0')}`; };
-export const transactions: Transaction[] = params.has('empty') ? [] : params.has('pianoCase') ? [
+export const transactions: Transaction[] = params.has('empty') ? [] : params.has('financeCase') ? [
+  {id:financeExpenseIds[0],type:'expense',amount:60,category:'spesa',account:'carta_fixture',date:`${financeMonth}-02`,description:'Acquisto carta 60',createdAt:0},
+  {id:financeExpenseIds[1],type:'expense',amount:40,category:'casa',account:'carta_fixture',date:`${financeMonth}-03`,description:'Acquisto carta 40',createdAt:0},
+] : params.has('pianoCase') ? [
   {id:'spent',type:'expense',amount:900,category:'spesa',account:'conto_corrente',date:iso(0,5),description:'Spese registrate'},
   {id:'due1',type:'expense',amount:250,category:'spesa',account:'conto_corrente',date:iso(0,20),description:'Spesa programmata'},
   {id:'due2',type:'expense',amount:100,category:'casa',account:'conto_corrente',date:iso(0,25),description:'Utenza'},
@@ -98,7 +109,7 @@ function useFixtureSettings() {
     enableBudget,saveEnableBudget,aiEnabled,saveAiEnabled,aiCoachWidgetEnabled,saveAiCoachWidgetEnabled,
     cashReserve,saveCashReserve,insightDepth,saveInsightDepth,detailedInvestments:true,settingsLoaded:!params.has('loadingSettings'),
     applePayCardMappings:[],saveApplePayCardMapping() {},removeApplePayCardMapping() {},
-    saveTheme:setTheme,saveCategories:async(next:CategoryDef[])=>{if(params.has('failSave'))throw Error('Fixture: rete non disponibile');setCats(next);},saveAccounts:setAccs,saveCurrentValue:async(id:string,value:number)=>{if(params.has('failSave'))throw Error('Fixture: rete non disponibile');setCats(cs=>cs.map(c=>c.id===id?{...c,currentValue:value}:c));},restoreCategory:async(id:string)=>setCats(cs=>cs.map(c=>c.id===id?{...c,archived:false}:c)),
+    saveTheme:setTheme,saveCategories:async(next:CategoryDef[])=>{if(params.has('failSave'))throw Error('Fixture: rete non disponibile');setCats(next);},saveAccounts:async(next:AccountDef[])=>{if(params.has('failSave'))throw Error('Fixture: rete non disponibile');setAccs(next);},saveCurrentValue:async(id:string,value:number)=>{if(params.has('failSave'))throw Error('Fixture: rete non disponibile');setCats(cs=>cs.map(c=>c.id===id?{...c,currentValue:value}:c));},restoreCategory:async(id:string)=>setCats(cs=>cs.map(c=>c.id===id?{...c,archived:false}:c)),
   };
 }
 const SettingsContext=createContext<ReturnType<typeof useFixtureSettings>|null>(null);

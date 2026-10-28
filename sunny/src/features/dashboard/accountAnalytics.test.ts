@@ -1,6 +1,7 @@
 import { describe, it, expect } from 'vitest';
 import { Transaction, AccountDef } from '../../types';
 import { getPeriodRange } from './categoryAnalytics';
+import { resolveCreditCardTransactions, withCreditCardCashEffects } from '../../../../functions/src/domain/creditCards';
 import {
   signedDelta, balanceAsOf, aggregateAccountFlow,
   aggregateAccountBalanceTrend, getAccountMovements, totalLiquidity,
@@ -136,5 +137,44 @@ describe('accountAnalytics', () => {
     expect(trend).toHaveLength(2); // May and June 2026
     expect(trend[0].balance).toBe(150);
     expect(trend[trend.length - 1].balance).toBe(105);
+  });
+
+  it('keeps refunded expenses gross in account flows so refunds balance once', () => {
+    const transactions = [
+      tx({ date: '2026-06-03', type: 'expense', amount: 100, shared: 20, refundedTotal: 30 }),
+      tx({ date: '2026-06-10', type: 'refund', amount: 30 }),
+    ];
+    const flow = aggregateAccountFlow(transactions, ACC_A, range, { now: NOW });
+    expect(flow.expense).toBe(80);
+    expect(flow.refundsReceived).toBe(30);
+    expect(flow.closingBalance).toBe(50);
+    expect(flow.closingBalance).toBe(flow.openingBalance + flow.income + flow.refundsReceived - flow.expense - flow.investment + flow.transferNet);
+  });
+
+  it('keeps card ledger debt separate from liquid cash before and after the payment', () => {
+    const bank = { ...ACC_A, initialBalance: 1000 };
+    const card: AccountDef = { ...ACC_B, creditCardPolicies: [
+      { fromMonth: '2026-06', enabled: true, paymentDay: 10, paymentAccountId: 'a' },
+    ] };
+    const source = [tx({ date: '2026-06-05', type: 'expense', amount: 100, account: 'b' })];
+    expect(totalLiquidity(source, [bank, card], NOW)).toBe(1000);
+    expect(totalLiquidity(source, [bank, card], new Date(2026, 6, 10, 12))).toBe(900);
+    const canonical = withCreditCardCashEffects(resolveCreditCardTransactions(source, [bank, card], '2026-07-10'), [bank, card]);
+    expect(balanceAsOf(canonical, card, '2026-06-15')).toBe(-100);
+    expect(aggregateAccountFlow(canonical, card, range, { now: NOW })).toMatchObject({ expense: 100, closingBalance: -100 });
+    expect(balanceAsOf(canonical, card, '2026-07-10')).toBe(0);
+  });
+
+  it('omits excluded accounts from total liquidity while preserving historical card cash', () => {
+    const bank = { ...ACC_A, initialBalance: 1000 };
+    const card: AccountDef = { ...ACC_B, initialBalance: 50, creditCardPolicies: [
+      { fromMonth: '2026-06', enabled: true, paymentDay: 10, paymentAccountId: 'a' },
+    ] };
+    const transactions = [
+      tx({ date: '2026-05-20', type: 'expense', amount: 20, account: 'b' }),
+      tx({ date: '2026-06-05', type: 'expense', amount: 100, account: 'b' }),
+    ];
+    expect(totalLiquidity(transactions, [bank, card], NOW)).toBe(1030);
+    expect(totalLiquidity(transactions, [bank, { ...card, excludeFromNetWorth: true }], NOW)).toBe(1000);
   });
 });

@@ -2,10 +2,10 @@
 // No React, no Firestore — easy to unit-test. Speculare a accountAnalytics.ts,
 // but app-wide: THREE stock series over time instead of one account balance.
 //
-//   total       = liquidity + investments   (investments ALWAYS included here,
+//   total       = account ledger + investments (card debt included; investments ALWAYS included here,
 //                                            regardless of the includeInvestments
 //                                            dashboard preference)
-//   liquidity   = Σ included account balances (initial balance + signed cash flow)
+//   liquidity   = Σ included account balances − deferred card balances
 //   investments = Σ per-category invested value (initial + deposits − withdrawals,
 //                 floored at 0 per category, like useTransactions)
 //
@@ -32,18 +32,12 @@
 
 import { Transaction, AccountDef, CategoryDef } from '../../types';
 import { accountDelta, investedDelta } from '../../shared/financialFlow';
+import { deferredCardDelta, resolveCreditCardTransactions } from '../../../../functions/src/domain/creditCards';
 import { capitalize } from '../../utils';
+import { todayRomeISO } from '../../shared/romeDate';
 
-/**
- * "Today" MUST use the same convention as useTransactions' realized filter
- * (UTC `toISOString()`), NOT the local date: otherwise, between local midnight
- * and the UTC midnight, this screen would already count movements dated the new
- * local day while the dashboard still shows them as "Programmato" — and the two
- * liquidity figures would disagree.
- */
-const dashboardToday = (now: Date) => now.toISOString().slice(0, 10);
-const localToday = (now: Date) =>
-  `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, '0')}-${String(now.getDate()).padStart(2, '0')}`;
+/** Same product calendar as the dashboard's realized filter and card payments. */
+const dashboardToday = todayRomeISO;
 
 export type WealthPeriod = '1m' | '3m' | '6m' | '1y' | 'ytd' | 'all' | 'custom';
 export type WealthMetric = 'total' | 'liquidity' | 'investments';
@@ -153,8 +147,12 @@ function sampleWealth(
   accounts: AccountDef[],
   categories: CategoryDef[],
   sampleDates: string[],
+  todayISO = sampleDates[sampleDates.length - 1],
 ): RawSample[] {
-  const txs = transactions.filter(counts).slice().sort((a, b) => a.date.localeCompare(b.date));
+  const txs = resolveCreditCardTransactions(transactions, accounts, todayISO)
+    .filter(counts).sort((a, b) => a.date.localeCompare(b.date));
+  const accountsById = new Map(accounts.map(a => [a.id, a]));
+  const deferredBalances: Record<string, number> = {};
   const excludedFromNetWorth = new Set(
     accounts.filter(a => a.excludeFromNetWorth).map(a => a.id),
   );
@@ -179,22 +177,30 @@ function sampleWealth(
       const t = txs[i++];
       bal(t.account, accountDelta(t, t.account));
       if (t.type === 'transfer' && t.toAccount) bal(t.toAccount, accountDelta(t, t.toAccount));
+      for (const id of new Set([t.account, t.type === 'transfer' ? t.toAccount : undefined])) {
+        const account = id ? accountsById.get(id) : undefined;
+        if (account) deferredBalances[account.id] = (deferredBalances[account.id] ?? 0) + deferredCardDelta(t, account);
+      }
       if (t.type === 'investment') {
         invested[t.category] = (invested[t.category] ?? 0) + investedDelta(t);
       }
     }
 
-    let liquidity = 0;
+    let ledgerTotal = 0, deferredBalance = 0;
     for (const [id, v] of Object.entries(accountBalances)) {
-      if (!excludedFromNetWorth.has(id)) liquidity += v;
+      if (!excludedFromNetWorth.has(id)) {
+        ledgerTotal += v;
+        deferredBalance += deferredBalances[id] ?? 0;
+      }
     }
+    const liquidity = ledgerTotal - deferredBalance;
 
     // Per-category floor at 0 (mirror useTransactions) — net deposited capital,
     // never the manual market value.
     let investments = 0;
     for (const v of Object.values(invested)) investments += Math.max(0, v);
 
-    out.push({ liquidity: r2(liquidity), investments: r2(investments), total: r2(liquidity + investments) });
+    out.push({ liquidity: r2(liquidity), investments: r2(investments), total: r2(ledgerTotal + investments) });
   }
   return out;
 }
@@ -209,7 +215,7 @@ export function getWealthRange(
   opts?: { now?: Date; customStart?: string; customEnd?: string },
 ): WealthRange {
   const now = opts?.now ?? new Date();
-  const todayISO = period === 'ytd' ? localToday(now) : dashboardToday(now);
+  const todayISO = dashboardToday(now);
   if (period === 'custom') {
     const startISO = opts?.customStart ?? shiftMonthsISO(todayISO, -1);
     const rawEnd = opts?.customEnd ?? todayISO;
@@ -221,7 +227,7 @@ export function getWealthRange(
     return { startISO: first < todayISO ? first : shiftMonthsISO(todayISO, -1), endISO: todayISO, label: WEALTH_PERIOD_LABEL.all };
   }
   if (period === 'ytd') {
-    return { startISO: `${now.getFullYear()}-01-01`, endISO: todayISO, label: WEALTH_PERIOD_LABEL.ytd };
+    return { startISO: `${todayISO.slice(0, 4)}-01-01`, endISO: todayISO, label: WEALTH_PERIOD_LABEL.ytd };
   }
   const months = period === '1m' ? 1 : period === '3m' ? 3 : period === '6m' ? 6 : 12;
   return { startISO: shiftMonthsISO(todayISO, -months), endISO: todayISO, label: WEALTH_PERIOD_LABEL[period] };
@@ -291,7 +297,7 @@ export function buildWealthHistory(
   const step = bucketStep(period, range.startISO, range.endISO);
   const dates = buildSampleDates(range.startISO, range.endISO, step);
   const spansYears = range.startISO.slice(0, 4) !== range.endISO.slice(0, 4);
-  const samples = sampleWealth(transactions, accounts, categories, dates);
+  const samples = sampleWealth(transactions, accounts, categories, dates, dashboardToday(opts?.now ?? new Date()));
   return dates.map((date, i) => ({
     label: pointLabel(date, step, spansYears),
     date,
@@ -322,7 +328,7 @@ export function buildWealthPeriodSummary(
   // YTD is inclusive of 1 January: its opening value is therefore the closing
   // stock of 31 December, while the first chart point remains the Jan 1 stock.
   const opening = period === 'ytd'
-    ? sampleWealth(transactions, accounts, categories, [addDaysISO(range.startISO, -1)])[0]
+    ? sampleWealth(transactions, accounts, categories, [addDaysISO(range.startISO, -1)], dashboardToday(opts?.now ?? new Date()))[0]
     : first;
 
   const stats = (get: (p: WealthPoint) => number) => {

@@ -7,7 +7,10 @@ import { Transaction, TransactionType, TYPE_META, TYPE_ORDER, TransactionPatch, 
 import { formatCurrency, formatDate, formatDateFull, formatMonthLong, capitalize } from '../../utils';
 import { useSettings } from '../../shared/providers/settings';
 import { isPending } from '../../shared/recurrence';
+import { useTodayRomeISO } from '../../shared/hooks/useTodayRomeISO';
 import { aggregateFlow, statisticalNetDelta } from '../../shared/financialFlow';
+import { isCreditCardSettlement } from '../../../../functions/src/domain/creditCards';
+import { allocateRefundReceipt, refundGroupIdOf } from '../../shared/multiRefunds';
 import { OutflowInfo, FlowInfoLine } from '../../shared/components/OutflowInfo';
 import { TransactionRow } from './TransactionRow';
 import { MonthSummaryHeader } from './MonthSummaryHeader';
@@ -15,11 +18,9 @@ import { buildMonthSections, dayLabel, longDayLabel } from './listGrouping';
 import { OptionSheet } from '../../shared/components/OptionSheet';
 import './transactions-ui31.css';
 
-const TODAY_ISO = new Date().toISOString().slice(0, 10);
 // Upcoming = a synthetic recurring projection OR a real planned (future-dated)
 // one-off. Both are forecasts for subtotal/styling purposes; only the planned
 // one-off is a real, editable document.
-const isUpcoming = (t: Transaction) => !!t.projected || isPending(t, TODAY_ISO);
 
 interface Props {
   transactions: Transaction[];
@@ -29,6 +30,7 @@ interface Props {
   onBulkUpdate: (ids: string[], patch: TransactionPatch) => void | Promise<void>;
   onBulkDelete: (ids: string[]) => void | Promise<void>;
   onAdd: () => void;
+  onRefund: (expenseIds: string[]) => void;
 }
 
 type GroupMode = 'day' | 'month' | 'account' | 'category' | 'type';
@@ -78,7 +80,9 @@ function projectedCutoffISO(v: ProjView, now: Date): string | null {
   return d.toISOString().slice(0, 10);
 }
 
-export function TransactionList({ transactions, projected = [], onEdit, onDelete, onBulkUpdate, onBulkDelete, onAdd }: Props) {
+export function TransactionList({ transactions, projected = [], onEdit, onDelete, onBulkUpdate, onBulkDelete, onAdd, onRefund }: Props) {
+  const todayISO = useTodayRomeISO();
+  const isUpcoming = (t: Transaction) => !!t.projected || isPending(t, todayISO);
   const ui3 = useUiVersion() === '3.0';
   const session = useUiNavigationMemory();
   const { categories, accounts, getAcc, getCat, theme } = useSettings();
@@ -223,8 +227,8 @@ export function TransactionList({ transactions, projected = [], onEdit, onDelete
     // `transactions`, but for display they're forecasts just like the synthetic
     // recurring projections — so they obey the very same horizon filter
     // (5gg / 30gg / 3 mesi / tutti / nascondi). Realized rows always show.
-    const realized = transactions.filter(t => !isPending(t, TODAY_ISO));
-    const pendingOneOffs = transactions.filter(t => isPending(t, TODAY_ISO));
+    const realized = transactions.filter(t => !isPending(t, todayISO));
+    const pendingOneOffs = transactions.filter(t => isPending(t, todayISO));
     const withinHorizon = (t: Transaction) => !projCut || t.date <= projCut;
     const visibleProjected = projView === 'off'
       ? []
@@ -279,7 +283,7 @@ export function TransactionList({ transactions, projected = [], onEdit, onDelete
         }
         return sortDir === 'desc' ? diff : -diff;
       });
-  }, [transactions, projected, projView, typeFilter, period, search, sortKey, sortDir, categories, accounts, catFilter, accFilter, seriesFilter, investFilter, dateFilter, rangeFrom, rangeTo]);
+  }, [transactions, projected, projView, typeFilter, period, search, sortKey, sortDir, categories, accounts, catFilter, accFilter, seriesFilter, investFilter, dateFilter, rangeFrom, rangeTo, todayISO]);
 
   const lastEdited = useRef<{ tx: Transaction; snapshot: Transaction[] } | null>(null);
   const [editNotice, setEditNotice] = useState('');
@@ -317,7 +321,7 @@ export function TransactionList({ transactions, projected = [], onEdit, onDelete
   // Vista per giorno: due livelli (mese → giorno) sulle stesse righe filtrate.
   const monthSections = useMemo(
     () => (groupMode === 'day' ? buildMonthSections(filtered, isUpcoming) : []),
-    [filtered, groupMode],
+    [filtered, groupMode, todayISO],
   );
 
   const groupTitle = (key: string) =>
@@ -339,7 +343,7 @@ export function TransactionList({ transactions, projected = [], onEdit, onDelete
   // when the group contains investment movements.
   const groupFlowLines = (txs: Transaction[]): FlowInfoLine[] => {
     const realized = txs.filter(t => !isUpcoming(t));
-    const f = aggregateFlow(realized);
+    const f = aggregateFlow(realized.map(({cashDelta:_cash,...t})=>t));
     const expenses = realized
       .filter(t => t.type === 'expense')
       .reduce((sum, t) => sum + ownShare(t), 0);
@@ -372,6 +376,8 @@ export function TransactionList({ transactions, projected = [], onEdit, onDelete
   const changeGroup = (m: GroupMode) => { setGroupMode(m); setCollapsed(new Set()); };
 
   const toggle = (id: string) => {
+    const transaction = transactions.find(t => t.id === id);
+    if (!transaction || transaction.projected || isCreditCardSettlement(transaction)) return;
     setSelected(prev => {
       const next = new Set(prev);
       next.has(id) ? next.delete(id) : next.add(id);
@@ -380,7 +386,7 @@ export function TransactionList({ transactions, projected = [], onEdit, onDelete
   };
 
   // Whole-group selection (real rows only — projected occurrences aren't selectable).
-  const groupRealIds = (txs: Transaction[]) => txs.filter(t => !t.projected).map(t => t.id);
+  const groupRealIds = (txs: Transaction[]) => txs.filter(t => !t.projected && !isCreditCardSettlement(t)).map(t => t.id);
   const groupAllSelected = (txs: Transaction[]) => {
     const gIds = groupRealIds(txs);
     return gIds.length > 0 && gIds.every(id => selected.has(id));
@@ -400,18 +406,39 @@ export function TransactionList({ transactions, projected = [], onEdit, onDelete
   const usedTypes = TYPE_ORDER.filter(t => transactions.some(tx => tx.type === t));
   // There are forecasts to govern if we have recurring projections OR any
   // future-dated one-off "previsti" — both feed the "Previsti" horizon filter.
-  const hasUpcoming = projected.length > 0 || transactions.some(t => isPending(t, TODAY_ISO));
+  const hasUpcoming = projected.length > 0 || transactions.some(t => isPending(t, todayISO));
   const ids = [...selected];
 
   const runBulk = async (action:()=>void|Promise<void>) => {
     if(bulkBusy)return;
     setBulkBusy(true);setBulkError('');
-    try { await action();setPicker(null);setSelectMode(false);setSelected(new Set());setConfirmDelete(false); }
+    try {
+      if (ids.some(id => { const row = transactions.find(t => t.id === id); return !row || row.projected || isCreditCardSettlement(row); })) {
+        throw new Error('Le distinte automatiche non si possono modificare o eliminare. Aggiorna la selezione.');
+      }
+      await action();setPicker(null);setSelectMode(false);setSelected(new Set());setConfirmDelete(false);
+    }
     catch(e){setBulkError((e as Error).message||'Operazione non riuscita. La selezione è conservata: riprova.');}
     finally{setBulkBusy(false);}
   };
   const applyPatch = (patch: TransactionPatch) => { void runBulk(()=>onBulkUpdate(ids, patch)); };
   const selectedTypes=new Set(transactions.filter(t=>selected.has(t.id)).map(t=>t.type));
+  const selectedRows = transactions.filter(t => selected.has(t.id));
+  const canEditSelected = selectedRows.length === ids.length && selectedRows.every(t => t.type !== 'refund' && !refundGroupIdOf(t) && !isCreditCardSettlement(t));
+  const refundSelection = useMemo(() => {
+    try {
+      if (!ids.length || selectedRows.length !== ids.length) throw new Error('Seleziona spese disponibili.');
+      allocateRefundReceipt(selectedRows, transactions, 0.01);
+      return { eligible: true, reason: '' };
+    } catch (error) {
+      return { eligible: false, reason: error instanceof Error ? error.message : 'Seleziona soltanto spese ancora rimborsabili.' };
+    }
+  }, [selected, transactions]);
+  const registerSelectedRefund = () => {
+    if (!refundSelection.eligible) return;
+    try { onRefund(ids); setBulkError(''); }
+    catch (error) { setBulkError(error instanceof Error ? error.message : 'Impossibile aprire il rimborso. Aggiorna la selezione.'); }
+  };
   const categoryOptions=categories.filter(c=>!c.archived&&selectedTypes.size===1&&selectedTypes.has(c.kind));
 
   const criteriaActive = typeFilter !== 'all' || period !== 'all' || projView !== PROJ_DEFAULT || !!(catFilter || accFilter || seriesFilter || investFilter || dateFilter || explicitRange);
@@ -426,7 +453,7 @@ export function TransactionList({ transactions, projected = [], onEdit, onDelete
     icon={<svg aria-hidden="true" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round"><path d="M4 6h16M7 12h10M10 18h4" /></svg>}>Filtri</PillBtn>;
 
   return (
-    <div className={ui3 ? 'ui31-ledger pb-28' : 'pb-28'} aria-busy={bulkBusy} onClickCapture={e=>{if(bulkBusy){e.preventDefault();e.stopPropagation();}}}>
+    <div className={`${ui3 ? 'ui31-ledger ' : ''}${selectMode && selected.size > 0 ? 'pb-48' : 'pb-28'}`} aria-busy={bulkBusy} onClickCapture={e=>{if(bulkBusy){e.preventDefault();e.stopPropagation();}}}>
       <PageToolbar title="Movimenti">        <div className="flex items-center gap-1 flex-none" onClickCapture={e=>{if(bulkBusy){e.preventDefault();e.stopPropagation();}}}>
           {!ui3 && <HeaderIconBtn
             active={searchOpen || !!search}
@@ -582,7 +609,7 @@ export function TransactionList({ transactions, projected = [], onEdit, onDelete
         <span>{filtered.length} {filtered.length === 1 ? 'movimento' : 'movimenti'}</span>
         {criteriaActive && <button type="button" onClick={resetCriteria} className="text-gold font-medium">Azzera filtri</button>}
       </div>}
-      {ui3 && selectMode && <p className="ui31-ledger-selection text-sm text-secondary" role="status">Selezione multipla · {selected.size} selezionati. Le proiezioni non sono selezionabili. Categoria modificabile per movimenti dello stesso tipo.</p>}
+      {ui3 && selectMode && <p className="ui31-ledger-selection text-sm text-secondary" role="status">Selezione multipla · {selected.size} selezionati. Proiezioni e distinte automatiche non sono selezionabili. Per un rimborso seleziona soltanto spese ancora rimborsabili.</p>}
       {/* Filtri attivi — pill rimovibili */}
         {(period !== 'all' || projView !== PROJ_DEFAULT || catFilter || accFilter || seriesFilter || investFilter || dateFilter || explicitRange) && (
           <div className={ui3 ? "ui31-ledger-criteria flex flex-wrap gap-2" : "flex flex-wrap gap-2"}>
@@ -680,7 +707,7 @@ export function TransactionList({ transactions, projected = [], onEdit, onDelete
                   return (
                     <div key={day.iso}>
                       <div className="flex items-center gap-2 px-1 mb-1.5">
-                        {selectMode && groupHasReal(day.txs) && (
+                        {selectMode && groupRealIds(day.txs).length > 0 && (
                           <button onClick={() => toggleGroup(day.txs)} aria-label="Seleziona il giorno"
                             className={`w-5 h-5 rounded-full border-2 flex items-center justify-center flex-none transition-colors ${
                               groupAllSelected(day.txs) ? 'bg-gold border-gold' : 'border-divider'
@@ -690,7 +717,7 @@ export function TransactionList({ transactions, projected = [], onEdit, onDelete
                         )}
                         <p className={`text-[12px] font-semibold flex-1 min-w-0 truncate ${
                           day.upcoming ? 'text-gold' : 'text-secondary'}`}>
-                          {day.upcoming ? `Programmato · ${longDayLabel(day.iso)}` : dayLabel(day.iso, TODAY_ISO)}
+                          {day.upcoming ? `Programmato · ${longDayLabel(day.iso)}` : dayLabel(day.iso, todayISO)}
                         </p>
                         <p className={`balance-num text-[12px] font-semibold flex-none ${
                           day.upcoming ? 'text-gold' : 'text-secondary'}`}>
@@ -702,10 +729,10 @@ export function TransactionList({ transactions, projected = [], onEdit, onDelete
                           ? 'border border-dashed border-gold/50'
                           : 'glass-card shadow-elev-1'}`}>
                         {day.txs.map(tx => (
-                          <TransactionRow key={tx.id} tx={tx} upcoming={isUpcoming(tx)} hideDate todayISO={TODAY_ISO}
+                          <TransactionRow key={tx.id} tx={tx} upcoming={isUpcoming(tx)} hideDate todayISO={todayISO}
                             seriesFreq={tx.seriesId ? seriesFreqById.get(tx.seriesId) : undefined}
                             installmentPaid={installmentIndexById.get(tx.id)}
-                            selectable={selectMode && !tx.projected} selected={selected.has(tx.id)}
+                            selectable={selectMode && !tx.projected && !isCreditCardSettlement(tx)} selected={selected.has(tx.id)}
                             onToggle={toggle} onClick={openMovement} />
                         ))}
                       </div>
@@ -730,7 +757,7 @@ export function TransactionList({ transactions, projected = [], onEdit, onDelete
           return (
             <div key={key}>
               {ui3 ? <div className="flex items-start gap-2 mb-2" data-transaction-group-summary>
-                {selectMode && hasReal && <button onClick={() => toggleGroup(txs)} aria-label="Seleziona gruppo"
+                {selectMode && groupRealIds(txs).length > 0 && <button onClick={() => toggleGroup(txs)} aria-label="Seleziona gruppo"
                   className={`mt-4 w-5 h-5 rounded-full border-2 flex items-center justify-center flex-none ${groupAllSelected(txs) ? 'bg-gold border-gold' : 'border-divider'}`}>
                   {groupAllSelected(txs) && <span className="text-bg text-xs font-bold">✓</span>}
                 </button>}
@@ -742,7 +769,7 @@ export function TransactionList({ transactions, projected = [], onEdit, onDelete
                     action={hasReal && groupHasInvestment(txs) ? <OutflowInfo ariaLabel="Dettaglio flusso" lines={groupFlowLines(txs)} /> : undefined} />
                 </div>
               </div> : <div className="flex items-center gap-2 px-1 mb-1.5">
-                {selectMode && hasReal && (
+                {selectMode && groupRealIds(txs).length > 0 && (
                   <button onClick={() => toggleGroup(txs)} aria-label="Seleziona gruppo"
                     className={`w-5 h-5 rounded-full border-2 flex items-center justify-center flex-none transition-colors ${
                       groupAllSelected(txs) ? 'bg-gold border-gold' : 'border-divider'
@@ -781,10 +808,10 @@ export function TransactionList({ transactions, projected = [], onEdit, onDelete
                 <div className={`ui-open-section rounded-[18px] px-3.5 divide-y divide-divider ${
                   hasReal ? 'glass-card shadow-elev-1' : 'border border-dashed border-gold/50'}`}>
                   {txs.map(tx => (
-                    <TransactionRow key={tx.id} tx={tx} upcoming={isUpcoming(tx)} todayISO={TODAY_ISO}
+                    <TransactionRow key={tx.id} tx={tx} upcoming={isUpcoming(tx)} todayISO={todayISO}
                       seriesFreq={tx.seriesId ? seriesFreqById.get(tx.seriesId) : undefined}
                       installmentPaid={installmentIndexById.get(tx.id)}
-                      selectable={selectMode && !tx.projected} selected={selected.has(tx.id)}
+                      selectable={selectMode && !tx.projected && !isCreditCardSettlement(tx)} selected={selected.has(tx.id)}
                       onToggle={toggle} onClick={openMovement} />
                   ))}
                 </div>
@@ -801,16 +828,18 @@ export function TransactionList({ transactions, projected = [], onEdit, onDelete
       {/* Bulk action bar */}
       {selectMode && selected.size > 0 && (
         <div className={`${ui3 ? "ui31-ledger-bulk " : ""}fixed bottom-0 inset-x-0 z-40 p-3 safe-bottom animate-sheet-up`}>
-          <div className="max-w-2xl mx-auto bg-elevated/95 backdrop-blur rounded-2xl shadow-float p-3 flex items-center gap-2">
+          <div className="max-w-2xl mx-auto bg-elevated/95 backdrop-blur rounded-2xl shadow-float p-3 flex flex-wrap items-center gap-2">
             <span className="text-sm font-semibold text-primary px-2 whitespace-nowrap">{selected.size} sel.</span>
-            <div className="flex-1 flex gap-2 justify-end">
-              <BarBtn onClick={() => selectedTypes.size!==1?setBulkError('Seleziona movimenti dello stesso tipo per cambiare categoria.'):setPicker('category')}>Categoria</BarBtn>
-              <BarBtn onClick={() => setPicker('account')}>Conto</BarBtn>
+            <div className="flex-1 flex flex-wrap gap-2 justify-end">
+              <BarBtn disabled={!refundSelection.eligible} title={refundSelection.reason || 'Registra un rimborso per le spese selezionate'} onClick={registerSelectedRefund}>Rimborso</BarBtn>
+              <BarBtn disabled={!canEditSelected} onClick={() => selectedTypes.size!==1?setBulkError('Seleziona movimenti dello stesso tipo per cambiare categoria.'):setPicker('category')}>Categoria</BarBtn>
+              <BarBtn disabled={!canEditSelected} onClick={() => setPicker('account')}>Conto</BarBtn>
               {confirmDelete
                 ? <BarBtn danger onClick={() => { void runBulk(()=>onBulkDelete(ids)); }}>Conferma ({selected.size})</BarBtn>
                 : <BarBtn danger onClick={() => setConfirmDelete(true)}>Elimina</BarBtn>
               }
             </div>
+            {selectedRows.some(t => !!refundGroupIdOf(t)) && <p className="basis-full text-[11px] text-secondary px-2">La cancellazione di una riga elimina l’intera ricevuta di rimborso collegata.</p>}
           </div>
         </div>
       )}
@@ -861,10 +890,10 @@ function HeaderIconBtn({ children, active, label, onClick }: {
   );
 }
 
-function BarBtn({ children, onClick, danger }: { children: React.ReactNode; onClick: () => void; danger?: boolean }) {
+function BarBtn({ children, onClick, danger, disabled, title }: { children: React.ReactNode; onClick: () => void; danger?: boolean; disabled?: boolean; title?: string }) {
   return (
-    <button onClick={onClick}
-      className={`px-3.5 py-2 rounded-xl text-xs font-semibold transition-colors ${
+    <button type="button" onClick={onClick} disabled={disabled} title={title}
+      className={`px-3.5 py-2 rounded-xl text-xs font-semibold transition-colors disabled:opacity-40 ${
         danger ? 'bg-[#E08B8B]/15 text-[#E08B8B]' : 'bg-card text-primary hover:bg-card-hover'
       }`}>
       {children}

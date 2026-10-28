@@ -38,6 +38,7 @@ export const DEFAULT_ACCOUNTS: AccountDef[] = [
  *  getCat so they display everywhere, but they never appear in pickers or
  *  settings lists and cannot be edited or deleted. */
 export const SYSTEM_CATEGORIES: CategoryDef[] = [
+  { id: '__refund_gain__', label: 'Guadagno da rimborso', icon: '↩️', color: '#8A9270', kind: 'income' },
   { id: '__plusvalenza__',  label: 'Plusvalenza',  icon: '📈', color: '#8A9270', kind: 'income' },
   { id: '__minusvalenza__', label: 'Minusvalenza', icon: '📉', color: '#E05555', kind: 'expense' },
 ];

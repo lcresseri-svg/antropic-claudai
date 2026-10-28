@@ -22,6 +22,8 @@ import { isFeatureEnabled } from './shared/featureRollout';
 import { TransactionModal } from './features/transactions/TransactionModal';
 import { SeriesDetailSheet } from './features/transactions/SeriesDetailSheet';
 import { RefundSheet } from './features/transactions/RefundSheet';
+import { MultiRefundSheet } from './features/transactions/MultiRefundSheet';
+import { CreditCardSettlementSheet } from './features/transactions/CreditCardSettlementSheet';
 import { ImportModal } from './features/transactions/ImportModal';
 import { BottomNav } from './shared/components/BottomNav';
 import { SideNav } from './shared/components/SideNav';
@@ -362,6 +364,7 @@ function Main({ user, onLogOut, onDeleteAccount }: {
       <TransactionModal
         open={editing.modalOpen} editing={editing.editing} groupTransfers={editing.groupTransfers} seriesEdit={editing.seriesEdit}
         defaultType={editing.defaultType} recognize={editing.recognize ?? undefined}
+        awaitSave={!!editing.editing}
         initialValues={editing.scheduledDate ? { date: editing.scheduledDate } : undefined}
         sourceBanner={editing.scheduledDate ? 'Spesa programmata registrata: Salva crea un movimento futuro, non una simulazione.' : undefined}
         transactions={tx.transactions}
@@ -398,6 +401,18 @@ function Main({ user, onLogOut, onDeleteAccount }: {
         onClose={editing.closeRefund}
         onSave={editing.saveRefund}
       />
+      <MultiRefundSheet
+        open={editing.multiRefundOpen}
+        transactions={tx.transactions}
+        expenseIds={editing.multiRefundExpenseIds}
+        editingGroupId={editing.multiRefundGroupId}
+        loadingSources={editing.multiRefundLoading}
+        sourceError={editing.multiRefundError}
+        onClose={editing.closeMultiRefund}
+        onSave={editing.saveMultiRefund}
+        onDelete={editing.multiRefundGroupId ? editing.deleteMultiRefund : undefined}
+      />
+      <CreditCardSettlementSheet transaction={editing.settlementDetail} onClose={editing.closeSettlementDetail} />
       <SeriesDetailSheet
         open={!!editing.seriesDetail}
         anchor={editing.seriesDetail}

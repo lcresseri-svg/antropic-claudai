@@ -2,7 +2,12 @@ import { useState, useEffect, useCallback, useMemo } from 'react';
 import { collection, query, orderBy, onSnapshot, doc, updateDoc } from 'firebase/firestore';
 import { User } from 'firebase/auth';
 import { AccountDef, CategoryDef, Transaction, TransactionPatch, ownShare, investSign } from '../../types';
-import { accountDelta, aggregateFlow } from '../financialFlow';
+import { aggregateFlow } from '../financialFlow';
+import { calculateAccountPositions } from '../accountPositions';
+import { useTodayRomeISO } from './useTodayRomeISO';
+import { resolveCreditCardTransactions, withCreditCardCashEffects, isCreditCardSettlement } from '../../../../functions/src/domain/creditCards';
+import { deleteRefundReceipt, deleteSingleRefund } from '../../features/transactions/refundReceiptStore';
+import { assertOrdinaryMutation } from '../refundMutationPolicy';
 import { applyRefunds } from '../refunds';
 import { isPending, isExpiredTemplate } from '../recurrence';
 import { db } from '../../lib/firebase';
@@ -15,6 +20,7 @@ import {
 } from '../../features/investments/investmentValueSync';
 
 export function useTransactions(user: User | null, accounts: AccountDef[] = [], includeInvestments = true, categories: CategoryDef[] = [], enableInvestments = true) {
+  const todayISO = useTodayRomeISO();
   const [rawTransactions, setRawTransactions] = useState<Transaction[]>([]);
   const [loading, setLoading] = useState(true);
   const [synced, setSynced] = useState(false); // true once a SERVER snapshot (not cache) lands
@@ -33,8 +39,8 @@ export function useTransactions(user: User | null, accounts: AccountDef[] = [], 
   // debba conoscere gli storni. La spesa originale resta intatta e la cassa usa
   // `grossOwnShare`, quindi saldi e flusso restano sulle date reali.
   const transactions = useMemo(
-    () => applyRefunds(rawTransactions.filter(t => !isExpiredTemplate(t))),
-    [rawTransactions],
+    () => applyRefunds(withCreditCardCashEffects(resolveCreditCardTransactions(rawTransactions.filter(t => !isExpiredTemplate(t)), accounts, todayISO), accounts), todayISO),
+    [rawTransactions, accounts, todayISO],
   );
 
   useEffect(() => {
@@ -102,6 +108,7 @@ export function useTransactions(user: User | null, accounts: AccountDef[] = [], 
 
   const replaceGroup = useCallback(async (deleteIds: string[], create: Omit<Transaction, 'id'>[]) => {
     if (!user) return;
+    for (const id of deleteIds) { const before = rawTransactions.find(t=>t.id===id); if (before) { assertOrdinaryMutation(before,null,rawTransactions); if (rawTransactions.some(t=>t.refundOf===id)) throw new Error('Modifica o elimina prima gli storni collegati alla spesa.'); } }
     const mustSync = create.some(t => t.type === 'investment') || idsTouchInvestment(deleteIds);
     await replaceGroupSynced(user.uid, deleteIds, create.map(withCreatedAt), { mustSync });
   }, [user, rawTransactions]);
@@ -112,8 +119,10 @@ export function useTransactions(user: User | null, accounts: AccountDef[] = [], 
   // previously applied controvalore delta and apply the new one atomically.
   const replaceInPlace = useCallback(async (id: string, data: Omit<Transaction, 'id'>) => {
     if (!user) return;
+    const before = rawTransactions.find(t=>t.id===id);
+    if (before) assertOrdinaryMutation(before, data, rawTransactions);
     await replaceTransactionSynced(user.uid, id, data);
-  }, [user]);
+  }, [user, rawTransactions]);
 
   // Materialize overdue recurring occurrences: create the realized instances and
   // advance their templates to the next date. NON-DESTRUCTIVE — never deletes
@@ -152,52 +161,46 @@ export function useTransactions(user: User | null, accounts: AccountDef[] = [], 
     // touched: either the patch retypes docs to investment, or one of the
     // selected docs already is one.
     const idSet = new Set(ids);
+    for (const before of rawTransactions.filter(t=>idSet.has(t.id))) {
+      if (before.type === 'refund') throw new Error('Modifica lo storno dal suo dettaglio.');
+      assertOrdinaryMutation(before, {...before,...patch}, rawTransactions);
+    }
     const mustSync = patch.type === 'investment'
       || rawTransactions.some(t => idSet.has(t.id) && t.type === 'investment');
     await patchTransactionsSynced(user.uid, ids, patch, { mustSync });
   }, [user, rawTransactions]);
 
-  // Uno storno non esiste senza la sua spesa: eliminando la spesa se ne vanno
-  // anche gli storni, altrimenti resterebbero righe orfane che accreditano un
-  // conto senza più nulla da ridurre.
-  const withLinkedRefunds = (ids: string[]): string[] => {
-    const set = new Set(ids);
-    for (const t of rawTransactions) {
-      if (t.type === 'refund' && t.refundOf && set.has(t.refundOf)) set.add(t.id);
+  // Receipt operations contend on the same controls as source edits. A group
+  // allocation (or its gain) always deletes the complete receipt, never one leg.
+  const deleteSelected = async (requestedIds:string[], reset = false) => {
+    if (!user) return;
+    const requested = new Set(requestedIds);
+    const rows = rawTransactions.filter(t=>requested.has(t.id));
+    if (!reset) for (const row of rows) {
+      if (isCreditCardSettlement(row)) throw new Error('Gli addebiti carta sono automatici: modifica i movimenti originali.');
+      if (row.type === 'expense') assertOrdinaryMutation(row,null,rawTransactions);
     }
-    return [...set];
+    const receiptIds = new Set(rows.map(t=>t.refundGroupId).filter((id):id is string=>!!id));
+    if (reset) for (const row of rawTransactions) if (row.refundGroupId) receiptIds.add(row.refundGroupId);
+    // First clear receipts. If a source is changed concurrently its writer
+    // reads the updated controls before it can delete or reduce the expense.
+    for (const receiptId of receiptIds) await deleteRefundReceipt(db,user.uid,receiptId);
+    const linkedSingles = rawTransactions.filter(t=>t.type==='refund' && !t.refundGroupId
+      && (requested.has(t.id) || (!!t.refundOf && requested.has(t.refundOf))));
+    for (const row of linkedSingles) await deleteSingleRefund(db,user.uid,row.id);
+    const ordinary = rows.filter(t=>!isCreditCardSettlement(t) && !t.refundGroupId && t.type!=='refund').map(t=>t.id);
+    await deleteTransactionsSynced(user.uid, ordinary, {mustSync:idsTouchInvestment(ordinary)});
   };
-
-  const deleteTransaction = useCallback(async (id: string) => {
-    if (!user) return;
-    const ids = withLinkedRefunds([id]);
-    await deleteTransactionsSynced(user.uid, ids, { mustSync: idsTouchInvestment(ids) });
-  }, [user, rawTransactions]);
-
-  const deleteTransactions = useCallback(async (rawIds: string[]) => {
-    if (!user) return;
-    const ids = withLinkedRefunds(rawIds);
-    await deleteTransactionsSynced(user.uid, ids, { mustSync: idsTouchInvestment(ids) });
-  }, [user, rawTransactions]);
-
+  const deleteTransaction = useCallback(async (id:string) => { await deleteSelected([id]); },[user,rawTransactions]);
+  const deleteTransactions = useCallback(async (ids:string[]) => { await deleteSelected(ids); },[user,rawTransactions]);
   const deleteAll = useCallback(async () => {
-    if (!user) return;
-    // Use the RAW set so a manual "delete everything" also clears expired
-    // templates (which are hidden from `transactions`). Atomic only if any
-    // investment is in the set (its controvalore effect must be reverted).
-    const mustSync = rawTransactions.some(t => t.type === 'investment');
-    await deleteTransactionsSynced(user.uid, rawTransactions.map(t => t.id), { mustSync });
-  }, [user, rawTransactions]);
+    await deleteSelected(rawTransactions.map(t=>t.id),true);
+  },[user,rawTransactions]);
 
   // ── Derived ────────────────────────────────────────────────────────────────
   const derived = useMemo(() => {
-    const now = new Date();
-    const cm = now.getMonth(), cy = now.getFullYear();
-    const todayISO = now.toISOString().slice(0, 10);
-    const inCurrentMonth = (d: string) => {
-      const x = new Date(d);
-      return x.getMonth() === cm && x.getFullYear() === cy;
-    };
+    const cy = Number(todayISO.slice(0,4)), cm = Number(todayISO.slice(5,7)) - 1;
+    const inCurrentMonth = (d: string) => d.slice(0,7) === todayISO.slice(0,7);
 
     // Planned (future, non-recurring) movements are forecasts, not realized cash
     // flow: keep them out of month totals, balances and trend until their date.
@@ -235,26 +238,11 @@ export function useTransactions(user: User | null, accounts: AccountDef[] = [], 
       }
     }
 
-    // Per-account balance (initial balance + cash flow through the account).
-    // accountDelta is the single source of truth: a source-less investment and
-    // the TFR portion of a deposit never touch any account.
-    const accountBalances: Record<string, number> = {};
-    for (const a of accounts) {
-      if (a.initialBalance) accountBalances[a.id] = a.initialBalance;
-    }
-    const bal = (id: string, delta: number) => { if (!id || delta === 0) return; accountBalances[id] = (accountBalances[id] ?? 0) + delta; };
-    for (const t of realized) {
-      bal(t.account, accountDelta(t, t.account));
-      if (t.type === 'transfer' && t.toAccount) bal(t.toAccount, accountDelta(t, t.toAccount));
-    }
-    // Keep every balance available to account-level views, but only sum the
-    // accounts that participate in the user's wealth perimeter.
-    const excludedFromNetWorth = new Set(
-      accounts.filter(a => a.excludeFromNetWorth).map(a => a.id),
-    );
-    const liquidity = Object.entries(accountBalances)
-      .reduce((s, [id, v]) => excludedFromNetWorth.has(id) ? s : s + v, 0);
-    const netWorth = includeInvestments ? liquidity + investmentTotal : liquidity;
+    const positions = calculateAccountPositions(realized, accounts);
+    const accountBalances = positions.balances;
+    const liquidity = positions.liquidity;
+    // Card debt belongs in wealth even before it is paid out of the bank.
+    const netWorth = positions.ledgerTotal + (includeInvestments ? investmentTotal : 0);
 
     // Spending by category (current month, expenses)
     const categoryTotals: Record<string, number> = {};
@@ -292,10 +280,10 @@ export function useTransactions(user: User | null, accounts: AccountDef[] = [], 
 
     return {
       monthlyIncome, monthlyExpenses, monthlyInvestments, monthlyFlow, investmentTotal, investmentByCategory,
-      accountBalances, liquidity, netWorth, categoryTotals, expenseByAccount, trend,
+      accountBalances, creditCardBalances: positions.deferredBalances, liquidity, netWorth, categoryTotals, expenseByAccount, trend,
       recentTransactions: recent, monthTx,
     };
-  }, [transactions, accounts, includeInvestments, categories, enableInvestments]);
+  }, [transactions, accounts, includeInvestments, categories, enableInvestments, todayISO]);
 
   return {
     transactions, allTransactions: rawTransactions, loading, synced, error,

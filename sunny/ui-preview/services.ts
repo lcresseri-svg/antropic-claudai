@@ -14,6 +14,7 @@ export const onSnapshot = (_ref: unknown, next: (snapshot: unknown) => void) => 
 };
 export const getDoc = async () => ({ exists: () => false, data: () => ({}) });
 export const getDocs = async () => ({ docs: [], empty: true, forEach() {} });
+export const getDocFromServer = getDoc, getDocsFromServer = getDocs;
 const blocked = async () => { throw new Error('Anteprima locale: nessuna scrittura o chiamata remota consentita.'); };
 // Explicit in-memory onboarding scenario; never forwards to Firebase.
 export const fixtureWrites={count:0};

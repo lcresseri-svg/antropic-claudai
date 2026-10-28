@@ -3,6 +3,7 @@
 // modulo puro decisionCoach.ts sui dati locali — l'AI (card sottostante) li
 // spiega ma non li produce.
 import { useMemo, useState } from 'react';
+import { useTodayRomeISO } from '../../shared/hooks/useTodayRomeISO';
 import { Transaction } from '../../types';
 import { useSettings } from '../../shared/providers/settings';
 import { formatCurrency } from '../../utils';
@@ -27,8 +28,8 @@ const RISK_STYLE: Record<DecisionScenario['risk'], string> = {
 export function DecisionCoachPanel({ itemName, cost, transactions, liquidity, savingsTarget }: Props) {
   const { accounts } = useSettings();
   const [reserve, setReserve] = useState(500);
-  const now = useMemo(() => new Date(), []);
-  const todayISO = now.toISOString().slice(0, 10);
+  const todayISO = useTodayRomeISO();
+  const now = useMemo(() => new Date(`${todayISO}T12:00:00`), [todayISO]);
 
   const analysis = useMemo(() => {
     const medExpenses = medianMonthlyExpenses(transactions, todayISO);

@@ -40,6 +40,14 @@ describe('Piano contract (amounts in cents)', () => {
       tx('withdraw',800,{type:'investment',direction:'out'}),tx('future',60,{type:'investment',date:'2026-10-20'})]);
     expect([r.It,r.Ia,r.Ic,r.Ir,r.P,r.E]).toEqual([20000,20000,6000,26000,174000,240000]);
   });
+  it('keeps card-funded realized and scheduled investments on their original planning dates',()=>{
+    const inputs=[tx('card',100,{type:'investment',account:'card',cashDelta:0}),tx('next',50,{type:'investment',account:'card',cashDelta:0,date:'2026-10-20'})];
+    const raw=inputs.map(({cashDelta:_cash,...t})=>t);
+    const custom={...plan,planningV3:{schemaVersion:1 as const,inputsReviewedAt:1,cashInvestmentBudgets:{fund:0}}};
+    const actual=select(inputs,custom),expected=select(raw,custom);
+    expect([actual.Ia,actual.Ic,actual.Ir,actual.P,actual.M]).toEqual([expected.Ia,expected.Ic,expected.Ir,expected.P,expected.M]);
+    expect([actual.Ia,actual.Ic,actual.Ir]).toEqual([10000,5000,15000]);
+  });
   it('unlimited and archived/unknown categories remain in totals', () => {
     const r = select([tx('a',80,{category:'unknown'}),tx('b',20,{category:'unknown',date:'2026-10-20'})]);
     const row = r.categories.find(c=>c.id==='unknown')!;

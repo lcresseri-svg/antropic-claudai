@@ -38,3 +38,5 @@ export {
 export { rollupMetrics, testMetricsRollup } from './metrics';
 export { onUserDeleted } from './deletion';
 export { onFeedbackCreated } from './feedback';
+
+export { reconcileCreditCardsOnTransactionWrite, reconcileCreditCardsOnSettingsWrite, processCreditCardSettlements } from './creditCards';

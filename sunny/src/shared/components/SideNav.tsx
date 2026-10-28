@@ -1,4 +1,6 @@
 import { useMemo } from 'react';
+import { useSettings } from '../providers/settings';
+import { useTodayRomeISO } from '../hooks/useTodayRomeISO';
 import { NavLink, useNavigate, useLocation } from 'react-router-dom';
 import { Transaction } from '../../types';
 import { formatCurrency, formatDate } from '../../utils';
@@ -17,15 +19,16 @@ interface Props {
 
 export function SideNav({ loading, onAdd, onImport, aiEnabled = true, transactions, showCommitments }: Props) {
   const navigate = useNavigate();
+  const { accounts } = useSettings();
+  const todayISO = useTodayRomeISO();
   const { pathname } = useLocation();
 
   // Il centro della sidebar era vuoto. Una riga sola che dice quando esce il
   // prossimo soldo costa niente e risponde alla domanda più frequente.
   const next = useMemo(() => {
     if (!showCommitments || !transactions?.length) return null;
-    const todayISO = new Date().toISOString().slice(0, 10);
-    return buildCommitments(transactions, todayISO).upcoming[0] ?? null;
-  }, [showCommitments, transactions]);
+    return buildCommitments(transactions, todayISO, accounts).upcoming[0] ?? null;
+  }, [showCommitments, transactions, todayISO, accounts]);
 
   // Impegni non merita una voce di primo livello — non è una destinazione
   // quotidiana — ma quando si è dentro Patrimonio è lì che si sta guardando.

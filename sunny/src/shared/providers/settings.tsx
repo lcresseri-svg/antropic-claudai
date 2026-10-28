@@ -42,7 +42,7 @@ interface SettingsValue {
   getAcc: (id: string) => AccountDef;
   saveCategories: (c: CategoryDef[], options?: { persistFirst?: boolean }) => Promise<void>;
   restoreCategory: (id: string) => Promise<void>;
-  saveAccounts: (a: AccountDef[]) => void;
+  saveAccounts: (a: AccountDef[], options?: {persistFirst?:boolean}) => Promise<void>;
   saveApplePayCardMapping: (mapping: ApplePayCardMapping) => void;
   removeApplePayCardMapping: (cardKey: string) => void;
   saveTheme: (t: Theme) => void;
@@ -193,10 +193,12 @@ export function SettingsProvider({ user, children }: { user: User | null; childr
     setMacroCategories(macros);setMacroDefinitionsStored(true);
   },[user,settingsRef,settingsLoaded]);
 
-  const saveAccounts = useCallback((a: AccountDef[]) => {
-    setAccounts(a);
-    if (user) setDoc(settingsRef(), { accounts: a }, MERGE);
-  }, [user, settingsRef]);
+  const saveAccounts = useCallback(async(a: AccountDef[],options?:{persistFirst?:boolean}) => {
+    if(options?.persistFirst&&!settingsLoaded)throw Error('Attendi il caricamento delle impostazioni.');
+    if(!options?.persistFirst)setAccounts(a);
+    if(user)await setDoc(settingsRef(), { accounts: a }, MERGE);
+    if(options?.persistFirst)setAccounts(a);
+  }, [user, settingsRef,settingsLoaded]);
 
   const restoreCategory = useCallback(async (id: string) => {
     if (!user) throw new Error('Accesso richiesto.');

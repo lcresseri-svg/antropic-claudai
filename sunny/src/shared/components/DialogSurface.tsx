@@ -69,6 +69,10 @@ export const DialogSurface = forwardRef<HTMLDivElement, HTMLAttributes<HTMLDivEl
       const target=event.target;
       if(stack[stack.length-1]!==dialog) return;
       if(target===overlay || (target instanceof HTMLElement && target.parentElement===overlay && target.classList.contains('absolute') && target.classList.contains('inset-0'))) {
+        // A click on the scrim can leave document.body active without a
+        // focusin event. Give a nested discard dialog an editor target to
+        // restore, rather than recording the inert background as its trigger.
+        if (!dialog.contains(document.activeElement)) focusInitial();
         event.stopImmediatePropagation(); event.stopPropagation(); dismiss.current();
       }
     };
@@ -100,7 +104,12 @@ export const DialogSurface = forwardRef<HTMLDivElement, HTMLAttributes<HTMLDivEl
       if (scroller) scroller.scrollTop = scrollTop;
       for (const [name,value] of outerSemantics) if (value !== null) overlay.setAttribute(name,value);
       const target = trigger?.isConnected && !trigger.closest('[inert]') ? trigger : document.querySelector<HTMLElement>('[aria-label="Aggiungi movimento"],#page-content');
-      target?.focus({ preventScroll: true });
+      // Child native dialogs close later in the same React cleanup. Restoring
+      // outside focus before that is blocked by the still-open top layer.
+      queueMicrotask(() => {
+        if (target?.isConnected && !target.closest('[inert]')) target.focus({ preventScroll: true });
+        if (scroller) scroller.scrollTop = scrollTop;
+      });
     };
   }, [version, kind]);
   return <div {...props} data-liquid-ui={version==='3.0'?'true':undefined} ref={ref} role={version === '3.0' ? 'dialog' : props.role}

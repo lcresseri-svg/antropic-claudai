@@ -1,11 +1,17 @@
-import { useMemo, useState } from 'react';
+import { useMemo, useRef, useState } from 'react';
 import type { User } from 'firebase/auth';
+import { doc, getDocFromServer } from 'firebase/firestore';
 import { Transaction, TransactionType } from '../types';
 import { useTransactions } from '../shared/hooks/useTransactions';
+import { useTodayRomeISO } from '../shared/hooks/useTodayRomeISO';
 import { buildProjectedOccurrences, seriesInstanceUpdates, dissolveSeries } from '../shared/recurrence';
 import { buildMerchantIndex, recognizeCategory, Candidate, Recognition } from '../features/transactions/categoryRecognition';
 import { isAdminUser } from '../shared/featureFlags';
 import { logEvent } from '../shared/analytics/metrics';
+import { db } from '../lib/firebase';
+import { isCreditCardSettlement } from '../../../functions/src/domain/creditCards';
+import { allocateRefundReceipt, refundGroupIdOf, type RefundReceiptDraft } from '../shared/multiRefunds';
+import { saveSingleRefund, saveRefundReceipt, deleteRefundReceipt } from '../features/transactions/refundReceiptStore';
 
 type Tx = ReturnType<typeof useTransactions>;
 
@@ -35,6 +41,7 @@ function useCategoryRecognizer(
  * shell stays bootstrap + providers + routing only.
  */
 export function useTransactionEditing(user: User, tx: Tx) {
+  const todayISO = useTodayRomeISO();
   const [editing, setEditing] = useState<Transaction | null>(null);
   const [seriesEdit, setSeriesEdit] = useState(false);
   const [seriesDetail, setSeriesDetail] = useState<Transaction | null>(null);
@@ -47,15 +54,23 @@ export function useTransactionEditing(user: User, tx: Tx) {
   const [refundOpen, setRefundOpen] = useState(false);
   const [refundExpenseId, setRefundExpenseId] = useState<string | undefined>();
   const [refundEditing, setRefundEditing] = useState<Transaction | undefined>();
+  const singleRefundId = useRef('');
+  const [multiRefundOpen, setMultiRefundOpen] = useState(false);
+  const [multiRefundExpenseIds, setMultiRefundExpenseIds] = useState<string[]>([]);
+  const [multiRefundGroupId, setMultiRefundGroupId] = useState<string | undefined>();
+  const [multiRefundLoading, setMultiRefundLoading] = useState(false);
+  const [multiRefundError, setMultiRefundError] = useState('');
+  const receiptRequest = useRef(0);
+  const [settlementDetail, setSettlementDetail] = useState<Transaction | null>(null);
 
   // Virtual future occurrences of every recurring template — shown ahead of time
   // as "Programmato" rows, up to `until` or a rolling 12-month horizon. These are
   // display-only and never written to Firestore.
   const projected = useMemo(() => {
-    const todayISO = new Date().toISOString().slice(0, 10);
-    const horizon = new Date(); horizon.setFullYear(horizon.getFullYear() + 1);
+    const horizon = new Date(`${todayISO}T12:00:00Z`);
+    horizon.setUTCFullYear(horizon.getUTCFullYear() + 1);
     return buildProjectedOccurrences(tx.transactions, todayISO, horizon.toISOString().slice(0, 10));
-  }, [tx.transactions]);
+  }, [tx.transactions, todayISO]);
 
   // Admin-only category recognizer injected into the transaction form (null for
   // everyone else → the form keeps the unchanged guessCategory behaviour).
@@ -68,6 +83,8 @@ export function useTransactionEditing(user: User, tx: Tx) {
     tx.allTransactions.find(x => x.recurring && (x.seriesId ?? x.id) === (t.seriesId ?? t.id));
 
   const startEdit = (t: Transaction, asSeries: boolean) => {
+    if (isCreditCardSettlement(t)) { setSettlementDetail(t); return; }
+    if (refundGroupIdOf(t) || t.type === 'refund') { openRefund(undefined, t); return; }
     setEditing(t); setSeriesEdit(asSeries); setModalOpen(true);
   };
 
@@ -84,7 +101,9 @@ export function useTransactionEditing(user: User, tx: Tx) {
   const openEdit = (t: Transaction) => {
     // Uno storno si modifica dalla SUA sheet: lì vive il vincolo sul massimo
     // stornabile e il legame con la spesa, che la modale generica non conosce.
-    if (t.type === 'refund') {
+    if (isCreditCardSettlement(t)) {
+      setSettlementDetail(t);
+    } else if (refundGroupIdOf(t) || t.type === 'refund') {
       openRefund(undefined, t);
     } else if (t.projected || t.recurring || t.seriesId) {
       setSeriesDetail(t);
@@ -95,27 +114,72 @@ export function useTransactionEditing(user: User, tx: Tx) {
 
   /** Apre la sheet storno: su una spesa specifica, in modifica, o "scegli spesa". */
   const openRefund = (expenseId?: string, editingRefund?: Transaction) => {
+    const groupId = editingRefund && refundGroupIdOf(editingRefund);
+    if (groupId) { void openMultiRefundReceipt(groupId); return; }
+    singleRefundId.current = editingRefund?.id ?? crypto.randomUUID();
     setRefundExpenseId(expenseId);
     setRefundEditing(editingRefund);
     setRefundOpen(true);
+  };
+
+  const openMultiRefundReceipt = async (groupId: string) => {
+    const request = ++receiptRequest.current;
+    setMultiRefundGroupId(groupId); setMultiRefundExpenseIds([]);
+    setMultiRefundLoading(true); setMultiRefundError(''); setMultiRefundOpen(true);
+    try {
+      const header = await getDocFromServer(doc(db, 'users', user.uid, 'refundReceipts', groupId));
+      const expenseIds = header.data()?.expenseIds;
+      if (!header.exists() || !Array.isArray(expenseIds) || !expenseIds.length || expenseIds.some(id => typeof id !== 'string')) {
+        throw new Error('Ricevuta non disponibile. Aggiorna i dati e riaprila.');
+      }
+      if (request === receiptRequest.current) setMultiRefundExpenseIds(expenseIds);
+    } catch (error) {
+      if (request === receiptRequest.current) setMultiRefundError(error instanceof Error ? error.message : 'Impossibile caricare la ricevuta. Riaprila per riprovare.');
+    } finally {
+      if (request === receiptRequest.current) setMultiRefundLoading(false);
+    }
+  };
+
+  const openSelectedRefund = (expenseIds: string[]) => {
+    const sources = expenseIds.map(id => tx.transactions.find(t => t.id === id));
+    if (sources.some(t => !t)) throw new Error('Una spesa non è più disponibile.');
+    allocateRefundReceipt(sources as Transaction[], tx.transactions, 0.01);
+    if (expenseIds.length === 1) { openRefund(expenseIds[0]); return; }
+    receiptRequest.current++;
+    setMultiRefundExpenseIds(expenseIds); setMultiRefundGroupId(undefined);
+    setMultiRefundLoading(false); setMultiRefundError(''); setMultiRefundOpen(true);
+  };
+
+  const closeMultiRefund = () => {
+    receiptRequest.current++; setMultiRefundOpen(false); setMultiRefundExpenseIds([]);
+    setMultiRefundGroupId(undefined); setMultiRefundLoading(false); setMultiRefundError('');
+  };
+
+  const saveMultiRefund = async (draft: RefundReceiptDraft) => {
+    await saveRefundReceipt(db, user.uid, draft);
+    if (!multiRefundGroupId) logEvent(user.uid, 'tx_add');
+  };
+
+  const deleteMultiRefund = async () => {
+    if (!multiRefundGroupId) return;
+    await deleteRefundReceipt(db, user.uid, multiRefundGroupId);
   };
 
   const closeRefund = () => {
     setRefundOpen(false);
     setRefundExpenseId(undefined);
     setRefundEditing(undefined);
+    singleRefundId.current = '';
   };
 
   /** Salva/aggiorna uno storno. La modifica avviene IN PLACE (stesso doc), così
    *  saldo e statistiche si ricalcolano da soli al prossimo snapshot. */
   const saveRefund = async (data: Omit<Transaction, 'id'>, editingId?: string) => {
-    if (editingId) {
-      const prev = tx.transactions.find(t => t.id === editingId);
-      await tx.replaceInPlace(editingId, { ...data, createdAt: prev?.createdAt ?? Date.now() });
-    } else {
-      await tx.addTransactions([data]);
-      logEvent(user.uid, 'tx_add');
-    }
+    // Identity belongs to the open flow, so failed writes/retries target the
+    // same document and contend with multi receipts on the source control.
+    const id = editingId ?? (singleRefundId.current ||= crypto.randomUUID());
+    await saveSingleRefund(db, user.uid, id, data);
+    if (!editingId) logEvent(user.uid, 'tx_add');
   };
 
   // Group siblings of the doc being edited (the SETTLEMENT transfers of a shared
@@ -132,10 +196,9 @@ export function useTransactionEditing(user: User, tx: Tx) {
     : [];
 
   // Returns a Promise that settles with the underlying writes: the modal AWAITS
-  // it for investment movements (atomic-or-nothing, Retry on failure) and stays
-  // fire-and-forget for plain offline-safe movements.
+  // it for all existing edits and investments so failures keep the draft open.
+  // Plain new movements retain their offline-safe path.
   const handleSave = async (deleteIds: string[], create: Omit<Transaction, 'id'>[]): Promise<void> => {
-    const todayISO = new Date().toISOString().slice(0, 10);
     // Simple single-document edit → update IN PLACE (same id, no delete), so an
     // already-inserted transaction is never removed by the code. Group restructures
     // (split expense / commission → multiple docs) still go through replaceGroup.
@@ -180,6 +243,9 @@ export function useTransactionEditing(user: User, tx: Tx) {
     projected, recognize, groupTransfers,
     openAdd, openAddWithType, openEdit, startEdit, findTemplate, handleSave,
     refundOpen, refundExpenseId, refundEditing, openRefund, closeRefund, saveRefund,
+    multiRefundOpen, multiRefundExpenseIds, multiRefundGroupId, multiRefundLoading, multiRefundError,
+    openSelectedRefund, closeMultiRefund, saveMultiRefund, deleteMultiRefund,
+    settlementDetail, closeSettlementDetail: () => setSettlementDetail(null),
     closeModal: () => { setModalOpen(false); setScheduledDate(undefined); },
     closeSeriesDetail: () => setSeriesDetail(null),
   };

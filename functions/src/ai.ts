@@ -2,8 +2,9 @@ import { onRequest } from 'firebase-functions/v2/https';
 import {
   db, ADMIN_UID, ALLOWED_ORIGINS, GEMINI_TIMEOUT_MS,
   bodyTooLarge, fetchWithTimeout, logError, verifyBearer, verifyAppCheckSoft,
-  addPeriod, Freq, RecurrenceRule,
+  addPeriod, Freq, RecurrenceRule, todayRomeISO,
 } from './shared';
+import { refundAdjustedOwnShare, withExpenseRefundStatistics, RefundStatisticsTransaction } from './domain/refundStatistics';
 
 // ─────────────────────────────────────────────────────────────────────────────
 // AI FUNCTIONS (Gemini) — auth + App Check (soft rollout) + body-size guard +
@@ -140,28 +141,28 @@ export const generateAffordabilityAdvice = onRequest(
       // ── Read transactions (last 90 days through the future) + budget ──────
       // No upper bound: the query also returns future-dated planned one-offs and
       // recurring templates (their `date` is the next, future occurrence).
-      const cutoff = new Date(); cutoff.setDate(cutoff.getDate() - 90);
+      const todayISO = todayRomeISO();
+      const nowDate = new Date(`${todayISO}T12:00:00Z`);
+      const cutoff = new Date(nowDate); cutoff.setUTCDate(cutoff.getUTCDate() - 90);
       const cutoffStr = cutoff.toISOString().slice(0, 10);
       const [txSnap, budgetSnap] = await Promise.all([
         db.collection(`users/${uid}/transactions`).where('date', '>=', cutoffStr).get(),
         db.doc(`users/${uid}/meta/budget`).get(),
       ]);
 
-      type TxDoc = {
+      type TxDoc = RefundStatisticsTransaction & {
         type?: string; amount?: number; shared?: number; category?: string;
         date?: string; seriesId?: string; recurring?: { freq?: Freq; until?: string };
       };
-      const txs = txSnap.docs.map(d => d.data() as TxDoc);
+      const txs = withExpenseRefundStatistics(txSnap.docs.map(d => ({ ...d.data(), id:d.id }) as TxDoc), todayISO);
       const budget = (budgetSnap.data() ?? {}) as {
         savingsTarget?: number;
         categoryBudgets?: Record<string, number>;
         incomeBudgets?: Record<string, number>;
         investmentBudgets?: Record<string, number>;
       };
-      const ownShareOf = (t: TxDoc) => (Number(t.amount) || 0) - (Number(t.shared) || 0);
+      const ownShareOf = refundAdjustedOwnShare;
 
-      const nowDate = new Date();
-      const todayISO = nowDate.toISOString().slice(0, 10);
       const monthStart = todayISO.slice(0, 7); // YYYY-MM
       const lastDay = new Date(nowDate.getFullYear(), nowDate.getMonth() + 1, 0).getDate();
       const monthEnd = `${monthStart}-${String(lastDay).padStart(2, '0')}`;

@@ -220,6 +220,7 @@ export function AppRoutes({ user, brand, tx, budget, editing, applePayPayments, 
               onEdit={editing.openEdit} onDelete={tx.deleteTransaction}
               onBulkUpdate={tx.updateTransactions} onBulkDelete={tx.deleteTransactions}
               onAdd={editing.openAdd}
+              onRefund={editing.openSelectedRefund}
             />
           </div>
         } />

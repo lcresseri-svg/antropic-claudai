@@ -5,6 +5,11 @@ import {
   db, euro, addPeriod, todayRomeISO, sendToUser, usersWithReminder,
   verifyBearer, ALLOWED_ORIGINS,
 } from './shared';
+import {
+  CreditCardAccount, CreditCardTransaction,
+  resolveCreditCardTransactions, withCreditCardCashEffects,
+} from './domain/creditCards';
+import { refundAdjustedOwnShare, withExpenseRefundStatistics, RefundStatisticsTransaction } from './domain/refundStatistics';
 
 // ─────────────────────────────────────────────────────────────────────────────
 // REMINDERS & PUSH NOTIFICATIONS
@@ -76,22 +81,40 @@ export const sendMonthlySummary = onSchedule(
 
     const users = await usersWithReminder('monthly');
     for (const userId of users) {
-      const snap = await db.collection(`users/${userId}/transactions`)
+      const settings = await db.doc(`users/${userId}/meta/settings`).get();
+      const rawAccounts = settings.data()?.accounts;
+      const accounts: CreditCardAccount[] = Array.isArray(rawAccounts)
+        ? rawAccounts.filter(a => a && typeof a.id === 'string') : [];
+      const hasCards = accounts.some(a => a.creditCardPolicies?.length);
+      const txRef = db.collection(`users/${userId}/transactions`);
+      // Statements depend on prior source periods and carried credits. Resolve
+      // the whole ledger before selecting the recap month, just as the client
+      // does; a delayed reconciliation must not omit or double a bank payment.
+      const snap = await (hasCards ? txRef : txRef
         .where('date', '>=', `${ym}-01`)
-        .where('date', '<=', `${ym}-31`)
-        .get();
+        .where('date', '<=', `${ym}-31`)).get();
+      const sources = snap.docs.map(d => ({ ...d.data(), id: d.id }) as CreditCardTransaction);
+      const transactions = hasCards
+        ? withCreditCardCashEffects(resolveCreditCardTransactions(sources, accounts, todayRomeISO()), accounts)
+        : sources;
 
       // Mirror the client's unified flow (shared/financialFlow.ts): only what
       // really touches an account is cash — TFR and source-less deposits stay
       // OUT of the flow, the withdrawal leg returns capital.
       // "Flusso netto" = cashIn − cashOut = variazione della liquidità.
       let income = 0, cashIn = 0, cashOut = 0, any = false;
-      snap.forEach(d => {
-        const t = d.data() as { type?: string; amount?: number; shared?: number; direction?: string; account?: string; tfr?: number; recurring?: unknown };
+      transactions.forEach(t => {
+        if (t.date.slice(0, 7) !== ym) return;
         if (t.recurring) return; // templates are pointers, not flows
         const amount = Number(t.amount) || 0;
         if (!amount) return;
         any = true;
+        if (typeof t.cashDelta === 'number' && Number.isFinite(t.cashDelta)) {
+          cashIn += Math.max(0, t.cashDelta);
+          cashOut += Math.max(0, -t.cashDelta);
+          if (t.type === 'income') income += Math.max(0, t.cashDelta);
+          return;
+        }
         if (t.type === 'income') { income += amount; cashIn += amount; }
         else if (t.type === 'expense') cashOut += amount - (Number(t.shared) || 0);
         // Storno: riaccredita il conto alla sua data, ma non è un'entrata
@@ -256,19 +279,28 @@ export const remindMonthEnd = onSchedule(
         .where('date', '>=', `${ym}-01`)
         .where('date', '<=', todayRome)
         .get();
+      type SummaryTransaction = RefundStatisticsTransaction & { direction?: string };
+      const sources = snap.docs.map(d => ({ ...d.data(), id:d.id }) as SummaryTransaction);
+      // Refunds reduce their original expense, including backdated receipts.
+      // Reading only refunds avoids loading unrelated historical movements;
+      // with no current expenses there is nothing to attribute.
+      let statisticalRows = sources;
+      if (sources.some(t => t.type === 'expense' && !t.recurring)) {
+        const refunds = await db.collection(`users/${userId}/transactions`).where('type', '==', 'refund').get();
+        statisticalRows = withExpenseRefundStatistics([
+          ...sources.filter(t => t.type !== 'refund'),
+          ...refunds.docs.map(d => ({ ...d.data(), id:d.id }) as SummaryTransaction),
+        ], todayRome);
+      }
 
       // Real totals, direction-aware (net invested = deposits − withdrawals);
       // recurring templates are pointers, not flows.
       let income = 0, expenses = 0, investments = 0;
-      snap.forEach(d => {
-        const t = d.data() as { type?: string; amount?: number; shared?: number; direction?: string; recurring?: unknown };
+      statisticalRows.forEach(t => {
         if (t.recurring) return;
         const amount = Number(t.amount) || 0;
         if (t.type === 'income') income += amount;
-        else if (t.type === 'expense') expenses += amount - (Number(t.shared) || 0);
-        // Lo storno riduce le spese del mese in cui la spesa è avvenuta: qui il
-        // riepilogo è mensile, quindi si limita a scalare le spese del mese.
-        else if (t.type === 'refund') expenses -= amount;
+        else if (t.type === 'expense') expenses += refundAdjustedOwnShare(t);
         else if (t.type === 'investment') investments += t.direction === 'out' ? -amount : amount;
       });
       if (income === 0 && expenses === 0 && investments === 0) continue;

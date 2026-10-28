@@ -1,3 +1,4 @@
+import { useTodayRomeISO } from '../../shared/hooks/useTodayRomeISO';
 import {PageToolbar} from '../../shared/components/PageToolbar';
 import '../dashboard/ui31Analysis.css';
 import {DataHeadline} from '../../shared/components/DataHeadline';
@@ -55,7 +56,8 @@ export function WealthScreen(p: Props) {
   // quindi non si può esprimere con una variante Tailwind.
   const isDesktop = useIsDesktop();
 
-  const now = useMemo(() => new Date(), []);
+  const todayISO = useTodayRomeISO();
+  const now = useMemo(() => new Date(`${todayISO}T12:00:00`), [todayISO]);
   const balanceKnown = hasRecordedAccountBalance(accounts,p.accountBalances);
   const cash = useMemo(() => ui3 && p.showAvailableCash && balanceKnown && !p.loading && !p.error && settingsLoaded !== false
     ? computeAvailableCash({ transactions: p.rawTransactions ?? p.transactions, liquidity: p.liquidity, horizon: 'eom', reserve: cashReserve ?? 0, now, accounts }) : null,
@@ -65,7 +67,7 @@ export function WealthScreen(p: Props) {
   // schermata "Andamento patrimonio": una sola definizione di patrimonio.
   const wealth = useMemo(() => {
     const points = buildWealthHistory(p.transactions, accounts, categories, '1y', { now });
-    const value = (i: number) => (includeInvestments ? points[i]?.total : points[i]?.liquidity) ?? 0;
+    const value = (i: number) => points[i] ? points[i].total - (includeInvestments ? 0 : points[i].investments) : 0;
     // Tre mesi indietro = tre punti indietro (a 1 anno il passo è mensile).
     const from = Math.max(0, points.length - 4);
     const delta = value(points.length - 1) - value(from);
@@ -75,7 +77,6 @@ export function WealthScreen(p: Props) {
   // Spese e investimenti del mese per conto: servono alla vista "Vedi spese"
   // di AccountsCard, che resta identica a com'era in home.
   const { expenseByAccount, investByAccount } = useMemo(() => {
-    const todayISO = localISO(now);
     const ym = todayISO.slice(0, 7);
     const expense: Record<string, number> = {};
     const invest: Record<string, number> = {};
@@ -94,10 +95,12 @@ export function WealthScreen(p: Props) {
   // domanda a cui questa schermata risponde: i saldi e gli investimenti sono
   // ciò che possiedi, gli impegni sono ciò che è già di qualcun altro.
   const fixedMonthlyCost = useMemo(
-    () => (p.showCommitments ? buildCommitments(p.transactions, localISO(now)).fixedMonthlyCost : 0),
-    [p.showCommitments, p.transactions, now],
+    () => (p.showCommitments ? buildCommitments(p.transactions, localISO(now), accounts).fixedMonthlyCost : 0),
+    [p.showCommitments, p.transactions, now, accounts],
   );
 
+  const cardAdjustment = Math.round((p.netWorth - p.liquidity - (includeInvestments ? p.investmentTotal : 0)) * 100) / 100;
+  const hasCardAdjustment = Math.abs(cardAdjustment) >= 0.01;
   const share = (v: number) => (p.netWorth > 0 ? Math.round((v / p.netWorth) * 100) : 0);
 
   if(ui3 && (p.loading || p.error || settingsLoaded === false || (!balanceKnown && p.investmentTotal === 0))) return <div className="ui-family-wealth ui31-wealth"><PageToolbar title="Patrimonio"/><section className="ui31-cash-summary" role={p.error?'alert':p.loading||settingsLoaded===false?'status':undefined}>
@@ -134,7 +137,7 @@ export function WealthScreen(p: Props) {
               <WealthLineChart points={wealth.points} formatValue={formatCurrency} height={ui3 ? isDesktop ? 200 : 144 : isDesktop ? 140 : 112} includeInvestments={ui3 ? includeInvestments : true} />
             </div>
           )}
-          {ui3 && balanceKnown && includeInvestments && p.netWorth > 0 && p.liquidity >= 0 && p.investmentTotal >= 0 && <div className="ui31-wealth-composition" aria-label="Composizione del patrimonio, base capitale">
+          {ui3 && !hasCardAdjustment && balanceKnown && includeInvestments && p.netWorth > 0 && p.liquidity >= 0 && p.investmentTotal >= 0 && <div className="ui31-wealth-composition" aria-label="Composizione del patrimonio, base capitale">
             <div className="ui31-composition-track" aria-hidden="true"><span style={{flex: p.liquidity, background: 'var(--ui31-chart-blue, var(--accent-blue))'}}/><span style={{flex: p.investmentTotal, background: 'var(--ui31-chart-gold, var(--accent-gold))'}}/></div>
             <div className="ui31-composition-labels"><span>Liquidità · {share(p.liquidity)}%</span><span>Capitale investito · {share(p.investmentTotal)}%</span></div>
           </div>}
@@ -148,13 +151,18 @@ export function WealthScreen(p: Props) {
 
         {/* Le due componenti del patrimonio */}
         <div className="liquid-wealth-splits grid grid-cols-2 gap-3.5 md:gap-4">
-          {!ui3||balanceKnown?<Split label="Liquidità" value={p.liquidity} pct={share(p.liquidity)} showPercent={!ui3 || (p.netWorth > 0 && p.liquidity >= 0 && p.investmentTotal >= 0)}
+          {!ui3||balanceKnown?<Split label="Liquidità" value={p.liquidity} pct={share(p.liquidity)} showPercent={!hasCardAdjustment && (!ui3 || (p.netWorth > 0 && p.liquidity >= 0 && p.investmentTotal >= 0))}
             onClick={() => navigate('/account-balance')} />:<p>Saldo dei conti da indicare</p>}
           {enableInvestments && (
-            <Split label={ui3 ? "Capitale investito" : "Investito"} value={p.investmentTotal} pct={share(p.investmentTotal)} showPercent={!ui3 || (balanceKnown && includeInvestments && p.netWorth > 0 && p.liquidity >= 0 && p.investmentTotal >= 0)} gold
+            <Split label={ui3 ? "Capitale investito" : "Investito"} value={p.investmentTotal} pct={share(p.investmentTotal)} showPercent={!hasCardAdjustment && (!ui3 || (balanceKnown && includeInvestments && p.netWorth > 0 && p.liquidity >= 0 && p.investmentTotal >= 0))} gold
               onClick={() => navigate('/investments')} />
           )}
         </div>
+
+        {hasCardAdjustment && <div className="flex items-center justify-between gap-3 py-3 border-b border-divider text-sm">
+          <span className="text-secondary">{cardAdjustment < 0 ? 'Debito carte da addebitare' : 'Credito sulle carte'}</span>
+          <span className="balance-num font-semibold text-primary">{formatCurrency(cardAdjustment)}</span>
+        </div>}
 
         {/* Saldo per conto — la card di sempre, spostata qui dalla home */}
         <AccountsCard

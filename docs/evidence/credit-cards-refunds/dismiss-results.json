@@ -1,0 +1,66 @@
+[
+  {
+    "theme": "light",
+    "width": 390,
+    "status": "passed",
+    "checks": [
+      "X",
+      "Escape",
+      "Indietro",
+      "backdrop",
+      "geometry",
+      "scroll",
+      "draft",
+      "focus",
+      "no-horizontal-overflow"
+    ]
+  },
+  {
+    "theme": "light",
+    "width": 1440,
+    "status": "passed",
+    "checks": [
+      "X",
+      "Escape",
+      "Indietro",
+      "backdrop",
+      "geometry",
+      "scroll",
+      "draft",
+      "focus",
+      "no-horizontal-overflow"
+    ]
+  },
+  {
+    "theme": "dark",
+    "width": 390,
+    "status": "passed",
+    "checks": [
+      "X",
+      "Escape",
+      "Indietro",
+      "backdrop",
+      "geometry",
+      "scroll",
+      "draft",
+      "focus",
+      "no-horizontal-overflow"
+    ]
+  },
+  {
+    "theme": "dark",
+    "width": 1440,
+    "status": "passed",
+    "checks": [
+      "X",
+      "Escape",
+      "Indietro",
+      "backdrop",
+      "geometry",
+      "scroll",
+      "draft",
+      "focus",
+      "no-horizontal-overflow"
+    ]
+  }
+]

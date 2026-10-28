@@ -1,0 +1,157 @@
+{
+  "results": [
+    {
+      "ui": 2,
+      "theme": "light",
+      "width": 390,
+      "status": "passed",
+      "checks": [
+        "purchase-date-statistics",
+        "deferred-cash",
+        "readonly-statement",
+        "selection-multi-refund",
+        "80-proportional",
+        "120-gain",
+        "receipt-edit-delete",
+        "single-refund",
+        "due-day-cash",
+        "save-failure",
+        "settings-save-failure"
+      ]
+    },
+    {
+      "ui": 2,
+      "theme": "light",
+      "width": 1440,
+      "status": "passed",
+      "checks": [
+        "purchase-date-statistics",
+        "deferred-cash",
+        "readonly-statement",
+        "selection-multi-refund",
+        "80-proportional",
+        "120-gain",
+        "receipt-edit-delete",
+        "single-refund",
+        "due-day-cash",
+        "save-failure",
+        "settings-save-failure"
+      ]
+    },
+    {
+      "ui": 2,
+      "theme": "dark",
+      "width": 390,
+      "status": "passed",
+      "checks": [
+        "purchase-date-statistics",
+        "deferred-cash",
+        "readonly-statement",
+        "selection-multi-refund",
+        "80-proportional",
+        "120-gain",
+        "receipt-edit-delete",
+        "single-refund",
+        "due-day-cash",
+        "save-failure",
+        "settings-save-failure"
+      ]
+    },
+    {
+      "ui": 2,
+      "theme": "dark",
+      "width": 1440,
+      "status": "passed",
+      "checks": [
+        "purchase-date-statistics",
+        "deferred-cash",
+        "readonly-statement",
+        "selection-multi-refund",
+        "80-proportional",
+        "120-gain",
+        "receipt-edit-delete",
+        "single-refund",
+        "due-day-cash",
+        "save-failure",
+        "settings-save-failure"
+      ]
+    },
+    {
+      "ui": 3,
+      "theme": "light",
+      "width": 390,
+      "status": "passed",
+      "checks": [
+        "purchase-date-statistics",
+        "deferred-cash",
+        "readonly-statement",
+        "selection-multi-refund",
+        "80-proportional",
+        "120-gain",
+        "receipt-edit-delete",
+        "single-refund",
+        "due-day-cash",
+        "save-failure",
+        "settings-save-failure"
+      ]
+    },
+    {
+      "ui": 3,
+      "theme": "light",
+      "width": 1440,
+      "status": "passed",
+      "checks": [
+        "purchase-date-statistics",
+        "deferred-cash",
+        "readonly-statement",
+        "selection-multi-refund",
+        "80-proportional",
+        "120-gain",
+        "receipt-edit-delete",
+        "single-refund",
+        "due-day-cash",
+        "save-failure",
+        "settings-save-failure"
+      ]
+    },
+    {
+      "ui": 3,
+      "theme": "dark",
+      "width": 390,
+      "status": "passed",
+      "checks": [
+        "purchase-date-statistics",
+        "deferred-cash",
+        "readonly-statement",
+        "selection-multi-refund",
+        "80-proportional",
+        "120-gain",
+        "receipt-edit-delete",
+        "single-refund",
+        "due-day-cash",
+        "save-failure",
+        "settings-save-failure"
+      ]
+    },
+    {
+      "ui": 3,
+      "theme": "dark",
+      "width": 1440,
+      "status": "passed",
+      "checks": [
+        "purchase-date-statistics",
+        "deferred-cash",
+        "readonly-statement",
+        "selection-multi-refund",
+        "80-proportional",
+        "120-gain",
+        "receipt-edit-delete",
+        "single-refund",
+        "due-day-cash",
+        "save-failure",
+        "settings-save-failure"
+      ]
+    }
+  ],
+  "errors": []
+}
