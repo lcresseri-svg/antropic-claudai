@@ -6,7 +6,7 @@ Verifica del 28 ottobre 2026. Branch `feat/credit-cards-multi-refunds`, base `28
 
 | Verifica | Esito effettivo |
 | --- | --- |
-| Frontend `npm test` | 1.111 passati, 26 saltati; 113 file passati, 3 saltati |
+| Frontend `npm test` | 1.111 passati in 113 file; suite emulatore eseguite separatamente |
 | Repository finanziari su Firestore | 21 passati, inclusi concorrenza, errori e ricevuta atomica di 100 sorgenti |
 | Suite `firestore-tests` con emulatore | 77 passati: regole, backend carte, notifiche e statistiche AI |
 | Frontend TypeScript + Vite | Passato |
@@ -18,7 +18,7 @@ Verifica del 28 ottobre 2026. Branch `feat/credit-cards-multi-refunds`, base `28
 | Regressione moduli Movimento/Piano | 8/8 casi: temi chiaro/scuro e viewport alti 844/500 px |
 | Revisione indipendente | Due incoerenze P2 nei consumatori del Piano/riepilogo corrette e riverificate; nessun rilievo residuo confermato |
 
-I 26 casi saltati della suite ordinaria includono i test che richiedono emulatore. I 21 nuovi casi di repository sono stati eseguiti separatamente, non dichiarati passati perché saltati. La vecchia suite `investmentValueSync.emulator.test.ts`, che richiede un diverso assetto Auth, resta saltata nella suite ordinaria e non è inclusa nel conteggio dei 21 nuovi casi.
+La suite ordinaria esclude i file `*.emulator.test.ts` quando non è configurato un emulatore. I 21 nuovi casi di repository sono eseguiti separatamente nel job che installa le dipendenze Firestore per i test. Verificati anche test e build frontend con queste dipendenze temporaneamente assenti: 1.111 test passati e build passata. La vecchia suite `investmentValueSync.emulator.test.ts`, che richiede un diverso assetto Auth, non è inclusa nel conteggio dei 21 nuovi casi.
 
 Risultati browser strutturati: [matrice](results.json), [scarto/focus](dismiss-results.json), [cassa mensile](month-results.json). Gli screenshot sono file PNG in questa directory; `regression/` contiene quelli dei moduli Movimento/Piano. I log sintetici sono in [test-results.txt](test-results.txt).
 
@@ -80,3 +80,7 @@ La CI installa anche le dipendenze backend/client necessarie ai nuovi test di in
 Nessuna prova su un iPhone fisico né su circuiti bancari esterni. Le modifiche di movimenti esistenti e i rimborsi richiedono rete; i fallimenti conservano la bozza. Nuove creazioni ordinarie ancora accodabili offline. Ricevuta atomica fino a 100 spese; operazioni ordinarie massive per blocchi di 180 documenti, come prima. L’importazione generica non accetta righe rimborso/ricevuta gestite fuori dal repository dedicato.
 
 Wrapped invariato, inclusi i file/stili ereditati; `RefundSheet.tsx` e ordine del modulo movimento invariati. Nessun cambio alle formule del Piano, al rollout UI3 o ai ruoli. La rettifica del focus riguarda il contenitore UI3 dei moduli, non usato da Wrapped.
+
+## Correzione CI prima del merge
+
+Il primo controllo della PR ha rilevato che i nuovi test emulatore importavano il pacchetto di test delle regole anche nei job frontend isolati. Ora Vitest li include solo con `FIRESTORE_EMULATOR_HOST` e il progetto TypeScript frontend li esclude dai propri input di build. Il job dedicato li esegue realmente con le dipendenze installate; nessun test finanziario è stato eliminato. La prova locale senza `firestore-tests/node_modules` riproduce l’isolamento dei job GitHub.

@@ -17,5 +17,6 @@
     "noFallthroughCasesInSwitch": true
   },
   "include": ["src"],
+  "exclude": ["src/**/*.emulator.test.ts", "src/**/*.emulator.test.tsx"],
   "references": [{ "path": "./tsconfig.node.json" }]
 }
