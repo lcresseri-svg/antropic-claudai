@@ -1,4 +1,4 @@
-export const APP_VERSION = '2.1.0';
+export const APP_VERSION = '2.2.0';
 
 /**
  * Release channel. While in 'beta' the app is still under active development
@@ -29,6 +29,15 @@ export interface VersionEntry {
 
 /** Registro versioni mostrato in Impostazioni → Registro versioni. */
 export const VERSIONS: VersionEntry[] = [
+  {
+    version: '2.2.0', date: '2026-10-28', title: 'Carte di credito e rimborsi multipli',
+    changes: [
+      'In Gestione conti puoi attivare Carta di credito, scegliere mese di decorrenza, giorno e conto di addebito. Gli acquisti contano subito nelle statistiche, la liquidità cambia con un unico pagamento nel mese successivo.',
+      'Le distinte carta si aggiornano automaticamente anche con app chiusa. Rimborsi sulla carta e quote condivise sono inclusi; il pagamento non diventa una seconda spesa.',
+      'In Movimenti seleziona più spese e scegli Rimborso: il totale ricevuto si ripartisce sulle spese originali. Un rimborso di 80 € su spese di 60 € e 40 € lascia costi di 12 € e 8 €; con 120 € i costi si azzerano e 20 € diventano guadagno.',
+      'Una sola spesa apre il modulo storno già esistente. I rimborsi multipli si modificano ed eliminano come ricevute complete; gli errori conservano la bozza.',
+    ],
+  },
   {
     version: '2.1.0', date: '2026-10-27', title: 'Sono arrivate le macrocategorie',
     highlight: true,

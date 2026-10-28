@@ -9,6 +9,8 @@ import {useEmojiCatalog} from '../../shared/providers/EmojiCatalogProvider';
 import { useSettings } from '../../shared/providers/settings';
 import { useEscapeKey } from '../../shared/hooks/useEscapeKey';
 import { macroKind } from '../../shared/macroCategories';
+import type {CreditCardPolicy} from '../../types';
+import {creditCardPolicyForMonth} from '../../../../functions/src/domain/creditCards';
 
 export interface DefDraft {
   id: string;
@@ -20,6 +22,11 @@ export interface DefDraft {
   initialBalance?: number;
   isInvestment?: boolean;
   excludeFromNetWorth?: boolean;
+  creditCardPolicies?:CreditCardPolicy[];
+  isCreditCard?:boolean;
+  creditCardPaymentDay?:number;
+  creditCardPaymentAccountId?:string;
+  creditCardFromMonth?:string;
   fundType?: FundType;
   tfrAmount?: number;
   /** Investment categories only: subscription date (never in the future). */
@@ -42,7 +49,7 @@ interface Props {
 }
 
 export function EditDefSheet({ entity, open, draft, withKind, canDelete, showFundType, showFinancing, onSave, onDelete, onClose }: Props) {
-  const { theme,macroCategories=[] } = useSettings();
+  const { theme,macroCategories=[],accounts=[],visibleAccounts=[] } = useSettings();
   const {emojis}=useEmojiCatalog();
   const [macroCategoryId,setMacroCategoryId]=useState('');
   const [saving,setSaving]=useState(false),[error,setError]=useState('');
@@ -52,6 +59,10 @@ export function EditDefSheet({ entity, open, draft, withKind, canDelete, showFun
   const [kind, setKind] = useState<TransactionType>('expense');
   const [initialBalance, setInitialBalance] = useState('');
   const [excludeFromNetWorth, setExcludeFromNetWorth] = useState(false);
+  const [isCreditCard,setIsCreditCard]=useState(false);
+  const [creditCardPaymentDay,setCreditCardPaymentDay]=useState('10');
+  const [creditCardPaymentAccountId,setCreditCardPaymentAccountId]=useState('');
+  const [creditCardFromMonth,setCreditCardFromMonth]=useState('');
   const [fundType, setFundType] = useState<FundType | ''>('');
   const [tfrAmount, setTfrAmount] = useState('');
   const [subscriptionDate, setSubscriptionDate] = useState('');
@@ -69,6 +80,13 @@ export function EditDefSheet({ entity, open, draft, withKind, canDelete, showFun
     setKind(draft.kind ?? 'expense');
     setInitialBalance(draft.initialBalance !== undefined ? String(draft.initialBalance) : '');
     setExcludeFromNetWorth(draft.excludeFromNetWorth ?? false);
+    const month=new Intl.DateTimeFormat('en-CA',{timeZone:'Europe/Rome',year:'numeric',month:'2-digit'}).format(new Date());
+    const policies=draft.creditCardPolicies??[];
+    const policy=creditCardPolicyForMonth(draft,month)??policies[0];
+    setIsCreditCard(policy?.enabled??false);
+    setCreditCardPaymentDay(String(policy?.paymentDay??10));
+    setCreditCardPaymentAccountId(policy?.paymentAccountId??'');
+    setCreditCardFromMonth(policy&&policy.fromMonth>month?policy.fromMonth:month);
     setFundType(draft.fundType ?? '');
     setTfrAmount(draft.tfrAmount !== undefined ? String(draft.tfrAmount) : '');
     setSubscriptionDate(draft.subscriptionDate ?? '');
@@ -79,7 +97,7 @@ export function EditDefSheet({ entity, open, draft, withKind, canDelete, showFun
   }, [open, draft]);
 
   const ui3=useUiVersion()==='3.0';
-  const dismiss=useDraftDismiss({open,signature:JSON.stringify([label,icon,color,kind,initialBalance,excludeFromNetWorth,fundType,tfrAmount,subscriptionDate,financedAmount,macroCategoryId]),saving,onClose});
+  const dismiss=useDraftDismiss({open,signature:JSON.stringify([label,icon,color,kind,initialBalance,excludeFromNetWorth,fundType,tfrAmount,subscriptionDate,financedAmount,macroCategoryId,isCreditCard,creditCardPaymentDay,creditCardPaymentAccountId,creditCardFromMonth]),saving,onClose});
   const requestClose=()=>{if(saving)return;if(!ui3)onClose();else dismiss.requestDismiss();};
   useEscapeKey(requestClose, open&&!dismiss.confirm);
 
@@ -124,6 +142,10 @@ export function EditDefSheet({ entity, open, draft, withKind, canDelete, showFun
       kind: isCategory || isMacro ? kind : undefined,
       initialBalance: showBalance ? validBalance : undefined,
       excludeFromNetWorth: !isCategory && excludeFromNetWorth ? true : undefined,
+      isCreditCard:!isCategory&&!isMacro?isCreditCard:undefined,
+      creditCardPaymentDay:!isCategory&&!isMacro?Number(creditCardPaymentDay):undefined,
+      creditCardPaymentAccountId:!isCategory&&!isMacro?creditCardPaymentAccountId:undefined,
+      creditCardFromMonth:!isCategory&&!isMacro?creditCardFromMonth:undefined,
       fundType: showFunds && fundType ? fundType : undefined,
       tfrAmount: showFunds && fundType === 'pension' ? validTfr : undefined,
       subscriptionDate: isInvestmentCategory ? validSubscription : undefined,
@@ -216,6 +238,29 @@ export function EditDefSheet({ entity, open, draft, withKind, canDelete, showFun
             />
           </label>
         )}
+
+        {!isCategory&&!isMacro&&!draft.isInvestment&&<div className="mb-6 space-y-4">
+          <label className="flex items-center gap-3 rounded-2xl bg-elevated px-4 py-3.5 cursor-pointer">
+            <span className="flex-1"><span className="block text-sm font-medium text-primary">Carta di credito</span><span className="block text-xs text-secondary mt-1">Le spese contano subito, la liquidità cambia all’addebito.</span></span>
+            <input type="checkbox" aria-label="Carta di credito" checked={isCreditCard} onChange={e=>setIsCreditCard(e.target.checked)} className="w-5 h-5 accent-gold"/>
+          </label>
+          {isCreditCard&&<>
+            <label className="block text-sm text-secondary">Giorno di addebito
+              <input type="number" min="1" max="31" step="1" inputMode="numeric" value={creditCardPaymentDay} onChange={e=>setCreditCardPaymentDay(e.target.value)} className="block w-full mt-2 rounded-xl bg-elevated px-4 py-3 text-base text-primary"/>
+            </label>
+            <label className="block text-sm text-secondary">Conto di addebito
+              <select value={creditCardPaymentAccountId} onChange={e=>setCreditCardPaymentAccountId(e.target.value)} className="block w-full min-w-0 mt-2 rounded-xl bg-elevated px-4 py-3 text-base text-primary">
+                <option value="">Scegli un conto</option>
+                {visibleAccounts.filter(a=>a.id!==draft.id&&!a.isInvestment&&!creditCardPolicyForMonth(a,creditCardFromMonth)?.enabled).map(a=><option key={a.id} value={a.id}>{a.icon} {a.label}</option>)}
+                {creditCardPaymentAccountId&&!visibleAccounts.some(a=>a.id===creditCardPaymentAccountId)&&<option value={creditCardPaymentAccountId}>{accounts.find(a=>a.id===creditCardPaymentAccountId)?.label??'Conto non disponibile'}</option>}
+              </select>
+            </label>
+            <p className="text-xs text-secondary">Un solo addebito nel mese successivo. Se il giorno non esiste, viene usato l’ultimo giorno del mese. Gli addebiti sono automatici: non inserirli di nuovo.</p>
+          </>}
+          {(isCreditCard||!!draft.creditCardPolicies?.length)&&<label className="block text-sm text-secondary">{isCreditCard?'A partire dal mese':'Disattiva dal mese'}
+            <input type="month" value={creditCardFromMonth} onChange={e=>setCreditCardFromMonth(e.target.value)} className="block w-full min-w-0 mt-2 rounded-xl bg-elevated px-4 py-3 text-base text-primary"/>
+          </label>}
+        </div>}
 
         {showBalance && (
           <div className="mb-6">

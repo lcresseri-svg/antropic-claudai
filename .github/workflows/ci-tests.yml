@@ -62,5 +62,13 @@ jobs:
       - name: Install rules-test deps
         run: npm ci
         working-directory: firestore-tests
-      - name: Run Firestore rules tests on the emulator
-        run: npx -y firebase-tools@13 emulators:exec --only firestore --project sunny-test "npm --prefix firestore-tests run test"
+      - name: Install backend integration dependencies
+        run: npm ci
+        working-directory: functions
+      - name: Install client integration dependencies
+        run: npm ci
+        working-directory: sunny
+      - name: Run rules and financial integration tests on the emulator
+        run: >-
+          npx -y firebase-tools@13 emulators:exec --only firestore --project sunny-test
+          "npm --prefix firestore-tests run test && npm --prefix sunny run test -- src/features/investments/investmentRefundGuards.emulator.test.ts src/features/transactions/refundReceiptStore.emulator.test.ts"

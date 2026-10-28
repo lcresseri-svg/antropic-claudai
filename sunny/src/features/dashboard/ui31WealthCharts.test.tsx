@@ -17,6 +17,12 @@ describe('wealth chart inclusion and sparse history', () => {
     expect(html).toContain('300 EUR');
     expect(html).toContain('Liquidità inclusa');
   });
+  it('retains unpaid card debt when investments are excluded', () => {
+    const html = renderToStaticMarkup(<WealthLineChart points={[{date:'2026-10-01',label:'Ott',total:1400,liquidity:1000,investments:500}]} formatValue={formatValue} includeInvestments={false}/>);
+    expect(html).toContain('900 EUR');
+    expect(html).not.toContain('1000 EUR');
+    expect(html).toContain('Conti al netto delle carte');
+  });
   it('offers the exact single point without drawing an invented trend', () => {
     const html = renderToStaticMarkup(<WealthLineChart points={[points[0]]} formatValue={formatValue} />);
     expect(html).toContain('9700 EUR');

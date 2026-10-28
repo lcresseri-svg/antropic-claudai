@@ -4,6 +4,7 @@ import { User } from 'firebase/auth';
 import { Transaction, BudgetState, ownShare, investSign } from '../../types';
 import { useSettings } from '../../shared/providers/settings';
 import { useBudget } from '../../shared/hooks/useBudget';
+import { useTodayRomeISO } from '../../shared/hooks/useTodayRomeISO';
 import { monthlyToBudgetState, prevMonthKey } from './monthlyBudget';
 import {
   suggestBudgets, seasonalHint,
@@ -77,7 +78,8 @@ export function LegacyBudgetScreen({
   user, transactions, monthlyInvestments,
 }: Props) {
   const navigate = useNavigate();
-  const { categories, visibleCategories, enableInvestments, aiEnabled, aiCoachWidgetEnabled } = useSettings();
+  const todayISO = useTodayRomeISO();
+  const { categories, accounts, visibleCategories, enableInvestments, aiEnabled, aiCoachWidgetEnabled } = useSettings();
   const {
     budget, acceptSuggestion, currentMonth, monthlyStatus, budgetHistory,
     setSavingsTargetFor, setCategoryBudgetFor, setIncomeBudgetFor, setInvestmentBudgetFor,
@@ -95,9 +97,9 @@ export function LegacyBudgetScreen({
   const showCoach = isFeatureEnabled('ai_coach_chat', user) && aiEnabled && aiCoachWidgetEnabled;
   const fixedMonthlyCost = useMemo(
     () => (showCommitments
-      ? buildCommitments(transactions, new Date().toISOString().slice(0, 10)).fixedMonthlyCost
+      ? buildCommitments(transactions, todayISO, accounts).fixedMonthlyCost
       : 0),
-    [showCommitments, transactions],
+    [showCommitments, transactions, accounts, todayISO],
   );
 
   // Month navigated to (defaults to the current month). Drives every slice below.
@@ -114,8 +116,6 @@ export function LegacyBudgetScreen({
   const expenseCats    = useMemo(() => visibleCategories.filter(c => c.kind === 'expense'),    [visibleCategories]);
   const incomeCats     = useMemo(() => visibleCategories.filter(c => c.kind === 'income'),     [visibleCategories]);
   const investmentCats = useMemo(() => visibleCategories.filter(c => c.kind === 'investment'), [visibleCategories]);
-
-  const todayISO = useMemo(() => new Date().toISOString().slice(0, 10), []);
 
   // Navigation bounds: back to the earliest month with data, forward +12 months.
   const earliestMonth = useMemo(() => {
@@ -143,10 +143,10 @@ export function LegacyBudgetScreen({
   // past → its last day (so the forecast equals the consuntivo); future → its
   // first day (nothing spent yet → full projection).
   const refDate = useMemo(() => {
-    if (isCurrentMonth) return new Date();
+    if (isCurrentMonth) return new Date(`${todayISO}T12:00:00`);
     const [y, m] = selectedMonth.split('-').map(Number);
     return isPastMonth ? new Date(y, m, 0) : new Date(y, m - 1, 1);
-  }, [selectedMonth, isCurrentMonth, isPastMonth]);
+  }, [selectedMonth, isCurrentMonth, isPastMonth, todayISO]);
 
   const isLearning = transactions.length === 0;
 

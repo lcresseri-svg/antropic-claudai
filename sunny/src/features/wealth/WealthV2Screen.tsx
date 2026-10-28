@@ -1,6 +1,7 @@
 import {PageToolbar} from '../../shared/components/PageToolbar';
 import '../dashboard/ui31Analysis.css';
 import {useOriginBack} from '../../shared/hooks/useOriginBack';
+import { useTodayRomeISO } from '../../shared/hooks/useTodayRomeISO';
 // Patrimonio V2 (admin-only, flag `wealth_v2`): decomposizione del delta,
 // composizione, freschezza controvalori, liquidità disponibile e snapshot
 // patrimoniali (genera oggi / backfill con dry-run). Tutti i calcoli sono nei
@@ -64,7 +65,8 @@ export function WealthV2Screen({ user, transactions, liquidity }: Props) {
     return () => clearTimeout(t);
   }, [reserve, cashReserve, saveCashReserve]);
 
-  const now = useMemo(() => new Date(), []);
+  const todayISO = useTodayRomeISO();
+  const now = useMemo(() => new Date(`${todayISO}T12:00:00`), [todayISO]);
   const summary = useMemo(
     () => buildWealthV2Summary(transactions, accounts, categories, period, { now }),
     [transactions, accounts, categories, period, now],

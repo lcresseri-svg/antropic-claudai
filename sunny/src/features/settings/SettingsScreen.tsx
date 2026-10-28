@@ -14,6 +14,8 @@ import { useUiVersion } from '../../shared/providers/UiVersionProvider';
 import { usePush } from '../../shared/hooks/usePush';
 import { EditDefSheet, DefDraft } from './EditDefSheet';
 import {EmojiCatalogManager} from './EmojiCatalogManager';
+import {updateCreditCardPolicies,assertAccountCanBeRemoved} from './creditCardSettings';
+import {creditCardPolicyForMonth} from '../../../../functions/src/domain/creditCards';
 import { FeedbackSheet } from '../feedback/FeedbackSheet';
 import { ExpenseShortcutSection } from './ExpenseShortcutSection';
 import { ArchivedCategories } from './ArchivedCategories';
@@ -225,7 +227,9 @@ export function SettingsScreen({ user, transactions, budgetExport, onImport, onL
       if (d.isInvestment) def.isInvestment = true;
       if (d.excludeFromNetWorth) def.excludeFromNetWorth = true;
       else delete def.excludeFromNetWorth;
-      saveAccounts(editing.isNew ? [...accounts, def] : accounts.map(a => a.id === d.id ? def : a));
+      const policies=updateCreditCardPolicies(def,d,accounts,new Intl.DateTimeFormat('en-CA',{timeZone:'Europe/Rome',year:'numeric',month:'2-digit',day:'2-digit'}).format(new Date()),transactions);
+      if(policies)def.creditCardPolicies=policies;
+      await saveAccounts(editing.isNew ? [...accounts, def] : accounts.map(a => a.id === d.id ? def : a),{persistFirst:true});
     }
     setEditing(null);
   };
@@ -238,7 +242,11 @@ export function SettingsScreen({ user, transactions, budgetExport, onImport, onL
     if (!editing) return;
     if(editing.kind==='macro') await saveMacroCategories(macroCategories.filter(m=>m.id!==id));
     else if (editing.kind === 'category') await saveCategories(removeCategoryDef(categories, id, transactions));
-    else saveAccounts(removeAccountDef(accounts, id, transactions));
+    else {
+      const account=accounts.find(a=>a.id===id);
+      if(account)assertAccountCanBeRemoved(account,accounts,new Intl.DateTimeFormat('en-CA',{timeZone:'Europe/Rome',year:'numeric',month:'2-digit',day:'2-digit'}).format(new Date()),transactions);
+      await saveAccounts(removeAccountDef(accounts, id, transactions),{persistFirst:true});
+    }
     setEditing(null);
   };
 
@@ -747,7 +755,7 @@ export function SettingsScreen({ user, transactions, budgetExport, onImport, onL
             <div className="bg-card rounded-2xl divide-y divide-divider">
               {liveAccounts.map((a) => (
                 <ManageRow key={a.id} icon={a.icon} color={a.color} label={a.label}
-                  sub={a.excludeFromNetWorth ? 'Escluso dal patrimonio' : undefined}
+                  sub={creditCardPolicyForMonth(a,new Intl.DateTimeFormat('en-CA',{timeZone:'Europe/Rome',year:'numeric',month:'2-digit'}).format(new Date()))?.enabled?'Carta di credito · addebito mensile':a.excludeFromNetWorth ? 'Escluso dal patrimonio' : undefined}
                   editMode={false} selected={false}
                   showHandle={editMode}
                   isDragging={a.id === draggingId}

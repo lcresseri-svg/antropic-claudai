@@ -12,8 +12,9 @@
  * NESSUN FALLBACK per gli investimenti: se la transazione atomica fallisce
  * (offline compreso) l'errore viene PROPAGATO — non si salva nulla, la form
  * resta aperta e mostra Retry. Il degradare silenzioso a plain-write creava
- * stati incoerenti (movimento salvato, controvalore no). Le operazioni che non
- * toccano investimenti mantengono la storica scrittura semplice offline-safe.
+ * stati incoerenti (movimento salvato, controvalore no). Le operazioni che
+ * creano movimenti ordinari mantengono la scrittura semplice offline-safe;
+ * modifiche/eliminazioni richiedono la transazione per proteggere i rimborsi.
  *
  * DATE FUTURE: un investimento "previsto" (data > oggi) NON aggiorna il
  * controvalore alla scrittura — viene marcato `valuePending: true` e
@@ -30,6 +31,7 @@ import { CategoryDef, Transaction, TransactionPatch, AppliedValueEffect } from '
 import {
   planValueChange, applyValueChanges, ValueRequest, ValuePlan, desiredValueDelta,
 } from './investmentValueCore';
+import { assertRefundSourceMutation } from '../transactions/refundReceiptStore';
 
 type TxData = Omit<Transaction, 'id'>;
 
@@ -58,10 +60,21 @@ export const romeTodayISO = (): string =>
     timeZone: 'Europe/Rome', year: 'numeric', month: '2-digit', day: '2-digit',
   }).format(new Date());
 
-/** Might this write ever require the controvalore machinery? Cheap pre-filter
- *  so pure-expense operations keep the historical plain-write path. */
+/** Might a creation require the controvalore machinery? Pure-expense creates
+ *  keep the historical plain-write path. */
 const involvesInvestment = (datas: (TxData | TransactionPatch | null)[]): boolean =>
   datas.some(d => d != null && ('type' in d ? d.type === 'investment' : false));
+
+/** Refund rows must go through their repository to keep allocation controls in
+ * sync. Generated settlements are writable only by the backend. */
+function assertOrdinaryMutation(id: string, data: TxData | null): void {
+  if (id.startsWith('__cc__') || (data && 'creditCardSettlement' in data)) {
+    throw new Error('La distinta carta è automatica: modifica i movimenti sorgente.');
+  }
+  if (data && (data.type === 'refund' || 'refundOf' in data || 'refundGroupId' in data)) {
+    throw new Error('Modifica o elimina il rimborso dal modulo dedicato.');
+  }
+}
 
 /**
  * Execute the shared read→plan→write sequence inside a Firestore transaction.
@@ -75,13 +88,8 @@ interface SyncOp {
   isCreate: boolean;
 }
 
-/** Build the final payload for one op from its plan + apply results. */
-function buildPayload(
-  data: TxData,
-  plan: ValuePlan,
-  appliedChange: { category: string; applied: number } | null,
-  now: number,
-): Record<string, unknown> {
+/** Drop inherited investment stamps and client-only derived figures. */
+function ordinaryPayload(data: TxData): Record<string, unknown> {
   const payload: Record<string, unknown> = { ...stripUndefined(data) };
   // Never trust inherited bookkeeping on the payload — it's recomputed here.
   delete payload.valueEffect;
@@ -89,6 +97,18 @@ function buildPayload(
   // Campo DERIVATO dagli storni (applyRefunds), come `projected`: si ricalcola a
   // ogni caricamento e non va mai persistito, o resterebbe congelato nel doc.
   delete payload.refundedTotal;
+  delete payload.cashDelta;
+  return payload;
+}
+
+/** Build the final payload for one op from its plan + apply results. */
+function buildPayload(
+  data: TxData,
+  plan: ValuePlan,
+  appliedChange: { category: string; applied: number } | null,
+  now: number,
+): Record<string, unknown> {
+  const payload = ordinaryPayload(data);
   if (plan.stamp === 'set' && appliedChange) {
     payload.valueEffect = {
       category: appliedChange.category,
@@ -119,6 +139,10 @@ async function runSyncTransaction(uid: string, ops: SyncOp[]): Promise<void> {
         const snap = await trx.get(op.ref);
         exists = snap.exists();
         const d = snap.data() ?? {};
+        if (exists) {
+          assertOrdinaryMutation(op.ref.id, d as TxData);
+          await assertRefundSourceMutation(db, uid, { ...d, id: op.ref.id } as Transaction, op.data, trx);
+        }
         priorType = d.type as string | undefined;
         priorEffect = (d.valueEffect as AppliedValueEffect | undefined) ?? null;
         priorPending = d.valuePending === true;
@@ -162,20 +186,39 @@ async function plainWrite(uid: string, ops: SyncOp[]): Promise<void> {
   const batch = writeBatch(db);
   for (const op of ops) {
     if (op.data === null) batch.delete(op.ref);
-    else {
-      const payload: Record<string, unknown> = { ...stripUndefined(op.data) };
-      delete payload.valueEffect;
-      delete payload.valuePending;
-      delete payload.refundedTotal;   // derivato dagli storni: mai persistito
-      batch.set(op.ref, payload);
-    }
+    else batch.set(op.ref, ordinaryPayload(op.data));
   }
   await batch.commit();
 }
 
+/** Existing sources must contend on their fresh document and refund control.
+ *  Unlike new ordinary creations, these mutations require connectivity. */
+async function guardedPlainWrite(uid: string, ops: SyncOp[]): Promise<void> {
+  await runTransaction(db, async trx => {
+    for (const op of ops) {
+      if (op.isCreate) continue;
+      const snap = await trx.get(op.ref);
+      if (snap.exists()) {
+        assertOrdinaryMutation(op.ref.id, snap.data() as TxData);
+        await assertRefundSourceMutation(db, uid, { ...snap.data(), id: op.ref.id } as Transaction, op.data, trx);
+      }
+    }
+    // Every source and control has been read before the first write.
+    for (const op of ops) {
+      if (op.data === null) trx.delete(op.ref);
+      else trx.set(op.ref, ordinaryPayload(op.data));
+    }
+  });
+}
+
 async function runOps(uid: string, ops: SyncOp[], needsSync: boolean): Promise<void> {
   if (ops.length === 0) return;
-  if (!needsSync) { await plainWrite(uid, ops); return; }
+  for (const op of ops) assertOrdinaryMutation(op.ref.id, op.data);
+  if (!needsSync) {
+    if (ops.every(op => op.isCreate)) await plainWrite(uid, ops);
+    else await guardedPlainWrite(uid, ops);
+    return;
+  }
   // Investments: atomic or NOTHING. Any failure (offline included) propagates
   // to the caller so the form can stay open and offer Retry — a movement must
   // never land without its controvalore effect.
@@ -211,8 +254,8 @@ export async function replaceTransactionSynced(uid: string, id: string, data: Tx
 /**
  * Delete documents. `mustSync` (from the caller's local data) TRUE when any
  * deleted doc is an investment → atomic revert of its controvalore effect,
- * failures propagate. FALSE → offline-safe batch delete (no currentValue to
- * touch), so a flaky/offline connection never blocks a plain delete.
+ * failures propagate. FALSE skips investment accounting, but still reads and
+ * guards existing sources transactionally against concurrent refunds.
  */
 export async function deleteTransactionsSynced(
   uid: string,
@@ -230,7 +273,7 @@ export async function deleteTransactionsSynced(
 /**
  * Group restructure: delete + create together. `mustSync` (from the caller's
  * local data) TRUE when any deleted OR created doc is an investment → atomic;
- * FALSE → offline-safe batch (e.g. a shared expense + its storni).
+ * FALSE skips investment accounting, retaining transactional source guards.
  */
 export async function replaceGroupSynced(
   uid: string,
@@ -250,7 +293,7 @@ export async function replaceGroupSynced(
  * Bulk field patch (category/account/type): read each doc, merge, resync.
  * `mustSync` (computed by the caller from its local data): TRUE when the patch
  * can touch an investment → atomic path only, failures propagate. FALSE →
- * plain offline-safe update (historical behaviour for pure expense edits).
+ * source-guarded transaction without investment accounting.
  */
 export async function patchTransactionsSynced(
   uid: string,
@@ -263,9 +306,26 @@ export async function patchTransactionsSynced(
   for (let i = 0; i < ids.length; i += CHUNK) {
     const slice = ids.slice(i, i + CHUNK);
     if (!mustSync) {
-      const batch = writeBatch(db);
-      slice.forEach(id => batch.update(txDoc(uid, id), clean));
-      await batch.commit();
+      await runTransaction(db, async trx => {
+        const rows: { ref: DocumentReference; data: TxData }[] = [];
+        for (const id of slice) {
+          const ref = txDoc(uid, id);
+          const snap = await trx.get(ref);
+          if (!snap.exists()) continue;
+          const prior = { ...snap.data(), id } as Transaction;
+          const data = { ...snap.data(), ...clean } as TxData;
+          assertOrdinaryMutation(id, prior);
+          assertOrdinaryMutation(id, data);
+          await assertRefundSourceMutation(db, uid, prior, data, trx);
+          rows.push({ ref, data });
+        }
+        for (const row of rows) {
+          const payload: Record<string, unknown> = { ...stripUndefined(row.data) };
+          delete payload.refundedTotal;
+          delete payload.cashDelta;
+          trx.set(row.ref, payload);
+        }
+      });
       continue;
     }
     const todayISO = romeTodayISO();
@@ -282,6 +342,9 @@ export async function patchTransactionsSynced(
         if (!snap.exists()) continue;
         const prior = snap.data() as TxData & { valueEffect?: AppliedValueEffect; valuePending?: boolean };
         const next = { ...prior, ...clean } as TxData;
+        assertOrdinaryMutation(id, prior);
+        assertOrdinaryMutation(id, next);
+        await assertRefundSourceMutation(db, uid, { ...prior, id }, next, trx);
         rows.push({
           ref,
           data: next,

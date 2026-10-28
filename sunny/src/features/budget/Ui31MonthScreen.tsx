@@ -4,6 +4,9 @@ import type { User } from 'firebase/auth';
 import { Link, useSearchParams, useNavigate } from 'react-router-dom';
 import { Transaction, TYPE_META, ownShare } from '../../types';
 import { aggregateFlow } from '../../shared/financialFlow';
+import { todayRomeISO } from '../../shared/romeDate';
+import { isPending } from '../../shared/recurrence';
+import { resolveCreditCardTransactions, withCreditCardCashEffects, isCreditCardSettlement } from '../../../../functions/src/domain/creditCards';
 import { useBudget } from '../../shared/hooks/useBudget';
 import { useSettings } from '../../shared/providers/settings';
 import { useUiSessionState } from '../../shared/providers/UiVersionProvider';
@@ -26,6 +29,7 @@ const bounds=(month:string)=>({start:new Date(Number(month.slice(0,4)),Number(mo
 export function Ui31MonthScreen(p:Ui31MonthScreenProps) {
   const [query,setQuery]=useSearchParams(),now=usePlanCalendar(),settings=useSettings(),store=useBudget(p.user);
   const current=monthKeyOf(now),queryMonth=query.get('month');
+  const cashTransactions=withCreditCardCashEffects(resolveCreditCardTransactions(p.transactions,settings.accounts??[],todayRomeISO(now)),settings.accounts??[]);
   const [savedMonth,setSavedMonth]=useUiSessionState('budget.month',current);
   const month=validMonth(queryMonth)?queryMonth:savedMonth;
   const previousCurrent=useRef(current);
@@ -50,14 +54,14 @@ export function Ui31MonthScreen(p:Ui31MonthScreenProps) {
     <nav className="ui31-month-tabs" aria-label="Sezioni del mese">{([['overview','Riepilogo'],['plan','Piano'],['due','Scadenze']] as const).map(([key,title])=><Link key={key} aria-current={section===key?'page':undefined} to={url(key)}>{title}</Link>)}</nav>
     {error?<section className="ui31-month-card" role="alert"><h2>Dati non disponibili</h2><p>{error}. Nessuna sintesi viene calcolata su dati incompleti.</p><button onClick={()=>p.error?window.location.reload():store.retry()}>Riprova</button></section>:loading?<p className="ui31-month-card" role="status" aria-busy="true">Caricamento del mese…</p>:<>
       {store.fromCache&&settings.enableBudget&&<p className="ui31-month-notice" role="status">Dati dalla cache: potrebbero non essere aggiornati.</p>}
-      {section==='plan'?(settings.enableBudget?<PlanScreen key={month} {...p} month={month} onMonthChange={changeMonth} embedded/>:<section className="ui31-month-card ui31-optional-plan"><p className="ui31-metric-label">Una scelta tua</p><h2>Il piano è facoltativo</h2><p>Puoi leggere spese, flussi e scadenze senza attivarlo. Quando vuoi, puoi definire entrate attese, obiettivi e limiti.</p><Link className="ui31-primary-link" to="/settings?section=generali">Gestisci il piano nelle impostazioni <span aria-hidden="true">›</span></Link><Link to={url('overview')}>Esplora il riepilogo</Link></section>):section==='overview'?<MonthOverview view={view} transactions={p.transactions} now={now} enabled={settings.enableBudget}/>:<MonthDue view={view} user={p.user} onAddScheduled={p.onAddScheduled} now={now}/>}
+      {section==='plan'?(settings.enableBudget?<PlanScreen key={month} {...p} month={month} onMonthChange={changeMonth} embedded/>:<section className="ui31-month-card ui31-optional-plan"><p className="ui31-metric-label">Una scelta tua</p><h2>Il piano è facoltativo</h2><p>Puoi leggere spese, flussi e scadenze senza attivarlo. Quando vuoi, puoi definire entrate attese, obiettivi e limiti.</p><Link className="ui31-primary-link" to="/settings?section=generali">Gestisci il piano nelle impostazioni <span aria-hidden="true">›</span></Link><Link to={url('overview')}>Esplora il riepilogo</Link></section>):section==='overview'?<MonthOverview view={view} transactions={cashTransactions} now={now} enabled={settings.enableBudget}/>:<MonthDue view={view} transactions={cashTransactions} user={p.user} onAddScheduled={p.onAddScheduled} now={now}/>}
     </>}
     <footer className="ui31-month-links" aria-label="Approfondimenti del mese"><Link to={transactionRoute({},start,end)}>Movimenti del mese</Link><Link to={`/category-spending?month=${month}`}>Analisi categorie</Link><Link to={`/income?month=${month}`}>Analisi entrate</Link><Link to="/insights">Tutti i consigli</Link><Link to={`/recap/${month}`}>Archivio e riepilogo</Link>{settings.aiEnabled&&<Link to="/ai-coach">AI Coach</Link>}</footer>
   </div>;
 }
 function MonthOverview({view,transactions,now,enabled}:{view:MonthlyPlanView;transactions:Transaction[];now:Date;enabled:boolean}) {
   const navigate=useNavigate();
-  const flow=aggregateFlow(view.realized),{start,end}=bounds(view.month);
+  const flow=aggregateFlow(transactions.filter(t=>t.date.startsWith(view.month)&&!t.recurring&&!t.projected&&!isPending(t,todayRomeISO(now)))),{start,end}=bounds(view.month);
   const rhythm=buildMonthRhythm({transactions:view.realized,scheduled:view.upcoming.map(t=>({date:t.date,amount:ownShare(t)})),now,monthKey:view.month});
   const points=rhythm.days.filter(d=>!d.isFuture).map(d=>({label:String(d.day),value:d.spent}));
   const largest=Math.max(1,...view.categories.map(c=>c.spent));
@@ -77,9 +81,9 @@ function MonthOverview({view,transactions,now,enabled}:{view:MonthlyPlanView;tra
     </section>
   </div>;
 }
-function MonthDue({view,user,onAddScheduled,now}:{view:MonthlyPlanView;user:User;onAddScheduled?: (date:string)=>void;now:Date}) {
-  const all=[...view.realized.map(t=>({t,scheduled:false})),...view.scheduled.map(t=>({t,scheduled:true}))].filter(({t})=>t.type==='expense'||t.type==='income'||t.type==='investment').sort((a,b)=>a.t.date.localeCompare(b.t.date)||a.t.id.localeCompare(b.t.id));
-  const items=view.period==='past'?all:all.filter(({t,scheduled})=>scheduled||!!t.seriesId);
+function MonthDue({view,transactions,user,onAddScheduled,now}:{view:MonthlyPlanView;transactions:Transaction[];user:User;onAddScheduled?: (date:string)=>void;now:Date}) {
+  const all=[...view.realized.filter(t=>!isCreditCardSettlement(t)).map(t=>({t,scheduled:false})),...view.scheduled.filter(t=>!isCreditCardSettlement(t)).map(t=>({t,scheduled:true})),...transactions.filter(t=>isCreditCardSettlement(t)&&t.date.startsWith(view.month)).map(t=>({t,scheduled:t.date>todayRomeISO(now)}))].filter(({t})=>t.type==='expense'||t.type==='income'||t.type==='investment'||isCreditCardSettlement(t)).sort((a,b)=>a.t.date.localeCompare(b.t.date)||a.t.id.localeCompare(b.t.id));
+  const items=view.period==='past'?all:all.filter(({t,scheduled})=>scheduled||!!t.seriesId||isCreditCardSettlement(t));
   const nextDate=view.month>monthKeyOf(now)?`${view.month}-01`:localDay(new Date(now.getFullYear(),now.getMonth(),now.getDate()+1));
   const {start,end}=bounds(view.month);
   return <section className="ui31-month-card ui31-due"><div className="ui31-section-heading"><h2>Scadenze · {label(view.month)}</h2>{isFeatureEnabled('commitments',user)&&<Link to="/commitments">Gestisci serie <span aria-hidden="true">›</span></Link>}</div><p>Le occorrenze effettive del mese. Gli importi programmati non sono pagamenti già registrati, né costi mensili equivalenti.</p>

@@ -11,9 +11,10 @@
  * liquidità (senza TFR). Trasferimenti, apporti esterni e disinvestimenti
  * futuri non riducono gli impegni; le entrate future NON compensano (prudenza).
  */
-import { AccountDef, Transaction, ownShare } from '../../types';
+import { Transaction, ownShare } from '../../types';
 import { accountDelta } from '../../shared/financialFlow';
-import { buildCommitmentEvents, addDaysISO } from './commitmentProjection';
+import { todayRomeISO } from '../../shared/romeDate';
+import { buildCommitmentEvents, addDaysISO, CommitmentAccount } from './commitmentProjection';
 
 export type CashHorizon = 7 | 14 | 30 | 'eom';
 
@@ -76,20 +77,25 @@ export function computeAvailableCash(opts: {
   reserve: number;
   now?: Date;
   /** Investment outflows from excluded accounts do not consume this liquidity. */
-  accounts?: Pick<AccountDef, 'id' | 'excludeFromNetWorth'>[];
+  accounts?: CommitmentAccount[];
 }): AvailableCashResult {
   const { transactions, liquidity, horizon } = opts;
   const reserve = Math.max(0, opts.reserve);
-  const todayISO = (opts.now ?? new Date()).toISOString().slice(0, 10);
+  const todayISO = todayRomeISO(opts.now);
   const horizonEndISO = horizon === 'eom' ? endOfMonthISO(todayISO) : addDaysISO(todayISO, horizon);
 
   const excludedAccounts = new Set((opts.accounts ?? []).filter(a => a.excludeFromNetWorth).map(a => a.id));
   // Preserve expense semantics; investments reserve only real outgoing cash.
   // A future withdrawal is not income available to spend today.
-  const items: CommittedItem[] = buildCommitmentEvents(transactions, todayISO, horizonEndISO, { includeInvestments: true })
+  const items: CommittedItem[] = buildCommitmentEvents(transactions, todayISO, horizonEndISO, { includeInvestments: true, accounts: opts.accounts })
     .flatMap(e => {
       const t = e.source;
       let amount = ownShare(t);
+      if (t.type === 'transfer') {
+        if (excludedAccounts.has(t.account)) return [];
+        amount = Math.max(0, -(t.cashDelta ?? -t.amount));
+        if (amount === 0) return [];
+      }
       if (t.type === 'investment') {
         if (t.date <= todayISO || !t.account || excludedAccounts.has(t.account)) return [];
         amount = Math.max(0, -accountDelta(t, t.account));
@@ -112,7 +118,7 @@ export function computeAvailableCash(opts: {
   const horizonLabel = horizon === 'eom' ? `fine mese (${horizonEndISO})` : `${horizon} giorni (fino al ${horizonEndISO})`;
   const explanation = [
     `Liquidità attuale: ${r2(liquidity)} €.`,
-    `Uscite già impegnate entro ${horizonLabel}: ${committed} € (${items.filter(i => i.kind === 'ricorrente').length} ricorrenti, ${items.filter(i => i.kind === 'pianificata').length} pianificate). Inclusi i versamenti investimento dai conti della liquidità, al netto del TFR. Trasferimenti, apporti senza conto e quote condivise altrui esclusi; entrate e disinvestimenti futuri non compensano.`,
+    `Uscite già impegnate entro ${horizonLabel}: ${committed} € (${items.filter(i => i.kind === 'ricorrente').length} ricorrenti, ${items.filter(i => i.kind === 'pianificata').length} pianificate). Inclusi i versamenti investimento dai conti della liquidità, al netto del TFR, e i pagamenti carta alla scadenza. Gli altri trasferimenti, apporti senza conto e quote condivise altrui sono esclusi; entrate e disinvestimenti futuri non compensano.`,
     `Riserva di sicurezza: ${r2(reserve)} €.`,
     `Disponibile = liquidità − impegni − riserva = ${available} €.`,
     monthsOfAutonomy !== null

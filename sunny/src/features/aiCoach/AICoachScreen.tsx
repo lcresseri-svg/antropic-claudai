@@ -29,7 +29,7 @@ interface Props {
 
 export function AICoachScreen({ user, transactions, liquidity, savingsTarget, onSetSavingsTarget }: Props) {
   const navigate = useNavigate();
-  const { categories } = useSettings();
+  const { categories, accounts } = useSettings();
   const { status, result, errorMsg, remaining, analyze, reset } = useAICoach();
   // Last submitted request — feeds the deterministic Decision Coach panel.
   const [lastReq, setLastReq] = useState<AffordabilityRequest | null>(null);
@@ -50,7 +50,7 @@ export function AICoachScreen({ user, transactions, liquidity, savingsTarget, on
   const ctx = useMemo(() => {
     if (!transactions) return null;
     const todayISO = new Date().toISOString().slice(0, 10);
-    const commitments = buildCommitments(transactions, todayISO);
+    const commitments = buildCommitments(transactions, todayISO, accounts);
     return buildSavingsContext({
       transactions, categories, todayISO,
       liquidity: liquidity ?? 0,
@@ -62,7 +62,7 @@ export function AICoachScreen({ user, transactions, liquidity, savingsTarget, on
         .filter(c => c.expectedEnd)
         .map(c => ({ description: c.description, monthly: c.monthlyEquivalent, endsISO: c.expectedEnd! })),
     });
-  }, [transactions, categories, liquidity, savingsTarget]);
+  }, [transactions, categories, accounts, liquidity, savingsTarget]);
 
   // I numeri li calcola il codice PRIMA di chiamare il modello: il modello
   // riceve un piano già fatto e deve solo spiegarlo. È l'unico modo perché

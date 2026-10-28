@@ -19,7 +19,8 @@
  *     parte DOPO la data del template e salta ciò che è già materializzato →
  *     nessun doppio conteggio con le spese registrate);
  *  3. le uscite una-tantum già registrate con data futura (pianificate).
- * I trasferimenti non sono spese (esclusi) e le entrate future non compensano.
+ * I pagamenti carta sono impegni alla scadenza; gli altri trasferimenti sono
+ * esclusi e le entrate future non compensano.
  *
  * Di norma sono tutte e sole USCITE (`type: 'expense'`); con
  * `includeInvestments` entrano anche le serie di tipo `investment` — un PAC
@@ -27,8 +28,11 @@
  * costo, quindi ogni evento dichiara il proprio `type` e chi somma decide.
  * L'opzione è spenta di default; Impegni e Liquidità disponibile la attivano.
  */
-import { Transaction, TransactionType } from '../../types';
+import { AccountDef, Transaction, TransactionType } from '../../types';
 import { buildProjectedOccurrences, isPending, isExpiredTemplate } from '../../shared/recurrence';
+import { resolveCreditCardTransactions, withCreditCardCashEffects } from '../../../../functions/src/domain/creditCards';
+
+export type CommitmentAccount = Pick<AccountDef, 'id' | 'excludeFromNetWorth' | 'creditCardPolicies' | 'archived' | 'isInvestment'>;
 
 export interface CommitmentEvent {
   date: string;
@@ -37,7 +41,7 @@ export interface CommitmentEvent {
   amount: number;
   /** L'occorrenza ha una quota a carico di altri (spesa condivisa). */
   shared: boolean;
-  /** `expense` o `investment`: un investimento esce dal conto ma non è un costo. */
+  /** Le distinte carta sono `transfer`: consumano cassa senza essere costi. */
   type: TransactionType;
   kind: 'ricorrente' | 'pianificata';
   /** Serie di appartenenza (assente per le una-tantum pianificate). */
@@ -64,8 +68,11 @@ export function buildCommitmentEvents(
   transactions: Transaction[],
   todayISO: string,
   horizonEndISO: string,
-  opts: { includeInvestments?: boolean } = {},
+  opts: { includeInvestments?: boolean; accounts?: CommitmentAccount[] } = {},
 ): CommitmentEvent[] {
+  const accounts = opts.accounts ?? [];
+  if (accounts.length) transactions = withCreditCardCashEffects(
+    resolveCreditCardTransactions(transactions, accounts, todayISO), accounts);
   const wanted = (t: Transaction) =>
     t.type === 'expense' || (opts.includeInvestments === true && t.type === 'investment');
 
@@ -119,7 +126,32 @@ export function buildCommitmentEvents(
     push(t, 'pianificata');
   }
 
+  // A recurring card purchase is still an expense on its original date, but
+  // its cash commitment belongs to the following statement. Treat projected
+  // occurrences as temporary sources only for this cash forecast.
+  const forecastSources: Transaction[] = events.filter(e => e.source.recurring || e.source.projected).map(e => {
+    const { recurring: _recurring, projected: _projected, ...source } = e.source;
+    return { ...source, id: `__cash_forecast__${e.seriesId ?? source.id}__${source.date}` };
+  });
+  const cashTransactions = accounts.length
+    ? withCreditCardCashEffects(resolveCreditCardTransactions([...transactions, ...forecastSources], accounts, todayISO), accounts)
+    : transactions;
+
+  // Statement transfers consume liquidity even though they are never costs.
+  for (const t of cashTransactions) {
+    if (t.type !== 'transfer' || t.recurring || t.projected || !isPending(t, todayISO) || t.date > horizonEndISO) continue;
+    if (!(typeof t.cashDelta === 'number' && t.cashDelta < 0) && !t.creditCardSettlement) continue;
+    push(t, 'pianificata');
+  }
+
+  // Never reserve both a deferred purchase and the payment which settles it.
+  const cashEvents = events.filter(e => {
+    if (e.type === 'transfer') return true;
+    const [source] = accounts.length ? withCreditCardCashEffects([e.source], accounts) : [e.source];
+    return source.cashDelta !== 0;
+  });
+
   // Ordinamento stabile: a parità di data resta l'ordine di inserimento.
-  events.sort((a, b) => a.date.localeCompare(b.date));
-  return events;
+  cashEvents.sort((a, b) => a.date.localeCompare(b.date));
+  return cashEvents;
 }

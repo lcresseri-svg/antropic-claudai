@@ -21,7 +21,7 @@
  */
 import { Transaction, SeriesKind, Freq, TransactionType } from '../../types';
 import { buildSeriesSummary, monthlyEquivalent, SeriesSummary } from '../../shared/recurrence';
-import { buildCommitmentEvents, addDaysISO } from './commitmentProjection';
+import { buildCommitmentEvents, addDaysISO, CommitmentAccount } from './commitmentProjection';
 
 export interface Commitment {
   seriesId: string;
@@ -110,6 +110,7 @@ function toCommitment(s: SeriesSummary): Commitment {
 export function buildCommitments(
   allTransactions: Transaction[],
   todayISO: string,
+  accounts: CommitmentAccount[] = [],
 ): CommitmentsSummary {
   // One summary per logical series: dedupe on the template's seriesId.
   const seen = new Set<string>();
@@ -144,7 +145,7 @@ export function buildCommitments(
   // disponibile (commitmentProjection) — stesse occorrenze, deduplicate allo
   // stesso modo. Qui si somma l'importo PIENO, lì la sola quota propria.
   const upcoming = buildCommitmentEvents(allTransactions, todayISO, addDaysISO(todayISO, 30),
-    { includeInvestments: true })
+    { includeInvestments: true, accounts })
     .map(e => ({
       date: e.date, description: e.description, amount: e.amount,
       investment: e.type === 'investment',

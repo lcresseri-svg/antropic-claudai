@@ -10,15 +10,18 @@
 // shared/financialFlow.accountDelta (the app-wide source of truth, shared with
 // useTransactions.ts):
 //   income      on account        → +amount
-//   expense     on account        → −ownShare
+//   expense     on account        → −grossOwnShare (refund credits separately)
 //   investment  deposit           → −(amount − TFR)   (the TFR share never
 //                                    touches the account; source-less = 0)
 //   investment  withdrawal ('out') → +amount           (credits the destination)
 //   transfer    out (account)      → −amount
 //   transfer    in  (toAccount)    → +amount
 
-import { Transaction, AccountDef, ownShare } from '../../types';
+import { Transaction, AccountDef, grossOwnShare } from '../../types';
 import { accountDelta } from '../../shared/financialFlow';
+import { calculateAccountPositions } from '../../shared/accountPositions';
+import { resolveCreditCardTransactions } from '../../../../functions/src/domain/creditCards';
+import { todayRomeISO } from '../../shared/romeDate';
 import {
   PeriodType, PeriodRange, getPeriodRange, getHistoryStartISO, localISO,
 } from './categoryAnalytics';
@@ -86,9 +89,9 @@ export function aggregateAccountFlow(
   opts?: { now?: Date },
 ): AccountFlowSummary {
   const now = opts?.now ?? new Date();
-  const todayISO = localISO(now);
+  const todayISO = todayRomeISO(now);
   const startISO = localISO(range.start);
-  const rangeEndISO = localISO(range.end);
+  const rangeEndISO = range.isCurrent ? todayISO : localISO(range.end);
   const endISO = rangeEndISO <= todayISO ? rangeEndISO : todayISO; // never count the future
 
   let openingBalance = account.initialBalance ?? 0;
@@ -104,7 +107,7 @@ export function aggregateAccountFlow(
     if (t.date < startISO) { openingBalance += signedDelta(t, account.id); continue; }
     if (t.date > endISO) continue; // future / beyond the period
     if (t.type === 'income' && t.account === account.id) income += t.amount;
-    else if (t.type === 'expense' && t.account === account.id) expense += ownShare(t);
+    else if (t.type === 'expense' && t.account === account.id) expense += grossOwnShare(t);
     else if (t.type === 'investment' && t.account === account.id) {
       // Only the cash that really moved through THIS account: non-TFR share of
       // deposits out, returned capital of withdrawals back in.
@@ -153,9 +156,13 @@ export function aggregateAccountBalanceTrend(
   offset: number,
   now: Date = new Date(),
 ): AccountBalancePoint[] {
-  const range = getPeriodRange(period, offset, now, getHistoryStartISO(transactions, now));
+  // Range helpers use local civil dates; seed them with Rome's calendar day
+  // so an overseas device selects the same month as the product dashboard.
+  const [year, month, day] = todayRomeISO(now).split('-').map(Number);
+  const calendarNow = new Date(year, month - 1, day, 12);
+  const range = getPeriodRange(period, offset, calendarNow, getHistoryStartISO(transactions, calendarNow));
   const start = range.start;
-  const todayISO = localISO(now);
+  const todayISO = todayRomeISO(now);
   const cap = (iso: string) => (iso <= todayISO ? iso : todayISO);
 
   const buckets: { label: string; end: string }[] = [];
@@ -188,9 +195,9 @@ export function getAccountMovements(
   range: PeriodRange,
   now: Date = new Date(),
 ): Transaction[] {
-  const todayISO = localISO(now);
+  const todayISO = todayRomeISO(now);
   const startISO = localISO(range.start);
-  const rangeEndISO = localISO(range.end);
+  const rangeEndISO = range.isCurrent ? todayISO : localISO(range.end);
   const endISO = rangeEndISO <= todayISO ? rangeEndISO : todayISO;
   return transactions
     .filter(t =>
@@ -201,14 +208,17 @@ export function getAccountMovements(
     .sort((a, b) => b.date.localeCompare(a.date) || (b.createdAt ?? 0) - (a.createdAt ?? 0));
 }
 
-/** Total liquidity today: sum of closing balances of the NON-investment accounts. */
+/** Cash today in included non-investment accounts, excluding deferred card debt. */
 export function totalLiquidity(
   transactions: Transaction[],
   accounts: AccountDef[],
   now: Date = new Date(),
 ): number {
-  const todayISO = localISO(now);
+  const todayISO = todayRomeISO(now);
+  const realized = resolveCreditCardTransactions(transactions, accounts, todayISO)
+    .filter(t => counts(t) && t.date <= todayISO);
+  const { balances, deferredBalances } = calculateAccountPositions(realized, accounts);
   return accounts
-    .filter(a => !a.isInvestment)
-    .reduce((s, a) => s + balanceAsOf(transactions, a, todayISO), 0);
+    .filter(a => !a.isInvestment && !a.excludeFromNetWorth)
+    .reduce((s, a) => s + (balances[a.id] ?? 0) - (deferredBalances[a.id] ?? 0), 0);
 }

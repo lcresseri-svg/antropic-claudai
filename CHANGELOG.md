@@ -17,6 +17,10 @@ git.
 
 ---
 
+## 2026-10-28
+
+- **[Codex]** Sunny 2.2.0: conti carta con istruzioni datate, distinta mensile automatica banca→carta e cassa differita, riconciliazione backend idempotente. Rimborsi multipli proporzionali alle spese originali, eccedenza come guadagno e ricevute atomiche con controlli di concorrenza condivisi con gli storni singoli. Saldi, patrimonio, impegni, statistiche e consigli coerenti; fix del focus dopo conferma di scarto e del cambio giorno a schermata aperta. Verifiche ed evidenze in `docs/evidence/credit-cards-refunds/`. `(pending)`
+
 ## 2026-08-26
 
 - **[Claude]** **Esporta il riepilogo: da telefono adesso funziona.** "Esporta" era `window.print()` e basta: su computer stampa (o salva in PDF), da telefono spesso **non fa niente** — in PWA installata la stampa non c'è — e restava un bottone che non risponde. Ora apre una scheda con tre vie, e le due che funzionano sempre dal telefono vengono prima: **Condividi** (foglio nativo: mail, messaggi, note — mostrato solo dove `navigator.share` esiste davvero), **Copia il testo** (appunti, con ripiego su `execCommand` perché `navigator.clipboard` non c'è ovunque), e **Stampa o salva in PDF**, che resta e dichiara di poter non essere disponibile da telefono. In fondo l'anteprima selezionabile: se tutto il resto fallisce, il testo è lì e si copia a mano. Il testo lo produce `recapToText` (modulo puro, 7 test): mese, stato, verdetto, i quattro KPI con lo scostamento e il suo riferimento, i driver di spesa e la narrativa — **senza markdown**, perché finisce in WhatsApp dove gli asterischi restano asterischi. I numeri **non sono ricalcolati**: arrivano da `MonthlyRecap`, quindi il testo condiviso e la pagina stampata non possono divergere. Annullare la condivisione non è un errore (`AbortError` ignorato). `recapExport.ts`, `RecapExportSheet.tsx`, `MonthlyRecapScreen.tsx`. `(pending)`

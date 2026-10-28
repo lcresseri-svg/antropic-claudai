@@ -34,8 +34,8 @@ interface Props {
 const MIN_SEGMENT_PCT = 3;
 
 export function MonthSummaryHeader({ ym, title, onToggle, expanded, controls, action, projectedNet, realized, realizedCount, upcomingCount, net }: Props) {
-  const flow = aggregateFlow(realized);
-  const income = flow.cashIn - flow.refundsReceived;
+  const flow = aggregateFlow(realized.map(({cashDelta:_cash,...t})=>t));
+  const income = realized.filter(t => t.type === 'income').reduce((sum, t) => sum + t.amount, 0);
   const expenses = realized
     .filter(t => t.type === 'expense')
     .reduce((sum, t) => sum + ownShare(t), 0);

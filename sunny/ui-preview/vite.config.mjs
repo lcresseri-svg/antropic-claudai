@@ -11,7 +11,7 @@ export default defineConfig({
   resolve: { alias: [
     { find: /^(?:\.\.\/)+emojiCatalogStore$/, replacement: fileURLToPath(new URL('./emojiCatalogServices.ts', import.meta.url)) },
     { find: './expenseShortcut', replacement: fileURLToPath(new URL('./expenseShortcutServices.ts', import.meta.url)) },
-    { find: /^(?:\.\.\/)+shared\/providers\/settings$/, replacement: fixture },
+    { find: /^(?:\.\.\/)+(?:shared\/)?providers\/settings$/, replacement: fixture },
     { find: /^(?:\.\.\/)+shared\/hooks\/(?:useBudget|usePush)$/, replacement: fixture },
     { find: /^(?:\.\.\/)+shared\/analytics\/metrics$/, replacement: services },
     { find: /^(?:\.\.\/)+lib\/firebase$/, replacement: services },

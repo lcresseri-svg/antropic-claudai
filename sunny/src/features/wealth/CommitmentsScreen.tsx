@@ -9,6 +9,8 @@ import {useUiVersion} from '../../shared/providers/UiVersionProvider';
 // Tutti i numeri vengono dal modulo puro `commitments.ts` — una voce per
 // serie, niente doppioni fra template, istanze e proiezioni.
 import { useMemo } from 'react';
+import { useSettings } from '../../shared/providers/settings';
+import { useTodayRomeISO } from '../../shared/hooks/useTodayRomeISO';
 import { useNavigate } from 'react-router-dom';
 import { Transaction } from '../../types';
 import { formatCurrency, formatDate, capitalize } from '../../utils';
@@ -33,8 +35,9 @@ const DAY_MS = 86_400_000;
 export function CommitmentsScreen({ transactions }: Props) {
   const navigate = useNavigate();
   const ui3=useUiVersion()==='3.0';
-  const todayISO = useMemo(() => new Date().toISOString().slice(0, 10), []);
-  const c = useMemo(() => buildCommitments(transactions, todayISO), [transactions, todayISO]);
+  const { accounts } = useSettings();
+  const todayISO = useTodayRomeISO();
+  const c = useMemo(() => buildCommitments(transactions, todayISO, accounts), [transactions, todayISO, accounts]);
 
   // Quota di entrate assorbita dagli impegni: il costo fisso da solo non dice
   // se è tanto o poco, e "tanto o poco" è l'unica cosa che interessa.

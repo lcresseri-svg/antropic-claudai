@@ -20,11 +20,13 @@ export interface MonthlyPlanInput {
   categories: CategoryDef[]; forecast?: PlanForecast | null;
 }
 
-/** Raw or pre-annotated transactions accepted. Rebuild refund annotation at the
+/** Planning always follows original movement dates, including investments
+ * funded by a card: derived cash-only annotations never change its formulas.
+ * Raw or pre-annotated transactions accepted. Rebuild refund annotation at the
  * boundary with today's cutoff, never subtract it again in the aggregates. */
 export function planTransactions(transactions: Transaction[], now: Date) {
   return applyRefunds(transactions.filter(t => !t.projected && !isExpiredTemplate(t))
-    .map(({ refundedTotal: _derived, ...t }) => t), localDay(now));
+    .map(({ refundedTotal: _derived, cashDelta: _cash, ...t }) => t), localDay(now));
 }
 
 /** Deduplicate series/date; actual documents win over a template or projection.

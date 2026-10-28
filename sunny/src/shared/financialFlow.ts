@@ -31,7 +31,12 @@
  *   investment withdrawal        → cashIn += amount              (capitale
  *     (direction 'out')            rimborsato — la plus/minusvalenza viaggia
  *                                 nella sua transazione income/expense collegata)
- *   transfer                    → escluso (movimento interno)
+ *   transfer                    → escluso (movimento interno), salvo la quota
+ *                                 banca↔carta differita dichiarata in cashDelta
+ *
+ * `cashDelta` è derivato client-side: separa la cassa dalle spese/statistiche
+ * quando un conto carta differisce il pagamento. Gli addebiti carta restano
+ * componenti di cassa separati e non diventano nuove spese o entrate.
  *
  *   cashIn  = entrate ordinarie + capitale rientrato dai disinvestimenti + storni
  *   cashOut = spese effettive + depositi non-TFR finanziati dai conti
@@ -47,6 +52,8 @@
 import { Transaction, grossOwnShare, investSign, ownShare } from '../types';
 
 const r2 = (n: number) => Math.round(n * 100) / 100;
+const hasCashDelta = (t: Transaction): t is Transaction & { cashDelta: number } =>
+  typeof t.cashDelta === 'number' && Number.isFinite(t.cashDelta);
 
 /** TFR portion of an investment DEPOSIT, clamped to [0, amount]. 0 otherwise. */
 export function tfrPortion(t: Pick<Transaction, 'type' | 'direction' | 'amount' | 'tfr'>): number {
@@ -92,6 +99,7 @@ export function investedDelta(t: Transaction): number {
 /** Signed impact on TOTAL liquidity (sum across all tracked accounts):
  *  transfers net to 0, TFR and source-less deposits never move cash. */
 export function liquidityDelta(t: Transaction): number {
+  if (hasCashDelta(t)) return t.cashDelta;
   switch (t.type) {
     case 'income':  return t.amount;
     case 'expense': return -grossOwnShare(t);
@@ -120,8 +128,12 @@ export interface FlowBreakdown {
   investedFromAccounts: number;
   /** Quota TFR esclusa dal flusso (informativa). */
   tfrExcluded: number;
-  cashIn: number;   // ordinaryIncome + capitalReturned + refundsReceived
-  cashOut: number;  // expenses + investedFromAccounts
+  /** Bank cash used to settle card debt; never an additional expense. */
+  creditCardPayments?: number;
+  /** Cash credited by a transfer from a deferred card account. */
+  creditCardCredits?: number;
+  cashIn: number;   // ordinaryIncome + capitalReturned + refundsReceived + creditCardCredits
+  cashOut: number;  // expenses + investedFromAccounts + creditCardPayments
   netFlow: number;  // cashIn − cashOut (variazione della liquidità)
 }
 
@@ -133,22 +145,27 @@ export const EMPTY_FLOW: FlowBreakdown = Object.freeze({
 
 /** The flow contribution of a single transaction (component-level). */
 export function flowParts(t: Transaction): Pick<FlowBreakdown,
-  'ordinaryIncome' | 'externalContributions' | 'capitalReturned' | 'expenses' | 'refundsReceived' | 'investedFromAccounts' | 'tfrExcluded'> {
+  'ordinaryIncome' | 'externalContributions' | 'capitalReturned' | 'expenses' | 'refundsReceived' | 'investedFromAccounts' | 'tfrExcluded' | 'creditCardPayments' | 'creditCardCredits'> {
   const parts = {
     ordinaryIncome: 0, externalContributions: 0, capitalReturned: 0,
     expenses: 0, refundsReceived: 0, investedFromAccounts: 0, tfrExcluded: 0,
   };
-  if (t.type === 'income') parts.ordinaryIncome = t.amount;
-  else if (t.type === 'expense') parts.expenses = grossOwnShare(t);
-  else if (t.type === 'refund') parts.refundsReceived = t.amount;
+  const cash = hasCashDelta(t) ? t.cashDelta : undefined;
+  if (t.type === 'transfer' && cash !== undefined) {
+    if (cash < 0) return { ...parts, creditCardPayments: -cash };
+    if (cash > 0) return { ...parts, creditCardCredits: cash };
+  }
+  if (t.type === 'income') parts.ordinaryIncome = cash === undefined ? t.amount : Math.max(0, cash);
+  else if (t.type === 'expense') parts.expenses = cash === undefined ? grossOwnShare(t) : Math.max(0, -cash);
+  else if (t.type === 'refund') parts.refundsReceived = cash === undefined ? t.amount : Math.max(0, cash);
   else if (t.type === 'investment') {
     if (t.direction === 'out') {
-      parts.capitalReturned = t.amount;
+      parts.capitalReturned = cash === undefined ? t.amount : Math.max(0, cash);
     } else {
       const tfr = tfrPortion(t);
       const nonTfr = t.amount - tfr;
       parts.tfrExcluded = tfr;
-      if (t.account) parts.investedFromAccounts = nonTfr;
+      if (t.account) parts.investedFromAccounts = cash === undefined ? nonTfr : Math.max(0, -cash);
       else parts.externalContributions = nonTfr;
     }
   }
@@ -158,6 +175,7 @@ export function flowParts(t: Transaction): Pick<FlowBreakdown,
 /** Signed netFlow contribution of a single transaction (cashIn − cashOut share).
  *  This is the CASH view: expenses are gross and refunds credit their receipt date. */
 export function netFlowDelta(t: Transaction): number {
+  if (hasCashDelta(t)) return t.cashDelta;
   const p = flowParts(t);
   return (p.ordinaryIncome + p.capitalReturned + p.refundsReceived)
     - (p.expenses + p.investedFromAccounts);
@@ -176,7 +194,16 @@ export function statisticalNetDelta(t: Transaction): number {
     const expense = ownShare(t);
     return expense > 0 ? -expense : 0;
   }
-  return netFlowDelta(t);
+  // Statistics follow the original transaction regardless of the date its
+  // card liability reaches the bank. Never feed the derived cash override back
+  // into income, investment or shared-transfer statistical summaries.
+  if (t.type === 'transfer') return 0;
+  if (t.type === 'income') return t.amount;
+  if (t.type === 'investment') {
+    if (t.direction === 'out') return t.amount;
+    return t.account ? -(t.amount - tfrPortion(t)) : 0;
+  }
+  return 0;
 }
 
 /** Aggregate the unified flow over transactions (already filtered by the caller). */
@@ -185,6 +212,7 @@ export function aggregateFlow(transactions: Iterable<Transaction>): FlowBreakdow
     ordinaryIncome: 0, externalContributions: 0, capitalReturned: 0,
     expenses: 0, refundsReceived: 0, investedFromAccounts: 0, tfrExcluded: 0,
   };
+  let cardPayments = 0, cardCredits = 0;
   for (const t of transactions) {
     const p = flowParts(t);
     acc.ordinaryIncome += p.ordinaryIncome;
@@ -194,9 +222,11 @@ export function aggregateFlow(transactions: Iterable<Transaction>): FlowBreakdow
     acc.refundsReceived += p.refundsReceived;
     acc.investedFromAccounts += p.investedFromAccounts;
     acc.tfrExcluded += p.tfrExcluded;
+    cardPayments += p.creditCardPayments ?? 0;
+    cardCredits += p.creditCardCredits ?? 0;
   }
-  const cashIn = r2(acc.ordinaryIncome + acc.capitalReturned + acc.refundsReceived);
-  const cashOut = r2(acc.expenses + acc.investedFromAccounts);
+  const cashIn = r2(acc.ordinaryIncome + acc.capitalReturned + acc.refundsReceived + cardCredits);
+  const cashOut = r2(acc.expenses + acc.investedFromAccounts + cardPayments);
   return {
     ordinaryIncome: r2(acc.ordinaryIncome),
     externalContributions: r2(acc.externalContributions),
@@ -205,6 +235,8 @@ export function aggregateFlow(transactions: Iterable<Transaction>): FlowBreakdow
     refundsReceived: r2(acc.refundsReceived),
     investedFromAccounts: r2(acc.investedFromAccounts),
     tfrExcluded: r2(acc.tfrExcluded),
+    ...(r2(cardPayments) > 0 ? { creditCardPayments: r2(cardPayments) } : {}),
+    ...(r2(cardCredits) > 0 ? { creditCardCredits: r2(cardCredits) } : {}),
     cashIn, cashOut, netFlow: r2(cashIn - cashOut),
   };
 }

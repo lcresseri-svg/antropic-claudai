@@ -1,3 +1,4 @@
+import { useTodayRomeISO } from '../../shared/hooks/useTodayRomeISO';
 // Home "Oggi" — redesign 2.0.0.
 //
 // La home risponde a UNA domanda: "quanto posso spendere?". Da qui la sequenza
@@ -22,7 +23,7 @@ import { useMemo, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { Transaction, ownShare } from '../../types';
 import { monthContext } from '../../utils';
-import { FlowBreakdown } from '../../shared/financialFlow';
+import { FlowBreakdown, aggregateFlow } from '../../shared/financialFlow';
 import { useSettings } from '../../shared/providers/settings';
 import { buildInsights } from '../insights/insightsEngine';
 import { isPending } from '../../shared/recurrence';
@@ -98,7 +99,8 @@ export function DashboardV2(p: Props) {
   // Un solo `now` per tutto il render: hero, calendario e sparkline devono
   // riferirsi allo stesso istante, altrimenti a cavallo di mezzanotte
   // racconterebbero due giorni diversi.
-  const now = useMemo(() => new Date(), []);
+  const todayISO = useTodayRomeISO();
+  const now = useMemo(() => new Date(`${todayISO}T12:00:00`), [todayISO]);
 
   // ── Liquidità libera ───────────────────────────────────────────────────────
   //   liquidità − uscite già impegnate entro fine mese − deposito di sicurezza
@@ -115,7 +117,6 @@ export function DashboardV2(p: Props) {
   // Spese del mese per categoria — realizzate soltanto: i movimenti ancora
   // `isPending` sono previsioni e vivono nel calendario come "programmato".
   const currentMonthCategoryTotals = useMemo(() => {
-    const todayISO = localISO(now);
     const ym = todayISO.slice(0, 7);
     const totals: Record<string, number> = {};
     for (const t of p.transactions) {
@@ -134,7 +135,7 @@ export function DashboardV2(p: Props) {
     const points = buildWealthHistory(p.transactions, accounts, categories, '3m', { now });
     // `total` include SEMPRE gli investimenti; la home invece rispetta la
     // preferenza dell'utente, quindi la serie deve seguire lo stesso numero.
-    const series = points.map(pt => (includeInvestments ? pt.total : pt.liquidity));
+    const series = points.map(pt => (includeInvestments ? pt.total : pt.total - pt.investments));
     const first = series[0] ?? 0;
     const last = series[series.length - 1] ?? 0;
     const deltaPct = Math.abs(first) < 0.005 ? null : Math.round(((last - first) / Math.abs(first)) * 1000) / 10;
@@ -156,7 +157,11 @@ export function DashboardV2(p: Props) {
 
   const nextMove = useMemo(() => pickNextMove(insights, ui3), [insights, ui3]);
 
-  const flow = p.monthlyFlow;
+  // The hero's income/investment figures follow movement dates, whereas
+  // liquidity and available cash follow the card's actual bank payment.
+  const deferredMonth = p.transactions.filter(t=>t.date.slice(0,7)===todayISO.slice(0,7) && !isPending(t,todayISO));
+  const flow = deferredMonth.some(t=>t.cashDelta !== undefined)
+    ? aggregateFlow(deferredMonth.map(({cashDelta:_cash,...t})=>t)) : p.monthlyFlow;
 
   const openCategories = ui3 ? ()=>navigate('/category-spending',{state:{currentPeriod:true}}) : p.onSeeCategories ?? (() => navigate('/category-spending'));
 

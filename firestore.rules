@@ -171,10 +171,22 @@ service cloud.firestore {
       allow read, write: if owner(userId);
 
       match /transactions/{txId} {
-        allow read, delete: if owner(userId);
+        allow read: if owner(userId);
+        // Automatic settlements are managed only by the Admin SDK. Protect
+        // both the reserved namespace and metadata, including malformed/null
+        // metadata on legacy documents and attempts to strip it on update.
+        allow delete: if owner(userId)
+          && !txId.matches('^__cc__.*')
+          && !('creditCardSettlement' in resource.data);
         // Create & update must keep the document well-formed (types, enums,
         // ranges, lengths). amount > 0 is preserved from the previous ruleset.
-        allow create, update: if owner(userId) && validTxn(request.resource.data);
+        allow create: if owner(userId) && validTxn(request.resource.data)
+          && !txId.matches('^__cc__.*')
+          && !('creditCardSettlement' in request.resource.data);
+        allow update: if owner(userId) && validTxn(request.resource.data)
+          && !txId.matches('^__cc__.*')
+          && !('creditCardSettlement' in resource.data)
+          && !('creditCardSettlement' in request.resource.data);
       }
 
       // ── meta/* — one rule per KNOWN document, with light non-breaking
@@ -197,6 +209,28 @@ service cloud.firestore {
           // Ordine dei blocchi della home: lista corta di id. Il client scarta
           // comunque gli id sconosciuti, qui si limita solo la dimensione.
           && (!('homeOrder' in request.resource.data) || (request.resource.data.homeOrder is list && request.resource.data.homeOrder.size() <= 20));
+      }
+
+      // Per-source receipt controls serialize concurrent single/multi refunds.
+      // Financial changes use transactions; controls contain no shared-user data.
+      match /refundControls/{expenseId} {
+        allow read: if owner(userId);
+        allow create, update: if owner(userId)
+          && request.resource.data.keys().hasOnly(['allocatedCents', 'revision'])
+          && request.resource.data.allocatedCents is int
+          && request.resource.data.allocatedCents >= 0
+          && request.resource.data.allocatedCents <= 100000000000
+          && request.resource.data.revision is int && request.resource.data.revision >= 1;
+        allow delete: if owner(userId);
+      }
+      match /refundReceipts/{receiptId} {
+        allow read: if owner(userId);
+        allow create, update: if owner(userId)
+          && request.resource.data.keys().hasOnly(['expenseIds', 'rowIds', 'revision'])
+          && request.resource.data.expenseIds is list && request.resource.data.expenseIds.size() <= 100
+          && request.resource.data.rowIds is list && request.resource.data.rowIds.size() <= 101
+          && request.resource.data.revision is int && request.resource.data.revision >= 1;
+        allow delete: if owner(userId);
       }
 
       match /meta/budget {

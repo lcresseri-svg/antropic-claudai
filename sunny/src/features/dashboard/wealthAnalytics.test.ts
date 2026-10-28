@@ -5,8 +5,7 @@ import {
 } from './wealthAnalytics';
 import { Transaction, AccountDef, CategoryDef } from '../../types';
 
-// Fixed "now": 15 July 2026, mid-month, no DST edge. Anchored in UTC because
-// the engine derives "today" with the dashboard's convention (toISOString).
+// Fixed "now": 15 July 2026, mid-month, no Rome calendar boundary.
 const NOW = new Date('2026-07-15T12:00:00Z');
 const TODAY = '2026-07-15';
 const YTD = 'ytd' as WealthPeriod;
@@ -39,8 +38,8 @@ describe('buildWealthHistory — stock semantics', () => {
     expect(points[points.length - 1].date).toBe(TODAY);
   });
 
-  it("Quest'anno uses the local calendar year around New Year's midnight", () => {
-    const localNewYear = new Date(2027, 0, 1, 0, 30);
+  it("Quest'anno uses the Rome calendar year around New Year's midnight", () => {
+    const localNewYear = new Date('2026-12-31T23:30:00Z');
     expect(getWealthRange(YTD, [], { now: localNewYear })).toEqual({
       startISO: '2027-01-01',
       endISO: '2027-01-01',
@@ -199,15 +198,12 @@ describe('buildWealthHistory — stock semantics', () => {
     for (const pts of [p1m, p3m, p1y]) expect(pts[pts.length - 1].date).toBe(TODAY);
   });
 
-  it('"today" follows the dashboard convention (UTC toISOString), so the two screens agree', () => {
-    // Just after local midnight in Italy (UTC+2) the UTC date is still the 14th:
-    // the last point must stop at the 14th — exactly like the dashboard's
-    // realized filter — and NOT count movements dated the new local day.
+  it('"today" follows the dashboard Rome calendar, including summer midnight', () => {
     const lateNight = new Date('2026-07-14T22:30:00Z'); // 00:30 local (CEST) on the 15th
     const txs = [tx({ date: '2026-07-15', amount: 100 })]; // dated the new local day
     const pts = buildWealthHistory(txs, ACCOUNTS, CATS, '1m', { now: lateNight });
-    expect(pts[pts.length - 1].date).toBe('2026-07-14');
-    expect(pts[pts.length - 1].total).toBe(1500); // the 15th's expense NOT counted yet
+    expect(pts[pts.length - 1].date).toBe('2026-07-15');
+    expect(pts[pts.length - 1].total).toBe(1400);
   });
 
   it("'all' starts at the first movement", () => {

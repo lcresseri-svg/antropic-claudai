@@ -50,8 +50,8 @@ const fmtDate = (iso: string) => {
 };
 
 export function WealthLineChart({ points: sourcePoints, formatValue, height = 190, includeInvestments = true }: Props) {
-  const points = includeInvestments ? sourcePoints : sourcePoints.map(p => ({ ...p, total: p.liquidity }));
-  const totalLabel = includeInvestments ? 'Totale' : 'Liquidità inclusa';
+  const points = includeInvestments ? sourcePoints : sourcePoints.map(p => ({ ...p, total: p.total - p.investments }));
+  const totalLabel = includeInvestments ? 'Totale' : points.some(p=>Math.abs(p.total-p.liquidity)>0.005) ? 'Conti al netto delle carte' : 'Liquidità inclusa';
   const ui3=useUiVersion()==='3.0';
   const path=(pts:{x:number;y:number}[])=>ui3?pts.map((p,i)=>`${i?'L':'M'} ${p.x} ${p.y}`).join(' '):smoothPath(pts);
   const [showLiquidity,setShowLiquidity]=useState(true);
@@ -61,7 +61,7 @@ export function WealthLineChart({ points: sourcePoints, formatValue, height = 19
   const [hoverIndex, setHover] = useState<number | null>(null);
   const hover = hoverIndex !== null && hoverIndex < points.length ? hoverIndex : null;
 
-  const data = <ChartData title="Patrimonio" columns={includeInvestments ? ['Data','Totale','Liquidità','Investimenti'] : ['Data','Liquidità inclusa']} rows={points.map(p=>includeInvestments ? [fmtDate(p.date),formatValue(p.total),formatValue(p.liquidity),formatValue(p.investments)] : [fmtDate(p.date),formatValue(p.liquidity)])} scale="Scala adattata ai valori, non ancorata allo zero. Capitale investito sulla base dei versamenti, non storico di mercato."/>;
+  const data = <ChartData title="Patrimonio" columns={includeInvestments ? ['Data','Totale','Liquidità','Investimenti'] : ['Data',totalLabel]} rows={points.map(p=>includeInvestments ? [fmtDate(p.date),formatValue(p.total),formatValue(p.liquidity),formatValue(p.investments)] : [fmtDate(p.date),formatValue(p.total)])} scale="Scala adattata ai valori, non ancorata allo zero. Capitale investito sulla base dei versamenti, non storico di mercato."/>;
 
   if (ui3 && points.length === 1) return <div className="ui31-history-single"><p className="text-sm text-secondary">Un solo punto disponibile · {fmtDate(points[0].date)}</p><p className="balance-num text-primary font-semibold mt-2">{totalLabel} {formatValue(points[0].total)}</p>{data}</div>;
 
@@ -73,7 +73,7 @@ export function WealthLineChart({ points: sourcePoints, formatValue, height = 19
     );
   }
 
-  const all = points.flatMap(p => includeInvestments ? [p.total, p.liquidity, p.investments] : [p.liquidity]);
+  const all = points.flatMap(p => includeInvestments ? [p.total, p.liquidity, p.investments] : [p.total]);
   const initialTotal = points[0].total;
   let lo = Math.min(...all, initialTotal);
   let hi = Math.max(...all, initialTotal);

@@ -6,8 +6,9 @@ import type { User } from 'firebase/auth';
 import { Ui31MonthScreen } from './Ui31MonthScreen';
 import { Transaction } from '../../types';
 const state=vi.hoisted(()=>({enabled:true}));
+const accounts=[{id:'bank',label:'Banca',icon:'',color:'#888'},{id:'card',label:'Carta',icon:'',color:'#888',creditCardPolicies:[{fromMonth:'2026-09',enabled:true,paymentDay:10,paymentAccountId:'bank'}]}];
 vi.mock('../../shared/hooks/useBudget',()=>({useBudget:()=>({budgetHistory:[],loading:false,error:null,fromCache:false,retry:()=>{}})}));
-vi.mock('../../shared/providers/settings',()=>({useSettings:()=>({enableBudget:state.enabled,categories:[{id:'food',label:'Alimentari',kind:'expense',color:'#888',icon:'🍎'}]})}));
+vi.mock('../../shared/providers/settings',()=>({useSettings:()=>({enableBudget:state.enabled,accounts,categories:[{id:'food',label:'Alimentari',kind:'expense',color:'#888',icon:'🍎'}]})}));
 vi.mock('../../shared/providers/UiVersionProvider',()=>({useUiVersion:()=> '3.0',useUiNavigationMemory:()=>null,useUiSessionState:(_key:string,initial:any)=>useState(initial)}));
 vi.mock('./PlanScreen',()=>({PlanScreen:({month,embedded}:any)=><div data-plan-month={month} data-embedded={embedded}/> }));
 vi.mock('./useMonthlyPlan',async importOriginal=>({...await importOriginal<any>(),usePlanCalendar:()=>new Date(2026,9,19,12)}));
@@ -36,6 +37,17 @@ describe('Il tuo mese',()=>{
     expect(html).toContain('10/11/2026');
     expect(html).not.toContain('data-plan-month');
     expect(html).toContain('occorrenze effettive');
+  });
+  it('keeps purchases statistical and shows their single bank payment in the later cash month',()=>{
+    const purchase={...tx,date:'2026-09-04',account:'card',amount:100};
+    const september=render('/budget?view=overview&month=2026-09',[purchase]);
+    expect(september).toMatch(/Variazione della liquidità<\/span><strong>0,00/);
+    const october=render('/budget?view=overview&month=2026-10',[purchase]);
+    expect(october).toContain('Addebiti carte');
+    expect(october).toMatch(/Variazione della liquidità<\/span><strong>−?[-]?100,00/);
+    const due=render('/budget?view=due&month=2026-10',[purchase]);
+    expect(due).toContain('Addebito carta');
+    expect(due).toContain('10/10/2026');
   });
   it('offers the category detail before a period-specific movements route',()=>{
     const html=render('/budget?view=overview&month=2026-09');
