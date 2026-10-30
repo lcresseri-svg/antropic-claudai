@@ -1,0 +1,379 @@
+{
+  "results": [
+    {
+      "ui": 3,
+      "width": 320,
+      "theme": "light",
+      "mode": "growth",
+      "status": "passed",
+      "checks": [
+        "income-copy",
+        "actual-vs-planned",
+        "valid-comparison",
+        "width",
+        "summary",
+        "navigation",
+        "goal",
+        "close"
+      ]
+    },
+    {
+      "ui": 3,
+      "width": 320,
+      "theme": "dark",
+      "mode": "growth",
+      "status": "passed",
+      "checks": [
+        "income-copy",
+        "actual-vs-planned",
+        "valid-comparison",
+        "width",
+        "summary",
+        "navigation",
+        "goal",
+        "close"
+      ]
+    },
+    {
+      "ui": 3,
+      "width": 390,
+      "theme": "light",
+      "mode": "growth",
+      "status": "passed",
+      "checks": [
+        "income-copy",
+        "actual-vs-planned",
+        "valid-comparison",
+        "width",
+        "summary",
+        "navigation",
+        "goal",
+        "close"
+      ]
+    },
+    {
+      "ui": 3,
+      "width": 390,
+      "theme": "dark",
+      "mode": "growth",
+      "status": "passed",
+      "checks": [
+        "income-copy",
+        "actual-vs-planned",
+        "valid-comparison",
+        "width",
+        "summary",
+        "navigation",
+        "goal",
+        "close"
+      ]
+    },
+    {
+      "ui": 3,
+      "width": 1440,
+      "theme": "light",
+      "mode": "growth",
+      "status": "passed",
+      "checks": [
+        "income-copy",
+        "actual-vs-planned",
+        "valid-comparison",
+        "width",
+        "summary",
+        "navigation",
+        "goal",
+        "close"
+      ]
+    },
+    {
+      "ui": 3,
+      "width": 1440,
+      "theme": "dark",
+      "mode": "growth",
+      "status": "passed",
+      "checks": [
+        "income-copy",
+        "actual-vs-planned",
+        "valid-comparison",
+        "width",
+        "summary",
+        "navigation",
+        "goal",
+        "close"
+      ]
+    },
+    {
+      "ui": 2,
+      "width": 390,
+      "theme": "light",
+      "mode": "growth",
+      "status": "passed",
+      "checks": [
+        "income-copy",
+        "actual-vs-planned",
+        "valid-comparison",
+        "width",
+        "summary",
+        "navigation",
+        "goal",
+        "close"
+      ]
+    },
+    {
+      "ui": 2,
+      "width": 390,
+      "theme": "dark",
+      "mode": "growth",
+      "status": "passed",
+      "checks": [
+        "income-copy",
+        "actual-vs-planned",
+        "valid-comparison",
+        "width",
+        "summary",
+        "navigation",
+        "goal",
+        "close"
+      ]
+    },
+    {
+      "ui": 3,
+      "width": 390,
+      "theme": "light",
+      "mode": "decline",
+      "status": "passed",
+      "checks": [
+        "income-copy",
+        "actual-vs-planned",
+        "valid-comparison",
+        "width",
+        "summary",
+        "navigation",
+        "goal",
+        "close"
+      ]
+    },
+    {
+      "ui": 3,
+      "width": 390,
+      "theme": "dark",
+      "mode": "decline",
+      "status": "passed",
+      "checks": [
+        "income-copy",
+        "actual-vs-planned",
+        "valid-comparison",
+        "width",
+        "summary",
+        "navigation",
+        "goal",
+        "close"
+      ]
+    },
+    {
+      "ui": 3,
+      "width": 390,
+      "theme": "light",
+      "mode": "flat",
+      "status": "passed",
+      "checks": [
+        "income-copy",
+        "actual-vs-planned",
+        "valid-comparison",
+        "width",
+        "summary",
+        "navigation",
+        "goal",
+        "close"
+      ]
+    },
+    {
+      "ui": 3,
+      "width": 390,
+      "theme": "dark",
+      "mode": "flat",
+      "status": "passed",
+      "checks": [
+        "income-copy",
+        "actual-vs-planned",
+        "valid-comparison",
+        "width",
+        "summary",
+        "navigation",
+        "goal",
+        "close"
+      ]
+    },
+    {
+      "ui": 3,
+      "width": 390,
+      "theme": "light",
+      "mode": "noHistory",
+      "status": "passed",
+      "checks": [
+        "income-copy",
+        "actual-vs-planned",
+        "valid-comparison",
+        "width",
+        "summary",
+        "navigation",
+        "goal",
+        "close"
+      ]
+    },
+    {
+      "ui": 3,
+      "width": 390,
+      "theme": "dark",
+      "mode": "noHistory",
+      "status": "passed",
+      "checks": [
+        "income-copy",
+        "actual-vs-planned",
+        "valid-comparison",
+        "width",
+        "summary",
+        "navigation",
+        "goal",
+        "close"
+      ]
+    },
+    {
+      "ui": 3,
+      "width": 390,
+      "theme": "light",
+      "mode": "partial",
+      "status": "passed",
+      "checks": [
+        "income-copy",
+        "actual-vs-planned",
+        "valid-comparison",
+        "width",
+        "summary",
+        "navigation",
+        "goal",
+        "close"
+      ]
+    },
+    {
+      "ui": 3,
+      "width": 390,
+      "theme": "dark",
+      "mode": "partial",
+      "status": "passed",
+      "checks": [
+        "income-copy",
+        "actual-vs-planned",
+        "valid-comparison",
+        "width",
+        "summary",
+        "navigation",
+        "goal",
+        "close"
+      ]
+    },
+    {
+      "ui": 3,
+      "width": 390,
+      "theme": "light",
+      "mode": "planned",
+      "status": "passed",
+      "checks": [
+        "income-copy",
+        "actual-vs-planned",
+        "valid-comparison",
+        "width",
+        "summary",
+        "navigation",
+        "goal",
+        "close"
+      ]
+    },
+    {
+      "ui": 3,
+      "width": 390,
+      "theme": "dark",
+      "mode": "planned",
+      "status": "passed",
+      "checks": [
+        "income-copy",
+        "actual-vs-planned",
+        "valid-comparison",
+        "width",
+        "summary",
+        "navigation",
+        "goal",
+        "close"
+      ]
+    },
+    {
+      "ui": 3,
+      "width": 390,
+      "theme": "light",
+      "mode": "growthPlanned",
+      "status": "passed",
+      "checks": [
+        "income-copy",
+        "actual-vs-planned",
+        "valid-comparison",
+        "width",
+        "summary",
+        "navigation",
+        "goal",
+        "close"
+      ]
+    },
+    {
+      "ui": 3,
+      "width": 390,
+      "theme": "dark",
+      "mode": "growthPlanned",
+      "status": "passed",
+      "checks": [
+        "income-copy",
+        "actual-vs-planned",
+        "valid-comparison",
+        "width",
+        "summary",
+        "navigation",
+        "goal",
+        "close"
+      ]
+    },
+    {
+      "ui": 3,
+      "width": 320,
+      "theme": "light",
+      "mode": "large",
+      "status": "passed",
+      "checks": [
+        "income-copy",
+        "actual-vs-planned",
+        "valid-comparison",
+        "width",
+        "summary",
+        "navigation",
+        "goal",
+        "close"
+      ]
+    },
+    {
+      "ui": 3,
+      "width": 320,
+      "theme": "dark",
+      "mode": "large",
+      "status": "passed",
+      "checks": [
+        "income-copy",
+        "actual-vs-planned",
+        "valid-comparison",
+        "width",
+        "summary",
+        "navigation",
+        "goal",
+        "close"
+      ]
+    }
+  ],
+  "errors": []
+}

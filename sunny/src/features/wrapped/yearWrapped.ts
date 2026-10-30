@@ -29,7 +29,7 @@
 import { Transaction, CategoryDef, AccountDef, ownShare } from '../../types';
 import { isPending } from '../../shared/recurrence';
 import { monthStats } from '../insights/insightsEngine';
-import { wrappedPeriodEnd } from './wrappedWindow';
+import { daysInMonth, wrappedPeriodEnd } from './wrappedWindow';
 
 /** Sotto questo numero di movimenti il Wrapped non si propone da solo: un
  *  racconto dell'anno costruito su quattro spese è una presa in giro.
@@ -41,7 +41,7 @@ export const WRAPPED_MIN_TX = 20;
 export const WRAPPED_TOP_CATS = 4;
 
 export type WrappedStoryId =
-  | 'cover' | 'expense' | 'topCategory' | 'peakMonth' | 'savingsRate'
+  | 'cover' | 'expense' | 'income' | 'topCategory' | 'peakMonth' | 'savingsRate'
   | 'invested' | 'netWorth' | 'streak' | 'largest' | 'count' | 'vsPrev';
 
 export interface WrappedCategory {
@@ -91,6 +91,16 @@ export interface WrappedVsPrev {
   prevSaved: number;
 }
 
+/** Only received income, on the same elapsed dates and matching recorded months. */
+export interface WrappedIncomeComparison {
+  current: number;
+  previous: number;
+  delta: number;
+  deltaPct: number;
+  periodEndISO: string;
+  previousPeriodEndISO: string;
+}
+
 export interface WrappedGoal {
   /** Importo mensile preselezionato nello stepper. */
   suggested: number;
@@ -119,6 +129,9 @@ export interface YearWrapped {
   hasEnough: boolean;
 
   incomeTotal: number;
+  incomeReceivedTotal: number;
+  incomePlannedTotal: number;
+  incomeComparison: WrappedIncomeComparison | null;
   expenseTotal: number;
   expenseMonthlyAvg: number;
   saved: number;
@@ -305,6 +318,25 @@ function buildVsPrev(input: YearWrappedInput, monthsCovered: number, expense: nu
   };
 }
 
+/** A longer imported history must not become a claim of income growth.
+ * Compare only actual documents, through the equivalent calendar day, when
+ * both years have the same set of months with recorded financial activity.
+ */
+function buildIncomeComparison(input: YearWrappedInput, realized: Transaction[], periodEndISO: string): WrappedIncomeComparison | null {
+  const end = input.todayISO < periodEndISO ? input.todayISO : periodEndISO;
+  const previousYear = input.year - 1;
+  const month = Number(end.slice(5,7));
+  const previousEnd = `${previousYear}-${pad(month)}-${pad(Math.min(Number(end.slice(8,10)),daysInMonth(previousYear,month)))}`;
+  const { realized: previous } = collect(input, `${previousYear}-01-01`, previousEnd);
+  const activityMonths = (txs:Transaction[]) => new Set(txs.filter(t=>t.type!=='transfer').map(t=>t.date.slice(5,7)));
+  const currentMonths=activityMonths(realized),previousMonths=activityMonths(previous);
+  if (!currentMonths.size || currentMonths.size!==previousMonths.size || [...currentMonths].some(m=>!previousMonths.has(m))) return null;
+  const income = (txs:Transaction[]) => r2(txs.filter(t=>t.type==='income').reduce((total,t)=>total+t.amount,0));
+  const currentIncome=income(realized),previousIncome=income(previous);
+  if (previousIncome<=0 || currentIncome<=0) return null;
+  return {current:currentIncome,previous:previousIncome,delta:r2(currentIncome-previousIncome),deltaPct:pct(currentIncome,previousIncome)!,periodEndISO:end,previousPeriodEndISO:previousEnd};
+}
+
 /**
  * Obiettivo suggerito per l'anno prossimo: la media mensile davvero
  * risparmiata, arrotondata, con un'opzione sotto e una sopra. Si parte da
@@ -376,7 +408,11 @@ export function buildYearWrapped(input: YearWrappedInput): YearWrapped {
     txPerDay: daysCovered > 0 ? txCount / daysCovered : 0,
     hasEnough: txCount >= WRAPPED_MIN_TX,
 
-    incomeTotal, expenseTotal,
+    incomeTotal,
+    incomeReceivedTotal: r2(realized.filter(t=>t.type==='income').reduce((sum,t)=>sum+t.amount,0)),
+    incomePlannedTotal: r2(planned.filter(t=>t.type==='income').reduce((sum,t)=>sum+t.amount,0)),
+    incomeComparison: buildIncomeComparison(input,realized,periodEndISO),
+    expenseTotal,
     expenseMonthlyAvg: monthsCovered > 0 ? r2(expenseTotal / monthsCovered) : 0,
     saved, savedMonthlyAvg,
     savingsRate: incomeTotal > 0 ? saved / incomeTotal : null,
@@ -405,6 +441,7 @@ export function buildYearWrapped(input: YearWrappedInput): YearWrapped {
 function pickStories(w: YearWrapped, monthsWithData: number, monthsWithExpense: number): WrappedStoryId[] {
   const out: WrappedStoryId[] = ['cover'];
   if (w.expenseTotal > 0) out.push('expense');
+  if (w.incomeTotal > 0) out.push('income');
   if (w.categories.length > 0) out.push('topCategory');
   // Un "mese più caro" ha senso solo se c'è un mese più leggero da cui distinguerlo.
   if (monthsWithExpense >= 2) out.push('peakMonth');

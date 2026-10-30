@@ -50,6 +50,28 @@ export const transactions: Transaction[] = params.has('empty') ? [] : params.has
   ...Array.from({length:10},(_,j) => ({id:`expense-${i}-${j}`,type:'expense' as const, amount: 24.9+j*5.4, category: j%2?'spesa':'ristoranti', account:'conto_corrente',date:iso(-i,j+1),description:j%2?'Spesa settimanale':'Caffè e pranzo',createdAt:0})),
   { id: `invest-${i}`, type: 'investment' as const, amount: 350, category: 'azioni_etf', account: 'conto_corrente', date: iso(-i,3), description: 'PAC ETF', createdAt: 0 },
 ]).flat();
+// Synthetic Wrapped income cases; never loaded by the production entry.
+if (params.has('wrappedIncome')) {
+  const mode=params.get('wrappedIncome'),year=now.getFullYear(),months=now.getMonth()+1;
+  transactions.splice(0,transactions.length);
+  if(mode==='planned')transactions.push(
+    {id:'wrapped-spend',type:'expense',amount:100,category:'spesa',account:'conto_corrente',date:iso(0,2),description:'Spesa test'},
+    {id:'wrapped-planned',type:'income',amount:4000,category:'stipendio',account:'conto_corrente',date:iso(0,28),description:'Entrata programmata test'},
+  );
+  else for(let month=1;month<=months;month++){
+    const key=`${year}-${String(month).padStart(2,'0')}`,previous=`${year-1}-${String(month).padStart(2,'0')}`;
+    const amount=mode==='large'?1_000_000_000:mode==='decline'?2500:mode==='flat'?2800:3000;
+    transactions.push(
+      {id:`wrapped-income-${month}`,type:'income',amount,category:'stipendio',account:'conto_corrente',date:`${key}-05`,description:'Stipendio test'},
+      {id:`wrapped-expense-${month}`,type:'expense',amount:3500,category:'spesa',account:'conto_corrente',date:`${key}-06`,description:'Spesa test'},
+    );
+    if(mode!=='noHistory'&&!(mode==='partial'&&month===2))transactions.push(
+      {id:`wrapped-previous-income-${month}`,type:'income',amount:2800,category:'stipendio',account:'conto_corrente',date:`${previous}-05`,description:'Stipendio precedente test'},
+      {id:`wrapped-previous-expense-${month}`,type:'expense',amount:2200,category:'spesa',account:'conto_corrente',date:`${previous}-06`,description:'Spesa precedente test'},
+    );
+  }
+}
+if(params.get('wrappedIncome')==='growthPlanned')transactions.push({id:'wrapped-planned-extra',type:'income',amount:4000,category:'stipendio',account:'conto_corrente',date:iso(0,28),description:'Entrata programmata test'});
 if (params.has('invalidPortfolioDate')) {
   categories.find(c => c.id === 'azioni_etf')!.subscriptionDate = '01/01/2020';
 }

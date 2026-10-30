@@ -10,6 +10,7 @@
 import { ReactNode } from 'react';
 import { formatCurrency, formatEuroRound } from '../../utils';
 import { YearWrapped, WrappedStoryId } from './yearWrapped';
+import { incomeComparisonPeriodText } from './wrappedIncomeCopy';
 
 /** "38.412" + ",60 €": l'intero grande, decimali e simbolo in piccolo. */
 function splitAmount(n: number): [string, string] {
@@ -35,14 +36,14 @@ const TONE: Record<Tone, string> = {
 };
 
 /** Il numero che occupa mezza schermata. `size` scende quando le cifre salgono. */
-function Big({ head, tail, size, tone = 'primary' }: {
-  head: string; tail?: string; size: number; tone?: Tone;
+function Big({ head, tail, size, tone = 'primary', fit = false }: {
+  head: string; tail?: string; size: number; tone?: Tone; fit?: boolean;
 }) {
   return (
     <p className={`balance-num font-bold leading-[0.9] tracking-[-0.05em] animate-rise-in ${TONE[tone]}`}
-      style={{ fontSize: size, animationDelay: '0.08s' }}>
+      style={{ fontSize: fit ? `min(${size}px, calc((min(100vw, 430px) - 40px) / ${Math.max(1,(head.length+(tail?.length??0)*0.44)*0.6)}))` : size, animationDelay: '0.08s' }}>
       {head}
-      {tail && <span className="text-secondary" style={{ fontSize: Math.round(size * 0.44) }}>{tail}</span>}
+      {tail && <span className="text-secondary" style={{ fontSize: fit ? '0.44em' : Math.round(size * 0.44) }}>{tail}</span>}
     </p>
   );
 }
@@ -218,6 +219,33 @@ export function WrappedStoryBody({ id, w }: { id: WrappedStoryId; w: YearWrapped
       );
     }
 
+    case 'income': {
+      const plannedOnly = w.incomeReceivedTotal <= 0;
+      const amount = plannedOnly ? w.incomePlannedTotal : w.incomeReceivedTotal;
+      const [head, tail] = splitAmount(amount);
+      const comparison = w.incomeComparison;
+      const grew = !!comparison && comparison.delta > 0;
+      const growthPct = comparison ? Math.round(comparison.deltaPct * 1000) / 10 : 0;
+      return (
+        <Story label={plannedOnly ? 'Entrate in programma' : 'Entrate incassate'}
+          punch={plannedOnly ? 'Sono in programma, non ancora in tasca.'
+            : grew ? 'Beh dai: quest’anno sono entrati più soldi.'
+            : 'Non solo uscite. Anche questi soldi fanno parte del tuo anno.'}
+          note={<>
+            {formatCurrency(amount / w.monthsCovered)} al mese in media sui {w.monthsCovered} mesi raccontati.
+            {comparison && (comparison.delta === 0 ? <> Incassi in linea con lo stesso periodo dell’anno scorso.</> : <> {formatCurrency(Math.abs(comparison.delta))}{comparison.delta > 0 ? ' in più' : ' in meno'} rispetto allo stesso periodo dell’anno scorso.</>)}
+            {!plannedOnly && w.incomePlannedTotal > 0 && <> Altri {formatCurrency(w.incomePlannedTotal)} sono in programma, non ancora incassati.</>}
+            {comparison && <> {incomeComparisonPeriodText(comparison)}</>}
+          </>}>
+          <Big head={head} tail={tail} size={sizeFor(head)} tone={plannedOnly ? 'gold' : 'green'} fit />
+          {grew && growthPct > 0 && <span className="inline-block mt-4 rounded-full px-3 py-1.5 text-[13px] font-semibold text-green"
+            style={{background:'rgba(var(--c-green) / 0.14)'}}>
+            {splitPercent(comparison!.deltaPct, true).join('')} di entrate incassate
+          </span>}
+        </Story>
+      );
+    }
+
     case 'topCategory': {
       const top = w.categories[0];
       const rest = w.categories.slice(1, 3);
@@ -367,6 +395,7 @@ export function WrappedStoryBody({ id, w }: { id: WrappedStoryId; w: YearWrapped
             ? 'Hai speso meno e messo via di più. Raro. Segnatelo.'
             : spentLess ? 'Hai speso meno dell\'anno scorso.'
             : savedMore ? 'Hai speso di più, ma ne è rimasto di più.'
+            : (w.incomeComparison?.delta ?? 0) > 0 ? 'Anno più caro, sì. Però le entrate sono cresciute: anche questo conta.'
             : 'Anno più caro del precedente. Almeno adesso lo sai.'}
           note={<>Stessi {w.monthsCovered} mesi a confronto, non un anno intero contro un pezzo d'anno.</>}>
           {v.expensePct !== null && (
