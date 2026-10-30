@@ -17,6 +17,10 @@ git.
 
 ---
 
+## 2026-10-30
+
+- **[Codex]** Wrapped racconta anche le entrate: nuova storia con incassi, media mensile e confronto positivo sull’anno precedente quando i dati lo consentono; richiamo nel riepilogo e nel confronto finale. Entrate programmate distinte da quelle già registrate, confronto sullo stesso intervallo trascorso e sulla stessa copertura di mesi, gestione del bisestile e dei ricorrenti in cache. Stile, palette, gesti, timer e obiettivo conservati; numero della nuova storia adattivo anche per importi grandi. `(pending)`
+
 ## 2026-10-28
 
 - **[Codex]** Nel modulo conto, Carta di credito nasconde Saldo iniziale. Disattivando il flag il campo riappare; il valore esistente viene conservato anche al salvataggio. Verificato nei due temi di UI2/UI3. `(pending)`

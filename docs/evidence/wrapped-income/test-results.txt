@@ -1,0 +1,77 @@
+wrapped-income-full-tests
+
+> sunny-finance@2.2.0 test
+> vitest run
+
+5:25:41 PM [vite] warning: `esbuild` option was specified by "vite:react-babel" plugin. This option is deprecated, please use `oxc` instead.
+5:25:41 PM [vite] warning: `optimizeDeps.esbuildOptions` option was specified by "vite:react-babel" plugin. This option is deprecated, please use `optimizeDeps.rolldownOptions` instead.
+Both esbuild and oxc options were set. oxc options will be used and esbuild options will be ignored. The following esbuild options were set: `{ jsx: 'automatic', jsxImportSource: undefined }`
+
+ RUN  v4.1.7 /workspace/antropic-claudai/sunny
+
+
+ Test Files  114 passed (114)
+      Tests  1127 passed (1127)
+   Start at  17:25:41
+   Duration  20.44s (transform 1.88s, setup 0ms, import 4.96s, tests 2.53s, environment 9ms)
+
+
+wrapped-income-build
+dist/assets/Ui31MonthScreen-CPF8lmE9.js           11.01 kB │ gzip:   3.97 kB
+dist/assets/MonthlyRecapScreen-C-Db6R8_.js        11.37 kB │ gzip:   4.02 kB
+dist/assets/InsightsScreenV2-Bpom3JDG.js          12.41 kB │ gzip:   4.63 kB
+dist/assets/AccountBalanceScreen-CPqdTrSC.js      14.12 kB │ gzip:   5.16 kB
+dist/assets/WealthV2Screen-XkY6Q0oR.js            15.15 kB │ gzip:   4.70 kB
+dist/assets/WealthScreen-C-5ynqPX.js              16.08 kB │ gzip:   5.16 kB
+dist/assets/CategorySpendingScreen-Bw_jFPDU.js    21.05 kB │ gzip:   6.74 kB
+dist/assets/forecastEngineV3-BC_3ob1c.js          24.81 kB │ gzip:   8.45 kB
+dist/assets/WrappedScreen-B5ixB2uI.js             25.91 kB │ gzip:   8.26 kB
+dist/assets/AICoachScreen-C0MxIjsl.js             31.49 kB │ gzip:  11.03 kB
+dist/assets/BudgetScreenV2-Ds2btv6K.js            35.17 kB │ gzip:  10.10 kB
+dist/assets/TransactionList-BJby4mKk.js           36.07 kB │ gzip:  10.84 kB
+dist/assets/PlanScreen-CKetOKEM.js                38.48 kB │ gzip:  12.21 kB
+dist/assets/InvestmentsScreen-C5XsXYED.js         62.03 kB │ gzip:  18.71 kB
+dist/assets/SettingsScreen-Ck_6AEw4.js            82.87 kB │ gzip:  24.21 kB
+dist/assets/ForecastV3Screen-RzohRFIn.js          91.67 kB │ gzip:  25.21 kB
+dist/assets/firebase-auth-CvFOk1p6.js            111.87 kB │ gzip:  22.84 kB
+dist/assets/react-D7rv8Q1m.js                    140.87 kB │ gzip:  45.26 kB
+dist/assets/xlsx-D_0l8YDs.js                     429.03 kB │ gzip: 143.08 kB
+dist/assets/firebase-firestore-DQqomrZl.js       434.75 kB │ gzip: 108.28 kB
+dist/assets/index-Nws3lwy7.js                    560.76 kB │ gzip: 170.05 kB
+
+(!) Some chunks are larger than 500 kB after minification. Consider:
+- Using dynamic import() to code-split the application
+- Use build.rollupOptions.output.manualChunks to improve chunking: https://rollupjs.org/configuration-options/#output-manualchunks
+- Adjust chunk size limit for this warning via build.chunkSizeWarningLimit.
+✓ built in 17.18s
+
+wrapped-income-browser-final
+PASS ui3-light-320-growth
+PASS ui3-dark-320-growth
+PASS ui3-light-390-growth
+PASS ui3-dark-390-growth
+PASS ui3-light-1440-growth
+PASS ui3-dark-1440-growth
+PASS ui2-light-390-growth
+PASS ui2-dark-390-growth
+PASS ui3-light-390-decline
+PASS ui3-dark-390-decline
+PASS ui3-light-390-flat
+PASS ui3-dark-390-flat
+PASS ui3-light-390-noHistory
+PASS ui3-dark-390-noHistory
+PASS ui3-light-390-partial
+PASS ui3-dark-390-partial
+PASS ui3-light-390-planned
+PASS ui3-dark-390-planned
+PASS ui3-light-390-growthPlanned
+PASS ui3-dark-390-growthPlanned
+PASS ui3-light-320-large
+PASS ui3-dark-320-large
+
+wrapped-income-regression
+light [ '', "Imposta l'obiettivo 2027" ]
+dark [ '', "Imposta l'obiettivo 2027" ]
+light [ '', "Imposta l'obiettivo 2027" ]
+dark [ '', "Imposta l'obiettivo 2027" ]
+PASS Wrapped stories, summary, goal, close and editor cleanup

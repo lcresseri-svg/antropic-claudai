@@ -8,6 +8,7 @@
 // storie): una griglia con "—" in mezzo racconta i buchi, non l'anno.
 import { formatCurrency, formatEuroRound } from '../../utils';
 import { YearWrapped, WRAPPED_TOP_CATS } from './yearWrapped';
+import { incomeComparisonPeriodText } from './wrappedIncomeCopy';
 
 interface Cell { label: string; value: string; tone?: 'gold' | 'green' | 'red' }
 
@@ -66,6 +67,18 @@ export function WrappedSummary({ w, onGoal }: { w: YearWrapped; onGoal: () => vo
           </div>
         ))}
       </div>
+
+      {w.incomeComparison && w.incomeComparison.delta > 0 && (
+        <div className="glass-card rounded-2xl p-[15px] mt-2">
+          <p className="label-caps text-tertiary">Una buona notizia</p>
+          <p className="text-[17px] font-semibold text-primary mt-2">Le entrate sono cresciute.</p>
+          <p className="text-[24px] font-bold text-green balance-num mt-2">+{formatCurrency(w.incomeComparison.delta)}</p>
+          <p className="text-[12px] text-secondary leading-relaxed mt-2">
+            Incassati in più rispetto allo stesso periodo del {w.year - 1}.
+            {' '}{incomeComparisonPeriodText(w.incomeComparison)}
+          </p>
+        </div>
+      )}
 
       {head.length > 0 && (
         <div className="glass-card rounded-2xl p-[15px] mt-2">

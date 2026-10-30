@@ -140,7 +140,7 @@ describe('storie', () => {
       ],
     });
     expect(w.stories).toEqual([
-      'cover', 'expense', 'topCategory', 'peakMonth', 'savingsRate',
+      'cover', 'expense', 'income', 'topCategory', 'peakMonth', 'savingsRate',
       'invested', 'netWorth', 'streak', 'largest', 'count', 'vsPrev',
     ]);
     expect(w.netWorthStart).toBe(10000);
@@ -294,5 +294,44 @@ describe('casi limite', () => {
     const w = build({ transactions: [tx({ date: '2026-07-01', category: 'sparita', amount: 30 })] });
     expect(w.categories[0].label).toBe('Sconosciuta');
     expect(w.largest?.description).toBe('Sconosciuta');   // ripiego sull'etichetta
+  });
+});
+
+describe('entrate del racconto',()=>{
+  const income=(date:string,amount:number,over:Partial<Transaction>={})=>tx({date,amount,type:'income',category:'stipendio',...over});
+  it('separates received and planned income and adds a story after expenses',()=>{
+    const w=build({todayISO:'2026-10-20',transactions:[tx({date:'2026-10-01',amount:50}),income('2026-10-05',1200),income('2026-10-28',300)],projected:[income('2026-10-30',100,{projected:true})]});
+    expect(w.incomeTotal).toBe(1600);
+    expect(w.incomeReceivedTotal).toBe(1200);expect(w.incomePlannedTotal).toBe(400);
+    expect(w.stories.slice(0,3)).toEqual(['cover','expense','income']);
+  });
+  it('compares only received income up to the same day, excluding card cash annotations and unrelated flows',()=>{
+    const w=build({todayISO:'2026-10-20',transactions:[income('2026-10-05',1200,{cashDelta:0}),income('2026-10-28',9999),income('2025-10-05',1000),income('2025-10-28',9999),tx({date:'2026-10-10',type:'refund',amount:1000,refundOf:'expense'}),tx({date:'2026-10-10',type:'transfer',amount:1000}),tx({date:'2026-10-10',type:'investment',direction:'out',amount:1000})]});
+    expect(w.incomeComparison).toMatchObject({current:1200,previous:1000,delta:200,deltaPct:0.2,periodEndISO:'2026-10-20',previousPeriodEndISO:'2025-10-20'});
+  });
+  it.each([[1000,0],[800,-200]])('reports equal or lower income without manufacturing growth (%s)',(amount,delta)=>{
+    const w=build({transactions:[income('2026-01-05',amount),income('2025-01-05',1000)]});
+    expect(w.incomeComparison?.delta).toBe(delta);
+  });
+  it('does not call a longer recorded history income growth',()=>{
+    const w=build({transactions:[income('2026-01-05',1000),income('2026-02-05',1000),income('2025-01-05',1000)]});
+    expect(w.incomeComparison).toBeNull();
+  });
+  it('does not use a zero or absent prior income as a percentage baseline',()=>{
+    expect(build({transactions:[income('2026-01-05',1000)]}).incomeComparison).toBeNull();
+    expect(build({transactions:[income('2026-01-05',1000),tx({date:'2025-01-05',amount:100})]}).incomeComparison).toBeNull();
+  });
+  it('uses the same realization rules for cached recurring income in both years',()=>{
+    const w=build({todayISO:'2026-10-20',transactions:[income('2026-10-05',2000),income('2025-10-05',1000),income('2025-10-05',1000,{recurring:{freq:'yearly',until:'2025-10-05'}})]});
+    expect(w.incomeComparison).toMatchObject({current:2000,previous:2000,delta:0,deltaPct:0});
+  });
+  it('clamps the same-day comparison across leap years',()=>{
+    const w=build({year:2024,todayISO:'2024-02-29',transactions:[income('2024-02-29',120),income('2023-02-28',100),income('2023-03-01',999)]});
+    expect(w.incomeComparison).toMatchObject({delta:20,previousPeriodEndISO:'2023-02-28'});
+  });
+  it('shows planned-only income honestly and omits the story when no income exists',()=>{
+    const w=build({todayISO:'2026-10-20',transactions:[income('2026-10-28',300)]});
+    expect(w.incomeReceivedTotal).toBe(0);expect(w.incomePlannedTotal).toBe(300);expect(w.incomeComparison).toBeNull();expect(w.stories).toContain('income');
+    expect(build({transactions:spese('2026-10',2)}).stories).not.toContain('income');
   });
 });

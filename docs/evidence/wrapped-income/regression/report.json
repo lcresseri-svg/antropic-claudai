@@ -1,0 +1,1394 @@
+[
+  {
+    "width": 320,
+    "theme": "light",
+    "palette": {
+      "background": [
+        255,
+        255,
+        255
+      ],
+      "paint": "rgba(0, 0, 0, 0) radial-gradient(120% 80% at 50% 0%, rgb(255, 244, 223) 0%, rgb(255, 255, 255) 55%) repeat scroll 0% 0% / auto padding-box border-box",
+      "contrast": {
+        "primary": 16.24696205746334,
+        "secondary": 7.088546120473262,
+        "tertiary": 5.535900245486638,
+        "gold": 6.213683316952544,
+        "green": 6.105963788003446,
+        "red": 6.089176293096874
+      }
+    },
+    "step": 0,
+    "text": "SUNNY WRAPPED\n\n2026\n\n10 mesi, 130 movimenti e qualche decisione discutibile.\n\nLi abbiamo contati tutti. Due minuti e te li raccontiamo.\n\ntocca per avanzare · 1 / 11",
+    "styles": {
+      "background": "rgba(0, 0, 0, 0) radial-gradient(120% 80% at 50% 0%, rgb(255, 244, 223) 0%, rgb(255, 255, 255) 55%) repeat scroll 0% 0% / auto padding-box border-box",
+      "color": "rgb(24, 24, 27)",
+      "font": "",
+      "border": "0px solid rgb(229, 231, 235)",
+      "radius": "0px"
+    }
+  },
+  {
+    "width": 320,
+    "theme": "light",
+    "palette": {
+      "background": [
+        255,
+        255,
+        255
+      ],
+      "paint": "rgba(0, 0, 0, 0) radial-gradient(120% 80% at 50% 0%, rgb(255, 244, 223) 0%, rgb(255, 255, 255) 55%) repeat scroll 0% 0% / auto padding-box border-box",
+      "contrast": {
+        "primary": 16.24696205746334,
+        "secondary": 7.088546120473262,
+        "tertiary": 5.535900245486638,
+        "gold": 6.213683316952544,
+        "green": 6.105963788003446,
+        "red": 6.089176293096874
+      }
+    },
+    "step": 1,
+    "text": "USCITE DELL'ANNO\n\n11.120,00 €\n\nNon tutte in caffè, promesso.\n\n1112,00 € al mese in media, su 10 mesi.\n\n2 / 11",
+    "styles": {
+      "background": "rgb(255, 255, 255) none repeat scroll 0% 0% / auto padding-box border-box",
+      "color": "rgb(24, 24, 27)",
+      "font": "",
+      "border": "0px solid rgb(229, 231, 235)",
+      "radius": "0px"
+    }
+  },
+  {
+    "width": 320,
+    "theme": "light",
+    "palette": {
+      "background": [
+        255,
+        255,
+        255
+      ],
+      "paint": "rgba(0, 0, 0, 0) radial-gradient(120% 80% at 50% 0%, rgb(255, 244, 223) 0%, rgb(255, 255, 255) 55%) repeat scroll 0% 0% / auto padding-box border-box",
+      "contrast": {
+        "primary": 16.24696205746334,
+        "secondary": 7.088546120473262,
+        "tertiary": 5.535900245486638,
+        "gold": 6.213683316952544,
+        "green": 6.105963788003446,
+        "red": 6.089176293096874
+      }
+    },
+    "step": 2,
+    "text": "ENTRATE INCASSATE\n\n24.500,00 €\n\nNon solo uscite. Anche questi soldi fanno parte del tuo anno.\n\n2450,00 € al mese in media sui 10 mesi raccontati.\n\n3 / 11",
+    "styles": {
+      "background": "rgb(255, 255, 255) none repeat scroll 0% 0% / auto padding-box border-box",
+      "color": "rgb(24, 24, 27)",
+      "font": "",
+      "border": "0px solid rgb(229, 231, 235)",
+      "radius": "0px"
+    }
+  },
+  {
+    "width": 320,
+    "theme": "light",
+    "palette": {
+      "background": [
+        255,
+        255,
+        255
+      ],
+      "paint": "rgba(0, 0, 0, 0) radial-gradient(120% 80% at 50% 0%, rgb(255, 244, 223) 0%, rgb(255, 255, 255) 55%) repeat scroll 0% 0% / auto padding-box border-box",
+      "contrast": {
+        "primary": 16.24696205746334,
+        "secondary": 7.088546120473262,
+        "tertiary": 5.535900245486638,
+        "gold": 6.213683316952544,
+        "green": 6.105963788003446,
+        "red": 6.089176293096874
+      }
+    },
+    "step": 3,
+    "text": "CATEGORIA NUMERO UNO\n\n🏠 Casa\n\n6200,00 €\n\n56%\n23%\n21%\n\nCasa. Quasi un terzo di tutto.\n\nDietro: Spesa 2595,00 € e Ristoranti 2325,00 €.\n\n4 / 11",
+    "styles": {
+      "background": "rgb(255, 255, 255) none repeat scroll 0% 0% / auto padding-box border-box",
+      "color": "rgb(24, 24, 27)",
+      "font": "",
+      "border": "0px solid rgb(229, 231, 235)",
+      "radius": "0px"
+    }
+  },
+  {
+    "width": 320,
+    "theme": "light",
+    "palette": {
+      "background": [
+        255,
+        255,
+        255
+      ],
+      "paint": "rgba(0, 0, 0, 0) radial-gradient(120% 80% at 50% 0%, rgb(255, 244, 223) 0%, rgb(255, 255, 255) 55%) repeat scroll 0% 0% / auto padding-box border-box",
+      "contrast": {
+        "primary": 16.24696205746334,
+        "secondary": 7.088546120473262,
+        "tertiary": 5.535900245486638,
+        "gold": 6.213683316952544,
+        "green": 6.105963788003446,
+        "red": 6.089176293096874
+      }
+    },
+    "step": 4,
+    "text": "IL MESE PIÙ CARO\n\nGennaio\n\n1112,00 €\n\nG\nF\nM\nA\nM\nG\nL\nA\nS\nO\n\nGennaio: meglio non parlarne. A gennaio invece eri in ferie anche dal tuo conto.\n\nIl più leggero è stato gennaio, 1112,00 €.\n\n5 / 11",
+    "styles": {
+      "background": "rgb(255, 255, 255) none repeat scroll 0% 0% / auto padding-box border-box",
+      "color": "rgb(24, 24, 27)",
+      "font": "",
+      "border": "0px solid rgb(229, 231, 235)",
+      "radius": "0px"
+    }
+  },
+  {
+    "width": 320,
+    "theme": "light",
+    "palette": {
+      "background": [
+        255,
+        255,
+        255
+      ],
+      "paint": "rgba(0, 0, 0, 0) radial-gradient(120% 80% at 50% 0%, rgb(255, 244, 223) 0%, rgb(255, 255, 255) 55%) repeat scroll 0% 0% / auto padding-box border-box",
+      "contrast": {
+        "primary": 16.24696205746334,
+        "secondary": 7.088546120473262,
+        "tertiary": 5.535900245486638,
+        "gold": 6.213683316952544,
+        "green": 6.105963788003446,
+        "red": 6.089176293096874
+      }
+    },
+    "step": 5,
+    "text": "TASSO DI RISPARMIO\n\n40,3%\n\nSu 100 € entrati, 40 sono rimasti. Il tuo io di gennaio non ci credeva.\n\n9880,00 € messi da parte su 24.500,00 € di entrate.\n\n6 / 11",
+    "styles": {
+      "background": "rgba(0, 0, 0, 0) radial-gradient(120% 80% at 50% 100%, rgb(255, 244, 223) 0%, rgb(255, 255, 255) 55%) repeat scroll 0% 0% / auto padding-box border-box",
+      "color": "rgb(24, 24, 27)",
+      "font": "",
+      "border": "0px solid rgb(229, 231, 235)",
+      "radius": "0px"
+    }
+  },
+  {
+    "width": 320,
+    "theme": "light",
+    "palette": {
+      "background": [
+        255,
+        255,
+        255
+      ],
+      "paint": "rgba(0, 0, 0, 0) radial-gradient(120% 80% at 50% 0%, rgb(255, 244, 223) 0%, rgb(255, 255, 255) 55%) repeat scroll 0% 0% / auto padding-box border-box",
+      "contrast": {
+        "primary": 16.24696205746334,
+        "secondary": 7.088546120473262,
+        "tertiary": 5.535900245486638,
+        "gold": 6.213683316952544,
+        "green": 6.105963788003446,
+        "red": 6.089176293096874
+      }
+    },
+    "step": 6,
+    "text": "INVESTITO NELL'ANNO\n\n3500 €\n\n350 € al mese · 10 mesi su 10\n\nUn versamento al mese, tutti i mesi. Noiosissimo. Perfetto.\n\nIl 14% di quello che è entrato è finito lì dentro.\n\n7 / 11",
+    "styles": {
+      "background": "rgb(255, 255, 255) none repeat scroll 0% 0% / auto padding-box border-box",
+      "color": "rgb(24, 24, 27)",
+      "font": "",
+      "border": "0px solid rgb(229, 231, 235)",
+      "radius": "0px"
+    }
+  },
+  {
+    "width": 320,
+    "theme": "light",
+    "palette": {
+      "background": [
+        255,
+        255,
+        255
+      ],
+      "paint": "rgba(0, 0, 0, 0) radial-gradient(120% 80% at 50% 0%, rgb(255, 244, 223) 0%, rgb(255, 255, 255) 55%) repeat scroll 0% 0% / auto padding-box border-box",
+      "contrast": {
+        "primary": 16.24696205746334,
+        "secondary": 7.088546120473262,
+        "tertiary": 5.535900245486638,
+        "gold": 6.213683316952544,
+        "green": 6.105963788003446,
+        "red": 6.089176293096874
+      }
+    },
+    "step": 7,
+    "text": "PATRIMONIO NETTO\n\n19.901 €\n\n30.856 €\n\n+55%\n\nLa riga che conta va su.\n\n+10.955 € in 10 mesi.\n\n8 / 11",
+    "styles": {
+      "background": "rgb(255, 255, 255) none repeat scroll 0% 0% / auto padding-box border-box",
+      "color": "rgb(24, 24, 27)",
+      "font": "",
+      "border": "0px solid rgb(229, 231, 235)",
+      "radius": "0px"
+    }
+  },
+  {
+    "width": 320,
+    "theme": "light",
+    "palette": {
+      "background": [
+        255,
+        255,
+        255
+      ],
+      "paint": "rgba(0, 0, 0, 0) radial-gradient(120% 80% at 50% 0%, rgb(255, 244, 223) 0%, rgb(255, 255, 255) 55%) repeat scroll 0% 0% / auto padding-box border-box",
+      "contrast": {
+        "primary": 16.24696205746334,
+        "secondary": 7.088546120473262,
+        "tertiary": 5.535900245486638,
+        "gold": 6.213683316952544,
+        "green": 6.105963788003446,
+        "red": 6.089176293096874
+      }
+    },
+    "step": 8,
+    "text": "MESI CHIUSI IN RISPARMIO, DI FILA\n\n10\n\nG\nF\nM\nA\nM\nG\nL\nA\nS\nO\n\nDa gennaio non hai più chiuso un mese in rosso.\n\nSu 10 mesi raccontati.\n\n9 / 11",
+    "styles": {
+      "background": "rgb(255, 255, 255) none repeat scroll 0% 0% / auto padding-box border-box",
+      "color": "rgb(24, 24, 27)",
+      "font": "",
+      "border": "0px solid rgb(229, 231, 235)",
+      "radius": "0px"
+    }
+  },
+  {
+    "width": 320,
+    "theme": "light",
+    "palette": {
+      "background": [
+        255,
+        255,
+        255
+      ],
+      "paint": "rgba(0, 0, 0, 0) radial-gradient(120% 80% at 50% 0%, rgb(255, 244, 223) 0%, rgb(255, 255, 255) 55%) repeat scroll 0% 0% / auto padding-box border-box",
+      "contrast": {
+        "primary": 16.24696205746334,
+        "secondary": 7.088546120473262,
+        "tertiary": 5.535900245486638,
+        "gold": 6.213683316952544,
+        "green": 6.105963788003446,
+        "red": 6.089176293096874
+      }
+    },
+    "step": 9,
+    "text": "LA SPESA PIÙ GRANDE\n\n620 €\n\n🏠\n\nAffitto\n\nCasa · 2 ottobre · Conto Corrente\n\nUna sola voce, e si è sentita.\n\nVale il 6% di tutto quello che hai speso quest'anno.\n\n10 / 11",
+    "styles": {
+      "background": "rgb(255, 255, 255) none repeat scroll 0% 0% / auto padding-box border-box",
+      "color": "rgb(24, 24, 27)",
+      "font": "",
+      "border": "0px solid rgb(229, 231, 235)",
+      "radius": "0px"
+    }
+  },
+  {
+    "width": 320,
+    "theme": "light",
+    "palette": {
+      "background": [
+        255,
+        255,
+        255
+      ],
+      "paint": "rgba(0, 0, 0, 0) radial-gradient(120% 80% at 50% 0%, rgb(255, 244, 223) 0%, rgb(255, 255, 255) 55%) repeat scroll 0% 0% / auto padding-box border-box",
+      "contrast": {
+        "primary": 16.24696205746334,
+        "secondary": 7.088546120473262,
+        "tertiary": 5.535900245486638,
+        "gold": 6.213683316952544,
+        "green": 6.105963788003446,
+        "red": 6.089176293096874
+      }
+    },
+    "step": 10,
+    "text": "MOVIMENTI REGISTRATI\n\n130\n\n130 volte hai detto \"poi lo segno\". E poi l'hai segnato.\n\nUno ogni 2 giorni.\n\n11 / 11 · continua",
+    "styles": {
+      "background": "rgb(255, 255, 255) none repeat scroll 0% 0% / auto padding-box border-box",
+      "color": "rgb(24, 24, 27)",
+      "font": "",
+      "border": "0px solid rgb(229, 231, 235)",
+      "radius": "0px"
+    }
+  },
+  {
+    "width": 320,
+    "theme": "light",
+    "palette": {
+      "background": [
+        255,
+        255,
+        255
+      ],
+      "paint": "rgba(0, 0, 0, 0) radial-gradient(120% 80% at 50% 0%, rgb(255, 244, 223) 0%, rgb(255, 255, 255) 55%) repeat scroll 0% 0% / auto padding-box border-box",
+      "contrast": {
+        "primary": 16.24696205746334,
+        "secondary": 7.088546120473262,
+        "tertiary": 5.535900245486638,
+        "gold": 6.213683316952544,
+        "green": 6.105963788003446,
+        "red": 6.089176293096874
+      }
+    },
+    "step": "summary",
+    "text": "SUNNY WRAPPED\n\nIL TUO 2026 IN NUMERI\n\nTutto in una schermata\n\nGennaio–ottobre 2026\n\nENTRATE\n\n24.500,00 €\n\nUSCITE\n\n11.120,00 €\n\nRISPARMIATO\n\n9880,00 €\n\nTASSO RISPARMIO\n\n40,3%\n\nINVESTITO\n\n3500,00 €\n\nPATRIMONIO\n\n30.856,00 €\n\nMEDIA MENSILE\n\n1112,00 €\n\nMOVIMENTI\n\n130\n\nMESE PIÙ CARO\n\nGennaio · 1112 €\n\nSTREAK\n\n10 mesi\n\nLE TUE CATEGORIE DELL'ANNO\n\nCasa\n6200,00 €\nSpesa\n2595,00 €\nRistoranti\n2325,00 €\nImposta l'obiettivo 2027",
+    "styles": {
+      "background": "rgb(255, 255, 255) none repeat scroll 0% 0% / auto padding-box border-box",
+      "color": "rgb(24, 24, 27)",
+      "font": "",
+      "border": "0px solid rgb(229, 231, 235)",
+      "radius": "0px"
+    }
+  },
+  {
+    "width": 320,
+    "theme": "dark",
+    "palette": {
+      "background": [
+        9,
+        9,
+        9
+      ],
+      "paint": "rgba(0, 0, 0, 0) radial-gradient(120% 80% at 50% 0%, rgb(26, 23, 20) 0%, rgb(9, 9, 9) 55%) repeat scroll 0% 0% / auto padding-box border-box",
+      "contrast": {
+        "primary": 1.0840188684147676,
+        "secondary": 2.2729005725605687,
+        "tertiary": 5.030930946356511,
+        "gold": 1.5814131349376586,
+        "green": 2.2000539707820352,
+        "red": 3.3882133586627314
+      }
+    },
+    "step": 0,
+    "text": "SUNNY WRAPPED\n\n2026\n\n10 mesi, 130 movimenti e qualche decisione discutibile.\n\nLi abbiamo contati tutti. Due minuti e te li raccontiamo.\n\ntocca per avanzare · 1 / 11",
+    "styles": {
+      "background": "rgba(0, 0, 0, 0) radial-gradient(120% 80% at 50% 0%, rgb(26, 23, 20) 0%, rgb(9, 9, 9) 55%) repeat scroll 0% 0% / auto padding-box border-box",
+      "color": "rgb(242, 236, 216)",
+      "font": "",
+      "border": "0px solid rgb(229, 231, 235)",
+      "radius": "0px"
+    }
+  },
+  {
+    "width": 320,
+    "theme": "dark",
+    "palette": {
+      "background": [
+        9,
+        9,
+        9
+      ],
+      "paint": "rgba(0, 0, 0, 0) radial-gradient(120% 80% at 50% 0%, rgb(26, 23, 20) 0%, rgb(9, 9, 9) 55%) repeat scroll 0% 0% / auto padding-box border-box",
+      "contrast": {
+        "primary": 1.0840188684147676,
+        "secondary": 2.2729005725605687,
+        "tertiary": 5.030930946356511,
+        "gold": 1.5814131349376586,
+        "green": 2.2000539707820352,
+        "red": 3.3882133586627314
+      }
+    },
+    "step": 1,
+    "text": "USCITE DELL'ANNO\n\n11.120,00 €\n\nNon tutte in caffè, promesso.\n\n1112,00 € al mese in media, su 10 mesi.\n\n2 / 11",
+    "styles": {
+      "background": "rgb(9, 9, 9) none repeat scroll 0% 0% / auto padding-box border-box",
+      "color": "rgb(242, 236, 216)",
+      "font": "",
+      "border": "0px solid rgb(229, 231, 235)",
+      "radius": "0px"
+    }
+  },
+  {
+    "width": 320,
+    "theme": "dark",
+    "palette": {
+      "background": [
+        9,
+        9,
+        9
+      ],
+      "paint": "rgba(0, 0, 0, 0) radial-gradient(120% 80% at 50% 0%, rgb(26, 23, 20) 0%, rgb(9, 9, 9) 55%) repeat scroll 0% 0% / auto padding-box border-box",
+      "contrast": {
+        "primary": 1.0840188684147676,
+        "secondary": 2.2729005725605687,
+        "tertiary": 5.030930946356511,
+        "gold": 1.5814131349376586,
+        "green": 2.2000539707820352,
+        "red": 3.3882133586627314
+      }
+    },
+    "step": 2,
+    "text": "ENTRATE INCASSATE\n\n24.500,00 €\n\nNon solo uscite. Anche questi soldi fanno parte del tuo anno.\n\n2450,00 € al mese in media sui 10 mesi raccontati.\n\n3 / 11",
+    "styles": {
+      "background": "rgb(9, 9, 9) none repeat scroll 0% 0% / auto padding-box border-box",
+      "color": "rgb(242, 236, 216)",
+      "font": "",
+      "border": "0px solid rgb(229, 231, 235)",
+      "radius": "0px"
+    }
+  },
+  {
+    "width": 320,
+    "theme": "dark",
+    "palette": {
+      "background": [
+        9,
+        9,
+        9
+      ],
+      "paint": "rgba(0, 0, 0, 0) radial-gradient(120% 80% at 50% 0%, rgb(26, 23, 20) 0%, rgb(9, 9, 9) 55%) repeat scroll 0% 0% / auto padding-box border-box",
+      "contrast": {
+        "primary": 1.0840188684147676,
+        "secondary": 2.2729005725605687,
+        "tertiary": 5.030930946356511,
+        "gold": 1.5814131349376586,
+        "green": 2.2000539707820352,
+        "red": 3.3882133586627314
+      }
+    },
+    "step": 3,
+    "text": "CATEGORIA NUMERO UNO\n\n🏠 Casa\n\n6200,00 €\n\n56%\n23%\n21%\n\nCasa. Quasi un terzo di tutto.\n\nDietro: Spesa 2595,00 € e Ristoranti 2325,00 €.\n\n4 / 11",
+    "styles": {
+      "background": "rgb(9, 9, 9) none repeat scroll 0% 0% / auto padding-box border-box",
+      "color": "rgb(242, 236, 216)",
+      "font": "",
+      "border": "0px solid rgb(229, 231, 235)",
+      "radius": "0px"
+    }
+  },
+  {
+    "width": 320,
+    "theme": "dark",
+    "palette": {
+      "background": [
+        9,
+        9,
+        9
+      ],
+      "paint": "rgba(0, 0, 0, 0) radial-gradient(120% 80% at 50% 0%, rgb(26, 23, 20) 0%, rgb(9, 9, 9) 55%) repeat scroll 0% 0% / auto padding-box border-box",
+      "contrast": {
+        "primary": 1.0840188684147676,
+        "secondary": 2.2729005725605687,
+        "tertiary": 5.030930946356511,
+        "gold": 1.5814131349376586,
+        "green": 2.2000539707820352,
+        "red": 3.3882133586627314
+      }
+    },
+    "step": 4,
+    "text": "IL MESE PIÙ CARO\n\nGennaio\n\n1112,00 €\n\nG\nF\nM\nA\nM\nG\nL\nA\nS\nO\n\nGennaio: meglio non parlarne. A gennaio invece eri in ferie anche dal tuo conto.\n\nIl più leggero è stato gennaio, 1112,00 €.\n\n5 / 11",
+    "styles": {
+      "background": "rgb(9, 9, 9) none repeat scroll 0% 0% / auto padding-box border-box",
+      "color": "rgb(242, 236, 216)",
+      "font": "",
+      "border": "0px solid rgb(229, 231, 235)",
+      "radius": "0px"
+    }
+  },
+  {
+    "width": 320,
+    "theme": "dark",
+    "palette": {
+      "background": [
+        9,
+        9,
+        9
+      ],
+      "paint": "rgba(0, 0, 0, 0) radial-gradient(120% 80% at 50% 0%, rgb(26, 23, 20) 0%, rgb(9, 9, 9) 55%) repeat scroll 0% 0% / auto padding-box border-box",
+      "contrast": {
+        "primary": 1.0840188684147676,
+        "secondary": 2.2729005725605687,
+        "tertiary": 5.030930946356511,
+        "gold": 1.5814131349376586,
+        "green": 2.2000539707820352,
+        "red": 3.3882133586627314
+      }
+    },
+    "step": 5,
+    "text": "TASSO DI RISPARMIO\n\n40,3%\n\nSu 100 € entrati, 40 sono rimasti. Il tuo io di gennaio non ci credeva.\n\n9880,00 € messi da parte su 24.500,00 € di entrate.\n\n6 / 11",
+    "styles": {
+      "background": "rgba(0, 0, 0, 0) radial-gradient(120% 80% at 50% 100%, rgb(26, 23, 20) 0%, rgb(9, 9, 9) 55%) repeat scroll 0% 0% / auto padding-box border-box",
+      "color": "rgb(242, 236, 216)",
+      "font": "",
+      "border": "0px solid rgb(229, 231, 235)",
+      "radius": "0px"
+    }
+  },
+  {
+    "width": 320,
+    "theme": "dark",
+    "palette": {
+      "background": [
+        9,
+        9,
+        9
+      ],
+      "paint": "rgba(0, 0, 0, 0) radial-gradient(120% 80% at 50% 0%, rgb(26, 23, 20) 0%, rgb(9, 9, 9) 55%) repeat scroll 0% 0% / auto padding-box border-box",
+      "contrast": {
+        "primary": 1.0840188684147676,
+        "secondary": 2.2729005725605687,
+        "tertiary": 5.030930946356511,
+        "gold": 1.5814131349376586,
+        "green": 2.2000539707820352,
+        "red": 3.3882133586627314
+      }
+    },
+    "step": 6,
+    "text": "INVESTITO NELL'ANNO\n\n3500 €\n\n350 € al mese · 10 mesi su 10\n\nUn versamento al mese, tutti i mesi. Noiosissimo. Perfetto.\n\nIl 14% di quello che è entrato è finito lì dentro.\n\n7 / 11",
+    "styles": {
+      "background": "rgb(9, 9, 9) none repeat scroll 0% 0% / auto padding-box border-box",
+      "color": "rgb(242, 236, 216)",
+      "font": "",
+      "border": "0px solid rgb(229, 231, 235)",
+      "radius": "0px"
+    }
+  },
+  {
+    "width": 320,
+    "theme": "dark",
+    "palette": {
+      "background": [
+        9,
+        9,
+        9
+      ],
+      "paint": "rgba(0, 0, 0, 0) radial-gradient(120% 80% at 50% 0%, rgb(26, 23, 20) 0%, rgb(9, 9, 9) 55%) repeat scroll 0% 0% / auto padding-box border-box",
+      "contrast": {
+        "primary": 1.0840188684147676,
+        "secondary": 2.2729005725605687,
+        "tertiary": 5.030930946356511,
+        "gold": 1.5814131349376586,
+        "green": 2.2000539707820352,
+        "red": 3.3882133586627314
+      }
+    },
+    "step": 7,
+    "text": "PATRIMONIO NETTO\n\n19.901 €\n\n30.856 €\n\n+55%\n\nLa riga che conta va su.\n\n+10.955 € in 10 mesi.\n\n8 / 11",
+    "styles": {
+      "background": "rgb(9, 9, 9) none repeat scroll 0% 0% / auto padding-box border-box",
+      "color": "rgb(242, 236, 216)",
+      "font": "",
+      "border": "0px solid rgb(229, 231, 235)",
+      "radius": "0px"
+    }
+  },
+  {
+    "width": 320,
+    "theme": "dark",
+    "palette": {
+      "background": [
+        9,
+        9,
+        9
+      ],
+      "paint": "rgba(0, 0, 0, 0) radial-gradient(120% 80% at 50% 0%, rgb(26, 23, 20) 0%, rgb(9, 9, 9) 55%) repeat scroll 0% 0% / auto padding-box border-box",
+      "contrast": {
+        "primary": 1.0840188684147676,
+        "secondary": 2.2729005725605687,
+        "tertiary": 5.030930946356511,
+        "gold": 1.5814131349376586,
+        "green": 2.2000539707820352,
+        "red": 3.3882133586627314
+      }
+    },
+    "step": 8,
+    "text": "MESI CHIUSI IN RISPARMIO, DI FILA\n\n10\n\nG\nF\nM\nA\nM\nG\nL\nA\nS\nO\n\nDa gennaio non hai più chiuso un mese in rosso.\n\nSu 10 mesi raccontati.\n\n9 / 11",
+    "styles": {
+      "background": "rgb(9, 9, 9) none repeat scroll 0% 0% / auto padding-box border-box",
+      "color": "rgb(242, 236, 216)",
+      "font": "",
+      "border": "0px solid rgb(229, 231, 235)",
+      "radius": "0px"
+    }
+  },
+  {
+    "width": 320,
+    "theme": "dark",
+    "palette": {
+      "background": [
+        9,
+        9,
+        9
+      ],
+      "paint": "rgba(0, 0, 0, 0) radial-gradient(120% 80% at 50% 0%, rgb(26, 23, 20) 0%, rgb(9, 9, 9) 55%) repeat scroll 0% 0% / auto padding-box border-box",
+      "contrast": {
+        "primary": 1.0840188684147676,
+        "secondary": 2.2729005725605687,
+        "tertiary": 5.030930946356511,
+        "gold": 1.5814131349376586,
+        "green": 2.2000539707820352,
+        "red": 3.3882133586627314
+      }
+    },
+    "step": 9,
+    "text": "LA SPESA PIÙ GRANDE\n\n620 €\n\n🏠\n\nAffitto\n\nCasa · 2 ottobre · Conto Corrente\n\nUna sola voce, e si è sentita.\n\nVale il 6% di tutto quello che hai speso quest'anno.\n\n10 / 11",
+    "styles": {
+      "background": "rgb(9, 9, 9) none repeat scroll 0% 0% / auto padding-box border-box",
+      "color": "rgb(242, 236, 216)",
+      "font": "",
+      "border": "0px solid rgb(229, 231, 235)",
+      "radius": "0px"
+    }
+  },
+  {
+    "width": 320,
+    "theme": "dark",
+    "palette": {
+      "background": [
+        9,
+        9,
+        9
+      ],
+      "paint": "rgba(0, 0, 0, 0) radial-gradient(120% 80% at 50% 0%, rgb(26, 23, 20) 0%, rgb(9, 9, 9) 55%) repeat scroll 0% 0% / auto padding-box border-box",
+      "contrast": {
+        "primary": 1.0840188684147676,
+        "secondary": 2.2729005725605687,
+        "tertiary": 5.030930946356511,
+        "gold": 1.5814131349376586,
+        "green": 2.2000539707820352,
+        "red": 3.3882133586627314
+      }
+    },
+    "step": 10,
+    "text": "MOVIMENTI REGISTRATI\n\n130\n\n130 volte hai detto \"poi lo segno\". E poi l'hai segnato.\n\nUno ogni 2 giorni.\n\n11 / 11 · continua",
+    "styles": {
+      "background": "rgb(9, 9, 9) none repeat scroll 0% 0% / auto padding-box border-box",
+      "color": "rgb(242, 236, 216)",
+      "font": "",
+      "border": "0px solid rgb(229, 231, 235)",
+      "radius": "0px"
+    }
+  },
+  {
+    "width": 320,
+    "theme": "dark",
+    "palette": {
+      "background": [
+        9,
+        9,
+        9
+      ],
+      "paint": "rgba(0, 0, 0, 0) radial-gradient(120% 80% at 50% 0%, rgb(26, 23, 20) 0%, rgb(9, 9, 9) 55%) repeat scroll 0% 0% / auto padding-box border-box",
+      "contrast": {
+        "primary": 1.0840188684147676,
+        "secondary": 2.2729005725605687,
+        "tertiary": 5.030930946356511,
+        "gold": 1.5814131349376586,
+        "green": 2.2000539707820352,
+        "red": 3.3882133586627314
+      }
+    },
+    "step": "summary",
+    "text": "SUNNY WRAPPED\n\nIL TUO 2026 IN NUMERI\n\nTutto in una schermata\n\nGennaio–ottobre 2026\n\nENTRATE\n\n24.500,00 €\n\nUSCITE\n\n11.120,00 €\n\nRISPARMIATO\n\n9880,00 €\n\nTASSO RISPARMIO\n\n40,3%\n\nINVESTITO\n\n3500,00 €\n\nPATRIMONIO\n\n30.856,00 €\n\nMEDIA MENSILE\n\n1112,00 €\n\nMOVIMENTI\n\n130\n\nMESE PIÙ CARO\n\nGennaio · 1112 €\n\nSTREAK\n\n10 mesi\n\nLE TUE CATEGORIE DELL'ANNO\n\nCasa\n6200,00 €\nSpesa\n2595,00 €\nRistoranti\n2325,00 €\nImposta l'obiettivo 2027",
+    "styles": {
+      "background": "rgb(9, 9, 9) none repeat scroll 0% 0% / auto padding-box border-box",
+      "color": "rgb(242, 236, 216)",
+      "font": "",
+      "border": "0px solid rgb(229, 231, 235)",
+      "radius": "0px"
+    }
+  },
+  {
+    "width": 1440,
+    "theme": "light",
+    "palette": {
+      "background": [
+        255,
+        255,
+        255
+      ],
+      "paint": "rgba(0, 0, 0, 0) radial-gradient(120% 80% at 50% 0%, rgb(255, 244, 223) 0%, rgb(255, 255, 255) 55%) repeat scroll 0% 0% / auto padding-box border-box",
+      "contrast": {
+        "primary": 16.24696205746334,
+        "secondary": 7.088546120473262,
+        "tertiary": 5.535900245486638,
+        "gold": 6.213683316952544,
+        "green": 6.105963788003446,
+        "red": 6.089176293096874
+      }
+    },
+    "step": 0,
+    "text": "SUNNY WRAPPED\n\n2026\n\n10 mesi, 130 movimenti e qualche decisione discutibile.\n\nLi abbiamo contati tutti. Due minuti e te li raccontiamo.\n\ntocca per avanzare · 1 / 11",
+    "styles": {
+      "background": "rgba(0, 0, 0, 0) radial-gradient(120% 80% at 50% 0%, rgb(255, 244, 223) 0%, rgb(255, 255, 255) 55%) repeat scroll 0% 0% / auto padding-box border-box",
+      "color": "rgb(24, 24, 27)",
+      "font": "",
+      "border": "0px solid rgb(229, 231, 235)",
+      "radius": "0px"
+    }
+  },
+  {
+    "width": 1440,
+    "theme": "light",
+    "palette": {
+      "background": [
+        255,
+        255,
+        255
+      ],
+      "paint": "rgba(0, 0, 0, 0) radial-gradient(120% 80% at 50% 0%, rgb(255, 244, 223) 0%, rgb(255, 255, 255) 55%) repeat scroll 0% 0% / auto padding-box border-box",
+      "contrast": {
+        "primary": 16.24696205746334,
+        "secondary": 7.088546120473262,
+        "tertiary": 5.535900245486638,
+        "gold": 6.213683316952544,
+        "green": 6.105963788003446,
+        "red": 6.089176293096874
+      }
+    },
+    "step": 1,
+    "text": "USCITE DELL'ANNO\n\n11.120,00 €\n\nNon tutte in caffè, promesso.\n\n1112,00 € al mese in media, su 10 mesi.\n\n2 / 11",
+    "styles": {
+      "background": "rgb(255, 255, 255) none repeat scroll 0% 0% / auto padding-box border-box",
+      "color": "rgb(24, 24, 27)",
+      "font": "",
+      "border": "0px solid rgb(229, 231, 235)",
+      "radius": "0px"
+    }
+  },
+  {
+    "width": 1440,
+    "theme": "light",
+    "palette": {
+      "background": [
+        255,
+        255,
+        255
+      ],
+      "paint": "rgba(0, 0, 0, 0) radial-gradient(120% 80% at 50% 0%, rgb(255, 244, 223) 0%, rgb(255, 255, 255) 55%) repeat scroll 0% 0% / auto padding-box border-box",
+      "contrast": {
+        "primary": 16.24696205746334,
+        "secondary": 7.088546120473262,
+        "tertiary": 5.535900245486638,
+        "gold": 6.213683316952544,
+        "green": 6.105963788003446,
+        "red": 6.089176293096874
+      }
+    },
+    "step": 2,
+    "text": "ENTRATE INCASSATE\n\n24.500,00 €\n\nNon solo uscite. Anche questi soldi fanno parte del tuo anno.\n\n2450,00 € al mese in media sui 10 mesi raccontati.\n\n3 / 11",
+    "styles": {
+      "background": "rgb(255, 255, 255) none repeat scroll 0% 0% / auto padding-box border-box",
+      "color": "rgb(24, 24, 27)",
+      "font": "",
+      "border": "0px solid rgb(229, 231, 235)",
+      "radius": "0px"
+    }
+  },
+  {
+    "width": 1440,
+    "theme": "light",
+    "palette": {
+      "background": [
+        255,
+        255,
+        255
+      ],
+      "paint": "rgba(0, 0, 0, 0) radial-gradient(120% 80% at 50% 0%, rgb(255, 244, 223) 0%, rgb(255, 255, 255) 55%) repeat scroll 0% 0% / auto padding-box border-box",
+      "contrast": {
+        "primary": 16.24696205746334,
+        "secondary": 7.088546120473262,
+        "tertiary": 5.535900245486638,
+        "gold": 6.213683316952544,
+        "green": 6.105963788003446,
+        "red": 6.089176293096874
+      }
+    },
+    "step": 3,
+    "text": "CATEGORIA NUMERO UNO\n\n🏠 Casa\n\n6200,00 €\n\n56%\n23%\n21%\n\nCasa. Quasi un terzo di tutto.\n\nDietro: Spesa 2595,00 € e Ristoranti 2325,00 €.\n\n4 / 11",
+    "styles": {
+      "background": "rgb(255, 255, 255) none repeat scroll 0% 0% / auto padding-box border-box",
+      "color": "rgb(24, 24, 27)",
+      "font": "",
+      "border": "0px solid rgb(229, 231, 235)",
+      "radius": "0px"
+    }
+  },
+  {
+    "width": 1440,
+    "theme": "light",
+    "palette": {
+      "background": [
+        255,
+        255,
+        255
+      ],
+      "paint": "rgba(0, 0, 0, 0) radial-gradient(120% 80% at 50% 0%, rgb(255, 244, 223) 0%, rgb(255, 255, 255) 55%) repeat scroll 0% 0% / auto padding-box border-box",
+      "contrast": {
+        "primary": 16.24696205746334,
+        "secondary": 7.088546120473262,
+        "tertiary": 5.535900245486638,
+        "gold": 6.213683316952544,
+        "green": 6.105963788003446,
+        "red": 6.089176293096874
+      }
+    },
+    "step": 4,
+    "text": "IL MESE PIÙ CARO\n\nGennaio\n\n1112,00 €\n\nG\nF\nM\nA\nM\nG\nL\nA\nS\nO\n\nGennaio: meglio non parlarne. A gennaio invece eri in ferie anche dal tuo conto.\n\nIl più leggero è stato gennaio, 1112,00 €.\n\n5 / 11",
+    "styles": {
+      "background": "rgb(255, 255, 255) none repeat scroll 0% 0% / auto padding-box border-box",
+      "color": "rgb(24, 24, 27)",
+      "font": "",
+      "border": "0px solid rgb(229, 231, 235)",
+      "radius": "0px"
+    }
+  },
+  {
+    "width": 1440,
+    "theme": "light",
+    "palette": {
+      "background": [
+        255,
+        255,
+        255
+      ],
+      "paint": "rgba(0, 0, 0, 0) radial-gradient(120% 80% at 50% 0%, rgb(255, 244, 223) 0%, rgb(255, 255, 255) 55%) repeat scroll 0% 0% / auto padding-box border-box",
+      "contrast": {
+        "primary": 16.24696205746334,
+        "secondary": 7.088546120473262,
+        "tertiary": 5.535900245486638,
+        "gold": 6.213683316952544,
+        "green": 6.105963788003446,
+        "red": 6.089176293096874
+      }
+    },
+    "step": 5,
+    "text": "TASSO DI RISPARMIO\n\n40,3%\n\nSu 100 € entrati, 40 sono rimasti. Il tuo io di gennaio non ci credeva.\n\n9880,00 € messi da parte su 24.500,00 € di entrate.\n\n6 / 11",
+    "styles": {
+      "background": "rgba(0, 0, 0, 0) radial-gradient(120% 80% at 50% 100%, rgb(255, 244, 223) 0%, rgb(255, 255, 255) 55%) repeat scroll 0% 0% / auto padding-box border-box",
+      "color": "rgb(24, 24, 27)",
+      "font": "",
+      "border": "0px solid rgb(229, 231, 235)",
+      "radius": "0px"
+    }
+  },
+  {
+    "width": 1440,
+    "theme": "light",
+    "palette": {
+      "background": [
+        255,
+        255,
+        255
+      ],
+      "paint": "rgba(0, 0, 0, 0) radial-gradient(120% 80% at 50% 0%, rgb(255, 244, 223) 0%, rgb(255, 255, 255) 55%) repeat scroll 0% 0% / auto padding-box border-box",
+      "contrast": {
+        "primary": 16.24696205746334,
+        "secondary": 7.088546120473262,
+        "tertiary": 5.535900245486638,
+        "gold": 6.213683316952544,
+        "green": 6.105963788003446,
+        "red": 6.089176293096874
+      }
+    },
+    "step": 6,
+    "text": "INVESTITO NELL'ANNO\n\n3500 €\n\n350 € al mese · 10 mesi su 10\n\nUn versamento al mese, tutti i mesi. Noiosissimo. Perfetto.\n\nIl 14% di quello che è entrato è finito lì dentro.\n\n7 / 11",
+    "styles": {
+      "background": "rgb(255, 255, 255) none repeat scroll 0% 0% / auto padding-box border-box",
+      "color": "rgb(24, 24, 27)",
+      "font": "",
+      "border": "0px solid rgb(229, 231, 235)",
+      "radius": "0px"
+    }
+  },
+  {
+    "width": 1440,
+    "theme": "light",
+    "palette": {
+      "background": [
+        255,
+        255,
+        255
+      ],
+      "paint": "rgba(0, 0, 0, 0) radial-gradient(120% 80% at 50% 0%, rgb(255, 244, 223) 0%, rgb(255, 255, 255) 55%) repeat scroll 0% 0% / auto padding-box border-box",
+      "contrast": {
+        "primary": 16.24696205746334,
+        "secondary": 7.088546120473262,
+        "tertiary": 5.535900245486638,
+        "gold": 6.213683316952544,
+        "green": 6.105963788003446,
+        "red": 6.089176293096874
+      }
+    },
+    "step": 7,
+    "text": "PATRIMONIO NETTO\n\n19.901 €\n\n30.856 €\n\n+55%\n\nLa riga che conta va su.\n\n+10.955 € in 10 mesi.\n\n8 / 11",
+    "styles": {
+      "background": "rgb(255, 255, 255) none repeat scroll 0% 0% / auto padding-box border-box",
+      "color": "rgb(24, 24, 27)",
+      "font": "",
+      "border": "0px solid rgb(229, 231, 235)",
+      "radius": "0px"
+    }
+  },
+  {
+    "width": 1440,
+    "theme": "light",
+    "palette": {
+      "background": [
+        255,
+        255,
+        255
+      ],
+      "paint": "rgba(0, 0, 0, 0) radial-gradient(120% 80% at 50% 0%, rgb(255, 244, 223) 0%, rgb(255, 255, 255) 55%) repeat scroll 0% 0% / auto padding-box border-box",
+      "contrast": {
+        "primary": 16.24696205746334,
+        "secondary": 7.088546120473262,
+        "tertiary": 5.535900245486638,
+        "gold": 6.213683316952544,
+        "green": 6.105963788003446,
+        "red": 6.089176293096874
+      }
+    },
+    "step": 8,
+    "text": "MESI CHIUSI IN RISPARMIO, DI FILA\n\n10\n\nG\nF\nM\nA\nM\nG\nL\nA\nS\nO\n\nDa gennaio non hai più chiuso un mese in rosso.\n\nSu 10 mesi raccontati.\n\n9 / 11",
+    "styles": {
+      "background": "rgb(255, 255, 255) none repeat scroll 0% 0% / auto padding-box border-box",
+      "color": "rgb(24, 24, 27)",
+      "font": "",
+      "border": "0px solid rgb(229, 231, 235)",
+      "radius": "0px"
+    }
+  },
+  {
+    "width": 1440,
+    "theme": "light",
+    "palette": {
+      "background": [
+        255,
+        255,
+        255
+      ],
+      "paint": "rgba(0, 0, 0, 0) radial-gradient(120% 80% at 50% 0%, rgb(255, 244, 223) 0%, rgb(255, 255, 255) 55%) repeat scroll 0% 0% / auto padding-box border-box",
+      "contrast": {
+        "primary": 16.24696205746334,
+        "secondary": 7.088546120473262,
+        "tertiary": 5.535900245486638,
+        "gold": 6.213683316952544,
+        "green": 6.105963788003446,
+        "red": 6.089176293096874
+      }
+    },
+    "step": 9,
+    "text": "LA SPESA PIÙ GRANDE\n\n620 €\n\n🏠\n\nAffitto\n\nCasa · 2 ottobre · Conto Corrente\n\nUna sola voce, e si è sentita.\n\nVale il 6% di tutto quello che hai speso quest'anno.\n\n10 / 11",
+    "styles": {
+      "background": "rgb(255, 255, 255) none repeat scroll 0% 0% / auto padding-box border-box",
+      "color": "rgb(24, 24, 27)",
+      "font": "",
+      "border": "0px solid rgb(229, 231, 235)",
+      "radius": "0px"
+    }
+  },
+  {
+    "width": 1440,
+    "theme": "light",
+    "palette": {
+      "background": [
+        255,
+        255,
+        255
+      ],
+      "paint": "rgba(0, 0, 0, 0) radial-gradient(120% 80% at 50% 0%, rgb(255, 244, 223) 0%, rgb(255, 255, 255) 55%) repeat scroll 0% 0% / auto padding-box border-box",
+      "contrast": {
+        "primary": 16.24696205746334,
+        "secondary": 7.088546120473262,
+        "tertiary": 5.535900245486638,
+        "gold": 6.213683316952544,
+        "green": 6.105963788003446,
+        "red": 6.089176293096874
+      }
+    },
+    "step": 10,
+    "text": "MOVIMENTI REGISTRATI\n\n130\n\n130 volte hai detto \"poi lo segno\". E poi l'hai segnato.\n\nUno ogni 2 giorni.\n\n11 / 11 · continua",
+    "styles": {
+      "background": "rgb(255, 255, 255) none repeat scroll 0% 0% / auto padding-box border-box",
+      "color": "rgb(24, 24, 27)",
+      "font": "",
+      "border": "0px solid rgb(229, 231, 235)",
+      "radius": "0px"
+    }
+  },
+  {
+    "width": 1440,
+    "theme": "light",
+    "palette": {
+      "background": [
+        255,
+        255,
+        255
+      ],
+      "paint": "rgba(0, 0, 0, 0) radial-gradient(120% 80% at 50% 0%, rgb(255, 244, 223) 0%, rgb(255, 255, 255) 55%) repeat scroll 0% 0% / auto padding-box border-box",
+      "contrast": {
+        "primary": 16.24696205746334,
+        "secondary": 7.088546120473262,
+        "tertiary": 5.535900245486638,
+        "gold": 6.213683316952544,
+        "green": 6.105963788003446,
+        "red": 6.089176293096874
+      }
+    },
+    "step": "summary",
+    "text": "SUNNY WRAPPED\n\nIL TUO 2026 IN NUMERI\n\nTutto in una schermata\n\nGennaio–ottobre 2026\n\nENTRATE\n\n24.500,00 €\n\nUSCITE\n\n11.120,00 €\n\nRISPARMIATO\n\n9880,00 €\n\nTASSO RISPARMIO\n\n40,3%\n\nINVESTITO\n\n3500,00 €\n\nPATRIMONIO\n\n30.856,00 €\n\nMEDIA MENSILE\n\n1112,00 €\n\nMOVIMENTI\n\n130\n\nMESE PIÙ CARO\n\nGennaio · 1112 €\n\nSTREAK\n\n10 mesi\n\nLE TUE CATEGORIE DELL'ANNO\n\nCasa\n6200,00 €\nSpesa\n2595,00 €\nRistoranti\n2325,00 €\nImposta l'obiettivo 2027",
+    "styles": {
+      "background": "rgb(255, 255, 255) none repeat scroll 0% 0% / auto padding-box border-box",
+      "color": "rgb(24, 24, 27)",
+      "font": "",
+      "border": "0px solid rgb(229, 231, 235)",
+      "radius": "0px"
+    }
+  },
+  {
+    "width": 1440,
+    "theme": "dark",
+    "palette": {
+      "background": [
+        9,
+        9,
+        9
+      ],
+      "paint": "rgba(0, 0, 0, 0) radial-gradient(120% 80% at 50% 0%, rgb(26, 23, 20) 0%, rgb(9, 9, 9) 55%) repeat scroll 0% 0% / auto padding-box border-box",
+      "contrast": {
+        "primary": 1.0840188684147676,
+        "secondary": 2.2729005725605687,
+        "tertiary": 5.030930946356511,
+        "gold": 1.5814131349376586,
+        "green": 2.2000539707820352,
+        "red": 3.3882133586627314
+      }
+    },
+    "step": 0,
+    "text": "SUNNY WRAPPED\n\n2026\n\n10 mesi, 130 movimenti e qualche decisione discutibile.\n\nLi abbiamo contati tutti. Due minuti e te li raccontiamo.\n\ntocca per avanzare · 1 / 11",
+    "styles": {
+      "background": "rgba(0, 0, 0, 0) radial-gradient(120% 80% at 50% 0%, rgb(26, 23, 20) 0%, rgb(9, 9, 9) 55%) repeat scroll 0% 0% / auto padding-box border-box",
+      "color": "rgb(242, 236, 216)",
+      "font": "",
+      "border": "0px solid rgb(229, 231, 235)",
+      "radius": "0px"
+    }
+  },
+  {
+    "width": 1440,
+    "theme": "dark",
+    "palette": {
+      "background": [
+        9,
+        9,
+        9
+      ],
+      "paint": "rgba(0, 0, 0, 0) radial-gradient(120% 80% at 50% 0%, rgb(26, 23, 20) 0%, rgb(9, 9, 9) 55%) repeat scroll 0% 0% / auto padding-box border-box",
+      "contrast": {
+        "primary": 1.0840188684147676,
+        "secondary": 2.2729005725605687,
+        "tertiary": 5.030930946356511,
+        "gold": 1.5814131349376586,
+        "green": 2.2000539707820352,
+        "red": 3.3882133586627314
+      }
+    },
+    "step": 1,
+    "text": "USCITE DELL'ANNO\n\n11.120,00 €\n\nNon tutte in caffè, promesso.\n\n1112,00 € al mese in media, su 10 mesi.\n\n2 / 11",
+    "styles": {
+      "background": "rgb(9, 9, 9) none repeat scroll 0% 0% / auto padding-box border-box",
+      "color": "rgb(242, 236, 216)",
+      "font": "",
+      "border": "0px solid rgb(229, 231, 235)",
+      "radius": "0px"
+    }
+  },
+  {
+    "width": 1440,
+    "theme": "dark",
+    "palette": {
+      "background": [
+        9,
+        9,
+        9
+      ],
+      "paint": "rgba(0, 0, 0, 0) radial-gradient(120% 80% at 50% 0%, rgb(26, 23, 20) 0%, rgb(9, 9, 9) 55%) repeat scroll 0% 0% / auto padding-box border-box",
+      "contrast": {
+        "primary": 1.0840188684147676,
+        "secondary": 2.2729005725605687,
+        "tertiary": 5.030930946356511,
+        "gold": 1.5814131349376586,
+        "green": 2.2000539707820352,
+        "red": 3.3882133586627314
+      }
+    },
+    "step": 2,
+    "text": "ENTRATE INCASSATE\n\n24.500,00 €\n\nNon solo uscite. Anche questi soldi fanno parte del tuo anno.\n\n2450,00 € al mese in media sui 10 mesi raccontati.\n\n3 / 11",
+    "styles": {
+      "background": "rgb(9, 9, 9) none repeat scroll 0% 0% / auto padding-box border-box",
+      "color": "rgb(242, 236, 216)",
+      "font": "",
+      "border": "0px solid rgb(229, 231, 235)",
+      "radius": "0px"
+    }
+  },
+  {
+    "width": 1440,
+    "theme": "dark",
+    "palette": {
+      "background": [
+        9,
+        9,
+        9
+      ],
+      "paint": "rgba(0, 0, 0, 0) radial-gradient(120% 80% at 50% 0%, rgb(26, 23, 20) 0%, rgb(9, 9, 9) 55%) repeat scroll 0% 0% / auto padding-box border-box",
+      "contrast": {
+        "primary": 1.0840188684147676,
+        "secondary": 2.2729005725605687,
+        "tertiary": 5.030930946356511,
+        "gold": 1.5814131349376586,
+        "green": 2.2000539707820352,
+        "red": 3.3882133586627314
+      }
+    },
+    "step": 3,
+    "text": "CATEGORIA NUMERO UNO\n\n🏠 Casa\n\n6200,00 €\n\n56%\n23%\n21%\n\nCasa. Quasi un terzo di tutto.\n\nDietro: Spesa 2595,00 € e Ristoranti 2325,00 €.\n\n4 / 11",
+    "styles": {
+      "background": "rgb(9, 9, 9) none repeat scroll 0% 0% / auto padding-box border-box",
+      "color": "rgb(242, 236, 216)",
+      "font": "",
+      "border": "0px solid rgb(229, 231, 235)",
+      "radius": "0px"
+    }
+  },
+  {
+    "width": 1440,
+    "theme": "dark",
+    "palette": {
+      "background": [
+        9,
+        9,
+        9
+      ],
+      "paint": "rgba(0, 0, 0, 0) radial-gradient(120% 80% at 50% 0%, rgb(26, 23, 20) 0%, rgb(9, 9, 9) 55%) repeat scroll 0% 0% / auto padding-box border-box",
+      "contrast": {
+        "primary": 1.0840188684147676,
+        "secondary": 2.2729005725605687,
+        "tertiary": 5.030930946356511,
+        "gold": 1.5814131349376586,
+        "green": 2.2000539707820352,
+        "red": 3.3882133586627314
+      }
+    },
+    "step": 4,
+    "text": "IL MESE PIÙ CARO\n\nGennaio\n\n1112,00 €\n\nG\nF\nM\nA\nM\nG\nL\nA\nS\nO\n\nGennaio: meglio non parlarne. A gennaio invece eri in ferie anche dal tuo conto.\n\nIl più leggero è stato gennaio, 1112,00 €.\n\n5 / 11",
+    "styles": {
+      "background": "rgb(9, 9, 9) none repeat scroll 0% 0% / auto padding-box border-box",
+      "color": "rgb(242, 236, 216)",
+      "font": "",
+      "border": "0px solid rgb(229, 231, 235)",
+      "radius": "0px"
+    }
+  },
+  {
+    "width": 1440,
+    "theme": "dark",
+    "palette": {
+      "background": [
+        9,
+        9,
+        9
+      ],
+      "paint": "rgba(0, 0, 0, 0) radial-gradient(120% 80% at 50% 0%, rgb(26, 23, 20) 0%, rgb(9, 9, 9) 55%) repeat scroll 0% 0% / auto padding-box border-box",
+      "contrast": {
+        "primary": 1.0840188684147676,
+        "secondary": 2.2729005725605687,
+        "tertiary": 5.030930946356511,
+        "gold": 1.5814131349376586,
+        "green": 2.2000539707820352,
+        "red": 3.3882133586627314
+      }
+    },
+    "step": 5,
+    "text": "TASSO DI RISPARMIO\n\n40,3%\n\nSu 100 € entrati, 40 sono rimasti. Il tuo io di gennaio non ci credeva.\n\n9880,00 € messi da parte su 24.500,00 € di entrate.\n\n6 / 11",
+    "styles": {
+      "background": "rgba(0, 0, 0, 0) radial-gradient(120% 80% at 50% 100%, rgb(26, 23, 20) 0%, rgb(9, 9, 9) 55%) repeat scroll 0% 0% / auto padding-box border-box",
+      "color": "rgb(242, 236, 216)",
+      "font": "",
+      "border": "0px solid rgb(229, 231, 235)",
+      "radius": "0px"
+    }
+  },
+  {
+    "width": 1440,
+    "theme": "dark",
+    "palette": {
+      "background": [
+        9,
+        9,
+        9
+      ],
+      "paint": "rgba(0, 0, 0, 0) radial-gradient(120% 80% at 50% 0%, rgb(26, 23, 20) 0%, rgb(9, 9, 9) 55%) repeat scroll 0% 0% / auto padding-box border-box",
+      "contrast": {
+        "primary": 1.0840188684147676,
+        "secondary": 2.2729005725605687,
+        "tertiary": 5.030930946356511,
+        "gold": 1.5814131349376586,
+        "green": 2.2000539707820352,
+        "red": 3.3882133586627314
+      }
+    },
+    "step": 6,
+    "text": "INVESTITO NELL'ANNO\n\n3500 €\n\n350 € al mese · 10 mesi su 10\n\nUn versamento al mese, tutti i mesi. Noiosissimo. Perfetto.\n\nIl 14% di quello che è entrato è finito lì dentro.\n\n7 / 11",
+    "styles": {
+      "background": "rgb(9, 9, 9) none repeat scroll 0% 0% / auto padding-box border-box",
+      "color": "rgb(242, 236, 216)",
+      "font": "",
+      "border": "0px solid rgb(229, 231, 235)",
+      "radius": "0px"
+    }
+  },
+  {
+    "width": 1440,
+    "theme": "dark",
+    "palette": {
+      "background": [
+        9,
+        9,
+        9
+      ],
+      "paint": "rgba(0, 0, 0, 0) radial-gradient(120% 80% at 50% 0%, rgb(26, 23, 20) 0%, rgb(9, 9, 9) 55%) repeat scroll 0% 0% / auto padding-box border-box",
+      "contrast": {
+        "primary": 1.0840188684147676,
+        "secondary": 2.2729005725605687,
+        "tertiary": 5.030930946356511,
+        "gold": 1.5814131349376586,
+        "green": 2.2000539707820352,
+        "red": 3.3882133586627314
+      }
+    },
+    "step": 7,
+    "text": "PATRIMONIO NETTO\n\n19.901 €\n\n30.856 €\n\n+55%\n\nLa riga che conta va su.\n\n+10.955 € in 10 mesi.\n\n8 / 11",
+    "styles": {
+      "background": "rgb(9, 9, 9) none repeat scroll 0% 0% / auto padding-box border-box",
+      "color": "rgb(242, 236, 216)",
+      "font": "",
+      "border": "0px solid rgb(229, 231, 235)",
+      "radius": "0px"
+    }
+  },
+  {
+    "width": 1440,
+    "theme": "dark",
+    "palette": {
+      "background": [
+        9,
+        9,
+        9
+      ],
+      "paint": "rgba(0, 0, 0, 0) radial-gradient(120% 80% at 50% 0%, rgb(26, 23, 20) 0%, rgb(9, 9, 9) 55%) repeat scroll 0% 0% / auto padding-box border-box",
+      "contrast": {
+        "primary": 1.0840188684147676,
+        "secondary": 2.2729005725605687,
+        "tertiary": 5.030930946356511,
+        "gold": 1.5814131349376586,
+        "green": 2.2000539707820352,
+        "red": 3.3882133586627314
+      }
+    },
+    "step": 8,
+    "text": "MESI CHIUSI IN RISPARMIO, DI FILA\n\n10\n\nG\nF\nM\nA\nM\nG\nL\nA\nS\nO\n\nDa gennaio non hai più chiuso un mese in rosso.\n\nSu 10 mesi raccontati.\n\n9 / 11",
+    "styles": {
+      "background": "rgb(9, 9, 9) none repeat scroll 0% 0% / auto padding-box border-box",
+      "color": "rgb(242, 236, 216)",
+      "font": "",
+      "border": "0px solid rgb(229, 231, 235)",
+      "radius": "0px"
+    }
+  },
+  {
+    "width": 1440,
+    "theme": "dark",
+    "palette": {
+      "background": [
+        9,
+        9,
+        9
+      ],
+      "paint": "rgba(0, 0, 0, 0) radial-gradient(120% 80% at 50% 0%, rgb(26, 23, 20) 0%, rgb(9, 9, 9) 55%) repeat scroll 0% 0% / auto padding-box border-box",
+      "contrast": {
+        "primary": 1.0840188684147676,
+        "secondary": 2.2729005725605687,
+        "tertiary": 5.030930946356511,
+        "gold": 1.5814131349376586,
+        "green": 2.2000539707820352,
+        "red": 3.3882133586627314
+      }
+    },
+    "step": 9,
+    "text": "LA SPESA PIÙ GRANDE\n\n620 €\n\n🏠\n\nAffitto\n\nCasa · 2 ottobre · Conto Corrente\n\nUna sola voce, e si è sentita.\n\nVale il 6% di tutto quello che hai speso quest'anno.\n\n10 / 11",
+    "styles": {
+      "background": "rgb(9, 9, 9) none repeat scroll 0% 0% / auto padding-box border-box",
+      "color": "rgb(242, 236, 216)",
+      "font": "",
+      "border": "0px solid rgb(229, 231, 235)",
+      "radius": "0px"
+    }
+  },
+  {
+    "width": 1440,
+    "theme": "dark",
+    "palette": {
+      "background": [
+        9,
+        9,
+        9
+      ],
+      "paint": "rgba(0, 0, 0, 0) radial-gradient(120% 80% at 50% 0%, rgb(26, 23, 20) 0%, rgb(9, 9, 9) 55%) repeat scroll 0% 0% / auto padding-box border-box",
+      "contrast": {
+        "primary": 1.0840188684147676,
+        "secondary": 2.2729005725605687,
+        "tertiary": 5.030930946356511,
+        "gold": 1.5814131349376586,
+        "green": 2.2000539707820352,
+        "red": 3.3882133586627314
+      }
+    },
+    "step": 10,
+    "text": "MOVIMENTI REGISTRATI\n\n130\n\n130 volte hai detto \"poi lo segno\". E poi l'hai segnato.\n\nUno ogni 2 giorni.\n\n11 / 11 · continua",
+    "styles": {
+      "background": "rgb(9, 9, 9) none repeat scroll 0% 0% / auto padding-box border-box",
+      "color": "rgb(242, 236, 216)",
+      "font": "",
+      "border": "0px solid rgb(229, 231, 235)",
+      "radius": "0px"
+    }
+  },
+  {
+    "width": 1440,
+    "theme": "dark",
+    "palette": {
+      "background": [
+        9,
+        9,
+        9
+      ],
+      "paint": "rgba(0, 0, 0, 0) radial-gradient(120% 80% at 50% 0%, rgb(26, 23, 20) 0%, rgb(9, 9, 9) 55%) repeat scroll 0% 0% / auto padding-box border-box",
+      "contrast": {
+        "primary": 1.0840188684147676,
+        "secondary": 2.2729005725605687,
+        "tertiary": 5.030930946356511,
+        "gold": 1.5814131349376586,
+        "green": 2.2000539707820352,
+        "red": 3.3882133586627314
+      }
+    },
+    "step": "summary",
+    "text": "SUNNY WRAPPED\n\nIL TUO 2026 IN NUMERI\n\nTutto in una schermata\n\nGennaio–ottobre 2026\n\nENTRATE\n\n24.500,00 €\n\nUSCITE\n\n11.120,00 €\n\nRISPARMIATO\n\n9880,00 €\n\nTASSO RISPARMIO\n\n40,3%\n\nINVESTITO\n\n3500,00 €\n\nPATRIMONIO\n\n30.856,00 €\n\nMEDIA MENSILE\n\n1112,00 €\n\nMOVIMENTI\n\n130\n\nMESE PIÙ CARO\n\nGennaio · 1112 €\n\nSTREAK\n\n10 mesi\n\nLE TUE CATEGORIE DELL'ANNO\n\nCasa\n6200,00 €\nSpesa\n2595,00 €\nRistoranti\n2325,00 €\nImposta l'obiettivo 2027",
+    "styles": {
+      "background": "rgb(9, 9, 9) none repeat scroll 0% 0% / auto padding-box border-box",
+      "color": "rgb(242, 236, 216)",
+      "font": "",
+      "border": "0px solid rgb(229, 231, 235)",
+      "radius": "0px"
+    }
+  }
+]
