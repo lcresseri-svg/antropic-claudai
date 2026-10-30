@@ -140,8 +140,8 @@ describe('storie', () => {
       ],
     });
     expect(w.stories).toEqual([
-      'cover', 'expense', 'income', 'topCategory', 'peakMonth', 'savingsRate',
-      'invested', 'netWorth', 'streak', 'largest', 'count', 'vsPrev',
+      'cover', 'expense', 'income', 'topCategory', 'largest', 'peakMonth', 'savingsRate',
+      'invested', 'netWorth', 'streak', 'count', 'vsPrev',
     ]);
     expect(w.netWorthStart).toBe(10000);
     expect(w.netWorthEnd).toBe(20000);

@@ -26,9 +26,10 @@
  *
  * Purezza: la data arriva sempre come `todayISO`, mai da `new Date()`.
  */
-import { Transaction, CategoryDef, AccountDef, ownShare } from '../../types';
+import { Transaction, CategoryDef, AccountDef, MacroCategoryDef, ownShare } from '../../types';
 import { isPending } from '../../shared/recurrence';
 import { monthStats } from '../insights/insightsEngine';
+import { buildWrappedMacroAreas, buildWrappedFrequentExpense, type WrappedMacroArea, type WrappedFrequentExpense } from './wrappedSpendingStories';
 import { daysInMonth, wrappedPeriodEnd } from './wrappedWindow';
 
 /** Sotto questo numero di movimenti il Wrapped non si propone da solo: un
@@ -41,7 +42,7 @@ export const WRAPPED_MIN_TX = 20;
 export const WRAPPED_TOP_CATS = 4;
 
 export type WrappedStoryId =
-  | 'cover' | 'expense' | 'income' | 'topCategory' | 'peakMonth' | 'savingsRate'
+  | 'cover' | 'expense' | 'income' | 'macroAreas' | 'frequentExpense' | 'topCategory' | 'peakMonth' | 'savingsRate'
   | 'invested' | 'netWorth' | 'streak' | 'largest' | 'count' | 'vsPrev';
 
 export interface WrappedCategory {
@@ -160,6 +161,8 @@ export interface YearWrapped {
   netWorthDeltaPct: number | null;
   netWorthSeries: number[];
 
+  macroAreas: WrappedMacroArea[];
+  frequentExpense: WrappedFrequentExpense | null;
   largest: WrappedLargest | null;
   vsPrevYear: WrappedVsPrev | null;
   goal: WrappedGoal;
@@ -177,6 +180,7 @@ export interface YearWrappedInput {
   projected?: Transaction[];
   getCat: (id: string) => CategoryDef;
   getAcc: (id: string) => AccountDef;
+  macroCategories?: MacroCategoryDef[];
   year: number;
   todayISO: string;
   /** Serie del patrimonio, un punto per mese, già calcolata da
@@ -426,6 +430,8 @@ export function buildYearWrapped(input: YearWrappedInput): YearWrapped {
     netWorthStart, netWorthEnd, netWorthDelta, netWorthDeltaPct,
     netWorthSeries: series,
 
+    macroAreas: buildWrappedMacroAreas(categories, getCat, input.macroCategories),
+    frequentExpense: buildWrappedFrequentExpense(realized, getCat),
     largest: buildLargest(realized, planned, getCat, getAcc),
     vsPrevYear: buildVsPrev(input, monthsCovered, expenseTotal, saved),
     goal: buildGoal(savedMonthlyAvg),
@@ -442,7 +448,10 @@ function pickStories(w: YearWrapped, monthsWithData: number, monthsWithExpense: 
   const out: WrappedStoryId[] = ['cover'];
   if (w.expenseTotal > 0) out.push('expense');
   if (w.incomeTotal > 0) out.push('income');
+  if (w.categories.length >= 2 && w.macroAreas.some(m=>m.id!==null)) out.push('macroAreas');
   if (w.categories.length > 0) out.push('topCategory');
+  if (w.largest) out.push('largest');
+  if (w.frequentExpense) out.push('frequentExpense');
   // Un "mese più caro" ha senso solo se c'è un mese più leggero da cui distinguerlo.
   if (monthsWithExpense >= 2) out.push('peakMonth');
   if (w.savingsRate !== null) out.push('savingsRate');
@@ -450,8 +459,7 @@ function pickStories(w: YearWrapped, monthsWithData: number, monthsWithExpense: 
   if (w.netWorthSeries.length >= 2) out.push('netWorth');
   // Una striscia di un mese non è una striscia.
   if (monthsWithData >= 3 && w.savingStreak >= 2) out.push('streak');
-  if (w.largest) out.push('largest');
-  if (w.txCount > 0) out.push('count');
+  if (w.txCount > 0 && !w.frequentExpense) out.push('count');
   if (w.vsPrevYear && (w.vsPrevYear.expensePct !== null || w.vsPrevYear.savedPct !== null)) out.push('vsPrev');
   return out;
 }

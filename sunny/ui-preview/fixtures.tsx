@@ -33,6 +33,22 @@ if(params.has('investmentMacros')){
   categories.push({id:'fixture-unassigned',kind:'investment',label:'Liquidità investita',icon:'💰',color:'#B0A0C8',initialBalance:75});
   categories.push({id:'fixture-archived',kind:'investment',label:'Investimento archiviato',icon:'📁',color:'#888888',currentValue:999999,initialBalance:999999,archived:true,macroCategoryId:'fixture-growth'});
 }
+const wrappedSpendingMacros:MacroCategoryDef[]=params.has('wrappedSpending')?[
+  {id:'wrapped-home',label:'Casa e quotidianità',icon:'🏡',color:'#8FB0A0'},
+  {id:'wrapped-social',label:'Piaceri e tempo libero',icon:'🍝',color:'#E6B95C'},
+  {id:'wrapped-travel',label:'Mobilità',icon:'🚗',color:'#88B0C0'},
+]:[];
+if(params.has('wrappedSpending')){
+ for(const [id,macroCategoryId] of [['casa','wrapped-home'],['spesa','wrapped-home'],['ristoranti','wrapped-social'],['trasporti','wrapped-travel']]){
+   const category=categories.find(c=>c.id===id);if(category)category.macroCategoryId=macroCategoryId;
+ }
+ categories.push({id:'wrapped-extra',kind:'expense',label:'Esperienze',icon:'✨',color:'#B0A0C8'});
+ if(['long','unbroken'].includes(params.get('wrappedSpending')??'')){
+   wrappedSpendingMacros[0].label=params.get('wrappedSpending')==='unbroken'?'X'.repeat(80):'Casa, bollette e tutte le piccole e grandi necessità della nostra vita quotidiana';
+   categories.find(c=>c.id==='casa')!.label='UnaCategoriaConUnNomeMoltoLungoSenzaSpaziPerVerificareIlLayoutSuTelefono';
+ }
+ if(params.get('wrappedSpending')==='deleted')wrappedSpendingMacros.splice(0);
+}
 const now = new Date();
 const iso = (months: number, day: number) => { const d = new Date(now.getFullYear(), now.getMonth()+months,day); return `${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,'0')}-${String(d.getDate()).padStart(2,'0')}`; };
 export const transactions: Transaction[] = params.has('empty') ? [] : params.has('financeCase') ? [
@@ -72,6 +88,24 @@ if (params.has('wrappedIncome')) {
   }
 }
 if(params.get('wrappedIncome')==='growthPlanned')transactions.push({id:'wrapped-planned-extra',type:'income',amount:4000,category:'stipendio',account:'conto_corrente',date:iso(0,28),description:'Entrata programmata test'});
+if(params.has('wrappedSpending')){
+ const mode=params.get('wrappedSpending'),year=now.getFullYear(),months=now.getMonth()+1;
+ transactions.splice(0,transactions.length);
+ for(let month=1;month<=months;month++){
+  const key=`${year}-${String(month).padStart(2,'0')}`;
+  transactions.push(
+   {id:`ws-income-${month}`,date:`${key}-01`,amount:3000,type:'income',category:'stipendio',account:'conto_corrente',description:'Stipendio'},
+   {id:`ws-rent-${month}`,date:`${key}-02`,amount:620,type:'expense',category:'casa',account:'conto_corrente',description:mode==='sparse'?'':`Affitto`,...(mode==='series'?{seriesId:'wrapped-rent'}:{})},
+   {id:`ws-food-${month}`,date:`${key}-03`,amount:150,type:'expense',category:'spesa',account:'conto_corrente',description:mode==='sparse'?'':'Spesa settimanale'},
+   {id:`ws-travel-${month}`,date:`${key}-04`,amount:80,type:'expense',category:'trasporti',account:'conto_corrente',description:mode==='sparse'?'':'Trasporti'},
+   {id:`ws-invest-${month}`,date:`${key}-05`,amount:350,type:'investment',category:'azioni_etf',account:'conto_corrente',description:'PAC'},
+   {id:`ws-previous-income-${month}`,date:`${year-1}-${String(month).padStart(2,'0')}-01`,amount:2800,type:'income',category:'stipendio',account:'conto_corrente',description:'Stipendio precedente'},
+  );
+  for(let day=6;day<=9;day++)transactions.push({id:`ws-cafe-${month}-${day}`,date:`${key}-${String(day).padStart(2,'0')}`,amount:10,type:'expense',category:'ristoranti',account:'conto_corrente',description:mode==='sparse'?'':mode==='long'?'Colazione e pranzo al bar con una descrizione molto lunga da leggere senza tagli':mode==='series'?`Pranzo ${month}-${day}`:'Caffè e pranzo'});
+ }
+ transactions.push({id:'ws-largest',date:`${year}-03-12`,amount:1200,type:'expense',category:'wrapped-extra',account:'conto_corrente',description:'Quel viaggio speciale'});
+ if(mode==='planned')transactions.push({id:'ws-future',date:iso(0,28),amount:5000,type:'expense',category:'casa',account:'conto_corrente',description:'Ristrutturazione programmata'});
+}
 if (params.has('invalidPortfolioDate')) {
   categories.find(c => c.id === 'azioni_etf')!.subscriptionDate = '01/01/2020';
 }
@@ -114,7 +148,7 @@ if(params.has('edgeCategories')){
 
 function useFixtureSettings() {
   const [theme,setTheme] = useState<'light'|'dark'>(params.get('theme') === 'dark' ? 'dark' : 'light');
-  const [macroCategories,setMacroCategories]=useState<MacroCategoryDef[]>(()=>[...legacyMacroDefinitions(categories),...investmentMacros]);
+  const [macroCategories,setMacroCategories]=useState<MacroCategoryDef[]>(()=>[...legacyMacroDefinitions(categories),...investmentMacros,...wrappedSpendingMacros]);
   const [cats,setCats]=useState(categories), [accs,setAccs]=useState(accounts);
   const [homeOrder,saveHomeOrder]=useState<string[]>([]);
   const [enableInvestments,saveEnableInvestments]=useState(!params.has('noInvest'));

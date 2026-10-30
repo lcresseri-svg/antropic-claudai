@@ -8,6 +8,7 @@
 // storie): una griglia con "—" in mezzo racconta i buchi, non l'anno.
 import { formatCurrency, formatEuroRound } from '../../utils';
 import { YearWrapped, WRAPPED_TOP_CATS } from './yearWrapped';
+import { WrappedMacroAreas } from './WrappedMacroAreas';
 import { incomeComparisonPeriodText } from './wrappedIncomeCopy';
 
 interface Cell { label: string; value: string; tone?: 'gold' | 'green' | 'red' }
@@ -76,6 +77,25 @@ export function WrappedSummary({ w, onGoal }: { w: YearWrapped; onGoal: () => vo
           <p className="text-[12px] text-secondary leading-relaxed mt-2">
             Incassati in più rispetto allo stesso periodo del {w.year - 1}.
             {' '}{incomeComparisonPeriodText(w.incomeComparison)}
+          </p>
+        </div>
+      )}
+
+      {w.categories.length >= 2 && w.macroAreas.some(m=>m.id!==null) && (
+        <div className="glass-card rounded-2xl p-[15px] mt-2">
+          <p className="label-caps text-tertiary">Le tue macro aree</p>
+          <WrappedMacroAreas areas={w.macroAreas} />
+          <p className="text-[12px] text-secondary leading-relaxed mt-3">Secondo le tue categorie attuali{w.hasPlanned ? '; il programmato è compreso' : ''}.</p>
+        </div>
+      )}
+
+      {w.frequentExpense && (
+        <div className="glass-card rounded-2xl p-[15px] mt-2">
+          <p className="label-caps text-tertiary">La voce che torna più spesso</p>
+          <p className="text-[17px] font-semibold text-primary mt-2 break-words">{w.frequentExpense.categoryIcon} {w.frequentExpense.description}</p>
+          <p className="text-[13px] text-secondary leading-relaxed mt-2">
+            {w.frequentExpense.count} registrazioni in {w.frequentExpense.months} {w.frequentExpense.months===1?'mese':'mesi'} · {formatCurrency(w.frequentExpense.total)} netti.
+            {' '}{w.frequentExpense.source==='series'?'Stessa serie.':'Stessa descrizione e categoria.'} Solo spese già avvenute.
           </p>
         </div>
       )}
