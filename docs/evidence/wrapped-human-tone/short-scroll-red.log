@@ -1,0 +1,20 @@
+{
+  rect: { x: 20, y: 62.5, width: 280, height: 468.25 },
+  labelRect: { x: 20, y: -119.56723022460938, width: 280, height: 15 },
+  scroll: { top: 0, height: 468, scrollHeight: 657 }
+}
+node:internal/modules/run_main:107
+    triggerUncaughtException(
+    ^
+
+AssertionError [ERR_ASSERTION]: story label must remain reachable at scroll start on short displays
+    at file:///tmp/wrapped-short-viewport.mjs:16:9 {
+  generatedMessage: false,
+  code: 'ERR_ASSERTION',
+  actual: false,
+  expected: true,
+  operator: '==',
+  diff: 'simple'
+}
+
+Node.js v24.19.0

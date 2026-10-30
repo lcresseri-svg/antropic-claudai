@@ -1,0 +1,5 @@
+{
+  rect: { x: 20, y: 62.5, width: 280, height: 468.25 },
+  labelRect: { x: 20, y: 72.49162292480469, width: 280, height: 15 },
+  scroll: { top: 0, height: 468, scrollHeight: 850 }
+}
