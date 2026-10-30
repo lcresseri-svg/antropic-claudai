@@ -4,9 +4,10 @@ import {chromium,browserOptions} from './browser.mjs';
 const out=process.env.SUNNY_EVIDENCE||'/workspace/wrapped-macro-habits';
 await mkdir(out,{recursive:true});const results=[],errors=[];
 const cases=[...[320,390,1440].flatMap(width=>['light','dark'].map(theme=>({ui:3,width,theme,mode:'rich'}))),...['light','dark'].map(theme=>({ui:2,width:390,theme,mode:'rich'})),...['long','unbroken','deleted','sparse','planned','series'].flatMap(mode=>['light','dark'].map(theme=>({ui:3,width:320,theme,mode})))];
+const height=Number(process.env.SUNNY_HEIGHT||844);
 const browser=await chromium.launch(browserOptions);
 try{for(const scenario of cases.filter(s=>!process.env.SUNNY_MODES||process.env.SUNNY_MODES.split(',').includes(s.mode))){
- const {ui,width,theme,mode}=scenario,name=`ui${ui}-${theme}-${width}-${mode}`,page=await browser.newPage({viewport:{width,height:844}});
+ const {ui,width,theme,mode}=scenario,name=`ui${ui}-${theme}-${width}-${mode}`,page=await browser.newPage({viewport:{width,height}});
  page.on('pageerror',e=>errors.push({name,error:e.message}));
  await page.route('**/*',r=>new URL(r.request().url()).hostname==='127.0.0.1'?r.continue():r.abort());
  await page.clock.install({time:new Date('2026-10-20T10:00:00Z')});await page.clock.pauseAt(new Date('2026-10-20T10:00:01Z'));
@@ -23,7 +24,11 @@ try{for(const scenario of cases.filter(s=>!process.env.SUNNY_MODES||process.env.
    assert.equal(text.includes('La voce che torna più spesso'),mode!=='sparse');
    await page.screenshot({path:`${out}/${name}-summary.png`,animations:'disabled'});break;
   }
-  const content=shell.locator('.overflow-y-auto'),label=await content.locator(':scope > div > p').first().textContent();labels.push(label);
+  const content=shell.locator('.overflow-y-auto'),labelElement=content.locator(':scope > div > p').first(),label=await labelElement.textContent();labels.push(label);
+  const bounds=await content.boundingBox(),labelBounds=await labelElement.boundingBox();
+  assert.ok(labelBounds.y>=bounds.y-1&&labelBounds.y+labelBounds.height<=bounds.y+bounds.height+1,`${name} ${label} starts visibly at scroll origin`);
+  // Read the end of tall stories; the next story must start from its own top.
+  await content.evaluate(el=>{el.scrollTop=el.scrollHeight;});
   assert.ok(await content.evaluate(el=>el.scrollWidth<=el.clientWidth),`${name} ${label} content overflow`);
   if(['Le grandi aree del tuo anno','Categoria numero uno','La spesa più grande','La spesa più grande (già in programma)','La voce che torna più spesso'].includes(label)){
    const text=await content.textContent();
@@ -60,6 +65,6 @@ try{for(const scenario of cases.filter(s=>!process.env.SUNNY_MODES||process.env.
  await shell.getByRole('button',{name:/Imposta l.obiettivo/}).click();await page.clock.runFor(400);
  const before=await shell.textContent();await shell.getByRole('button',{name:'Aggiungi 50 euro',exact:true}).click();await shell.getByRole('button',{name:'Togli 50 euro',exact:true}).click();assert.equal(await shell.textContent(),before);
  await page.keyboard.press('Escape');await shell.waitFor({state:'detached'});assert.equal(await page.locator('html').evaluate(el=>el.classList.contains('light')),theme==='light');
- results.push({...scenario,status:'passed',labels,checks:['conditional-stories','macro-details','exact-frequency','largest-order','max-13','content-width','summary','goal','escape','theme-restored']});
+ results.push({...scenario,height,status:'passed',labels,checks:['conditional-stories','macro-details','exact-frequency','largest-order','max-13','content-width','vertical-scroll-origin','summary','goal','escape','theme-restored']});
  await page.close();console.log('PASS',name);
 }assert.deepEqual(errors,[]);}finally{await browser.close();await writeFile(`${out}/results.json`,JSON.stringify({results,errors},null,2));}
