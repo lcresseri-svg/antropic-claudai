@@ -49,7 +49,7 @@ type Phase = 'stories' | 'summary' | 'goal';
 export function WrappedScreen({ transactions, projected, user, onSetSavingsTarget }: Props) {
   const { year: yearParam = '' } = useParams<{ year: string }>();
   const navigate = useNavigate();
-  const { getCat, getAcc, accounts, categories } = useSettings();
+  const { getCat, getAcc, accounts, categories, macroCategories } = useSettings();
 
   const year = Number(yearParam);
   const todayISO = new Date().toISOString().slice(0, 10);
@@ -78,8 +78,8 @@ export function WrappedScreen({ transactions, projected, user, onSetSavingsTarge
   }, [allowed, transactions, projected, accounts, categories, year, todayISO]);
 
   const w = useMemo(
-    () => buildYearWrapped({ transactions, projected, getCat, getAcc, year, todayISO, netWorth }),
-    [transactions, projected, getCat, getAcc, year, todayISO, netWorth],
+    () => buildYearWrapped({ transactions, projected, getCat, getAcc, macroCategories, year, todayISO, netWorth }),
+    [transactions, projected, getCat, getAcc, macroCategories, year, todayISO, netWorth],
   );
 
   const [phase, setPhase] = useState<Phase>('stories');

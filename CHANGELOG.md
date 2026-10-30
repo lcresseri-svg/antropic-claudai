@@ -19,6 +19,8 @@ git.
 
 ## 2026-10-30
 
+- **[Codex]** Wrapped più ricco: macro aree con emoji, quote e bande prima delle categorie; spesa singola più grande subito dopo il dettaglio; nuova storia della voce registrata più spesso, con frequenza, costo personale netto e media. La frequenza usa soltanto spese avvenute e sostituisce la pagina del conteggio, mantenuto nel riepilogo (massimo 13 storie). Entrate e stile conservati; macro e abitudini anche nel riepilogo. Nessuna deduzione di negozi o abbonamenti, assegnazioni macro attuali, gestione di legacy/eliminazioni e rimborsi. Corrette copy delle quote, parità degli importi in centesimi e ritorno a capo dei nomi lunghi. `(pending)`
+
 - **[Codex]** Wrapped racconta anche le entrate: nuova storia con incassi, media mensile e confronto positivo sull’anno precedente quando i dati lo consentono; richiamo nel riepilogo e nel confronto finale. Entrate programmate distinte da quelle già registrate, confronto sullo stesso intervallo trascorso e sulla stessa copertura di mesi, gestione del bisestile e dei ricorrenti in cache. Stile, palette, gesti, timer e obiettivo conservati; numero della nuova storia adattivo anche per importi grandi. `(pending)`
 
 ## 2026-10-28

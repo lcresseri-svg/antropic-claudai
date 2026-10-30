@@ -10,6 +10,7 @@
 import { ReactNode } from 'react';
 import { formatCurrency, formatEuroRound } from '../../utils';
 import { YearWrapped, WrappedStoryId } from './yearWrapped';
+import { WrappedMacroAreas } from './WrappedMacroAreas';
 import { incomeComparisonPeriodText } from './wrappedIncomeCopy';
 
 /** "38.412" + ",60 €": l'intero grande, decimali e simbolo in piccolo. */
@@ -59,7 +60,7 @@ function Story({ label, children, punch, note }: {
         style={{ textWrap: 'pretty' } as React.CSSProperties}>
         {punch}
       </p>
-      {note && <p className="text-[14px] text-secondary leading-[1.65] mt-3">{note}</p>}
+      {note && <p className="text-[14px] text-secondary leading-[1.65] mt-3 break-words">{note}</p>}
     </div>
   );
 }
@@ -197,7 +198,7 @@ export function WrappedStoryBody({ id, w }: { id: WrappedStoryId; w: YearWrapped
             {w.monthsCovered === 12 ? 'Dodici mesi' : `${w.monthsCovered} mesi`}, {nf.format(w.txCount)} movimenti
             e qualche decisione discutibile.
           </p>
-          <p className="text-[14px] text-secondary leading-[1.65] mt-3">
+          <p className="text-[14px] text-secondary leading-[1.65] mt-3 break-words">
             {planned ?? 'Li abbiamo contati tutti. Due minuti e te li raccontiamo.'}
           </p>
         </div>
@@ -246,21 +247,51 @@ export function WrappedStoryBody({ id, w }: { id: WrappedStoryId; w: YearWrapped
       );
     }
 
+    case 'macroAreas': {
+      const top = w.macroAreas[0];
+      return (
+        <Story label="Le grandi aree del tuo anno"
+          punch="Il quadro generale, prima di entrare nei dettagli."
+          note={<>Secondo le tue categorie attuali.{w.hasPlanned && ' Il programmato è compreso.'}</>}>
+          <Big head={`${Math.round(top.share * 100)}%`} size={84} tone="gold" fit />
+          <p className="text-[25px] font-bold text-primary leading-tight tracking-[-0.03em] mt-3 break-words">{top.icon} {top.label}</p>
+          <WrappedMacroAreas areas={w.macroAreas} />
+        </Story>
+      );
+    }
+
+    case 'frequentExpense': {
+      const frequent = w.frequentExpense!;
+      return (
+        <Story label="La voce che torna più spesso"
+          punch="Una volta passa. Poi cominci a riconoscerla."
+          note={<>
+            {formatCurrency(frequent.total)} in totale, {formatCurrency(frequent.average)} in media per spesa,
+            {' '}su {frequent.months} {frequent.months === 1 ? 'mese' : 'mesi'}.
+            {' '}{frequent.source === 'series' ? 'Registrazioni della stessa serie.' : 'Registrazioni con la stessa descrizione e categoria.'}
+            {' '}Solo spese già avvenute, al netto di quote altrui e rimborsi.
+          </>}>
+          <Big head={nf.format(frequent.count)} size={116} tone="gold" fit />
+          <p className="text-[14px] text-secondary mt-2">{frequent.count} registrazioni</p>
+          <p className="text-[25px] font-bold text-primary leading-tight tracking-[-0.03em] mt-5 break-words">{frequent.categoryIcon} {frequent.description}</p>
+        </Story>
+      );
+    }
+
     case 'topCategory': {
       const top = w.categories[0];
       const rest = w.categories.slice(1, 3);
+      const area = w.macroAreas.find(m=>m.id!==null && m.categoryIds.includes(top.id));
       return (
         <Story label="Categoria numero uno"
-          punch={`${top.label}. ${top.share >= 0.3 ? 'Quasi un terzo di tutto.' : 'Prima, e di parecchio.'}`}
-          note={rest.length > 0
-            ? <>Dietro: {rest.map(c => `${c.label} ${formatCurrency(c.total)}`).join(' e ')}.</>
-            : <>È l'unica categoria in cui hai speso qualcosa.</>}>
-          <p className="text-[34px] font-bold text-primary tracking-[-0.03em] leading-none">
+          punch={`Il ${Math.round(top.share * 100)}% delle uscite, in una categoria.`}
+          note={<>{area && <>Area: {area.label}. </>}{rest.length > 0
+            ? <>Seguono: {rest.map(c => `${c.label} ${formatCurrency(c.total)}`).join(' e ')}.</>
+            : <>È l'unica categoria in cui hai speso qualcosa.</>}</>}>
+          <p className="text-[34px] font-bold text-primary tracking-[-0.03em] leading-tight break-words">
             {top.icon} {top.label}
           </p>
-          <p className="balance-num text-[40px] font-bold text-gold tracking-[-0.04em] mt-2">
-            {formatCurrency(top.total)}
-          </p>
+          <div className="mt-2"><Big head={splitAmount(top.total)[0]} tail={splitAmount(top.total)[1]} size={40} tone="gold" fit /></div>
           <CategoryBars w={w} />
         </Story>
       );
@@ -358,8 +389,8 @@ export function WrappedStoryBody({ id, w }: { id: WrappedStoryId; w: YearWrapped
           punch={w.peakMonth && l.date.slice(0, 7) === w.peakMonth.key
             ? `Ecco cosa è successo a ${w.peakMonth.label.toLowerCase()}.`
             : 'Una sola voce, e si è sentita.'}
-          note={<>Vale il {Math.round((l.amount / Math.max(1, w.expenseTotal)) * 100)}% di tutto quello che hai speso quest'anno.</>}>
-          <Big head={head} size={sizeFor(head)} />
+          note={<>Vale il {Math.round((l.amount / Math.max(1, w.expenseTotal)) * 100)}% delle uscite dell’anno. È la quota a tuo carico, al netto di condivisioni e rimborsi.{l.planned && ' Questa spesa è ancora in programma.'}</>}>
+          <Big head={head} size={sizeFor(head)} fit />
           <div className="glass-card rounded-[18px] p-[15px] flex items-center gap-3 mt-6">
             <span className="w-[34px] h-[34px] rounded-xl flex items-center justify-center text-[17px] flex-none"
               style={{ background: `${l.categoryColor}1F` }}>{l.categoryIcon}</span>

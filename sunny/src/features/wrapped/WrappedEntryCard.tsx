@@ -24,7 +24,7 @@ interface Props {
 const nf = new Intl.NumberFormat('it-IT');
 
 export function WrappedEntryCard({ transactions, projected, userId, onOpen }: Props) {
-  const { getCat, getAcc } = useSettings();
+  const { getCat, getAcc, macroCategories } = useSettings();
   const [dismissed, setDismissed] = useState(false);
 
   const todayISO = new Date().toISOString().slice(0, 10);
@@ -33,9 +33,9 @@ export function WrappedEntryCard({ transactions, projected, userId, onOpen }: Pr
 
   const w = useMemo(
     () => (visible && year !== null
-      ? buildYearWrapped({ transactions, projected, getCat, getAcc, year, todayISO })
+      ? buildYearWrapped({ transactions, projected, getCat, getAcc, macroCategories, year, todayISO })
       : null),
-    [visible, year, transactions, projected, getCat, getAcc, todayISO],
+    [visible, year, transactions, projected, getCat, getAcc, macroCategories, todayISO],
   );
 
   if (!w || !w.hasEnough || year === null) return null;
