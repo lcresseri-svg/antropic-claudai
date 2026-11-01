@@ -19,6 +19,8 @@ git.
 
 ## 2026-11-01
 
+- **[Codex]** Modale movimento aderente al contenuto e ancorato in basso: eliminato lo spazio vuoto tra campi e footer senza ridurre i controlli. Scroll interno e footer accessibile conservati quando si aprono sezioni lunghe o la tastiera. Verifica geometrica UI2/UI3 nei due temi e regressioni native/scarto in `docs/evidence/compact-movement/`. `(pending)`
+
 - **[Codex]** Inserimento movimento con tastiera nativa al tocco dell’importo, senza tastierino interno; anche quote, commissioni, TFR e rate usano input nativi. Conto e data direttamente modificabili dai riquadri, anche nella modalità rapida, con select e calendario del dispositivo. Azioni comuni mobile/desktop e viewport sicura con tastiera. Corretto il ripiego iniziale che poteva sostituire il conto salvato o assegnarlo a un versamento senza conto. Test, screenshot e inventario in `docs/evidence/native-movement/`. `(pending)`
 
 ## 2026-10-30

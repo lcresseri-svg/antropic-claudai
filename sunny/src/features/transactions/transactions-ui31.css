@@ -60,3 +60,6 @@ input.movement-native-picker::-webkit-calendar-picker-indicator { position: abso
 @media (min-width: 640px) {
   div.movement-editor { max-height: min(88dvh, 100%); }
 }
+
+/* Only the movement editor shrinks to its contents, including drawer layouts. */
+html[data-ui-version] .movement-editor { height: auto; align-self: flex-end; }

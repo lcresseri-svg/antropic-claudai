@@ -1,0 +1,15 @@
+node:internal/modules/run_main:107
+    triggerUncaughtException(
+    ^
+
+AssertionError [ERR_ASSERTION]: ui2-light-320 unused vertical space: {"height":820,"top":12,"bottom":832,"unused":302.75,"footerBottom":831,"overflow":false}
+    at file:///workspace/antropic-claudai/sunny/ui-preview/compact-movement.mjs:12:9 {
+  generatedMessage: false,
+  code: 'ERR_ASSERTION',
+  actual: false,
+  expected: true,
+  operator: '==',
+  diff: 'simple'
+}
+
+Node.js v24.19.0

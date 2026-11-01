@@ -1,0 +1,229 @@
+{
+  "results": [
+    {
+      "ui": 2,
+      "theme": "light",
+      "width": 320,
+      "status": "passed",
+      "geometry": {
+        "height": 517.25,
+        "top": 314.75,
+        "bottom": 832,
+        "unused": 0,
+        "footerBottom": 831,
+        "overflow": false
+      }
+    },
+    {
+      "ui": 2,
+      "theme": "light",
+      "width": 390,
+      "status": "passed",
+      "geometry": {
+        "height": 498.75,
+        "top": 333.25,
+        "bottom": 832,
+        "unused": 0,
+        "footerBottom": 831,
+        "overflow": false
+      }
+    },
+    {
+      "ui": 2,
+      "theme": "light",
+      "width": 834,
+      "status": "passed",
+      "geometry": {
+        "height": 541.546875,
+        "top": 640.453125,
+        "bottom": 1182,
+        "unused": 0,
+        "footerBottom": 1181,
+        "overflow": false
+      }
+    },
+    {
+      "ui": 2,
+      "theme": "light",
+      "width": 1440,
+      "status": "passed",
+      "geometry": {
+        "height": 541.546875,
+        "top": 290.453125,
+        "bottom": 832,
+        "unused": 0,
+        "footerBottom": 831,
+        "overflow": false
+      }
+    },
+    {
+      "ui": 2,
+      "theme": "dark",
+      "width": 320,
+      "status": "passed",
+      "geometry": {
+        "height": 517.25,
+        "top": 314.75,
+        "bottom": 832,
+        "unused": 0,
+        "footerBottom": 831,
+        "overflow": false
+      }
+    },
+    {
+      "ui": 2,
+      "theme": "dark",
+      "width": 390,
+      "status": "passed",
+      "geometry": {
+        "height": 498.75,
+        "top": 333.25,
+        "bottom": 832,
+        "unused": 0,
+        "footerBottom": 831,
+        "overflow": false
+      }
+    },
+    {
+      "ui": 2,
+      "theme": "dark",
+      "width": 834,
+      "status": "passed",
+      "geometry": {
+        "height": 541.546875,
+        "top": 640.453125,
+        "bottom": 1182,
+        "unused": 0,
+        "footerBottom": 1181,
+        "overflow": false
+      }
+    },
+    {
+      "ui": 2,
+      "theme": "dark",
+      "width": 1440,
+      "status": "passed",
+      "geometry": {
+        "height": 541.546875,
+        "top": 290.453125,
+        "bottom": 832,
+        "unused": 0,
+        "footerBottom": 831,
+        "overflow": false
+      }
+    },
+    {
+      "ui": 3,
+      "theme": "light",
+      "width": 320,
+      "status": "passed",
+      "geometry": {
+        "height": 747.234375,
+        "top": 84.765625,
+        "bottom": 832,
+        "unused": 0,
+        "footerBottom": 831,
+        "overflow": false
+      }
+    },
+    {
+      "ui": 3,
+      "theme": "light",
+      "width": 390,
+      "status": "passed",
+      "geometry": {
+        "height": 678.9375,
+        "top": 153.0625,
+        "bottom": 832,
+        "unused": 0,
+        "footerBottom": 831,
+        "overflow": false
+      }
+    },
+    {
+      "ui": 3,
+      "theme": "light",
+      "width": 834,
+      "status": "passed",
+      "geometry": {
+        "height": 700.140625,
+        "top": 481.859375,
+        "bottom": 1182,
+        "unused": 0,
+        "footerBottom": 1181,
+        "overflow": false
+      }
+    },
+    {
+      "ui": 3,
+      "theme": "light",
+      "width": 1440,
+      "status": "passed",
+      "geometry": {
+        "height": 700.140625,
+        "top": 131.859375,
+        "bottom": 832,
+        "unused": 0,
+        "footerBottom": 831,
+        "overflow": false
+      }
+    },
+    {
+      "ui": 3,
+      "theme": "dark",
+      "width": 320,
+      "status": "passed",
+      "geometry": {
+        "height": 747.234375,
+        "top": 84.765625,
+        "bottom": 832,
+        "unused": 0,
+        "footerBottom": 831,
+        "overflow": false
+      }
+    },
+    {
+      "ui": 3,
+      "theme": "dark",
+      "width": 390,
+      "status": "passed",
+      "geometry": {
+        "height": 678.9375,
+        "top": 153.0625,
+        "bottom": 832,
+        "unused": 0,
+        "footerBottom": 831,
+        "overflow": false
+      }
+    },
+    {
+      "ui": 3,
+      "theme": "dark",
+      "width": 834,
+      "status": "passed",
+      "geometry": {
+        "height": 700.140625,
+        "top": 481.859375,
+        "bottom": 1182,
+        "unused": 0,
+        "footerBottom": 1181,
+        "overflow": false
+      }
+    },
+    {
+      "ui": 3,
+      "theme": "dark",
+      "width": 1440,
+      "status": "passed",
+      "geometry": {
+        "height": 700.140625,
+        "top": 131.859375,
+        "bottom": 832,
+        "unused": 0,
+        "footerBottom": 831,
+        "overflow": false
+      }
+    }
+  ],
+  "errors": []
+}
