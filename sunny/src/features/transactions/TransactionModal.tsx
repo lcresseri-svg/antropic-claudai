@@ -606,17 +606,13 @@ export function TransactionModal({ open, editing, groupTransfers = [], seriesEdi
       onClick={e => { if (e.target === e.currentTarget) requestClose(); }}>
       <div className="absolute inset-0 bg-black/60 backdrop-blur-sm animate-fade-in-fast" />
 
-      {/* Mobile: the card fills the screen (minus a 12px + safe-area margin, so
-          the backdrop peeks around the rounded corners and it still reads as a
-          card). From `sm` up it stays the compact centered sheet as before.
-          The CARD ITSELF never scrolls: it's a fixed mask (header + footer)
-          around an internal scrolling window (the form fields). overscroll-contain
-          stops the scroll from chaining to the page when the window hits its end. */}
+      {/* The card hugs its content and stays at the bottom of the visible
+          viewport. Long forms scroll inside the fixed header/footer mask. */}
       <DialogSurface title={title ?? (seriesEdit ? 'Modifica serie' : editing ? 'Modifica movimento' : `Nuova ${TYPE_META[type].label.toLowerCase()}`)} onDismiss={requestClose} kind="editor" showEditorTitle={(ui3 || !quickMode) && availableTypes.length > 1}
         onChangeCapture={ui3 ? captureDraft : undefined}
         onPointerDownCapture={ui3 ? captureDraft : undefined}
         onKeyDownCapture={ui3 ? captureDraft : undefined}
-        className={`${ui3 ? "ui31-movement-editor " : ""}movement-editor relative w-full max-w-none h-full max-h-full sm:max-w-[560px] sm:h-auto sm:max-h-[88dvh] glass-elevated rounded-3xl sm:rounded-[26px] shadow-float overflow-hidden flex flex-col animate-sheet-up`}>
+        className={`${ui3 ? "ui31-movement-editor " : ""}movement-editor relative w-full max-w-none h-auto max-h-full sm:max-w-[560px] sm:h-auto sm:max-h-[88dvh] glass-elevated rounded-3xl sm:rounded-[26px] shadow-float overflow-hidden flex flex-col animate-sheet-up`}>
         {/* Testa: ✕ a sinistra, segmented al centro. Il titolo sparisce — con
             il tipo selezionato davanti agli occhi non diceva nulla di nuovo. */}
         <div className="shrink-0 bg-[var(--modal-hdr-bg)] px-5 pt-5 pb-3 flex items-center gap-3">
