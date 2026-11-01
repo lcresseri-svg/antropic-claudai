@@ -33,12 +33,12 @@ if(mode==='draft') {
   await page.getByRole('button',{name:'Admin test',exact:true}).click();
   assert.equal(await page.locator('html').getAttribute('data-ui-version'),'3.0');
 }
-if(mode==='keypad') {
-  await page.getByRole('button',{name:'Mostra tastierino'}).click();
+if(mode==='keypad'||mode==='native-input') {
+  assert.equal(await page.locator('.ui-keypad-grid').count(),0);
   const amount=page.getByRole('textbox',{name:'Importo',exact:true});
   await amount.focus(); await page.keyboard.type('12,34'); await page.keyboard.press('Backspace');
   assert.equal(await amount.inputValue(),'12,3');
-  await page.getByRole('button',{name:'Salva',exact:true}).click();
+  await page.getByRole('button',{name:'Aggiungi uscita',exact:true}).click();
   assert.equal(await page.getByRole('dialog').count(),0);
   assert.equal(await page.locator('#preview-writes').textContent(),'1');
 }

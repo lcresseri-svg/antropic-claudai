@@ -1,0 +1,63 @@
+
+> sunny-finance@2.2.0 build
+> tsc && vite build
+
+vite v5.4.21 building for production...
+transforming...
+Browserslist: browsers data (caniuse-lite) is 6 months old. Please run:
+  npx update-browserslist-db@latest
+  Why you should do it regularly: https://github.com/browserslist/update-db#readme
+✓ 346 modules transformed.
+rendering chunks...
+[plugin:vite:reporter] [plugin vite:reporter] 
+(!) /workspace/antropic-claudai/sunny/src/lib/firebase.ts is dynamically imported by /workspace/antropic-claudai/sunny/src/shared/emojiCatalogStore.ts, /workspace/antropic-claudai/sunny/src/shared/emojiCatalogStore.ts but also statically imported by /workspace/antropic-claudai/sunny/src/App.tsx, /workspace/antropic-claudai/sunny/src/app/useTransactionEditing.ts, /workspace/antropic-claudai/sunny/src/features/applePay/useApplePayPending.ts, /workspace/antropic-claudai/sunny/src/features/budget/monthlyPlanStore.ts, /workspace/antropic-claudai/sunny/src/features/feedback/useFeedback.ts, /workspace/antropic-claudai/sunny/src/features/forecast/forecastSnapshotsV3.ts, /workspace/antropic-claudai/sunny/src/features/insights/InsightsScreenV2.tsx, /workspace/antropic-claudai/sunny/src/features/investments/investmentValueSync.ts, /workspace/antropic-claudai/sunny/src/features/metrics/MetricsScreen.tsx, /workspace/antropic-claudai/sunny/src/features/onboarding/demoData.ts, /workspace/antropic-claudai/sunny/src/features/onboarding/steps/SavingsTargetStep.tsx, /workspace/antropic-claudai/sunny/src/features/onboarding/useOnboarding.ts, /workspace/antropic-claudai/sunny/src/features/settings/categoryRestore.ts, /workspace/antropic-claudai/sunny/src/features/wealth/wealthSnapshots.ts, /workspace/antropic-claudai/sunny/src/shared/analytics/metrics.ts, /workspace/antropic-claudai/sunny/src/shared/hooks/useAuth.ts, /workspace/antropic-claudai/sunny/src/shared/hooks/useBudget.ts, /workspace/antropic-claudai/sunny/src/shared/hooks/usePush.ts, /workspace/antropic-claudai/sunny/src/shared/hooks/useTransactions.ts, /workspace/antropic-claudai/sunny/src/shared/providers/settings.tsx, /workspace/antropic-claudai/sunny/src/shared/push.ts, dynamic import will not move module into another chunk.
+
+computing gzip size...
+dist/index.html                                    3.74 kB │ gzip:   1.45 kB
+dist/assets/SettingsScreen-BDHx5cWY.css            3.07 kB │ gzip:   0.86 kB
+dist/assets/ui31Analysis-CJn9tGag.css              8.78 kB │ gzip:   1.85 kB
+dist/assets/Ui31MonthScreen-DyPgG9t-.css          10.26 kB │ gzip:   1.96 kB
+dist/assets/index-hzk-hBBK.css                   151.84 kB │ gzip:  27.73 kB
+dist/assets/ProgressiveSection-DfGX9o5I.js         0.24 kB │ gzip:   0.20 kB
+dist/assets/useMediaQuery-6SDMDMKg.js              0.38 kB │ gzip:   0.26 kB
+dist/assets/transactionRoute-Ax3GhU9Z.js           0.43 kB │ gzip:   0.31 kB
+dist/assets/ChartData-Ct45QkFS.js                  0.69 kB │ gzip:   0.40 kB
+dist/assets/useFeedback--Gd4MZUA.js                0.71 kB │ gzip:   0.47 kB
+dist/assets/AnalysisHeader-qxcXyunq.js             0.96 kB │ gzip:   0.57 kB
+dist/assets/OutflowInfo-BecaQyaE.js                1.78 kB │ gzip:   0.97 kB
+dist/assets/PeriodControls-p4muO-fo.js             2.47 kB │ gzip:   1.20 kB
+dist/assets/forecastService-DUkrVWpl.js            3.30 kB │ gzip:   1.41 kB
+dist/assets/AccountBalanceLineChart-CKXvrZfp.js    4.34 kB │ gzip:   2.11 kB
+dist/assets/MetricsScreen-DzbAquHw.js              4.35 kB │ gzip:   1.66 kB
+dist/assets/WealthLineChart-Cxw2MOLJ.js            8.30 kB │ gzip:   3.02 kB
+dist/assets/CommitmentsScreen-at7UFfFo.js          8.84 kB │ gzip:   2.92 kB
+dist/assets/MonthlyPlanScreen-9AENxULz.js          8.85 kB │ gzip:   2.98 kB
+dist/assets/IncomeScreen-BWuVUdFc.js               9.60 kB │ gzip:   3.11 kB
+dist/assets/WealthHistoryScreen-D52QiGGJ.js        9.97 kB │ gzip:   2.65 kB
+dist/assets/Ui31MonthScreen-CZg9O_yA.js           11.01 kB │ gzip:   3.97 kB
+dist/assets/MonthlyRecapScreen-C3D2HN-Y.js        11.37 kB │ gzip:   4.02 kB
+dist/assets/InsightsScreenV2-BlnftAI5.js          12.41 kB │ gzip:   4.63 kB
+dist/assets/AccountBalanceScreen-CFmDgSOP.js      14.12 kB │ gzip:   5.15 kB
+dist/assets/WealthV2Screen-Ct6QvXfV.js            15.15 kB │ gzip:   4.71 kB
+dist/assets/WealthScreen-BhRnGkRC.js              16.12 kB │ gzip:   5.18 kB
+dist/assets/CategorySpendingScreen-U-ViiCHs.js    21.05 kB │ gzip:   6.74 kB
+dist/assets/forecastEngineV3-DSTf0jfP.js          24.81 kB │ gzip:   8.45 kB
+dist/assets/WrappedScreen-o9MXWy3j.js             29.86 kB │ gzip:   9.14 kB
+dist/assets/AICoachScreen-DdJWBxJY.js             31.49 kB │ gzip:  11.03 kB
+dist/assets/BudgetScreenV2-ClYLgsdz.js            35.17 kB │ gzip:  10.10 kB
+dist/assets/TransactionList-DyL70JP4.js           36.07 kB │ gzip:  10.84 kB
+dist/assets/PlanScreen-DwjpNc67.js                38.48 kB │ gzip:  12.20 kB
+dist/assets/InvestmentsScreen-BBX9UgJZ.js         62.07 kB │ gzip:  18.73 kB
+dist/assets/SettingsScreen-CLpzd0Lr.js            82.87 kB │ gzip:  24.21 kB
+dist/assets/ForecastV3Screen-HrvuZ9lX.js          91.67 kB │ gzip:  25.21 kB
+dist/assets/firebase-auth-CvFOk1p6.js            111.87 kB │ gzip:  22.84 kB
+dist/assets/react-D7rv8Q1m.js                    140.87 kB │ gzip:  45.26 kB
+dist/assets/xlsx-D_0l8YDs.js                     429.03 kB │ gzip: 143.08 kB
+dist/assets/firebase-firestore-DQqomrZl.js       434.75 kB │ gzip: 108.28 kB
+dist/assets/index-mKqr1ace.js                    558.48 kB │ gzip: 169.66 kB
+
+(!) Some chunks are larger than 500 kB after minification. Consider:
+- Using dynamic import() to code-split the application
+- Use build.rollupOptions.output.manualChunks to improve chunking: https://rollupjs.org/configuration-options/#output-manualchunks
+- Adjust chunk size limit for this warning via build.chunkSizeWarningLimit.
+✓ built in 13.77s

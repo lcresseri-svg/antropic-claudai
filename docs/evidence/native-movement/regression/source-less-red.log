@@ -1,0 +1,42 @@
+
+> sunny-finance@2.2.0 test
+> vitest run src/features/transactions/TransactionModal.ui31.test.tsx
+
+8:21:28 PM [vite] warning: `esbuild` option was specified by "vite:react-babel" plugin. This option is deprecated, please use `oxc` instead.
+8:21:28 PM [vite] warning: `optimizeDeps.esbuildOptions` option was specified by "vite:react-babel" plugin. This option is deprecated, please use `optimizeDeps.rolldownOptions` instead.
+Both esbuild and oxc options were set. oxc options will be used and esbuild options will be ignored. The following esbuild options were set: `{ jsx: 'automatic', jsxImportSource: undefined }`
+
+ RUN  v4.1.7 /workspace/antropic-claudai/sunny
+
+Browserslist: browsers data (caniuse-lite) is 6 months old. Please run:
+  npx update-browserslist-db@latest
+  Why you should do it regularly: https://github.com/browserslist/update-db#readme
+ ❯ src/features/transactions/TransactionModal.ui31.test.tsx (14 tests | 1 failed) 50ms
+     × keeps a source-less investment source-less when the editor first opens 6ms
+
+⎯⎯⎯⎯⎯⎯⎯ Failed Tests 1 ⎯⎯⎯⎯⎯⎯⎯
+
+ FAIL  src/features/transactions/TransactionModal.ui31.test.tsx > UI3 movement editor > keeps a source-less investment source-less when the editor first opens
+AssertionError: expected 'bank' to be '' // Object.is equality
+
+- Expected
++ Received
+
++ bank
+
+ ❯ src/features/transactions/TransactionModal.ui31.test.tsx:82:121
+     80|   it('keeps a source-less investment source-less when the editor first…
+     81|     const editing={id:'invest',type:'investment' as const,description:…
+     82|     const tree=view({editing});expect(tree.find(el=>el.type==='select'…
+       |                                                                                                                         ^
+     83|     tree.find(el=>el.type==='form')!.props.onSubmit({preventDefault:vi…
+     84|   });
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[1/1]⎯
+
+
+ Test Files  1 failed (1)
+      Tests  1 failed | 13 passed (14)
+   Start at  20:21:28
+   Duration  655ms (transform 343ms, setup 0ms, import 395ms, tests 50ms, environment 0ms)
+

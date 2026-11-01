@@ -49,6 +49,8 @@ if(params.has('wrappedSpending')){
  }
  if(params.get('wrappedSpending')==='deleted')wrappedSpendingMacros.splice(0);
 }
+if(params.has('archivedEditorAccount'))accounts[0].archived=true;
+if(params.has('pensionEditor'))categories.find(c=>c.id==='azioni_etf')!.fundType='pension';
 const now = new Date();
 const iso = (months: number, day: number) => { const d = new Date(now.getFullYear(), now.getMonth()+months,day); return `${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,'0')}-${String(d.getDate()).padStart(2,'0')}`; };
 export const transactions: Transaction[] = params.has('empty') ? [] : params.has('financeCase') ? [
@@ -106,6 +108,7 @@ if(params.has('wrappedSpending')){
  transactions.push({id:'ws-largest',date:`${year}-03-12`,amount:1200,type:'expense',category:'wrapped-extra',account:'conto_corrente',description:'Quel viaggio speciale'});
  if(mode==='planned')transactions.push({id:'ws-future',date:iso(0,28),amount:5000,type:'expense',category:'casa',account:'conto_corrente',description:'Ristrutturazione programmata'});
 }
+if(params.has('sourceLessEditor')){const movement=transactions.find(t=>t.type==='investment');if(movement)movement.account='';}
 if (params.has('invalidPortfolioDate')) {
   categories.find(c => c.id === 'azioni_etf')!.subscriptionDate = '01/01/2020';
 }

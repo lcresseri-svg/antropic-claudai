@@ -54,6 +54,7 @@ function PreviewShell({uid,onSwitch}:{uid:string;onSwitch:(uid:string)=>void}) {
   const [multiRefund,setMultiRefund]=useState<{expenseIds:string[];editingGroupId?:string}|null>(null);
   const [statement,setStatement]=useState<Transaction|null>(null);
   const [writes,setWrites]=useState(0);
+  const [lastSave,setLastSave]=useState<Omit<Transaction,'id'>[]>([]);
   const [scheduledDate,setScheduledDate]=useState<string|undefined>();
   const [notice,setNotice]=useState(query.has('notices')),[promo,setPromo]=useState(query.has('notices'));
   const tx=useMemo(()=>{
@@ -90,7 +91,7 @@ function PreviewShell({uid,onSwitch}:{uid:string;onSwitch:(uid:string)=>void}) {
   const save=async(_deleteIds:string[],created:Omit<Transaction,'id'>[])=>{
     if(query.has('failSave')) throw new Error('Fixture: rete non disponibile');
     if(editing&&_deleteIds.includes(editing.id))assertOrdinaryMutation(rows.find(t=>t.id===editing.id)??editing,created[0]??null,rows);
-    setWrites(n=>n+1); setRows(r=>[...r.filter(t=>!_deleteIds.includes(t.id)),...created.map((t,i)=>({...t,id:editing&&_deleteIds.includes(editing.id)&&created.length===1?editing.id:`preview-${Date.now()}-${i}`}))]);
+    setLastSave(created);setWrites(n=>n+1); setRows(r=>[...r.filter(t=>!_deleteIds.includes(t.id)),...created.map((t,i)=>({...t,id:editing&&_deleteIds.includes(editing.id)&&created.length===1?editing.id:`preview-${Date.now()}-${i}`}))]);
   };
   const saveMultiRefund=async(draft:RefundReceiptDraft)=>{
     if(query.has('failSave'))throw Error('Fixture: rete non disponibile');
@@ -122,7 +123,7 @@ function PreviewShell({uid,onSwitch}:{uid:string;onSwitch:(uid:string)=>void}) {
       <div id="app-scroll" className="flex-1 overflow-y-auto overscroll-contain"><main data-preview-route={route.pathname+route.search} id="page-content" tabIndex={-1} className="app-main max-w-2xl mx-auto md:max-w-none px-4 md:px-8 pt-4 md:pt-2 pb-24 md:pb-2">
         <AppRoutes {...({user:userFor(uid),brand:'Ciao, Luca',tx,budget,editing:editor,applePayPayments:query.has('manyPriorities')?[{id:'pending-1',schemaVersion:1,eventId:'test',source:'apple_pay',status:'pending',amount:20,currency:'EUR',date:new Date().toISOString().slice(0,10),merchant:'Negozio test',description:'Acquisto da confermare',cardKey:'test',cardLabel:'Carta test',receivedAt:0}]:[],applePayLoading:false,applePayError:null,onReviewApplePay(){},onIgnoreApplePay:async()=>{},onLogOut:()=>onSwitch(''),onDeleteAccount:async()=>{},onImport(){setImportOpen(true);}} as any)}/>
         <div style={{marginTop:40,padding:16,border:'1px dashed var(--border)',fontSize:12}} aria-label="Controlli anteprima locale">
-          Dati illustrativi · nessuna connessione al database · scritture simulate: <output id="preview-writes">{writes}</output>
+          Dati illustrativi · nessuna connessione al database · scritture simulate: <output id="preview-writes">{writes}</output><output id="preview-last-save" hidden>{JSON.stringify(lastSave)}</output>
           · Piani salvati in memoria: <output id="preview-plan-writes">{budget.writes}</output>
           <div className="flex gap-2 flex-wrap"><button onClick={openAdd}>Apri editor test</button><button onClick={()=>settings.saveTheme(settings.theme==='light'?'dark':'light')}>Cambia tema test</button><button onClick={()=>onSwitch('ordinary')}>Utente normale test</button><button onClick={()=>onSwitch(pilotUid)}>Admin test</button><button onClick={()=>onSwitch('')}>Logout test</button><button onClick={()=>navigate(`/wrapped/${new Date().getFullYear()}`)}>Wrapped test</button></div>
           {query.has('financeCase')&&<div className="mt-3 space-y-2">

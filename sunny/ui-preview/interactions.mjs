@@ -10,10 +10,10 @@ const start=async(query='')=>{await page.goto('http://127.0.0.1:4177/ui-preview/
 const route=async(path)=>{await page.evaluate(path=>{history.pushState({},'',path);dispatchEvent(new PopStateEvent('popstate'));},path);await page.waitForTimeout(250);};
 try {
   await start('editor');
-  assert.equal(await page.getByRole('textbox',{name:'Importo',exact:true}).getAttribute('readonly'),'');
-  assert.equal(await page.getByRole('button',{name:'1',exact:true}).isVisible(),true,'iPad touch keeps keypad at desktop width');
-  await page.getByRole('button',{name:'1',exact:true}).click();
-  await page.getByRole('button',{name:'+1',exact:true}).click();
+  assert.equal(await page.getByRole('textbox',{name:'Importo',exact:true}).getAttribute('readonly'),null);
+  assert.equal(await page.locator('.ui-keypad-grid').count(),0,'touch tablet uses native numeric input');
+  await page.getByRole('textbox',{name:'Importo',exact:true}).fill('1');
+  await page.getByRole('button',{name:"Salva e aggiungi un'altra",exact:true}).click();
   assert.equal(await page.locator('#preview-writes').textContent(),'1');
   assert.equal(await page.getByRole('dialog').count(),1);
   assert.equal(await page.getByRole('textbox',{name:'Importo',exact:true}).inputValue(),'');
@@ -26,14 +26,14 @@ try {
     return {source:idx(e=>e.textContent?.startsWith('Ricevuto da')),refund:idx(e=>e.textContent?.includes('Registra storno di una spesa')),amount:idx(e=>e.getAttribute('aria-label')==='Importo'),description:idx(e=>e.getAttribute('aria-label')==='Descrizione facoltativa'),categories:idx(e=>e.textContent?.includes('Casa'))};
   });
   assert.ok(order.source<order.amount && order.amount<order.description && order.description<order.categories && order.categories<order.refund,JSON.stringify(order));
-  assert.equal(await dialog.getByRole('button',{name:'+1',exact:true}).count(),0);
+  assert.equal(await dialog.getByRole('button',{name:"Salva e aggiungi un'altra",exact:true}).count(),0);
   assert.notEqual(await page.evaluate(()=>document.activeElement?.tagName),'INPUT');
   await page.screenshot({path:fileURLToPath(new URL('./artifacts/editor-touch-tablet.png',import.meta.url))});
   await start(); await route('/settings');
   await page.getByRole('textbox',{name:'Cerca nelle impostazioni'}).fill('investimenti');
   const entry=page.getByRole('button',{name:/Investimenti.*Portafoglio/}); await entry.click();
   await page.getByRole('heading',{name:'Investimenti',exact:true}).waitFor();
-  await page.locator('.ui-settings-detail').getByRole('button',{name:'Indietro',exact:true}).click();
+  await page.getByRole('button',{name:'Indietro',exact:true}).click();
   assert.equal(await page.getByRole('textbox',{name:'Cerca nelle impostazioni'}).inputValue(),'investimenti');
   await page.setViewportSize({width:1440,height:900});
   await entry.click(); await page.getByRole('heading',{name:'Investimenti',exact:true}).waitFor();
