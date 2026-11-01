@@ -1,11 +1,11 @@
 import './transactions-ui31.css';
 import { DiscardConfirmation } from '../../shared/components/DiscardConfirmation';
-import { createContext, useContext, useState, useEffect, useLayoutEffect, useMemo, useRef, useCallback } from 'react';
+import { useState, useEffect, useLayoutEffect, useMemo, useRef } from 'react';
 import { Transaction, TransactionType, TYPE_META, TYPE_ORDER, RecurrenceRule, SeriesMeta, SeriesKind, AccountDef, typeColor, typeOnColor } from '../../types';
 import { formatCurrency, formatDate, guessCategory } from '../../utils';
 import { Candidate, Recognition, RECOGNITION_THRESHOLD } from './categoryRecognition';
 import { orderCategoriesByUsage } from './categoryOrder';
-import { applyKeypadKey, sanitizeNumericInput } from './amountKeypad';
+import { sanitizeNumericInput } from './amountKeypad';
 import { useSettings } from '../../shared/providers/settings';
 import { expandRecurringOnCreate, shouldExpandOnSave, monthlyEquivalent, nthOccurrenceDate } from '../../shared/recurrence';
 import { useEscapeKey } from '../../shared/hooks/useEscapeKey';
@@ -14,7 +14,6 @@ import { RecurrenceEditor } from './RecurrenceEditor';
 import { useScrollLock } from '../../shared/useScrollLock';
 import { DialogSurface } from '../../shared/components/DialogSurface';
 import { useUiVersion } from '../../shared/providers/UiVersionProvider';
-import { useMediaQuery } from '../../shared/hooks/useMediaQuery';
 
 interface Props {
   open: boolean;
@@ -52,22 +51,6 @@ interface Props {
 
 /** Quante categorie stanno nella riga di chip prima di "altre ›". */
 const CHIP_CATS = 6;
-const NumericKeypadContext = createContext<boolean | null>(null);
-
-/** Campi INTERI fra quelli serviti dal tastierino: niente virgola. */
-const KEYPAD_INTEGER = new Set(['spread', 'instCount']);
-
-/** Come si chiama il campo in cui il tastierino sta scrivendo. Serve alla riga
- *  sopra i tasti: su un telefono il campo può essere scrollato fuori vista, e
- *  vedere le cifre comparire "da qualche parte" è peggio che non vederle. */
-const KEYPAD_LABELS: Record<string, string> = {
-  tfr: 'Di cui TFR',
-  fee: 'Commissione',
-  spread: 'Mesi di distribuzione',
-  instTotal: 'Totale piano',
-  instCount: 'Numero rate',
-};
-
 interface Reimb { amount: string; account: string }
 
 /** Series choice in the modal: none, or one of the smart-series kinds. */
@@ -81,10 +64,6 @@ const yesterday = () => { const d = new Date(); d.setDate(d.getDate() - 1); retu
 export function TransactionModal({ open, editing, groupTransfers = [], seriesEdit = false, defaultType, typeLocked = false, initialValues, awaitSave = false, singleSave = false, title, sourceBanner, saveLabel, recognize, transactions = [], onRegisterRefund, onEditRefund, onClose, onSave }: Props) {
   const { categories, accounts, visibleCategories, visibleAccounts, enableInvestments, detailedInvestments, theme, getAcc } = useSettings();
   const ui3 = useUiVersion() === '3.0';
-  const coarse = useMediaQuery('(any-pointer: coarse)');
-  const [keypadPreference, setKeypadPreference] = useState<boolean | null>(null);
-  const useKeypad = keypadPreference ?? coarse;
-  const [textInputActive, setTextInputActive] = useState(false);
   const [type, setType] = useState<TransactionType>('expense');
   const [description, setDescription] = useState('');
   const [amount, setAmount] = useState('');
@@ -119,6 +98,7 @@ export function TransactionModal({ open, editing, groupTransfers = [], seriesEdi
   // Descrizione e griglia categorie partono chiuse: una spesa tipica si
   // registra senza toccarle.
   const [descOpen, setDescOpen] = useState(false);
+  const descriptionFocusRequested = useRef(false);
   const [catGridOpen, setCatGridOpen] = useState(false);
   const categoryPickerTrigger = useRef<HTMLButtonElement>(null);
   const categoryPickerWasOpen = useRef(false);
@@ -126,16 +106,38 @@ export function TransactionModal({ open, editing, groupTransfers = [], seriesEdi
     if(ui3 && open && categoryPickerWasOpen.current && !catGridOpen) categoryPickerTrigger.current?.focus({preventScroll:true});
     categoryPickerWasOpen.current=catGridOpen;
   },[ui3,open,catGridOpen]);
-  // Conto e data si aprono solo se vanno cambiati: il default è "il conto di
-  // sempre, oggi".
-  const [whenWhereOpen, setWhenWhereOpen] = useState(false);
-  const [advancedOpen, setAdvancedOpen] = useState(false);
   const [confirmDelete, setConfirmDelete] = useState(false);
   const [confirmDiscard, setConfirmDiscard] = useState(false);
   const beforeInteraction = useRef<string | null>(null);
   const draftSignature = JSON.stringify([type,description,amount,date,category,account,toAccount,notes,isShared,reimbursements,seriesKind,recurringRule,recurringUntil,instTotal,instCount,instFirstDate,fee,tfr,spreadChoice,spreadCustom]);
   const captureDraft = () => { if (beforeInteraction.current === null) beforeInteraction.current = draftSignature; };
   const amountInput = useRef<HTMLInputElement>(null);
+  const initializingDraft = useRef(false);
+  const overlay = useRef<HTMLDivElement>(null);
+  // UI3's DialogSurface already follows visualViewport. The UI2 editor also
+  // needs its footer above the OS keyboard now that numeric fields are native.
+  useLayoutEffect(() => {
+    if (!open || ui3 || !overlay.current) return;
+    const element = overlay.current, viewport = window.visualViewport;
+    let frame = 0;
+    const update = () => {
+      cancelAnimationFrame(frame);
+      frame = requestAnimationFrame(() => {
+        element.style.top = `${viewport?.offsetTop ?? 0}px`;
+        element.style.bottom = 'auto';
+        element.style.height = `${viewport?.height ?? window.innerHeight}px`;
+      });
+    };
+    update();
+    viewport?.addEventListener('resize', update); viewport?.addEventListener('scroll', update);
+    window.addEventListener('resize', update);
+    return () => {
+      cancelAnimationFrame(frame);
+      viewport?.removeEventListener('resize', update); viewport?.removeEventListener('scroll', update);
+      window.removeEventListener('resize', update);
+      element.style.top = ''; element.style.bottom = ''; element.style.height = '';
+    };
+  }, [open, ui3]);
   useEffect(()=>{if(ui3 && amountError) amountInput.current?.focus();},[ui3,amountError]);
   const requestClose = () => {
     if (ui3 && (saving || saveLock.current)) return;
@@ -144,7 +146,7 @@ export function TransactionModal({ open, editing, groupTransfers = [], seriesEdi
     else onClose();
   };
 
-  // Quick mode: defaultType set + not editing → hide type selector, collapse date/account
+  // Quick mode retains the requested type; account and date are always editable.
   const quickMode = !editing && !!defaultType && defaultType !== 'transfer';
 
   // Storni della spesa aperta: elenco, totale stornato e spesa effettiva.
@@ -156,8 +158,10 @@ export function TransactionModal({ open, editing, groupTransfers = [], seriesEdi
   useEffect(() => {
     if (!open) return;
     beforeInteraction.current = null;
+    initializingDraft.current = true;
     saveLock.current = false;
-    setConfirmDiscard(false); setTextInputActive(false);
+    setConfirmDiscard(false);
+    descriptionFocusRequested.current = false;
     if (editing) {
       // Shared-expense reconstruction only folds the settlements (transfers): an
       // investment in the group is the fee parent and must not be summed in.
@@ -212,10 +216,8 @@ export function TransactionModal({ open, editing, groupTransfers = [], seriesEdi
     }
     setSaving(false); setSaveError(null);
     setAmountError(false);
-    setKeypad('amount');
     setCategoryTouched(!!editing || !!initialValues?.category);
     setConfirmDelete(false);
-    setAdvancedOpen(false);
     const hasGroup = !!editing && editing.type === 'expense' && !!editing.groupId
       && groupTransfers.some(t => t.type === 'transfer');
     setShowMore(!!editing && (!!editing.recurring || hasGroup || !!editing.shared));
@@ -298,50 +300,6 @@ export function TransactionModal({ open, editing, groupTransfers = [], seriesEdi
   // Detailed-investments extras (gated per user): a source-less investment and,
   // for pension funds, the TFR portion of the contribution.
   const canNoAccount = type === 'investment' && detailedInvestments;
-  // Il tastierino in fondo alla modale è UNO e serve tutti i campi numerici:
-  // importo, quote di una spesa condivisa, totale e numero delle rate,
-  // commissione, TFR, mesi di distribuzione. Qui si tiene solo QUALE campo sta
-  // ricevendo i tasti; la normalizzazione vive in `amountKeypad.ts`.
-  //
-  // Un campo che sparisce (cambio tipo, sezione richiusa, riga rimborso
-  // cancellata) libera il tastierino DA SÉ smontandosi — vedi NumberField — e
-  // i tasti tornano all'importo. È l'unico modo perché la lista dei campi non
-  // debba essere tenuta in sincrono a mano con le condizioni del JSX.
-  const [keypad, setKeypad] = useState('amount');
-
-  const focusKeypad = useCallback((id: string) => setKeypad(id), []);
-  const releaseKeypad = useCallback(
-    (id: string) => setKeypad(cur => (cur === id ? 'amount' : cur)),
-    [],
-  );
-
-  const pressKey = (k: string) => {
-    const integer = KEYPAD_INTEGER.has(keypad);
-    const apply = (prev: string) => applyKeypadKey(prev, k, { integer });
-
-    if (keypad.startsWith('reimb:')) {
-      const i = Number(keypad.slice('reimb:'.length));
-      setReimbursements(rs => rs.map((r, j) => (j === i ? { ...r, amount: apply(r.amount) } : r)));
-      return;
-    }
-    switch (keypad) {
-      case 'tfr':       setTfr(apply); break;
-      case 'fee':       setFee(apply); break;
-      case 'spread':    setSpreadCustom(apply); break;
-      case 'instTotal': setInstTotal(apply); break;
-      case 'instCount': setInstCount(apply); break;
-      default:
-        // L'errore sull'importo si spegne solo scrivendo NELL'importo: se si
-        // sta compilando il numero di rate, l'avviso deve restare lì.
-        setAmountError(false);
-        setAmount(apply);
-    }
-  };
-
-  const keypadLabel = keypad === 'amount' ? null
-    : keypad.startsWith('reimb:') ? `Quota rimborsata ${Number(keypad.slice('reimb:'.length)) + 1}`
-    : KEYPAD_LABELS[keypad] ?? null;
-
   const selCat = categories.find(c => c.id === category);
   // Chip mostrate senza aprire la griglia: le prime CHIP_CATS più, se sta
   // fuori, quella selezionata — non deve mai sparire dalla riga.
@@ -355,8 +313,12 @@ export function TransactionModal({ open, editing, groupTransfers = [], seriesEdi
   // An empty account is only valid for a source-less investment; otherwise snap
   // back to a real account (e.g. after switching type away from investment).
   useEffect(() => {
-    if (account === '' && !canNoAccount) setAccount(visibleAccounts[0]?.id ?? '');
-  }, [account, canNoAccount, visibleAccounts]);
+    if (!open) return;
+    // This effect runs after the draft initializer: don't replace its queued
+    // saved account (including an intentionally empty investment source).
+    if (initializingDraft.current) { initializingDraft.current = false; return; }
+    if (account === '' && !canNoAccount) setAccount(current => current || visibleAccounts[0]?.id || '');
+  }, [open, editing, groupTransfers.length, initialValues?.sourceId, account, canNoAccount, visibleAccounts]);
 
   // Fallback description used when the field is left empty: the selected
   // category label (or the destination account for transfers).
@@ -640,7 +602,7 @@ export function TransactionModal({ open, editing, groupTransfers = [], seriesEdi
   </>;
 
   return (
-    <div className="fixed inset-0 z-50 flex items-end sm:items-center justify-center px-3 pt-[max(0.75rem,env(safe-area-inset-top))] pb-[max(0.75rem,env(safe-area-inset-bottom))]"
+    <div ref={overlay} className="fixed inset-0 z-50 flex items-end sm:items-center justify-center px-3 pt-[max(0.75rem,env(safe-area-inset-top))] pb-[max(0.75rem,env(safe-area-inset-bottom))]"
       onClick={e => { if (e.target === e.currentTarget) requestClose(); }}>
       <div className="absolute inset-0 bg-black/60 backdrop-blur-sm animate-fade-in-fast" />
 
@@ -651,16 +613,10 @@ export function TransactionModal({ open, editing, groupTransfers = [], seriesEdi
           around an internal scrolling window (the form fields). overscroll-contain
           stops the scroll from chaining to the page when the window hits its end. */}
       <DialogSurface title={title ?? (seriesEdit ? 'Modifica serie' : editing ? 'Modifica movimento' : `Nuova ${TYPE_META[type].label.toLowerCase()}`)} onDismiss={requestClose} kind="editor" showEditorTitle={(ui3 || !quickMode) && availableTypes.length > 1}
-        data-keypad={ui3 ? String(useKeypad) : undefined} data-text-input={ui3 ? String(textInputActive) : undefined}
         onChangeCapture={ui3 ? captureDraft : undefined}
-        onPointerDownCapture={ui3 ? captureDraft : undefined} onKeyDownCapture={ui3 ? e => {
-          captureDraft();
-          const target=e.target as HTMLInputElement;
-          if (useKeypad && target.tagName==='INPUT' && target.readOnly && (/^[\d.,]$/.test(e.key) || e.key==='Backspace')) { e.preventDefault(); pressKey(e.key==='Backspace'?'back':e.key); }
-        } : undefined}
-        onFocusCapture={ui3 ? e => { const target=e.target as HTMLInputElement; if (target.tagName==='INPUT'||target.tagName==='TEXTAREA') setTextInputActive(!target.readOnly && !['decimal','numeric','none'].includes(target.inputMode)); } : undefined}
-        onBlurCapture={ui3 ? e => { if (!e.currentTarget.contains(e.relatedTarget as Node | null)) setTextInputActive(false); } : undefined}
-        className={`${ui3 ? "ui31-movement-editor " : ""}relative w-full max-w-none h-full max-h-full sm:max-w-[560px] sm:h-auto sm:max-h-[88dvh] glass-elevated rounded-3xl sm:rounded-[26px] shadow-float overflow-hidden flex flex-col animate-sheet-up`}>
+        onPointerDownCapture={ui3 ? captureDraft : undefined}
+        onKeyDownCapture={ui3 ? captureDraft : undefined}
+        className={`${ui3 ? "ui31-movement-editor " : ""}movement-editor relative w-full max-w-none h-full max-h-full sm:max-w-[560px] sm:h-auto sm:max-h-[88dvh] glass-elevated rounded-3xl sm:rounded-[26px] shadow-float overflow-hidden flex flex-col animate-sheet-up`}>
         {/* Testa: ✕ a sinistra, segmented al centro. Il titolo sparisce — con
             il tipo selezionato davanti agli occhi non diceva nulla di nuovo. */}
         <div className="shrink-0 bg-[var(--modal-hdr-bg)] px-5 pt-5 pb-3 flex items-center gap-3">
@@ -686,7 +642,6 @@ export function TransactionModal({ open, editing, groupTransfers = [], seriesEdi
         </div>
 
         {confirmDiscard && <DiscardConfirmation onContinue={() => setConfirmDiscard(false)} onDiscard={onClose} />}
-        <NumericKeypadContext.Provider value={ui3 ? useKeypad : null}>
         <form onSubmit={submit} aria-busy={ui3 ? saving : undefined} className="flex-1 min-h-0 flex flex-col">
           <div className="flex-1 min-h-0 overflow-y-auto overscroll-contain scrollbar-hide px-5 sm:px-7 pb-4 space-y-3 sm:space-y-4">
           {seriesEdit && (
@@ -703,49 +658,31 @@ export function TransactionModal({ open, editing, groupTransfers = [], seriesEdi
 
           {!ui3 && refundDetails}
 
-          {/* Amount — su telefono lo scrive il tastierino in fondo, quindi il
-              campo è readOnly e la tastiera di sistema non copre la modale.
-              Da `sm` in su torna un input normale. Toccarlo riporta qui il
-              tastierino, dopo che si è compilato un altro campo numerico. */}
+          {/* One editable amount at every size. Focus comes from the user's tap,
+              so opening the editor never summons the native keyboard by itself. */}
           <div className="text-center pt-1">
             <div className="flex items-baseline justify-center gap-1.5">
-              {ui3 ? <input ref={amountInput} type="text" inputMode={useKeypad ? 'none' : 'decimal'} readOnly={useKeypad} placeholder="0" value={amount}
+              <input ref={amountInput} type="text" inputMode="decimal" autoComplete="off" spellCheck={false}
+                placeholder="0" value={amount}
                 style={{width:`${Math.max(2,amount.length||1)}ch`,maxWidth:'calc(100% - 44px)'}}
                 aria-label="Importo" aria-invalid={amountError} aria-describedby={amountError ? 'movement-amount-error' : undefined}
-                onFocus={() => { setKeypad('amount'); setTextInputActive(false); }} onClick={() => setKeypad('amount')}
-                onChange={e => { setAmount(e.target.value.replace(/[^\d.,]/g, '')); setAmountError(false); }}
-                className={`ui-amount-input bg-transparent font-bold text-center balance-num ${amountError ? 'text-red' : 'text-primary'}`} /> : <>
-              <input
-                type="text" inputMode="none" readOnly placeholder="0" value={amount}
-                aria-label="Importo"
-                onFocus={() => setKeypad('amount')} onClick={() => setKeypad('amount')}
-                className={`sm:hidden bg-transparent text-[54px] leading-none font-bold text-right outline-none balance-num placeholder:text-divider transition-colors ${amountError ? 'text-red' : 'text-primary'}`}
-                style={{ width: `${Math.max(2, amount.length || 1)}ch` }}
-              />
-              <input
-                type="text" inputMode="decimal" placeholder="0" value={amount}
-                aria-label="Importo"
-                onChange={e => { setAmount(e.target.value.replace(/[^\d.,]/g, '')); setAmountError(false); }}
-                className={`hidden sm:block bg-transparent text-[44px] leading-none font-bold text-center w-52 outline-none balance-num placeholder:text-divider transition-colors ${amountError ? 'text-red' : 'text-primary'}`}
-              />
-              </>}
+                onChange={e => { setAmount(sanitizeNumericInput(e.target.value)); setAmountError(false); }}
+                className={`ui-amount-input bg-transparent font-bold text-center outline-none balance-num ${amountError ? 'text-red' : 'text-primary'}`} />
               <span className={`text-[30px] font-semibold ${amountError ? 'text-red' : 'text-secondary'}`}>€</span>
             </div>
-            {amountError && (
-              <p id="movement-amount-error" className="text-xs mt-2 transition-opacity text-red">Inserisci un importo valido</p>
-            )}
+            {amountError && <p id="movement-amount-error" className="text-xs mt-2 text-red">Inserisci un importo valido</p>}
           </div>
 
           {/* Description — non è un campo sempre aperto: una spesa tipica si
               registra senza scriverla, e il campo appare al tocco. */}
           {!ui3 && !descOpen ? (
-            <button type="button" onClick={() => setDescOpen(true)}
+            <button type="button" onClick={() => { descriptionFocusRequested.current = true; setDescOpen(true); }}
               className="w-full text-center py-2 text-[13px] text-secondary">
               Tocca per scrivere la descrizione
             </button>
           ) : (
           <Field label="Descrizione (facoltativa)">
-            <input type="text" aria-label={ui3 ? 'Descrizione facoltativa' : undefined} autoFocus={!ui3} placeholder={defaultDesc || 'es. Supermercato'} value={description} maxLength={80}
+            <input type="text" aria-label={ui3 ? 'Descrizione facoltativa' : undefined} autoFocus={!ui3 && descriptionFocusRequested.current} placeholder={defaultDesc || 'es. Supermercato'} value={description} maxLength={80}
               onChange={e => {
                 const v = e.target.value;
                 setDescription(v);
@@ -827,72 +764,43 @@ export function TransactionModal({ open, editing, groupTransfers = [], seriesEdi
             <>
               <div className="grid grid-cols-2 gap-3">
                 <Field label="Da conto">
-                  <Select value={account} onChange={setAccount} options={accountOptions.map(a => ({ value: a.id, label: `${a.icon} ${a.label}` }))} />
+                  <Select ariaLabel="Da conto" value={account} onChange={setAccount} options={accountOptions.map(a => ({ value: a.id, label: `${a.icon} ${a.label}` }))} />
                 </Field>
                 <Field label="A conto">
-                  <Select value={toAccount} onChange={setToAccount}
+                  <Select ariaLabel="A conto" value={toAccount} onChange={setToAccount}
                     options={accountOptions.filter(a => a.id !== account).map(a => ({ value: a.id, label: `${a.icon} ${a.label}` }))} />
                 </Field>
               </div>
               <DateField date={date} td={td} yd={yd} setDate={setDate} seriesEdit={seriesEdit} />
             </>
-          ) : quickMode && !initialValues ? (
-            /* Quick mode: conto + data collapsed under "Dettagli avanzati" */
-            <>
-              <button type="button" onClick={() => setAdvancedOpen(s => !s)}
-                className="w-full flex items-center justify-center gap-1.5 py-2 text-sm font-medium text-secondary">
-                Dettagli avanzati
-                <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor"
-                  strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round"
-                  className={`transition-transform ${advancedOpen ? 'rotate-180' : ''}`}>
-                  <path d="M6 9l6 6 6-6" />
-                </svg>
-              </button>
-              {advancedOpen && (
-                <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
-                  <Field label="Conto">
-                    <Select value={account} onChange={setAccount}
-                      options={[
-                        ...(canNoAccount ? [{ value: '', label: '🚫 Senza conto (TFR / datore)' }] : []),
-                        ...accountOptions.map(a => ({ value: a.id, label: `${a.icon} ${a.label}` })),
-                      ]} />
-                  </Field>
-                  <DateField date={date} td={td} yd={yd} setDate={setDate} seriesEdit={seriesEdit} />
-                </div>
-              )}
-            </>
           ) : (
-            /* Conto e data in UNA riga: il default è "il conto di sempre, oggi",
-               e chi non deve cambiarlo non apre nulla. */
             <div>
-              <div className="glass-card rounded-2xl px-4 py-3 flex items-center gap-3">
-                <span className="flex items-center gap-2 min-w-0">
-                  <span className="text-base">{account ? getAcc(account).icon : '🚫'}</span>
-                  <span className="text-[13.5px] text-primary truncate">
-                    {account ? getAcc(account).label : 'Senza conto'}
+              <div className="grid grid-cols-2 gap-3">
+                <label className="movement-picker glass-card rounded-2xl px-3 py-3 relative min-w-0">
+                  <span aria-hidden="true" className="block text-xs text-secondary mb-1">Conto</span>
+                  <span aria-hidden="true" className="flex items-center gap-1.5 text-[13.5px] text-primary min-w-0">
+                    <span className="flex-none">{account ? getAcc(account).icon : '🚫'}</span>
+                    <span className="truncate">{account ? getAcc(account).label : 'Senza conto'}</span>
+                    <span className="ml-auto flex-none text-secondary">⌄</span>
                   </span>
-                </span>
-                <span className="w-px self-stretch bg-divider flex-none" />
-                <span className="text-[13.5px] text-primary flex-1 min-w-0 truncate">
-                  {date === td ? 'Oggi' : date === yd ? 'Ieri' : formatDate(date)}
-                </span>
-                <button type="button" onClick={() => setWhenWhereOpen(o => !o)}
-                  className="text-[12px] font-semibold text-gold flex-none">
-                  {whenWhereOpen ? (ui3 ? '‹ Indietro' : 'Chiudi') : 'Modifica'}
-                </button>
+                  <select aria-label="Conto" value={account} onChange={e => setAccount(e.target.value)}
+                    className="movement-native-picker absolute inset-0 w-full h-full opacity-0 cursor-pointer">
+                    {canNoAccount && <option value="">🚫 Senza conto (TFR / datore)</option>}
+                    {accountOptions.map(a => <option key={a.id} value={a.id}>{a.icon} {a.label}</option>)}
+                  </select>
+                </label>
+                <label className="movement-picker glass-card rounded-2xl px-3 py-3 relative min-w-0">
+                  <span aria-hidden="true" className="block text-xs text-secondary mb-1">{seriesEdit ? 'Data serie' : 'Data'}</span>
+                  <span aria-hidden="true" className="flex items-center gap-1.5 text-[13.5px] text-primary min-w-0">
+                    <span className="truncate">{date === td ? 'Oggi' : date === yd ? 'Ieri' : date ? formatDate(date) : 'Scegli data'}</span>
+                    <span className="ml-auto flex-none text-secondary">⌄</span>
+                  </span>
+                  <input type="date" aria-label={seriesEdit ? 'Data serie' : 'Data'} value={date}
+                    onChange={e => setDate(e.target.value)} onClick={openDatePicker} onKeyDown={openDatePicker}
+                    className="movement-native-picker absolute inset-0 w-full h-full opacity-0 cursor-pointer" />
+                </label>
               </div>
-              {whenWhereOpen && (
-                <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 mt-3">
-                  <Field label="Conto">
-                    <Select value={account} onChange={setAccount}
-                      options={[
-                        ...(canNoAccount ? [{ value: '', label: '🚫 Senza conto (TFR / datore)' }] : []),
-                        ...accountOptions.map(a => ({ value: a.id, label: `${a.icon} ${a.label}` })),
-                      ]} />
-                  </Field>
-                  <DateField date={date} td={td} yd={yd} setDate={setDate} seriesEdit={seriesEdit} />
-                </div>
-              )}
+              <DateHint date={date} td={td} seriesEdit={seriesEdit} />
             </div>
           )}
 
@@ -928,7 +836,6 @@ export function TransactionModal({ open, editing, groupTransfers = [], seriesEdi
               <div className="relative">
                 <span className="absolute left-4 top-1/2 -translate-y-1/2 text-secondary text-sm">€</span>
                 <NumberField id="tfr" value={tfr} onChange={setTfr} ariaLabel="Di cui TFR"
-                  activeId={keypad} onFocus={focusKeypad} onRelease={releaseKeypad}
                   placeholder="0,00"
                   className="w-full rounded-2xl pl-8 pr-4 py-3" />
               </div>
@@ -944,7 +851,6 @@ export function TransactionModal({ open, editing, groupTransfers = [], seriesEdi
               <div className="relative">
                 <span className="absolute left-4 top-1/2 -translate-y-1/2 text-secondary text-sm">€</span>
                 <NumberField id="fee" value={fee} onChange={setFee} ariaLabel="Commissione"
-                  activeId={keypad} onFocus={focusKeypad} onRelease={releaseKeypad}
                   placeholder="0,00"
                   className="w-full rounded-2xl pl-8 pr-4 py-3" />
               </div>
@@ -968,7 +874,6 @@ export function TransactionModal({ open, editing, groupTransfers = [], seriesEdi
               {spreadChoice === 'custom' && (
                 <NumberField id="spread" value={spreadCustom} onChange={setSpreadCustom} integer
                   ariaLabel="Mesi di distribuzione"
-                  activeId={keypad} onFocus={focusKeypad} onRelease={releaseKeypad}
                   placeholder="2–120 mesi"
                   className="mt-2 w-full rounded-xl px-3 py-2.5 text-sm" />
               )}
@@ -1008,7 +913,6 @@ export function TransactionModal({ open, editing, groupTransfers = [], seriesEdi
                           <NumberField id={`reimb:${i}`} value={r.amount}
                             onChange={v => updateReimb(i, { amount: v })}
                             ariaLabel={`Quota rimborsata ${i + 1}`}
-                            activeId={keypad} onFocus={focusKeypad} onRelease={releaseKeypad}
                             placeholder="0"
                             className="w-full rounded-xl pl-6 pr-2 py-2.5 text-sm" />
                         </div>
@@ -1098,7 +1002,6 @@ export function TransactionModal({ open, editing, groupTransfers = [], seriesEdi
                             <label className="text-xs font-medium text-secondary mb-1.5 block">Totale piano (€)</label>
                             <NumberField id="instTotal" value={instTotal} onChange={setInstTotal}
                               ariaLabel="Totale piano"
-                              activeId={keypad} onFocus={focusKeypad} onRelease={releaseKeypad}
                               placeholder="0,00"
                               className="w-full rounded-xl px-3 py-3 text-sm" />
                           </div>
@@ -1106,14 +1009,13 @@ export function TransactionModal({ open, editing, groupTransfers = [], seriesEdi
                             <label className="text-xs font-medium text-secondary mb-1.5 block">Numero rate</label>
                             <NumberField id="instCount" value={instCount} onChange={setInstCount} integer
                               ariaLabel="Numero rate"
-                              activeId={keypad} onFocus={focusKeypad} onRelease={releaseKeypad}
                               placeholder="12"
                               className="w-full rounded-xl px-3 py-3 text-sm" />
                           </div>
                         </div>
                         <div>
                           <label className="text-xs font-medium text-secondary mb-1.5 block">Data prima rata</label>
-                          <input type="date" value={instFirstDate} onChange={e => setInstFirstDate(e.target.value)}
+                          <input type="date" aria-label="Data prima rata" value={instFirstDate} onChange={e => setInstFirstDate(e.target.value)}
                             className="block w-full min-w-0 box-border appearance-none bg-elevated rounded-xl px-3 py-3.5 text-primary text-sm outline-none focus:ring-1 focus:ring-gold/40" />
                         </div>
                         <div className="bg-elevated rounded-xl px-3 py-2.5 space-y-1">
@@ -1151,7 +1053,6 @@ export function TransactionModal({ open, editing, groupTransfers = [], seriesEdi
           {/* Fixed action bar: part of the card's mask (like the header), the
               form scrolls in the window above it. */}
           <div className="ui-editor-footer shrink-0 px-5 sm:px-7 pt-3 pb-5 sm:pb-7 bg-[var(--modal-hdr-bg)] space-y-2">
-            {ui3 && <button type="button" className="ui-keypad-toggle" onClick={() => { setKeypadPreference(!useKeypad); setTextInputActive(false); }}> {useKeypad ? 'Usa tastiera' : 'Mostra tastierino'} </button>}
             {saveError && (
               <p role={ui3 ? 'alert' : undefined} className="text-sm text-red px-1 leading-snug">
                 {saveError === 'investment'
@@ -1159,50 +1060,7 @@ export function TransactionModal({ open, editing, groupTransfers = [], seriesEdi
                   : 'Salvataggio non riuscito. I valori inseriti sono conservati: controlla la connessione e riprova.'}
               </p>
             )}
-            {/* Telefono: tastierino 4×4 — le cifre stanno dove sta il pollice e
-                Salva è dentro la stessa griglia, così una spesa tipica si
-                registra senza mai alzare la mano. Da `sm` in su la modale resta
-                la sheet centrata di prima e il tastierino sparisce. */}
-            <div className={ui3 ? `ui-touch-footer ${!useKeypad || textInputActive ? 'hidden' : ''}` : 'sm:hidden'}>
-              {/* Il campo può essere scrollato fuori vista: senza questa riga
-                  le cifre comparirebbero "da qualche parte". */}
-              {keypadLabel && (
-                <button type="button" onClick={() => setKeypad('amount')}
-                  className="w-full text-[11.5px] text-gold text-center pb-1.5 truncate">
-                  Stai scrivendo in «{keypadLabel}» · torna all'importo
-                </button>
-              )}
-              <div className="ui-keypad-grid grid grid-cols-4 grid-rows-4 gap-2">
-                {['1', '2', '3', '4', '5', '6', '7', '8', '9', ',', '0'].map(k => (
-                  <KeypadKey key={k} onClick={() => pressKey(k)}>{k}</KeypadKey>
-                ))}
-                <KeypadKey onClick={() => pressKey('back')} label={ui3 ? 'Cancella ultima cifra' : 'Cancella'}>⌫</KeypadKey>
-
-                <button type="submit" disabled={saving}
-                  className="row-span-2 col-start-4 row-start-1 rounded-2xl cta-gold-fill text-[15px] font-semibold
-                             active:scale-[0.98] transition-transform disabled:opacity-60">
-                  {saving ? '…' : saveError ? 'Riprova' : saveLabel ?? 'Salva'}
-                </button>
-
-                {!editing && !singleSave ? (
-                  <button type="button" onClick={() => doSubmit(true)} disabled={saving}
-                    className="row-span-2 col-start-4 row-start-3 rounded-2xl bg-elevated text-primary text-[15px] font-semibold
-                               active:scale-[0.98] transition-transform disabled:opacity-60">
-                    +1
-                  </button>
-                ) : (
-                  <span className="row-span-2 col-start-4 row-start-3" aria-hidden />
-                )}
-              </div>
-              {!editing && !singleSave && (
-                <p className="text-[12px] text-secondary text-center mt-2">
-                  <span className="font-semibold text-primary">+1</span> salva e riapre subito la modale.
-                </p>
-              )}
-            </div>
-
-            {/* Desktop: i bottoni di sempre. */}
-            <div className={ui3 ? `ui-keyboard-footer space-y-2 ${useKeypad && !textInputActive ? 'hidden' : ''}` : 'hidden sm:block space-y-2'}>
+            <div className="ui-keyboard-footer space-y-2">
               <button type="submit" disabled={saving}
                 className="w-full py-3 rounded-2xl font-semibold transition-transform active:scale-[0.98] disabled:opacity-60"
                 style={ui3 ? { backgroundColor: 'var(--ui-accent)', color: 'var(--ui-on-accent)' } : { backgroundColor: typeColor(type, theme), color: typeOnColor(theme) }}>
@@ -1218,7 +1076,6 @@ export function TransactionModal({ open, editing, groupTransfers = [], seriesEdi
             </div>
           </div>
         </form>
-        </NumericKeypadContext.Provider>
       </DialogSurface>
     </div>
   );
@@ -1275,89 +1132,51 @@ function DateField({ date, td, yd, setDate, seriesEdit = false }: { date: string
           className={`px-3.5 py-2 rounded-xl text-xs font-semibold transition-colors flex-shrink-0 ${date === yd ? 'bg-gold text-bg' : 'bg-elevated text-secondary'}`}>
           Ieri
         </button>
-        <input type="date" value={date} onChange={e => setDate(e.target.value)}
+        <input type="date" aria-label={seriesEdit ? 'Data serie' : 'Data'} value={date} onClick={openDatePicker} onKeyDown={openDatePicker} onChange={e => setDate(e.target.value)}
           className="flex-1 min-w-0 bg-elevated rounded-xl px-3 py-2 text-primary text-xs outline-none focus:ring-1 focus:ring-gold/40" />
       </div>
-      {seriesEdit ? (
-        <p className="text-[11px] text-secondary mt-2 flex items-center gap-1">
-          🔁 Le occorrenze future della serie partono da questa data.
-        </p>
-      ) : date > td && (
-        <p className="text-[11px] text-secondary mt-2 flex items-center gap-1">
-          🗓️ Data futura: sarà un movimento previsto e verrà conteggiato automaticamente alla data scelta.
-        </p>
-      )}
+      <DateHint date={date} td={td} seriesEdit={seriesEdit} />
     </Field>
   );
 }
 
-function Select({ value, onChange, options }: { value: string; onChange: (v: string) => void; options: { value: string; label: string }[] }) {
+/** Request the system calendar only inside the user's click/key gesture.
+ * Unsupported/security-restricted browsers keep their normal date control. */
+function openDatePicker(event: React.MouseEvent<HTMLInputElement> | React.KeyboardEvent<HTMLInputElement>) {
+  if ('key' in event && event.key !== 'Enter' && event.key !== ' ') return;
+  try {
+    if (typeof event.currentTarget.showPicker === 'function') {
+      event.currentTarget.showPicker();
+      event.preventDefault();
+    }
+  } catch { /* Native date input remains usable without showPicker. */ }
+}
+
+function DateHint({date, td, seriesEdit = false}: {date:string; td:string; seriesEdit?:boolean}) {
+  return <>{seriesEdit ? (
+    <p className="text-[11px] text-secondary mt-2">🔁 Le occorrenze future della serie partono da questa data.</p>
+  ) : date > td ? (
+    <p className="text-[11px] text-secondary mt-2">🗓️ Data futura: sarà un movimento previsto e verrà conteggiato automaticamente alla data scelta.</p>
+  ) : null}</>;
+}
+
+function Select({ value, onChange, options, ariaLabel }: { value: string; onChange: (v: string) => void; ariaLabel: string; options: { value: string; label: string }[] }) {
   return (
-    <select value={value} onChange={e => onChange(e.target.value)}
+    <select aria-label={ariaLabel} value={value} onChange={e => onChange(e.target.value)}
       className="w-full bg-elevated rounded-2xl px-4 py-3 text-primary text-sm outline-none focus:ring-1 focus:ring-gold/40 appearance-none">
       {options.map(o => <option key={o.value} value={o.value} className="bg-elevated">{o.label}</option>)}
     </select>
   );
 }
 
-/**
- * Campo numerico servito dal tastierino.
- *
- * Sul telefono è di sola lettura e `inputMode="none"`: toccarlo NON apre la
- * tastiera di sistema — che coprirebbe metà modale, campo compreso — ma punta
- * lì il tastierino in fondo, e la cornice oro dice dove stanno finendo i
- * tasti. Da `sm` in su, dove il tastierino non c'è, torna un input normale con
- * la tastiera vera.
- *
- * Smontandosi libera il tastierino: un campo che sparisce (cambio tipo,
- * sezione richiusa, riga rimborso cancellata) non può restare a catturare i
- * tasti mentre l'utente li vede finire nel nulla.
- */
-function NumberField({
-  id, value, onChange, activeId, onFocus, onRelease, integer, placeholder, ariaLabel, className,
-}: {
-  id: string;
-  value: string;
-  onChange: (v: string) => void;
-  activeId: string;
-  onFocus: (id: string) => void;
-  onRelease: (id: string) => void;
-  integer?: boolean;
-  placeholder?: string;
-  ariaLabel: string;
-  className: string;
+/** One native numeric input, including touch devices and optional fields. */
+function NumberField({ id, value, onChange, integer, placeholder, ariaLabel, className }: {
+  id: string; value: string; onChange: (v: string) => void;
+  integer?: boolean; placeholder?: string; ariaLabel: string; className: string;
 }) {
-  useEffect(() => () => onRelease(id), [id, onRelease]);
-  const keypadMode = useContext(NumericKeypadContext);
-
-  const active = activeId === id;
-  const common = `${className} bg-elevated text-primary placeholder:text-secondary/50 outline-none balance-num ${
-    active ? 'ring-1 ring-gold/60' : 'focus:ring-1 focus:ring-gold/40'}`;
-
-  if (keypadMode !== null) return <input type="text" inputMode={keypadMode ? 'none' : integer ? 'numeric' : 'decimal'} readOnly={keypadMode} value={value} placeholder={placeholder}
-    aria-label={ariaLabel} className={common} onFocus={() => onFocus(id)} onClick={() => onFocus(id)}
+  return <input id={id} type="text" inputMode={integer ? 'numeric' : 'decimal'}
+    autoComplete="off" spellCheck={false} value={value} placeholder={placeholder}
+    aria-label={ariaLabel}
+    className={`movement-native-number ${className} bg-elevated text-primary placeholder:text-secondary/50 outline-none balance-num focus:ring-1 focus:ring-gold/40`}
     onChange={e => onChange(sanitizeNumericInput(e.target.value, { integer }))} />;
-  return (
-    <>
-      <input type="text" inputMode="none" readOnly value={value} placeholder={placeholder}
-        aria-label={ariaLabel} className={`sm:hidden ${common}`}
-        onFocus={() => onFocus(id)} onClick={() => onFocus(id)} />
-      <input type="text" inputMode={integer ? 'numeric' : 'decimal'} value={value} placeholder={placeholder}
-        aria-label={ariaLabel} className={`hidden sm:block ${common}`}
-        onChange={e => onChange(sanitizeNumericInput(e.target.value, { integer }))} />
-    </>
-  );
-}
-
-/** Tasto del tastierino. */
-function KeypadKey({ children, onClick, label }: {
-  children: React.ReactNode; onClick: () => void; label?: string;
-}) {
-  return (
-    <button type="button" onClick={onClick} aria-label={label}
-      className="h-12 rounded-2xl bg-elevated text-primary text-[20px] font-semibold
-                 active:bg-card-hover transition-colors">
-      {children}
-    </button>
-  );
 }

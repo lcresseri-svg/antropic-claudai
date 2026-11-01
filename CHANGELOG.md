@@ -17,6 +17,10 @@ git.
 
 ---
 
+## 2026-11-01
+
+- **[Codex]** Inserimento movimento con tastiera nativa al tocco dell’importo, senza tastierino interno; anche quote, commissioni, TFR e rate usano input nativi. Conto e data direttamente modificabili dai riquadri, anche nella modalità rapida, con select e calendario del dispositivo. Azioni comuni mobile/desktop e viewport sicura con tastiera. Corretto il ripiego iniziale che poteva sostituire il conto salvato o assegnarlo a un versamento senza conto. Test, screenshot e inventario in `docs/evidence/native-movement/`. `(pending)`
+
 ## 2026-10-30
 
 - **[Codex]** Wrapped più ricco: macro aree con emoji, quote e bande prima delle categorie; spesa singola più grande subito dopo il dettaglio; nuova storia della voce registrata più spesso, con frequenza, costo personale netto e media. La frequenza usa soltanto spese avvenute e sostituisce la pagina del conteggio, mantenuto nel riepilogo (massimo 13 storie). Entrate e stile conservati; macro e abitudini anche nel riepilogo. Nessuna deduzione di negozi o abbonamenti, assegnazioni macro attuali, gestione di legacy/eliminazioni e rimborsi. Corrette copy delle quote, parità degli importi in centesimi e ritorno a capo dei nomi lunghi. `(pending)`

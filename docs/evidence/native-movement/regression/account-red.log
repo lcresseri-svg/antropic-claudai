@@ -1,0 +1,40 @@
+
+> sunny-finance@2.2.0 test
+> vitest run src/features/transactions/TransactionModal.ui31.test.tsx
+
+8:19:23 PM [vite] warning: `esbuild` option was specified by "vite:react-babel" plugin. This option is deprecated, please use `oxc` instead.
+8:19:23 PM [vite] warning: `optimizeDeps.esbuildOptions` option was specified by "vite:react-babel" plugin. This option is deprecated, please use `optimizeDeps.rolldownOptions` instead.
+Both esbuild and oxc options were set. oxc options will be used and esbuild options will be ignored. The following esbuild options were set: `{ jsx: 'automatic', jsxImportSource: undefined }`
+
+ RUN  v4.1.7 /workspace/antropic-claudai/sunny
+
+Browserslist: browsers data (caniuse-lite) is 6 months old. Please run:
+  npx update-browserslist-db@latest
+  Why you should do it regularly: https://github.com/browserslist/update-db#readme
+ ❯ src/features/transactions/TransactionModal.ui31.test.tsx (13 tests | 1 failed) 59ms
+     × preserves the edited account even when it differs from the default account 7ms
+
+⎯⎯⎯⎯⎯⎯⎯ Failed Tests 1 ⎯⎯⎯⎯⎯⎯⎯
+
+ FAIL  src/features/transactions/TransactionModal.ui31.test.tsx > UI3 movement editor > preserves the edited account even when it differs from the default account
+AssertionError: expected 'bank' to be 'cash' // Object.is equality
+
+Expected: "cash"
+Received: "bank"
+
+ ❯ src/features/transactions/TransactionModal.ui31.test.tsx:77:121
+     75|   it('preserves the edited account even when it differs from the defau…
+     76|     const editing={id:'expense',type:'expense' as const,description:'S…
+     77|     const tree=view({editing});expect(tree.find(el=>el.type==='select'…
+       |                                                                                                                         ^
+     78|     tree.find(el=>el.type==='form')!.props.onSubmit({preventDefault:vi…
+     79|   });
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[1/1]⎯
+
+
+ Test Files  1 failed (1)
+      Tests  1 failed | 12 passed (13)
+   Start at  20:19:23
+   Duration  639ms (transform 303ms, setup 0ms, import 350ms, tests 59ms, environment 0ms)
+

@@ -1,0 +1,325 @@
+{
+  "results": [
+    {
+      "ui": 2,
+      "theme": "light",
+      "width": 320,
+      "status": "passed",
+      "checks": [
+        "native-amount",
+        "account-dropdown",
+        "calendar-full-tile",
+        "future-date",
+        "keyboard-viewport",
+        "draft-focus",
+        "save-next-context",
+        "clean-close"
+      ]
+    },
+    {
+      "ui": 2,
+      "theme": "light",
+      "width": 390,
+      "status": "passed",
+      "checks": [
+        "native-amount",
+        "account-dropdown",
+        "calendar-full-tile",
+        "future-date",
+        "keyboard-viewport",
+        "draft-focus",
+        "save-next-context",
+        "clean-close"
+      ]
+    },
+    {
+      "ui": 2,
+      "theme": "light",
+      "width": 834,
+      "status": "passed",
+      "checks": [
+        "native-amount",
+        "account-dropdown",
+        "calendar-full-tile",
+        "future-date",
+        "keyboard-viewport",
+        "draft-focus",
+        "save-next-context",
+        "clean-close"
+      ]
+    },
+    {
+      "ui": 2,
+      "theme": "light",
+      "width": 1440,
+      "status": "passed",
+      "checks": [
+        "native-amount",
+        "account-dropdown",
+        "calendar-full-tile",
+        "future-date",
+        "keyboard-viewport",
+        "draft-focus",
+        "save-next-context",
+        "clean-close"
+      ]
+    },
+    {
+      "ui": 2,
+      "theme": "dark",
+      "width": 320,
+      "status": "passed",
+      "checks": [
+        "native-amount",
+        "account-dropdown",
+        "calendar-full-tile",
+        "future-date",
+        "keyboard-viewport",
+        "draft-focus",
+        "save-next-context",
+        "clean-close"
+      ]
+    },
+    {
+      "ui": 2,
+      "theme": "dark",
+      "width": 390,
+      "status": "passed",
+      "checks": [
+        "native-amount",
+        "account-dropdown",
+        "calendar-full-tile",
+        "future-date",
+        "keyboard-viewport",
+        "draft-focus",
+        "save-next-context",
+        "clean-close"
+      ]
+    },
+    {
+      "ui": 2,
+      "theme": "dark",
+      "width": 834,
+      "status": "passed",
+      "checks": [
+        "native-amount",
+        "account-dropdown",
+        "calendar-full-tile",
+        "future-date",
+        "keyboard-viewport",
+        "draft-focus",
+        "save-next-context",
+        "clean-close"
+      ]
+    },
+    {
+      "ui": 2,
+      "theme": "dark",
+      "width": 1440,
+      "status": "passed",
+      "checks": [
+        "native-amount",
+        "account-dropdown",
+        "calendar-full-tile",
+        "future-date",
+        "keyboard-viewport",
+        "draft-focus",
+        "save-next-context",
+        "clean-close"
+      ]
+    },
+    {
+      "ui": 3,
+      "theme": "light",
+      "width": 320,
+      "status": "passed",
+      "checks": [
+        "native-amount",
+        "account-dropdown",
+        "calendar-full-tile",
+        "future-date",
+        "keyboard-viewport",
+        "draft-focus",
+        "save-next-context",
+        "clean-close"
+      ]
+    },
+    {
+      "ui": 3,
+      "theme": "light",
+      "width": 390,
+      "status": "passed",
+      "checks": [
+        "native-amount",
+        "account-dropdown",
+        "calendar-full-tile",
+        "future-date",
+        "keyboard-viewport",
+        "draft-focus",
+        "save-next-context",
+        "clean-close"
+      ]
+    },
+    {
+      "ui": 3,
+      "theme": "light",
+      "width": 834,
+      "status": "passed",
+      "checks": [
+        "native-amount",
+        "account-dropdown",
+        "calendar-full-tile",
+        "future-date",
+        "keyboard-viewport",
+        "draft-focus",
+        "save-next-context",
+        "clean-close"
+      ]
+    },
+    {
+      "ui": 3,
+      "theme": "light",
+      "width": 1440,
+      "status": "passed",
+      "checks": [
+        "native-amount",
+        "account-dropdown",
+        "calendar-full-tile",
+        "future-date",
+        "keyboard-viewport",
+        "draft-focus",
+        "save-next-context",
+        "clean-close"
+      ]
+    },
+    {
+      "ui": 3,
+      "theme": "dark",
+      "width": 320,
+      "status": "passed",
+      "checks": [
+        "native-amount",
+        "account-dropdown",
+        "calendar-full-tile",
+        "future-date",
+        "keyboard-viewport",
+        "draft-focus",
+        "save-next-context",
+        "clean-close"
+      ]
+    },
+    {
+      "ui": 3,
+      "theme": "dark",
+      "width": 390,
+      "status": "passed",
+      "checks": [
+        "native-amount",
+        "account-dropdown",
+        "calendar-full-tile",
+        "future-date",
+        "keyboard-viewport",
+        "draft-focus",
+        "save-next-context",
+        "clean-close"
+      ]
+    },
+    {
+      "ui": 3,
+      "theme": "dark",
+      "width": 834,
+      "status": "passed",
+      "checks": [
+        "native-amount",
+        "account-dropdown",
+        "calendar-full-tile",
+        "future-date",
+        "keyboard-viewport",
+        "draft-focus",
+        "save-next-context",
+        "clean-close"
+      ]
+    },
+    {
+      "ui": 3,
+      "theme": "dark",
+      "width": 1440,
+      "status": "passed",
+      "checks": [
+        "native-amount",
+        "account-dropdown",
+        "calendar-full-tile",
+        "future-date",
+        "keyboard-viewport",
+        "draft-focus",
+        "save-next-context",
+        "clean-close"
+      ]
+    },
+    {
+      "ui": 2,
+      "theme": "light",
+      "width": 390,
+      "status": "passed",
+      "checks": [
+        "shared-quotes",
+        "native-TFR-fee",
+        "source-less-investment",
+        "installment-integer",
+        "archived-account-edit",
+        "failed-save-retains-draft",
+        "calendar-fallback",
+        "transfer-direct-controls"
+      ]
+    },
+    {
+      "ui": 2,
+      "theme": "dark",
+      "width": 390,
+      "status": "passed",
+      "checks": [
+        "shared-quotes",
+        "native-TFR-fee",
+        "source-less-investment",
+        "installment-integer",
+        "archived-account-edit",
+        "failed-save-retains-draft",
+        "calendar-fallback",
+        "transfer-direct-controls"
+      ]
+    },
+    {
+      "ui": 3,
+      "theme": "light",
+      "width": 390,
+      "status": "passed",
+      "checks": [
+        "shared-quotes",
+        "native-TFR-fee",
+        "source-less-investment",
+        "installment-integer",
+        "archived-account-edit",
+        "failed-save-retains-draft",
+        "calendar-fallback",
+        "transfer-direct-controls"
+      ]
+    },
+    {
+      "ui": 3,
+      "theme": "dark",
+      "width": 390,
+      "status": "passed",
+      "checks": [
+        "shared-quotes",
+        "native-TFR-fee",
+        "source-less-investment",
+        "installment-integer",
+        "archived-account-edit",
+        "failed-save-retains-draft",
+        "calendar-fallback",
+        "transfer-direct-controls"
+      ]
+    }
+  ],
+  "errors": []
+}

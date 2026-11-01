@@ -5,7 +5,7 @@ const harness = vi.hoisted(() => ({
   version: '3.0', values: [] as unknown[], refs: [] as {current:any}[], dependencies: [] as unknown[][],
   stateIndex: 0, refIndex: 0, effectIndex: 0, dirty: false, effects: [] as (()=>void)[],
   categories: [{id:'food',label:'Cibo',icon:'🍎',color:'#996600',kind:'expense'}, {id:'salary',label:'Stipendio',icon:'',color:'#006600',kind:'income'}, {id:'fund',label:'Fondo',icon:'',color:'#999900',kind:'investment',fundType:'pension'}],
-  accounts: [{id:'bank',label:'Banca',icon:'',color:'#666666'}],
+  accounts: [{id:'bank',label:'Banca',icon:'',color:'#666666'},{id:'cash',label:'Contanti',icon:'',color:'#666666'}],
 }));
 vi.mock('react', async importOriginal => ({
   ...await importOriginal<typeof import('react')>(),
@@ -59,6 +59,36 @@ describe('UI3 movement editor',()=>{
     expect(tree.some(el=>el.type==='button'&&el.props.children==='Entrata')).toBe(true);
     expect(input('Descrizione facoltativa',tree).props.value).toBe('');
     expect(input('Importo',tree).props.value).toBe('');
+  });
+  it.each(['2.0','3.0'])('uses one editable decimal amount and direct account/date in quick entry (%s)',version=>{
+    harness.version=version;
+    const tree=view({defaultType:'expense'}),amounts=tree.filter(el=>el.type==='input'&&el.props['aria-label']==='Importo');
+    expect(amounts).toHaveLength(1);expect(amounts[0].props.readOnly).not.toBe(true);expect(amounts[0].props.inputMode).toBe('decimal');
+    expect(tree.some(el=>el.type==='button'&&['Mostra tastierino','Usa tastiera','Modifica','Dettagli avanzati'].includes(String(el.props.children).trim()))).toBe(false);
+    const account=tree.find(el=>el.type==='select'&&el.props['aria-label']==='Conto');expect(account).toBeDefined();
+    const date=input('Data',tree);expect(date.props.type).toBe('date');
+    account!.props.onChange({target:{value:'cash'}});date.props.onChange({target:{value:'2026-11-15'}});
+    input('Importo',view({defaultType:'expense'})).props.onChange({target:{value:'12,50'}});
+    view({defaultType:'expense'}).find(el=>el.type==='form')!.props.onSubmit({preventDefault:vi.fn()});
+    expect(callbacks.onSave.mock.calls[0][1][0]).toMatchObject({amount:12.5,account:'cash',date:'2026-11-15'});
+  });
+  it('preserves the edited account even when it differs from the default account',()=>{
+    const editing={id:'expense',type:'expense' as const,description:'Spesa',amount:25,date:'2026-11-01',category:'food',account:'cash'};
+    const tree=view({editing});expect(tree.find(el=>el.type==='select'&&el.props['aria-label']==='Conto')!.props.value).toBe('cash');
+    tree.find(el=>el.type==='form')!.props.onSubmit({preventDefault:vi.fn()});expect(callbacks.onSave.mock.calls[0][1][0].account).toBe('cash');
+  });
+  it('keeps a source-less investment source-less when the editor first opens',()=>{
+    const editing={id:'invest',type:'investment' as const,description:'Datore',amount:100,date:'2026-11-01',category:'fund',account:''};
+    const tree=view({editing});expect(tree.find(el=>el.type==='select'&&el.props['aria-label']==='Conto')!.props.value).toBe('');
+    tree.find(el=>el.type==='form')!.props.onSubmit({preventDefault:vi.fn()});expect(callbacks.onSave.mock.calls[0][1][0].account).toBe('');
+  });
+  it('opens the date picker directly and falls back if the browser cannot show it',()=>{
+    const date=input('Data',view({defaultType:'expense'}));
+    const showPicker=vi.fn(),preventDefault=vi.fn();
+    date.props.onClick({currentTarget:{showPicker},preventDefault});expect(showPicker).toHaveBeenCalledTimes(1);
+    expect(()=>date.props.onClick({currentTarget:{},preventDefault})).not.toThrow();
+    expect(()=>date.props.onClick({currentTarget:{showPicker:()=>{throw new Error('Unsupported');}},preventDefault})).not.toThrow();
+    expect(callbacks.onSave).not.toHaveBeenCalled();
   });
   it('keeps an Apple Pay review fixed to an outgoing expense',()=>{
     const tree=view({defaultType:'expense',typeLocked:true,awaitSave:true,singleSave:true,initialValues:{source:'apple_pay',amount:12,account:'bank',category:'food'}});

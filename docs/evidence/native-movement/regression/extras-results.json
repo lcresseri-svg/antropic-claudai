@@ -1,0 +1,69 @@
+{
+  "results": [
+    {
+      "ui": 2,
+      "theme": "light",
+      "width": 390,
+      "status": "passed",
+      "checks": [
+        "shared-quotes",
+        "native-TFR-fee-statistical-months",
+        "source-less-investment",
+        "installment-integer",
+        "archived-account-edit",
+        "failed-save-retains-draft",
+        "calendar-fallback",
+        "transfer-direct-controls"
+      ]
+    },
+    {
+      "ui": 2,
+      "theme": "dark",
+      "width": 390,
+      "status": "passed",
+      "checks": [
+        "shared-quotes",
+        "native-TFR-fee-statistical-months",
+        "source-less-investment",
+        "installment-integer",
+        "archived-account-edit",
+        "failed-save-retains-draft",
+        "calendar-fallback",
+        "transfer-direct-controls"
+      ]
+    },
+    {
+      "ui": 3,
+      "theme": "light",
+      "width": 390,
+      "status": "passed",
+      "checks": [
+        "shared-quotes",
+        "native-TFR-fee-statistical-months",
+        "source-less-investment",
+        "installment-integer",
+        "archived-account-edit",
+        "failed-save-retains-draft",
+        "calendar-fallback",
+        "transfer-direct-controls"
+      ]
+    },
+    {
+      "ui": 3,
+      "theme": "dark",
+      "width": 390,
+      "status": "passed",
+      "checks": [
+        "shared-quotes",
+        "native-TFR-fee-statistical-months",
+        "source-less-investment",
+        "installment-integer",
+        "archived-account-edit",
+        "failed-save-retains-draft",
+        "calendar-fallback",
+        "transfer-direct-controls"
+      ]
+    }
+  ],
+  "errors": []
+}

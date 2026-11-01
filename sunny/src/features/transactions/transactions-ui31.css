@@ -52,3 +52,11 @@ html[data-ui-version="3.0"] .ui-dialog-overlay[data-ui-compact-viewport="true"] 
   html[data-ui-version="3.0"] .ui-dialog-overlay > [data-liquid-ui="true"].ui31-movement-editor form { flex: 1; min-height: 0; }
   html[data-ui-version="3.0"] .ui-dialog-overlay > [data-liquid-ui="true"].ui31-movement-editor form > .overflow-y-auto { flex: 1; overflow-y: auto; }
 }
+
+/* Native controls fill their whole tile, including its label and value. */
+.movement-picker:focus-within { outline: 2px solid rgb(var(--c-gold)); outline-offset: 2px; }
+input.movement-native-picker, select.movement-native-picker, input.movement-native-number { font-size: 16px; min-height: 44px; }
+input.movement-native-picker::-webkit-calendar-picker-indicator { position: absolute; inset: 0; width: 100%; height: 100%; margin: 0; cursor: pointer; }
+@media (min-width: 640px) {
+  div.movement-editor { max-height: min(88dvh, 100%); }
+}

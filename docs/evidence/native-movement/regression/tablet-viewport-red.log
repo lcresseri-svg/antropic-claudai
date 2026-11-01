@@ -1,0 +1,17 @@
+PASS ui2-light-320
+PASS ui2-light-390
+node:internal/modules/run_main:107
+    triggerUncaughtException(
+    ^
+
+AssertionError [ERR_ASSERTION]: ui2-light-834 footer above keyboard: {"x":138,"y":401.03125,"width":558,"height":136}
+    at file:///workspace/antropic-claudai/sunny/ui-preview/native-movement.mjs:30:82 {
+  generatedMessage: false,
+  code: 'ERR_ASSERTION',
+  actual: false,
+  expected: true,
+  operator: '==',
+  diff: 'simple'
+}
+
+Node.js v24.19.0
