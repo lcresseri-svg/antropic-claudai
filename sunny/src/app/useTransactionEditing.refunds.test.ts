@@ -61,6 +61,75 @@ describe('transaction refund and card editor routing',()=>{
     await expect(hook().handleSave(['a'],[{...sources[0],amount:50}])).rejects.toThrow('offline');
     expect(hook().modalOpen).toBe(true);expect(hook().editing).toEqual(sources[0]);
   });
+  it.each(['expense', 'income', 'investment', 'transfer'] as const)('editing a %s series never writes booked history', async type => {
+    const template: Transaction = {...expense('template', 60), type, date:'2026-11-01', seriesId:'series', recurring:{freq:'monthly'}};
+    const past: Transaction = {...template, id:'past', recurring:undefined, date:'2026-09-01'};
+    const today: Transaction = {...past, id:'today', date:state.today};
+    const future: Transaction = {...past, id:'future', date:'2026-11-01'};
+    const rows = [template,past,today,future];
+    hook(rows).startEdit(template,true);
+    await hook(rows).handleSave(['template'],[{...template,amount:90,category:'new',account:'new'}]);
+    expect(tx.replaceInPlace.mock.calls.map(call=>call[0])).toEqual(['template','future']);
+    expect(tx.replaceGroup).not.toHaveBeenCalled();
+    expect(tx.deleteTransactions).not.toHaveBeenCalled();
+  });
+  it('legacy shared templates select only template siblings, never booked transfers', async()=>{
+    const template: Transaction = {...expense('template',60),date:state.today,groupId:'group',recurring:{freq:'monthly'}};
+    const sibling: Transaction = {...template,id:'quota-template',type:'transfer',toAccount:'cash',amount:40};
+    const past: Transaction = {...sibling,id:'past-quota',recurring:undefined,date:'2026-09-01',seriesId:'quota-template'};
+    const today: Transaction = {...past,id:'today-quota',date:state.today};
+    const rows=[template,sibling,past,today];
+    hook(rows).startEdit(template,true);
+    expect(hook(rows).groupTransfers.map(t=>t.id)).toEqual(['quota-template']);
+  });
+  it.each(['transfer','investment'] as const)('keeps a future %s commission editable without selecting booked fees',type=>{
+    const template: Transaction={...expense('template',100),type,date:'2026-11-01',groupId:'group',recurring:{freq:'monthly'}};
+    const fee: Transaction={...expense('fee',2),date:'2026-11-01',groupId:'group'};
+    const rows=[template,fee];
+    hook(rows).startEdit(template,true);
+    expect(hook(rows).groupTransfers.map(t=>t.id)).toEqual(['fee']);
+    const dueRows=rows.map(t=>({...t,date:state.today}));
+    hook(dueRows).startEdit(dueRows[0],true);
+    expect(hook(dueRows).groupTransfers).toEqual([]);
+  });
+  it('editing installments never rewinds the template to the already paid first installment', async()=>{
+    const template: Transaction={...expense('template',100),date:'2026-11-01',seriesId:'series',recurring:{freq:'monthly',anchorDate:'2026-01-01',until:'2026-12-01'},seriesMeta:{kind:'installment',installment:{totalAmount:1200,totalInstallments:12,firstDate:'2026-01-01'}}};
+    const rows=[template,{...template,id:'past',date:'2026-01-01',recurring:undefined}];
+    hook(rows).startEdit(template,true);
+    await hook(rows).handleSave(['template'],[{...template,amount:110,date:'2026-01-01'}]);
+    expect(tx.replaceInPlace).toHaveBeenCalledTimes(1);
+    expect(tx.replaceInPlace).toHaveBeenCalledWith('template',expect.objectContaining({date:'2026-11-01',amount:110,recurring:template.recurring,seriesMeta:template.seriesMeta}));
+  });
+  it('advances backdated shared templates and their new fee together without recreating history',async()=>{
+    const template: Transaction={...expense('template',60),date:'2026-11-01',groupId:'group',seriesId:'series',recurring:{freq:'monthly'}};
+    hook([template]).startEdit(template,true);
+    const quota={...template,type:'transfer' as const,toAccount:'cash',seriesId:'quota',date:'2026-01-01',amount:40};
+    const fee={...template,seriesId:undefined,recurring:undefined,date:'2026-01-01',amount:1};
+    await hook([template]).handleSave(['template'],[{...template,date:'2026-01-01'},quota,fee]);
+    expect(tx.replaceGroup).toHaveBeenCalledWith(['template'],[
+      expect.objectContaining({date:'2026-11-01',seriesId:'series'}),
+      expect.objectContaining({date:'2026-11-01',seriesId:'quota'}),
+      expect.objectContaining({date:'2026-11-01',amount:1,recurring:undefined}),
+    ]);
+  });
+  it('series edit resolves its template and never falls back to editing a historical orphan',()=>{
+    const past: Transaction={...expense('past',60),seriesId:'series'};
+    const template: Transaction={...past,id:'template',recurring:{freq:'monthly'},date:'2026-11-01'};
+    hook([past]).openEdit(past);
+    hook([past]).openSeriesEdit(past);
+    expect(hook([past]).modalOpen).toBe(false);
+    expect(hook([past]).editing).toBe(null);
+    hook([past,template]).openSeriesEdit(past);
+    expect(hook([past,template]).editing).toEqual(template);
+    expect(hook([past,template]).seriesEdit).toBe(true);
+  });
+  it('an explicit single occurrence edit still changes only the selected movement',async()=>{
+    const past: Transaction={...expense('past',60),seriesId:'series'};
+    hook([past]).startEdit(past,false);
+    await hook([past]).handleSave(['past'],[{...past,amount:50}]);
+    expect(tx.replaceInPlace).toHaveBeenCalledTimes(1);
+    expect(tx.replaceInPlace).toHaveBeenCalledWith('past',expect.objectContaining({amount:50}));
+  });
   it('advances projections with the Rome day and preserves today when dissolving a series',async()=>{
     const source={...sources[0],date:'2026-10-27',seriesId:'series',recurring:{freq:'daily' as const,until:'2026-10-30'}};
     const todayOccurrence={...sources[1],date:'2026-10-29',seriesId:'series'};

@@ -1,0 +1,147 @@
+
+> sunny-finance@2.2.0 test
+> vitest run src/app/useTransactionEditing.refunds.test.ts
+
+7:04:55 AM [vite] warning: `esbuild` option was specified by "vite:react-babel" plugin. This option is deprecated, please use `oxc` instead.
+7:04:55 AM [vite] warning: `optimizeDeps.esbuildOptions` option was specified by "vite:react-babel" plugin. This option is deprecated, please use `optimizeDeps.rolldownOptions` instead.
+Both esbuild and oxc options were set. oxc options will be used and esbuild options will be ignored. The following esbuild options were set: `{ jsx: 'automatic', jsxImportSource: undefined }`
+
+ RUN  v4.1.7 /workspace/antropic-claudai/sunny
+
+ ❯ src/app/useTransactionEditing.refunds.test.ts (14 tests | 2 failed) 42ms
+     × editing installments never rewinds the template to the already paid first installment 7ms
+     × advances backdated shared templates and their new fee together without recreating history 2ms
+
+⎯⎯⎯⎯⎯⎯⎯ Failed Tests 2 ⎯⎯⎯⎯⎯⎯⎯
+
+ FAIL  src/app/useTransactionEditing.refunds.test.ts > transaction refund and card editor routing > editing installments never rewinds the template to the already paid first installment
+AssertionError: expected "vi.fn()" to be called with arguments: [ 'template', ObjectContaining{…} ]
+
+Received:
+
+  1st vi.fn() call:
+
+  [
+    "template",
+-   ObjectContaining {
++   {
++     "account": "bank",
+      "amount": 110,
+-     "date": "2026-11-01",
++     "category": "food",
++     "createdAt": 1793603096150,
++     "date": "2026-01-01",
++     "description": "template",
++     "id": "template",
+      "recurring": {
+        "anchorDate": "2026-01-01",
+        "freq": "monthly",
+        "until": "2026-12-01",
+      },
++     "seriesId": "series",
+      "seriesMeta": {
+        "installment": {
+          "firstDate": "2026-01-01",
+          "totalAmount": 1200,
+          "totalInstallments": 12,
+        },
+        "kind": "installment",
+      },
++     "type": "expense",
+    },
+  ]
+
+
+Number of calls: 1
+
+ ❯ src/app/useTransactionEditing.refunds.test.ts:91:31
+     89|     await hook(rows).handleSave(['template'],[{...template,amount:110,…
+     90|     expect(tx.replaceInPlace).toHaveBeenCalledTimes(1);
+     91|     expect(tx.replaceInPlace).toHaveBeenCalledWith('template',expect.o…
+       |                               ^
+     92|   });
+     93|   it('advances backdated shared templates and their new fee together w…
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[1/2]⎯
+
+ FAIL  src/app/useTransactionEditing.refunds.test.ts > transaction refund and card editor routing > advances backdated shared templates and their new fee together without recreating history
+AssertionError: expected "vi.fn()" to be called with arguments: [ [ 'template' ], …(1) ]
+
+Received:
+
+  1st vi.fn() call:
+
+  [
+    [
+      "template",
+    ],
+    [
+-     ObjectContaining {
+-       "date": "2026-11-01",
++     {
++       "account": "bank",
++       "amount": 60,
++       "category": "food",
++       "date": "2026-01-01",
++       "description": "template",
++       "groupId": "group",
++       "id": "template",
++       "recurring": {
++         "freq": "monthly",
++       },
+        "seriesId": "series",
++       "type": "expense",
+      },
+-     ObjectContaining {
+-       "date": "2026-11-01",
++     {
++       "account": "bank",
++       "amount": 40,
++       "category": "food",
++       "date": "2026-01-01",
++       "description": "template",
++       "groupId": "group",
++       "id": "template",
++       "recurring": {
++         "freq": "monthly",
++       },
+        "seriesId": "quota",
++       "toAccount": "cash",
++       "type": "transfer",
+      },
+-     ObjectContaining {
++     {
++       "account": "bank",
+        "amount": 1,
+-       "date": "2026-11-01",
++       "category": "food",
++       "date": "2026-01-01",
++       "description": "template",
++       "groupId": "group",
++       "id": "template",
+        "recurring": undefined,
++       "seriesId": undefined,
++       "type": "expense",
+      },
+    ],
+  ]
+
+
+Number of calls: 1
+
+ ❯ src/app/useTransactionEditing.refunds.test.ts:99:29
+     97|     const fee={...template,seriesId:undefined,recurring:undefined,date…
+     98|     await hook([template]).handleSave(['template'],[{...template,date:…
+     99|     expect(tx.replaceGroup).toHaveBeenCalledWith(['template'],[
+       |                             ^
+    100|       expect.objectContaining({date:'2026-11-01',seriesId:'series'}),
+    101|       expect.objectContaining({date:'2026-11-01',seriesId:'quota'}),
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[2/2]⎯
+
+
+ Test Files  1 failed (1)
+      Tests  2 failed | 12 passed (14)
+   Start at  07:04:55
+   Duration  429ms (transform 149ms, setup 0ms, import 181ms, tests 42ms, environment 0ms)
+

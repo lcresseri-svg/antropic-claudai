@@ -17,6 +17,10 @@ git.
 
 ---
 
+## 2026-11-02
+
+- **[Codex]** Modificare una serie ricorrente non propaga più importi, categorie o conti sui movimenti già contabilizzati (incluso oggi, calendario Europe/Rome). Isolati i trasferimenti storici dalle serie condivise legacy; commissioni future ancora modificabili. Modifiche a rate o serie retrodatate ripartono dalla prossima scadenza futura, preservando cadenza e termine, senza ricreare lo storico. Guida al recupero selettivo da backup Firestore in `docs/firebase-backup-recovery.md`. `(pending)`
+
 ## 2026-11-01
 
 - **[Codex]** Modale movimento aderente al contenuto e ancorato in basso: eliminato lo spazio vuoto tra campi e footer senza ridurre i controlli. Scroll interno e footer accessibile conservati quando si aprono sezioni lunghe o la tastiera. Verifica geometrica UI2/UI3 nei due temi e regressioni native/scarto in `docs/evidence/compact-movement/`. `(pending)`

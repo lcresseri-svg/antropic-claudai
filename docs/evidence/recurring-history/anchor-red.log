@@ -1,0 +1,37 @@
+
+> sunny-finance@2.2.0 test
+> vitest run src/shared/recurrence.test.ts
+
+7:08:33 AM [vite] warning: `esbuild` option was specified by "vite:react-babel" plugin. This option is deprecated, please use `oxc` instead.
+7:08:33 AM [vite] warning: `optimizeDeps.esbuildOptions` option was specified by "vite:react-babel" plugin. This option is deprecated, please use `optimizeDeps.rolldownOptions` instead.
+Both esbuild and oxc options were set. oxc options will be used and esbuild options will be ignored. The following esbuild options were set: `{ jsx: 'automatic', jsxImportSource: undefined }`
+
+ RUN  v4.1.7 /workspace/antropic-claudai/sunny
+
+ ❯ src/shared/recurrence.test.ts (44 tests | 1 failed) 21ms
+     × preserves the original day through February and subsequent monthly catch-up 6ms
+
+⎯⎯⎯⎯⎯⎯⎯ Failed Tests 1 ⎯⎯⎯⎯⎯⎯⎯
+
+ FAIL  src/shared/recurrence.test.ts > futureSeriesPayloads > preserves the original day through February and subsequent monthly catch-up
+AssertionError: expected '2026-03-28' to be '2026-03-31' // Object.is equality
+
+Expected: "2026-03-31"
+Received: "2026-03-28"
+
+ ❯ src/shared/recurrence.test.ts:196:51
+    194|     const [next] = futureSeriesPayloads([original], '2026-02-01');
+    195|     expect(next.date).toBe('2026-02-28');
+    196|     expect(addPeriod(next.date, next.recurring!)).toBe('2026-03-31');
+       |                                                   ^
+    197|     expect(original.date).toBe('2026-01-31');
+    198|   });
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[1/1]⎯
+
+
+ Test Files  1 failed (1)
+      Tests  1 failed | 43 passed (44)
+   Start at  07:08:33
+   Duration  339ms (transform 73ms, setup 0ms, import 91ms, tests 21ms, environment 0ms)
+

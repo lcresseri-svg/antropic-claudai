@@ -272,6 +272,7 @@ Stessa logica adattiva di `forecastSavings`, calcolata in un unico passaggio su 
 ## Ricorrenze
 
 - Il **template** porta `recurring: {freq, until?}`.
+- Modificare la serie aggiorna il template e solo le occorrenze reali future (`date > oggi`, Europe/Rome). Le occorrenze contabilizzate restano invariate; per correggerne una si usa **Modifica occorrenza**. Le serie esistenti non ripartono da date passate al salvataggio, anche quando il modulo conserva la prima data delle rate.
 - Le **istanze materializzate** portano `seriesId` (collegato al template) e vengono scritte su Firestore quando l'utente conferma.
 - Le **occorrenze future** (`projected: true`) sono generate solo in memoria da `generateProjected()` e non scritte su Firestore.
 - `upcomingRecurringThisMonth(txs, today, monthEnd)` calcola le occorrenze ricorrenti ancora da registrare entro fine mese — usata nel forecast.

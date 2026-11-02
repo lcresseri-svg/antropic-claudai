@@ -319,28 +319,21 @@ export function catchUpRecurring(
   return { creates, advance };
 }
 
-/**
- * Editing a whole SERIES must apply to every already-recorded ("contabilizzata")
- * occurrence too — not only the template and its future projections. Given the
- * full transaction set, the template being edited, and the new template payload,
- * this returns the in-place updates for each recorded instance of the series.
- *
- * Each occurrence keeps its OWN identity and position in time — id, createdAt,
- * date and group link are preserved; only the content fields (type, description,
- * amount, category, account, …) are overwritten from the payload. The `recurring`
- * rule lives on the template only, so it is stripped from instances.
- *
- * NON-DESTRUCTIVE: every update is a content overwrite of the same doc id
- * (setDoc, same id), never a delete.
+/** Update only saved FUTURE occurrences when changing a series. Past and
+ * today's booked movements are immutable through this path, including their
+ * refunds, shared amounts and managed investment effects. Editing one explicit
+ * occurrence remains a separate action. The caller supplies the Rome day.
  */
 export function seriesInstanceUpdates(
   all: Transaction[],
   template: Pick<Transaction, 'id' | 'seriesId'>,
   payload: Omit<Transaction, 'id'>,
+  todayISO: string,
 ): { id: string; data: Omit<Transaction, 'id'> }[] {
   const sid = template.seriesId ?? template.id;
   const updates: { id: string; data: Omit<Transaction, 'id'> }[] = [];
   for (const inst of all) {
+    if (inst.date <= todayISO) continue;             // never rewrite booked history
     if (inst.recurring || inst.projected) continue;    // skip templates & virtual rows
     if (inst.id === template.id) continue;             // template written separately
     if ((inst.seriesId ?? inst.id) !== sid) continue;  // a different series
@@ -357,6 +350,34 @@ export function seriesInstanceUpdates(
     });
   }
   return updates;
+}
+
+/** An existing series edit must not replay its original start date (notably
+ * installment forms, which retain firstDate). Keep the cadence and end bound,
+ * but write its first future pointer. New series still use expandRecurringOnCreate.
+ * Fee rows reconstructed with the template must follow that same pointer.
+ */
+export function futureSeriesPayloads(
+  payloads: Omit<Transaction, 'id'>[], todayISO: string,
+): Omit<Transaction, 'id'>[] {
+  const advanced = payloads.map(payload => {
+    if (!payload.recurring || payload.date > todayISO) return payload;
+    const rule = { ...payload.recurring, anchorDate: payload.recurring.anchorDate ?? payload.date };
+    let date = payload.date;
+    let guard = 10000;
+    while (date <= todayISO) {
+      if (--guard <= 0) throw new Error('Data della serie troppo lontana. Scegli una prossima data.');
+      const next = addPeriod(date, rule);
+      if (next <= date) throw new Error('La ricorrenza deve avanzare nel tempo.');
+      date = next;
+    }
+    return { ...payload, date, recurring: rule };
+  });
+  return advanced.map(payload => {
+    if (payload.recurring || !payload.groupId) return payload;
+    const index = payloads.findIndex(t => t.recurring && t.groupId === payload.groupId && t.date === payload.date);
+    return index < 0 ? payload : { ...payload, date: advanced[index].date };
+  });
 }
 
 /**

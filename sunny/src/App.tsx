@@ -419,11 +419,7 @@ function Main({ user, onLogOut, onDeleteAccount }: {
         allTransactions={tx.allTransactions}
         onClose={editing.closeSeriesDetail}
         onEditSingle={t => { editing.closeSeriesDetail(); editing.startEdit(t, false); }}
-        onEditSeries={t => {
-          editing.closeSeriesDetail();
-          const tpl = editing.findTemplate(t);
-          editing.startEdit(tpl ?? t, !!tpl);
-        }}
+        onEditSeries={editing.openSeriesEdit}
         onViewMovements={sid => { editing.closeSeriesDetail(); navigate(`/transactions?series=${sid}`); }}
       />
       {/* Import CSV: gli investimenti importati restano UNMANAGED (nessun effetto
