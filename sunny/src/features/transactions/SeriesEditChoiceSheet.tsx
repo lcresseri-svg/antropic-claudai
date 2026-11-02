@@ -35,7 +35,7 @@ export function SeriesEditChoiceSheet({ open, onClose, onChoose }: Props) {
           />
           <Choice
             icon="🔁" title="Tutta la serie"
-            subtitle="Apri la serie: la regola e le occorrenze future. Le voci già registrate non cambiano."
+            subtitle="Aggiorna la regola e le occorrenze, anche passate. Quelle personalizzate restano invariate."
             onClick={() => onChoose('series')}
           />
         </div>

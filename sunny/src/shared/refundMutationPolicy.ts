@@ -1,3 +1,4 @@
+import { isSeriesOverride } from './recurrence';
 import { grossOwnShare, type Transaction } from '../types';
 import { isCreditCardSettlement } from '../../../functions/src/domain/creditCards';
 /** Snapshot guard for legacy refunds; the writer also checks authoritative
@@ -11,5 +12,16 @@ export function assertOrdinaryMutation(before:Transaction, next:Omit<Transaction
   if (!next && refunds.some(t=>t.refundGroupId)) throw new Error('La spesa è collegata a un rimborso multiplo: modifica o elimina prima il rimborso.');
   if (next && (next.type!=='expense' || next.recurring || next.projected || grossOwnShare({...next,id:before.id}) + 0.005 < refunds.reduce((s,t)=>s+t.amount,0))) {
     throw new Error('La spesa è collegata a rimborsi: il suo importo non può essere inferiore alla quota già rimborsata.');
+  }
+}
+
+/** Keep legacy refunds protected before the atomic server-side controls run. */
+export function assertSeriesMutations(changes: readonly {id:string;data:Omit<Transaction,'id'>|null;seriesTemplate?:Transaction;unlinkSeries?:string}[], transactions:readonly Transaction[]) {
+  for (const change of changes) {
+    const before = transactions.find(t=>t.id===change.id);
+    if (!before) continue;
+    if (change.seriesTemplate && (before.seriesId !== (change.seriesTemplate.seriesId ?? change.seriesTemplate.id) || isSeriesOverride(before,change.seriesTemplate))) continue;
+    const next = change.unlinkSeries ? {...before,seriesId:undefined,seriesMeta:undefined,recurring:undefined} : change.data;
+    assertOrdinaryMutation(before,next,transactions);
   }
 }

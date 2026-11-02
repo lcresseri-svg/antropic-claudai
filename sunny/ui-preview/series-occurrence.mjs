@@ -20,8 +20,27 @@ try{
   assert.equal(rows.find(t=>t.id==='template').recurring.until,'2026-10-30');
   await page.getByRole('button',{name:'Apri occorrenza',exact:true}).click();await page.getByText('Questa occorrenza',{exact:true}).waitFor();
   assert.match(await amount.textContent(),/7,50/);
+  assert.equal(rows.find(t=>t.id==='past').seriesOverride,true);
+  await page.getByRole('button',{name:'Modifica serie',exact:true}).click();await editor.waitFor();
+  await editor.getByRole('textbox',{name:'Importo',exact:true}).fill('20');
+  await editor.getByRole('button',{name:'Salva modifiche',exact:true}).click();await editor.waitFor({state:'detached'});
+  rows=JSON.parse(await page.locator('#series-preview-rows').textContent());
+  assert.equal(rows.find(t=>t.id==='past').amount,7.5);assert.equal(rows.find(t=>t.id==='sibling').amount,234.33);
+  assert.equal(rows.find(t=>t.id==='aligned').amount,20);assert.equal(rows.find(t=>t.id==='future-aligned').amount,20);assert.equal(rows.find(t=>t.id==='template').amount,20);
+  await page.getByRole('button',{name:'Apri occorrenza',exact:true}).click();
+  await page.getByRole('button',{name:'Modifica occorrenza',exact:true}).click();await editor.waitFor();
+  await editor.getByRole('textbox',{name:'Importo',exact:true}).fill('20');
+  await editor.getByRole('button',{name:'Salva modifiche',exact:true}).click();await editor.waitFor({state:'detached'});
+  await page.getByRole('button',{name:'Apri occorrenza',exact:true}).click();
+  await page.getByRole('button',{name:'Modifica serie',exact:true}).click();await editor.waitFor();
+  await editor.getByRole('textbox',{name:'Importo',exact:true}).fill('30');
+  await editor.getByRole('button',{name:'Salva modifiche',exact:true}).click();await editor.waitFor({state:'detached'});
+  rows=JSON.parse(await page.locator('#series-preview-rows').textContent());
+  assert.equal(rows.find(t=>t.id==='past').amount,20);assert.equal(rows.find(t=>t.id==='aligned').amount,30);
+  await page.getByRole('button',{name:'Apri occorrenza',exact:true}).click();
+  await page.getByText('Occorrenza personalizzata',{exact:true}).waitFor();
   await page.screenshot({path:`${out}/ui${ui}-${theme}-${width}.png`,animations:'disabled'});
-  results.push({ui,theme,width,status:'passed',amount:7.5,templateAmount:.74,siblingAmount:234.33});console.log('PASS',ui,theme,width);await page.close();
+  results.push({ui,theme,width,status:'passed',customAmount:20,templateAmount:30,ordinaryPastAmount:30,legacyPersonalAmount:234.33});console.log('PASS',ui,theme,width);await page.close();
  }
  assert.deepEqual(errors,[]);
 }finally{await browser.close();await writeFile(`${out}/results.json`,JSON.stringify({results,errors},null,2));}

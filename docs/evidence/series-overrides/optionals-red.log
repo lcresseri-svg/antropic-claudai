@@ -1,0 +1,40 @@
+
+> sunny-finance@2.2.0 test
+> vitest run src/shared/recurrence.test.ts
+
+8:37:09 AM [vite] warning: `esbuild` option was specified by "vite:react-babel" plugin. This option is deprecated, please use `oxc` instead.
+8:37:09 AM [vite] warning: `optimizeDeps.esbuildOptions` option was specified by "vite:react-babel" plugin. This option is deprecated, please use `optimizeDeps.rolldownOptions` instead.
+Both esbuild and oxc options were set. oxc options will be used and esbuild options will be ignored. The following esbuild options were set: `{ jsx: 'automatic', jsxImportSource: undefined }`
+
+ RUN  v4.1.7 /workspace/antropic-claudai/sunny
+
+ ❯ src/shared/recurrence.test.ts (46 tests | 1 failed) 25ms
+     × clears TFR, notes and statistical spread instead of preserving obsolete instance values 7ms
+
+⎯⎯⎯⎯⎯⎯⎯ Failed Tests 1 ⎯⎯⎯⎯⎯⎯⎯
+
+ FAIL  src/shared/recurrence.test.ts > clearing optional fields across a series > clears TFR, notes and statistical spread instead of preserving obsolete instance values
+AssertionError: expected 50 to be undefined
+
+- Expected:
+undefined
+
++ Received:
+50
+
+ ❯ src/shared/recurrence.test.ts:198:27
+    196|   const {tfr,statsSpreadMonths,notes,...payload}=template;
+    197|   const [update]=seriesInstanceUpdates([instance],template,payload,TOD…
+    198|   expect(update.data.tfr).toBeUndefined();expect(update.data.statsSpre…
+       |                           ^
+    199|  });
+    200| });
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[1/1]⎯
+
+
+ Test Files  1 failed (1)
+      Tests  1 failed | 45 passed (46)
+   Start at  08:37:09
+   Duration  358ms (transform 81ms, setup 0ms, import 106ms, tests 25ms, environment 0ms)
+

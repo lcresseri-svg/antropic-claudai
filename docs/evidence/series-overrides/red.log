@@ -1,0 +1,184 @@
+
+> sunny-finance@2.2.0 test
+> vitest run src/shared/recurrence.test.ts src/app/useTransactionEditing.refunds.test.ts
+
+8:31:31 AM [vite] warning: `esbuild` option was specified by "vite:react-babel" plugin. This option is deprecated, please use `oxc` instead.
+8:31:31 AM [vite] warning: `optimizeDeps.esbuildOptions` option was specified by "vite:react-babel" plugin. This option is deprecated, please use `optimizeDeps.rolldownOptions` instead.
+Both esbuild and oxc options were set. oxc options will be used and esbuild options will be ignored. The following esbuild options were set: `{ jsx: 'automatic', jsxImportSource: undefined }`
+
+ RUN  v4.1.7 /workspace/antropic-claudai/sunny
+
+ ❯ src/shared/recurrence.test.ts (45 tests | 3 failed) 25ms
+     × updates unmodified occurrences across history and future with stable identity 6ms
+     × resolves legacy template IDs consistently across day rollover 2ms
+     × protects a manually saved occurrence even when its amount still matches the template 2ms
+ ❯ src/app/useTransactionEditing.refunds.test.ts (17 tests | 6 failed) 33ms
+     × editing a expense series updates ordinary history and preserves personal exceptions 6ms
+     × editing a income series updates ordinary history and preserves personal exceptions 1ms
+     × editing a investment series updates ordinary history and preserves personal exceptions 1ms
+     × editing a transfer series updates ordinary history and preserves personal exceptions 1ms
+     × editing installments never rewinds the template to the already paid first installment 1ms
+     × an explicit single occurrence edit still changes only the selected movement 2ms
+
+⎯⎯⎯⎯⎯⎯⎯ Failed Tests 9 ⎯⎯⎯⎯⎯⎯⎯
+
+ FAIL  src/app/useTransactionEditing.refunds.test.ts > transaction refund and card editor routing > editing a expense series updates ordinary history and preserves personal exceptions
+ FAIL  src/app/useTransactionEditing.refunds.test.ts > transaction refund and card editor routing > editing a income series updates ordinary history and preserves personal exceptions
+ FAIL  src/app/useTransactionEditing.refunds.test.ts > transaction refund and card editor routing > editing a investment series updates ordinary history and preserves personal exceptions
+ FAIL  src/app/useTransactionEditing.refunds.test.ts > transaction refund and card editor routing > editing a transfer series updates ordinary history and preserves personal exceptions
+AssertionError: expected [ 'template', 'future' ] to deeply equal [ 'template', 'past', 'today', …(1) ]
+
+- Expected
++ Received
+
+  [
+    "template",
+-   "past",
+-   "today",
+    "future",
+  ]
+
+ ❯ src/app/useTransactionEditing.refunds.test.ts:73:61
+     71|     hook(rows).startEdit(template,true);
+     72|     await hook(rows).handleSave(['template'],[{...template,amount:90,c…
+     73|     expect(tx.replaceInPlace.mock.calls.map(call=>call[0])).toEqual(['…
+       |                                                             ^
+     74|     expect(tx.replaceGroup).not.toHaveBeenCalled();
+     75|     expect(tx.deleteTransactions).not.toHaveBeenCalled();
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[1/9]⎯
+
+ FAIL  src/app/useTransactionEditing.refunds.test.ts > transaction refund and card editor routing > editing installments never rewinds the template to the already paid first installment
+AssertionError: expected "vi.fn()" to be called 2 times, but got 1 times
+ ❯ src/app/useTransactionEditing.refunds.test.ts:101:31
+     99|     hook(rows).startEdit(template,true);
+    100|     await hook(rows).handleSave(['template'],[{...template,amount:110,…
+    101|     expect(tx.replaceInPlace).toHaveBeenCalledTimes(2);
+       |                               ^
+    102|     expect(tx.replaceInPlace).toHaveBeenCalledWith('template',expect.o…
+    103|   });
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[2/9]⎯
+
+ FAIL  src/app/useTransactionEditing.refunds.test.ts > transaction refund and card editor routing > an explicit single occurrence edit still changes only the selected movement
+AssertionError: expected "vi.fn()" to be called with arguments: [ 'past', ObjectContaining{…} ]
+
+Received:
+
+  1st vi.fn() call:
+
+  [
+    "past",
+-   ObjectContaining {
++   {
++     "account": "bank",
+      "amount": 50,
+-     "seriesOverride": true,
++     "category": "food",
++     "createdAt": 1793608292273,
++     "date": "2026-09-01",
++     "description": "past",
++     "id": "past",
++     "seriesId": "series",
++     "type": "expense",
+    },
+  ]
+
+
+Number of calls: 1
+
+ ❯ src/app/useTransactionEditing.refunds.test.ts:132:31
+    130|     await hook([past]).handleSave(['past'],[{...past,amount:50}]);
+    131|     expect(tx.replaceInPlace).toHaveBeenCalledTimes(1);
+    132|     expect(tx.replaceInPlace).toHaveBeenCalledWith('past',expect.objec…
+       |                               ^
+    133|   });
+    134|   it('advances projections with the Rome day and preserves today when …
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[3/9]⎯
+
+ FAIL  src/shared/recurrence.test.ts > seriesInstanceUpdates > updates unmodified occurrences across history and future with stable identity
+AssertionError: expected [ 'future' ] to deeply equal [ 'past', 'today', 'future' ]
+
+- Expected
++ Received
+
+  [
+-   "past",
+-   "today",
+    "future",
+  ]
+
+ ❯ src/shared/recurrence.test.ts:177:34
+    175|     ];
+    176|     const updates = seriesInstanceUpdates(all, template, payload, TODA…
+    177|     expect(updates.map(u=>u.id)).toEqual(['past','today','future']);
+       |                                  ^
+    178|     expect(updates.find(u=>u.id==='future')).toEqual({ id: 'future', d…
+    179|       amount: 850, description: 'Nuovo affitto', category: 'nuova', ac…
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[4/9]⎯
+
+ FAIL  src/shared/recurrence.test.ts > seriesInstanceUpdates > resolves legacy template IDs consistently across day rollover
+AssertionError: expected [] to deeply equal [ 'tomorrow' ]
+
+- Expected
++ Received
+
+- [
+-   "tomorrow",
+- ]
++ []
+
+ ❯ src/shared/recurrence.test.ts:188:84
+    186|     const all = [occurrence('tomorrow', '2026-06-05', { seriesId: 'tpl…
+    187|     expect(seriesInstanceUpdates(all, legacy, payload, TODAY).map(u =>…
+    188|     expect(seriesInstanceUpdates(all, legacy, payload, '2026-06-05').m…
+       |                                                                                    ^
+    189|   });
+    190| });
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[5/9]⎯
+
+ FAIL  src/shared/recurrence.test.ts > explicit occurrence overrides > protects a manually saved occurrence even when its amount still matches the template
+AssertionError: expected [ { id: 'custom', …(1) } ] to deeply equal []
+
+- Expected
++ Received
+
+- []
++ [
++   {
++     "data": {
++       "account": "bank",
++       "amount": 20,
++       "category": "casa",
++       "createdAt": undefined,
++       "date": "2026-09-01",
++       "description": "Quota",
++       "groupId": undefined,
++       "id": "tpl",
++       "recurring": undefined,
++       "seriesId": "s",
++       "type": "expense",
++     },
++     "id": "custom",
++   },
++ ]
+
+ ❯ src/shared/recurrence.test.ts:196:84
+    194|   const template:Transaction={id:'tpl',type:'expense',amount:10,date:'…
+    195|   const override={...template,id:'custom',date:'2026-09-01',recurring:…
+    196|   expect(seriesInstanceUpdates([override],template,{...template,amount…
+       |                                                                                    ^
+    197|  });
+    198| });
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[6/9]⎯
+
+
+ Test Files  2 failed (2)
+      Tests  9 failed | 53 passed (62)
+   Start at  08:31:31
+   Duration  603ms (transform 152ms, setup 0ms, import 200ms, tests 58ms, environment 0ms)
+

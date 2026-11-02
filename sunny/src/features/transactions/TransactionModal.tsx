@@ -51,7 +51,7 @@ interface Props {
 
 /** Quante categorie stanno nella riga di chip prima di "altre ›". */
 const CHIP_CATS = 6;
-interface Reimb { amount: string; account: string }
+interface Reimb { amount: string; account: string; seriesId?: string }
 
 /** Series choice in the modal: none, or one of the smart-series kinds. */
 type ModalSeriesKind = 'none' | SeriesKind;
@@ -91,7 +91,7 @@ export function TransactionModal({ open, editing, groupTransfers = [], seriesEdi
 
   const [saving, setSaving] = useState(false);
   const saveLock = useRef(false);
-  const [saveError, setSaveError] = useState<'investment' | 'ordinary' | null>(null);
+  const [saveError, setSaveError] = useState<'investment' | 'ordinary' | 'staleSeries' | null>(null);
   const [amountError, setAmountError] = useState(false);
   const [categoryTouched, setCategoryTouched] = useState(false);
   const [showMore, setShowMore] = useState(false);
@@ -177,7 +177,7 @@ export function TransactionModal({ open, editing, groupTransfers = [], seriesEdi
       setNotes(editing.notes ?? '');
       setIsShared(hasGroup || !!editing.shared);
       setReimbursements(hasGroup
-        ? groupSettlements.map(t => ({ amount: String(t.amount), account: t.toAccount ?? '' }))
+        ? groupSettlements.map(t => ({ amount: String(t.amount), account: t.toAccount ?? '', seriesId: t.recurring ? (t.seriesId ?? t.id) : undefined }))
         : []);
       // Legacy series without seriesMeta open as plain 'recurring'.
       setSeriesKind(editing.recurring ? (editing.seriesMeta?.kind ?? 'recurring') : 'none');
@@ -371,8 +371,8 @@ export function TransactionModal({ open, editing, groupTransfers = [], seriesEdi
     try {
       await onSave(deleteIds, create);
       if (keepOpen && !editing) { resetKeepContext(); } else { onClose(); }
-    } catch {
-      setSaveError(involvesInvestment ? 'investment' : 'ordinary'); // Keep the draft mounted for retry.
+    } catch (error) {
+      setSaveError(error instanceof Error && error.message.startsWith('La serie è cambiata') ? 'staleSeries' : involvesInvestment ? 'investment' : 'ordinary'); // Keep the draft mounted for retry.
     } finally {
       saveLock.current = false;
       setSaving(false);
@@ -441,7 +441,7 @@ export function TransactionModal({ open, editing, groupTransfers = [], seriesEdi
 
     const settlements = (type === 'expense' && isShared)
       ? reimbursements
-          .map(r => ({ amount: parseFloat(r.amount.replace(',', '.')), account: r.account }))
+          .map(r => ({ amount: parseFloat(r.amount.replace(',', '.')), account: r.account, seriesId: r.seriesId }))
           .filter(r => r.amount > 0 && r.account)
       : [];
     const sum = settlements.reduce((s, r) => s + r.amount, 0);
@@ -462,7 +462,7 @@ export function TransactionModal({ open, editing, groupTransfers = [], seriesEdi
           // advancing in lockstep with the expense (same rule, same dates), so
           // every month gets its transfer too. The shared groupId + the same-date
           // guard at edit time link each month's expense to that month's quota.
-          ...(recurring ? { recurring, seriesId: crypto.randomUUID() } : {}),
+          ...(recurring ? { recurring, seriesId: r.seriesId ?? crypto.randomUUID() } : {}),
         });
       }
       if (net > 0) {
@@ -642,9 +642,13 @@ export function TransactionModal({ open, editing, groupTransfers = [], seriesEdi
           <div className="flex-1 min-h-0 overflow-y-auto overscroll-contain scrollbar-hide px-5 sm:px-7 pb-4 space-y-3 sm:space-y-4">
           {seriesEdit && (
             <p className="text-[11px] text-secondary bg-elevated rounded-xl px-3 py-2 leading-snug">
-              🔁 Stai modificando l'intera serie. Le modifiche valgono per le occorrenze future; le voci già registrate non cambiano.
+              🔁 Stai modificando l'intera serie. Le modifiche valgono anche per le occorrenze passate. Quelle modificate singolarmente restano personalizzate.
             </p>
           )}
+
+          {!seriesEdit && editing?.seriesId && !editing.recurring && <p className="text-[11px] text-secondary px-3 py-2">Modifica singola: al salvataggio questa occorrenza diventa personalizzata e mantiene i propri valori anche quando aggiorni la serie.</p>}
+
+          {seriesEdit && groupTransfers.length > 0 && <p className="text-[11px] text-secondary px-3 py-2">Se aggiungi o rimuovi quote o commissioni, la nuova composizione vale per le scadenze successive; i vecchi pagamenti restano completi.</p>}
 
           {sourceBanner && (
             <p className="text-[11.5px] text-secondary bg-gold/10 border border-gold/15 rounded-xl px-3 py-2.5 leading-snug">
@@ -1051,7 +1055,7 @@ export function TransactionModal({ open, editing, groupTransfers = [], seriesEdi
           <div className="ui-editor-footer shrink-0 px-5 sm:px-7 pt-3 pb-5 sm:pb-7 bg-[var(--modal-hdr-bg)] space-y-2">
             {saveError && (
               <p role={ui3 ? 'alert' : undefined} className="text-sm text-red px-1 leading-snug">
-                {saveError === 'investment'
+                {saveError === 'staleSeries' ? 'La serie è cambiata su un altro dispositivo. Chiudi e riapri la modifica prima di salvare.' : saveError === 'investment'
                   ? 'Salvataggio non riuscito: movimento e controvalore non sono stati aggiornati. I valori inseriti sono conservati. Controlla la connessione e riprova.'
                   : 'Salvataggio non riuscito. I valori inseriti sono conservati: controlla la connessione e riprova.'}
               </p>

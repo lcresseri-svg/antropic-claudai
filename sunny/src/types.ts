@@ -156,6 +156,7 @@ export interface Transaction {
   groupId?: string;      // links a split expense with its reimbursement transfers
   recurring?: RecurrenceRule;
   seriesId?: string;     // stable id linking a recurring template to its materialized instances
+  seriesOverride?: boolean; // explicit single-occurrence edit; excluded from subsequent series changes
   seriesMeta?: SeriesMeta; // "smart series" flavour (subscription / installment); absent = plain recurring
   projected?: boolean;   // CLIENT-ONLY: a virtual future occurrence — NEVER persisted to Firestore
   demo?: boolean;        // written by onboarding demo data; removable from Settings

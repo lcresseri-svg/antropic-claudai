@@ -168,10 +168,13 @@ function SeriesOccurrencePreview(){
  const [rows,setRows]=useState<Transaction[]>([
   {id:'past',type:'expense',amount:1.24,date:'2026-09-30',description:'Voce originale',category:'casa',account:'conto_corrente',seriesId:'s'},
   {id:'sibling',type:'expense',amount:234.33,date:'2026-08-31',description:'Altra occorrenza',category:'casa',account:'conto_corrente',seriesId:'s'},
+  {id:'aligned',type:'expense',amount:.74,date:'2026-07-31',description:'Regola futura',category:'casa',account:'conto_corrente',seriesId:'s'},
+  {id:'future-aligned',type:'expense',amount:.74,date:'2026-12-31',description:'Regola futura',category:'casa',account:'conto_corrente',seriesId:'s'},
   {id:'template',type:'expense',amount:.74,date:'2026-11-30',description:'Regola futura',category:'casa',account:'conto_corrente',seriesId:'s',recurring:{freq:'monthly',until:'2026-10-30'}},
  ]);
  const tx=useMemo(()=>({transactions:rows,allTransactions:rows,
   replaceInPlace:async(id:string,data:Omit<Transaction,'id'>)=>setRows(current=>current.map(t=>t.id===id?{...data,id}:t)),
+  replaceSeries:async(changes:{id:string;data:Omit<Transaction,'id'>|null}[])=>setRows(current=>current.flatMap(t=>{const op=changes.find(change=>change.id===t.id);return op?(op.data?[{...op.data,id:t.id}]:[]):[t];})),
  }),[rows]);
  const editor=useTransactionEditing(userFor(pilotUid) as any,tx as any);
  return <div className="min-h-screen bg-bg text-primary p-6">

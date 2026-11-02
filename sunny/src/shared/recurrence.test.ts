@@ -155,10 +155,10 @@ describe('seriesInstanceUpdates', () => {
     ...template, id, date, recurring: undefined, createdAt: 111, ...extra,
   });
 
-  it('preserves past and today including refunds, shared amounts and investment value stamps', () => {
+  it('preserves personalized history, refunds and legacy differences', () => {
     const all = [template,
       occurrence('past', '2026-05-04', { notes: 'Originale', shared: 200 }),
-      occurrence('today', TODAY),
+      occurrence('today', TODAY, {seriesOverride:true}),
       occurrence('invest', '2026-05-04', { type: 'investment', valueEffect: { category: 'casa', delta: 800, appliedAt: 1 } }),
       occurrence('refund', '2026-05-05', { type: 'refund', refundOf: 'past' }),
     ];
@@ -167,25 +167,44 @@ describe('seriesInstanceUpdates', () => {
     expect(all).toEqual(before);
   });
 
-  it('updates only real future occurrences, keeping their identity, date and group', () => {
+  it('updates unmodified occurrences across history and future with stable identity', () => {
     const all = [template, occurrence('past', '2026-05-04'), occurrence('today', TODAY),
       occurrence('future', '2026-07-04', { groupId: 'g' }),
       occurrence('virtual', '2026-08-04', { projected: true }),
       occurrence('other', '2026-07-04', { seriesId: 'other' }),
     ];
     const updates = seriesInstanceUpdates(all, template, payload, TODAY);
-    expect(updates).toEqual([{ id: 'future', data: expect.objectContaining({
+    expect(updates.map(u=>u.id)).toEqual(['past','today','future']);
+    expect(updates.find(u=>u.id==='future')).toEqual({ id: 'future', data: expect.objectContaining({
       amount: 850, description: 'Nuovo affitto', category: 'nuova', account: 'nuovo',
       date: '2026-07-04', createdAt: 111, groupId: 'g', seriesId: 's', recurring: undefined,
-    }) }]);
+    }) });
   });
 
-  it('protects today at the Rome day rollover and resolves legacy template IDs', () => {
+  it('resolves legacy template IDs consistently across day rollover', () => {
     const legacy = { ...template, seriesId: undefined };
     const all = [occurrence('tomorrow', '2026-06-05', { seriesId: 'tpl' })];
     expect(seriesInstanceUpdates(all, legacy, payload, TODAY).map(u => u.id)).toEqual(['tomorrow']);
-    expect(seriesInstanceUpdates(all, legacy, payload, '2026-06-05')).toEqual([]);
+    expect(seriesInstanceUpdates(all, legacy, payload, '2026-06-05').map(u=>u.id)).toEqual(['tomorrow']);
   });
+});
+
+describe('clearing optional fields across a series',()=>{
+ it('clears TFR, notes and statistical spread instead of preserving obsolete instance values',()=>{
+  const template:Transaction={id:'tpl',type:'investment',amount:100,date:'2026-12-01',description:'Piano',category:'fund',account:'bank',seriesId:'s',recurring:{freq:'monthly'},tfr:50,statsSpreadMonths:6,notes:'Old'};
+  const instance={...template,id:'past',date:'2026-09-01',recurring:undefined};
+  const {tfr,statsSpreadMonths,notes,...payload}=template;
+  const [update]=seriesInstanceUpdates([instance],template,payload,TODAY);
+  expect(update.data.tfr).toBeUndefined();expect(update.data.statsSpreadMonths).toBeUndefined();expect(update.data.notes).toBeUndefined();
+ });
+});
+
+describe('explicit occurrence overrides',()=>{
+ it('protects a manually saved occurrence even when its amount still matches the template',()=>{
+  const template:Transaction={id:'tpl',type:'expense',amount:10,date:'2026-12-01',description:'Quota',category:'casa',account:'bank',seriesId:'s',recurring:{freq:'monthly'}};
+  const override={...template,id:'custom',date:'2026-09-01',recurring:undefined,seriesOverride:true};
+  expect(seriesInstanceUpdates([override],template,{...template,amount:20},TODAY)).toEqual([]);
+ });
 });
 
 describe('futureSeriesPayloads', () => {

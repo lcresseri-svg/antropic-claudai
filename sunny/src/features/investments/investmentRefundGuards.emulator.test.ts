@@ -47,6 +47,57 @@ run('ordinary mutations contend with refund allocations', () => {
     expect((await getDoc(doc(db, 'users', uid, 'transactions', 'template'))).data()).toEqual(template);
     expect((await getDoc(doc(db, 'users', uid, 'transactions', 'sibling'))).data()).toEqual(sibling);
   });
+  it('keeps explicit manual overrides when a later series edit uses a stale snapshot', async () => {
+    const template = {...expense({amount:10,seriesId:'series',recurring:{freq:'monthly'}}),id:'template'};
+    const ordinary = expense({amount:10,seriesId:'series'});
+    await seed('source', ordinary);await seed('sibling',ordinary);
+    await sync.replaceTransactionSynced(uid,'source',{...ordinary,amount:7.5,seriesOverride:true});
+    await sync.replaceTransactionSynced(uid,'source',{...ordinary,amount:20},{seriesTemplate:template});
+    await sync.replaceTransactionSynced(uid,'sibling',{...ordinary,amount:20},{seriesTemplate:template});
+    expect((await getDoc(sourceRef())).data()).toMatchObject({amount:7.5,seriesOverride:true});
+    expect((await getDoc(doc(db,'users',uid,'transactions','sibling'))).data()).toMatchObject({amount:20});
+  });
+  it('preserves legacy individualized values without a flag on a stale series write',async()=>{
+    const template={...expense({amount:10,seriesId:'series',recurring:{freq:'monthly'}}),id:'template'};
+    await seed('source',expense({amount:1.24,seriesId:'series'}));
+    await sync.replaceTransactionSynced(uid,'source',expense({amount:.74,seriesId:'series'}),{seriesTemplate:template});
+    expect((await getDoc(sourceRef())).data()?.amount).toBe(1.24);
+  });
+  it('rolls back the template and all occurrence writes when a refund rejects one series change',async()=>{
+    const template={...expense({amount:100,seriesId:'series',date:'2026-12-01',recurring:{freq:'monthly'}}),id:'template'};
+    const original=expense({amount:100,seriesId:'series'});
+    await seed('template',template);await seed('source',original);await seed('sibling',original);
+    await saveRefundReceipt(db,uid,{...draft(),amount:80});
+    await expect(sync.replaceSeriesSynced(uid,[
+      {id:'template',data:{...template,amount:50}},
+      {id:'sibling',data:{...original,amount:50},seriesTemplate:template},
+      {id:'source',data:{...original,amount:50},seriesTemplate:template},
+    ])).rejects.toThrow();
+    for(const id of ['template','source','sibling'])expect((await getDoc(doc(db,'users',uid,'transactions',id))).data()?.amount).toBe(100);
+  });
+  it('protects customized future occurrences even when dissolution was planned before their manual edit',async()=>{
+    const template={...expense({amount:10,seriesId:'series',recurring:{freq:'monthly'}}),id:'template'};
+    await seed('source',expense({amount:10,seriesId:'series',seriesOverride:true,date:'2026-12-01'}));
+    await sync.replaceSeriesSynced(uid,[{id:'source',data:null,seriesTemplate:template}]);
+    expect((await getDoc(sourceRef())).data()).toMatchObject({amount:10,seriesOverride:true,date:'2026-12-01'});
+  });
+  it('rejects a stale series template without committing a divergent template or history',async()=>{
+    const old={...expense({amount:100,seriesId:'series',recurring:{freq:'monthly'}}),id:'template'};
+    await seed('template',{...old,amount:150});await seed('source',expense({amount:150,seriesId:'series'}));
+    await expect(sync.replaceSeriesSynced(uid,[
+      {id:'template',data:{...old,amount:200},expectedTemplate:old},
+      {id:'source',data:expense({amount:200,seriesId:'series'}),seriesTemplate:old},
+    ])).rejects.toThrow(/serie è cambiata/);
+    expect((await getDoc(doc(db,'users',uid,'transactions','template'))).data()?.amount).toBe(150);
+    expect((await getDoc(sourceRef())).data()?.amount).toBe(150);
+  });
+  it('unlinks from the fresh personalized data without overwriting its business or investment fields',async()=>{
+    const fresh=expense({amount:7.5,seriesId:'series',seriesOverride:true,notes:'Manuale',valueEffect:{category:'fund',delta:2,appliedAt:42}});
+    await seed('source',fresh);
+    await sync.replaceSeriesSynced(uid,[{id:'source',data:expense({amount:10}),unlinkSeries:'series'}]);
+    const stored=(await getDoc(sourceRef())).data()!;
+    expect(stored).not.toHaveProperty('seriesId');expect(stored).toMatchObject({amount:7.5,notes:'Manuale',seriesOverride:true,valueEffect:fresh.valueEffect});
+  });
   it('blocks deletion through the noninvestment and investment paths', async () => {
     await saveRefundReceipt(db, uid, draft());
     for (const mustSync of [false, true]) {

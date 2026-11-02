@@ -1,0 +1,85 @@
+{
+  "results": [
+    {
+      "ui": 2,
+      "theme": "light",
+      "width": 390,
+      "status": "passed",
+      "customAmount": 20,
+      "templateAmount": 30,
+      "ordinaryPastAmount": 30,
+      "legacyPersonalAmount": 234.33
+    },
+    {
+      "ui": 2,
+      "theme": "light",
+      "width": 1440,
+      "status": "passed",
+      "customAmount": 20,
+      "templateAmount": 30,
+      "ordinaryPastAmount": 30,
+      "legacyPersonalAmount": 234.33
+    },
+    {
+      "ui": 2,
+      "theme": "dark",
+      "width": 390,
+      "status": "passed",
+      "customAmount": 20,
+      "templateAmount": 30,
+      "ordinaryPastAmount": 30,
+      "legacyPersonalAmount": 234.33
+    },
+    {
+      "ui": 2,
+      "theme": "dark",
+      "width": 1440,
+      "status": "passed",
+      "customAmount": 20,
+      "templateAmount": 30,
+      "ordinaryPastAmount": 30,
+      "legacyPersonalAmount": 234.33
+    },
+    {
+      "ui": 3,
+      "theme": "light",
+      "width": 390,
+      "status": "passed",
+      "customAmount": 20,
+      "templateAmount": 30,
+      "ordinaryPastAmount": 30,
+      "legacyPersonalAmount": 234.33
+    },
+    {
+      "ui": 3,
+      "theme": "light",
+      "width": 1440,
+      "status": "passed",
+      "customAmount": 20,
+      "templateAmount": 30,
+      "ordinaryPastAmount": 30,
+      "legacyPersonalAmount": 234.33
+    },
+    {
+      "ui": 3,
+      "theme": "dark",
+      "width": 390,
+      "status": "passed",
+      "customAmount": 20,
+      "templateAmount": 30,
+      "ordinaryPastAmount": 30,
+      "legacyPersonalAmount": 234.33
+    },
+    {
+      "ui": 3,
+      "theme": "dark",
+      "width": 1440,
+      "status": "passed",
+      "customAmount": 20,
+      "templateAmount": 30,
+      "ordinaryPastAmount": 30,
+      "legacyPersonalAmount": 234.33
+    }
+  ],
+  "errors": []
+}

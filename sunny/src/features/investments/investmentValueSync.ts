@@ -31,6 +31,7 @@ import { CategoryDef, Transaction, TransactionPatch, AppliedValueEffect } from '
 import {
   planValueChange, applyValueChanges, ValueRequest, ValuePlan, desiredValueDelta,
 } from './investmentValueCore';
+import { isSeriesOverride } from '../../shared/recurrence';
 import { assertRefundSourceMutation } from '../transactions/refundReceiptStore';
 
 type TxData = Omit<Transaction, 'id'>;
@@ -86,6 +87,9 @@ interface SyncOp {
   data: TxData | null;
   /** true when ref points at a doc being created (skip the read). */
   isCreate: boolean;
+  seriesTemplate?: Transaction;
+  expectedTemplate?: Transaction;
+  unlinkSeries?: string;
 }
 
 /** Drop inherited investment stamps and client-only derived figures. */
@@ -139,6 +143,22 @@ async function runSyncTransaction(uid: string, ops: SyncOp[]): Promise<void> {
         const snap = await trx.get(op.ref);
         exists = snap.exists();
         const d = snap.data() ?? {};
+        if (op.expectedTemplate) {
+          const expected = op.expectedTemplate;
+          const normalize = (value: unknown): unknown => Array.isArray(value) ? value.map(normalize) : value && typeof value === 'object' ? Object.fromEntries(Object.entries(value).sort(([a],[b])=>a.localeCompare(b)).map(([key,item])=>[key,normalize(item)])) : value;
+          if (isSeriesOverride(d as Partial<Transaction>, expected) || d.seriesId !== expected.seriesId || d.date !== expected.date || JSON.stringify(normalize(d.recurring)) !== JSON.stringify(normalize(expected.recurring)) || JSON.stringify(normalize(d.seriesMeta)) !== JSON.stringify(normalize(expected.seriesMeta))) {
+            throw new Error('La serie è cambiata su un altro dispositivo. Chiudi e riapri la modifica prima di salvare.');
+          }
+        }
+        if (op.unlinkSeries) {
+          if (d.seriesId !== op.unlinkSeries) continue;
+          const {seriesId: _sid, recurring: _rule, seriesMeta: _meta, ...fresh} = d;
+          op.data = fresh as TxData;
+          plans.push({op,plan:{revert:null,request:null,stamp:'none',pending:false}});
+          continue;
+        }
+        // Re-read the override in the transaction so a concurrent manual edit wins.
+        if (op.seriesTemplate && (d.seriesId !== (op.seriesTemplate.seriesId ?? op.seriesTemplate.id) || isSeriesOverride(d as Partial<Transaction>, op.seriesTemplate))) continue;
         if (exists) {
           assertOrdinaryMutation(op.ref.id, d as TxData);
           await assertRefundSourceMutation(db, uid, { ...d, id: op.ref.id } as Transaction, op.data, trx);
@@ -169,6 +189,7 @@ async function runSyncTransaction(uid: string, ops: SyncOp[]): Promise<void> {
     const now = Date.now();
     plans.forEach(({ op, plan }, i) => {
       if (op.data === null) { trx.delete(op.ref); return; }
+      if (op.unlinkSeries) { trx.set(op.ref, op.data); return; }
       const reqIdx = requestIndex[i];
       const appliedChange = plan.stamp === 'set' && reqIdx !== null ? result.applied[reqIdx] : null;
       trx.set(op.ref, buildPayload(op.data, plan, appliedChange, now));
@@ -244,11 +265,19 @@ export async function createTransactionsSynced(
 }
 
 /** Overwrite ONE document in place (same id), reverting/reapplying its effect. */
-export async function replaceTransactionSynced(uid: string, id: string, data: TxData): Promise<void> {
+export async function replaceTransactionSynced(uid: string, id: string, data: TxData, opts?: { seriesTemplate: Transaction }): Promise<void> {
   const ref = txDoc(uid, id);
   // The prior state may be an investment even when the new one isn't: the
   // pre-filter must stay conservative, so sync whenever either side could be.
-  await runOps(uid, [{ ref, data, isCreate: false }], true);
+  await runOps(uid, [{ ref, data, isCreate: false, seriesTemplate: opts?.seriesTemplate }], true);
+}
+
+/** Commit a series template and its ordinary occurrences together. Every
+ * protected occurrence is rechecked in the transaction before any writes. */
+export interface SeriesChange {id:string;data:TxData | null;seriesTemplate?:Transaction;expectedTemplate?:Transaction;unlinkSeries?:string}
+export async function replaceSeriesSynced(uid: string, changes: SeriesChange[]): Promise<void> {
+  const ops = changes.map(change => ({ref: txDoc(uid, change.id), data: change.data, isCreate: false, seriesTemplate: change.seriesTemplate,expectedTemplate:change.expectedTemplate,unlinkSeries:change.unlinkSeries}));
+  await runOps(uid, ops, true);
 }
 
 /**

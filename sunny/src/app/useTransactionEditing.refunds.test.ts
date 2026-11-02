@@ -18,7 +18,7 @@ vi.mock('../shared/hooks/useTodayRomeISO',()=>({useTodayRomeISO:()=>state.today}
 vi.mock('../features/transactions/refundReceiptStore',()=>({saveSingleRefund:vi.fn(),saveRefundReceipt:vi.fn(),deleteRefundReceipt:vi.fn()}));
 const expense=(id:string,amount:number):Transaction=>({id,type:'expense',amount,date:'2026-09-01',description:id,category:'food',account:'bank'});
 const sources=[expense('a',60),expense('b',40)];
-const tx={transactions:sources,allTransactions:sources,addTransactions:vi.fn(),replaceInPlace:vi.fn(),replaceGroup:vi.fn(),deleteTransactions:vi.fn()};
+const tx={transactions:sources,allTransactions:sources,addTransactions:vi.fn(),replaceInPlace:vi.fn(),replaceSeries:vi.fn(),replaceGroup:vi.fn(),deleteTransactions:vi.fn()};
 function hook(rows:Transaction[]=sources){state.index=0;state.refIndex=0;return useTransactionEditing({uid:'user'} as User,{...tx,transactions:rows,allTransactions:rows} as unknown as Parameters<typeof useTransactionEditing>[1]);}
 describe('transaction refund and card editor routing',()=>{
   beforeEach(()=>{state.locals=[];state.refs=[];state.today='2026-10-28';vi.clearAllMocks();state.getHeader.mockResolvedValue({exists:()=>true,data:()=>({expenseIds:['a','b','zero-allocation-source']})});});
@@ -61,15 +61,16 @@ describe('transaction refund and card editor routing',()=>{
     await expect(hook().handleSave(['a'],[{...sources[0],amount:50}])).rejects.toThrow('offline');
     expect(hook().modalOpen).toBe(true);expect(hook().editing).toEqual(sources[0]);
   });
-  it.each(['expense', 'income', 'investment', 'transfer'] as const)('editing a %s series never writes booked history', async type => {
+  it.each(['expense', 'income', 'investment', 'transfer'] as const)('editing a %s series updates ordinary history and preserves personal exceptions', async type => {
     const template: Transaction = {...expense('template', 60), type, date:'2026-11-01', seriesId:'series', recurring:{freq:'monthly'}};
     const past: Transaction = {...template, id:'past', recurring:undefined, date:'2026-09-01'};
     const today: Transaction = {...past, id:'today', date:state.today};
     const future: Transaction = {...past, id:'future', date:'2026-11-01'};
-    const rows = [template,past,today,future];
+    const custom={...past,id:'custom',seriesOverride:true};
+    const rows = [template,past,today,future,custom];
     hook(rows).startEdit(template,true);
     await hook(rows).handleSave(['template'],[{...template,amount:90,category:'new',account:'new'}]);
-    expect(tx.replaceInPlace.mock.calls.map(call=>call[0])).toEqual(['template','future']);
+    expect(tx.replaceSeries.mock.calls[0][0].map((op:any)=>op.id)).toEqual(['template','past','today','future']);
     expect(tx.replaceGroup).not.toHaveBeenCalled();
     expect(tx.deleteTransactions).not.toHaveBeenCalled();
   });
@@ -97,8 +98,8 @@ describe('transaction refund and card editor routing',()=>{
     const rows=[template,{...template,id:'past',date:'2026-01-01',recurring:undefined}];
     hook(rows).startEdit(template,true);
     await hook(rows).handleSave(['template'],[{...template,amount:110,date:'2026-01-01'}]);
-    expect(tx.replaceInPlace).toHaveBeenCalledTimes(1);
-    expect(tx.replaceInPlace).toHaveBeenCalledWith('template',expect.objectContaining({date:'2026-11-01',amount:110,recurring:template.recurring,seriesMeta:template.seriesMeta}));
+    expect(tx.replaceSeries.mock.calls[0][0]).toHaveLength(2);
+    expect(tx.replaceSeries.mock.calls[0][0][0]).toMatchObject({id:'template',data:{date:'2026-11-01',amount:110,recurring:template.recurring,seriesMeta:template.seriesMeta},expectedTemplate:template});
   });
   it('advances backdated shared templates and their new fee together without recreating history',async()=>{
     const template: Transaction={...expense('template',60),date:'2026-11-01',groupId:'group',seriesId:'series',recurring:{freq:'monthly'}};
@@ -111,6 +112,23 @@ describe('transaction refund and card editor routing',()=>{
       expect.objectContaining({date:'2026-11-01',seriesId:'quota'}),
       expect.objectContaining({date:'2026-11-01',amount:1,recurring:undefined}),
     ]);
+  });
+  it('propagates grouped series edits to ordinary history in each linked series',async()=>{
+    const main:Transaction={...expense('main',60),seriesId:'main',groupId:'g',date:'2026-11-01',recurring:{freq:'monthly'}};
+    const quota:Transaction={...main,id:'quota',seriesId:'quota',type:'transfer',toAccount:'cash',amount:40};
+    const past={...main,id:'past',date:'2026-09-01',recurring:undefined};
+    const pastQuota={...quota,id:'past-quota',date:'2026-09-01',recurring:undefined};
+    const rows=[main,quota,past,pastQuota];hook(rows).startEdit(main,true);
+    await hook(rows).handleSave(['main','quota'],[{...main,amount:70},{...quota,amount:30}]);
+    expect(tx.replaceSeries.mock.calls[0][0].map((op:any)=>op.id)).toEqual(['main','past','quota','past-quota']);
+  });
+  it('preserves complete historical groups when removing a settlement template',async()=>{
+    const main:Transaction={...expense('main',60),seriesId:'main',groupId:'g',date:'2026-11-01',recurring:{freq:'monthly'}};
+    const quota:Transaction={...main,id:'quota',seriesId:'quota',type:'transfer',toAccount:'cash',amount:40};
+    const rows=[main,quota,{...main,id:'past',recurring:undefined,date:'2026-09-01'},{...quota,id:'past-quota',recurring:undefined,date:'2026-09-01'}];
+    hook(rows).startEdit(main,true);await hook(rows).handleSave(['main','quota'],[{...main,amount:100}]);
+    expect(tx.replaceGroup).toHaveBeenCalledWith(['main','quota'],[expect.objectContaining({amount:100})]);
+    expect(tx.replaceSeries).not.toHaveBeenCalled();expect(tx.replaceInPlace).not.toHaveBeenCalled();
   });
   it('series edit resolves its template and never falls back to editing a historical orphan',()=>{
     const past: Transaction={...expense('past',60),seriesId:'series'};
@@ -128,7 +146,7 @@ describe('transaction refund and card editor routing',()=>{
     hook([past]).startEdit(past,false);
     await hook([past]).handleSave(['past'],[{...past,amount:50}]);
     expect(tx.replaceInPlace).toHaveBeenCalledTimes(1);
-    expect(tx.replaceInPlace).toHaveBeenCalledWith('past',expect.objectContaining({amount:50}));
+    expect(tx.replaceInPlace).toHaveBeenCalledWith('past',expect.objectContaining({amount:50,seriesOverride:true}));
   });
   it('advances projections with the Rome day and preserves today when dissolving a series',async()=>{
     const source={...sources[0],date:'2026-10-27',seriesId:'series',recurring:{freq:'daily' as const,until:'2026-10-30'}};
@@ -139,8 +157,8 @@ describe('transaction refund and card editor routing',()=>{
     expect(hook(rows).projected.map(t=>t.date)).not.toContain('2026-10-28');
     hook(rows).startEdit(source,true);
     await hook(rows).handleSave(['a'],[{...source,recurring:undefined}]);
-    expect(tx.replaceInPlace).toHaveBeenCalledWith('b',expect.objectContaining({date:'2026-10-29'}));
-    expect(tx.replaceInPlace.mock.calls.find(call=>call[0]==='b')![1]).not.toHaveProperty('seriesId');
+    expect(tx.replaceSeries.mock.calls[0][0].find((op:any)=>op.id==='b').data).toMatchObject({date:'2026-10-29'});
+    expect(tx.replaceSeries.mock.calls[0][0].find((op:any)=>op.id==='b').data).not.toHaveProperty('seriesId');
     expect(tx.deleteTransactions).not.toHaveBeenCalled();
   });
 });
