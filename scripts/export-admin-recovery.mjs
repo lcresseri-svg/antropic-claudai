@@ -34,7 +34,7 @@ export function compare(source,live){
   automaticSettlements:relevant.filter(([id,a,b])=>id.startsWith('__cc__')||val(a,'creditCardSettlement')||val(b,'creditCardSettlement')).map(([id])=>id),
  };
 }
-export async function readTransactions(database,request){
+export async function readTransactions(database,request,onProgress=()=>{}){
  if(![SOURCE,TARGET].includes(database)) throw new Error('Database non previsto.');
  const prefix=`projects/${PROJECT}/databases/${database}/documents/users/${UID}/transactions/`;
  const docs=[];let token='';const seenTokens=new Set();const ids=new Set();
@@ -48,6 +48,7 @@ export async function readTransactions(database,request){
    if(ids.has(doc.name))throw new Error('Pagina duplicata: ripeti esportazione.');
    ids.add(doc.name);docs.push(doc);
   }
+  onProgress(docs.length);
   token=body.nextPageToken??'';
   if(token&&seenTokens.has(token))throw new Error('Paginazione non valida.');
   seenTokens.add(token);
@@ -58,15 +59,20 @@ async function main(){
  if(process.argv.length>3||process.argv[2]?.startsWith('--'))throw new Error('Uso: node export-admin-recovery.mjs [cartella-output]');
  const output=resolve(process.argv[2]??`sunny-recovery-${new Date().toISOString().replace(/[:.]/g,'-')}`);
  await mkdir(output,{mode:0o700}); // fail rather than overwrite an earlier backup
- const credential=execFileSync('gcloud',['auth','print-access-token'],{encoding:'utf8',stdio:['ignore','pipe','pipe']}).trim();
+ console.error('1/3 Verifica accesso Google (massimo 45 secondi)...');
+ let credential;
+ try{credential=execFileSync('gcloud',['auth','print-access-token'],{encoding:'utf8',stdio:['ignore','pipe','pipe'],timeout:45000}).trim();}
+ catch{throw new Error('Accesso Google non completato. Esegui separatamente: gcloud auth print-access-token > /dev/null ; autorizza Cloud Shell, poi riprova.');}
  if(!credential)throw new Error('Accesso Google non disponibile.');
  const request=(url,opts)=>fetch(url,{...opts,headers:{Authorization:`Bearer ${credential}`},signal:AbortSignal.timeout(60000)});
  const save=async(name,body)=>{const temp=join(output,name+'.tmp');await writeFile(temp,JSON.stringify(body,null,2),{mode:0o600,flag:'wx'});await rename(temp,join(output,name));};
  const metadata={project:PROJECT,uid:UID,exportedAt:new Date().toISOString(),format:'firestore-rest-v1',scope:'transactions-only'};
  // Save current production transactions BEFORE reading the restored source.
- const live=await readTransactions(TARGET,request);
+ console.error('2/3 Lettura transazioni attuali da (default)...');
+ const live=await readTransactions(TARGET,request,n=>console.error(`  (default): ${n} transazioni lette`));
  await save('default-prima-del-recupero.json',{...metadata,database:TARGET,documents:live});
- const source=await readTransactions(SOURCE,request);
+ console.error('3/3 Lettura transazioni dal clone...');
+ const source=await readTransactions(SOURCE,request,n=>console.error(`  clone: ${n} transazioni lette`));
  await save('ripristinato-transazioni.json',{...metadata,database:SOURCE,documents:source});
  if(!source.length)throw new Error('Nessuna transazione nel clone per questo UID. Copia live salvata; verifica UID e database.');
  const report=compare(source,live);

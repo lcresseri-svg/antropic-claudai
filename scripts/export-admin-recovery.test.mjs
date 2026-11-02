@@ -56,6 +56,10 @@ test('main exports the live backup and restored documents with no write request'
   const output=join(temp,'export');
   const run=()=>spawnSync(process.execPath,['--import',preload,resolve('scripts/export-admin-recovery.mjs'),output],{env:{...process.env,PATH:join(temp,'bin')+':'+process.env.PATH},encoding:'utf8'});
   const result=run();assert.equal(result.status,0,result.stderr);
+  assert.match(result.stderr,/1\/3 Verifica accesso Google/);
+  assert.match(result.stderr,/2\/3 Lettura transazioni attuali/);
+  assert.match(result.stderr,/3\/3 Lettura transazioni dal clone/);
+  assert.match(result.stderr,/clone: 1 transazioni lette/);
   const before=JSON.parse(await readFile(join(output,'default-prima-del-recupero.json'),'utf8'));
   const source=JSON.parse(await readFile(join(output,'ripristinato-transazioni.json'),'utf8'));
   assert.equal(before.documents[0].fields.amount.doubleValue,20);assert.equal(source.documents[0].fields.amount.doubleValue,10);
