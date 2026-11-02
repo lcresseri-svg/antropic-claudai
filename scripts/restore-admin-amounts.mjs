@@ -19,26 +19,22 @@ export function buildWrites(source,live){
   const before=live.documents.find(d=>d.name===PREFIX+id);
   assert.equal(old?.fields?.type?.stringValue,'expense','Tipo sorgente inatteso');
   assert.equal(before?.fields?.type?.stringValue,'expense','Tipo live inatteso');
-  assert.equal(amount(old),value,'Importo clone inatteso');assert.equal(amount(before),.74,'Importo live inatteso');
+  assert.equal(amount(old),value,'Importo clone inatteso');assert.ok([.74,value].includes(amount(before)),'Importo live inatteso: fermato per proteggere una modifica successiva');
   assert.ok(before.updateTime,'Manca updateTime: esportazione non valida');
   for(const doc of [old,before])for(const key of ['valueEffect','refundOf','refundGroupId','creditCardSettlement','recurring'])assert.ok(!doc.fields[key],`Campo incompatibile: ${key}`);
+  if(amount(before)===value)return null;
   return {update:{name:PREFIX+id,fields:{amount:old.fields.amount}},updateMask:{fieldPaths:['amount']},currentDocument:{updateTime:before.updateTime}};
- });
+ }).filter(Boolean);
 }
 function main(){
  const [directory,mode]=process.argv.slice(2);
  if(!directory||![undefined,'--apply'].includes(mode)||process.argv.length>4)throw new Error('Uso: node restore-admin-amounts.mjs CARTELLA_EXPORT [--apply]');
  const dir=resolve(directory),read=name=>JSON.parse(fs.readFileSync(join(dir,name),'utf8'));
  const source=read('ripristinato-transazioni.json'),live=read('default-prima-del-recupero.json');
- const writes=buildWrites(source,live);
+ let writes=buildWrites(source,live);
  for(const [id,value] of FIXES)console.log(`${id}: 0,74 EUR -> ${value.toFixed(2)} EUR`);
  console.log('Termine serie conservato: 30 ottobre 2026. Transazioni nuove conservate.');
  if(!mode){console.log('ANTEPRIMA: nessuna scrittura. Aggiungi --apply per eseguire le due correzioni.');return;}
- const stamp=new Date().toISOString().replace(/[:.]/g,'-');
- const backup=join(dir,`prima-correzione-importi-${stamp}.json`);
- fs.writeFileSync(backup,JSON.stringify({project:PROJECT,uid:UID,documents:live.documents.filter(d=>FIXES.some(([id])=>d.name===PREFIX+id))},null,2),{mode:0o600,flag:'wx'});
- const payload=join(dir,`commit-importi-${stamp}.json`);
- fs.writeFileSync(payload,JSON.stringify({writes}),{mode:0o600,flag:'wx'});
  const token=execFileSync('gcloud',['auth','print-access-token'],{encoding:'utf8',stdio:['ignore','pipe','pipe'],timeout:45000}).trim();
  if(!token)throw new Error('Autenticazione non disponibile.');
  const request=(method,url,file)=>{
@@ -51,18 +47,28 @@ function main(){
   return JSON.parse(raw.slice(0,split));
  };
  const base=`https://firestore.googleapis.com/v1/projects/${PROJECT}/databases/${TARGET}/documents`;
- console.log('Invio delle due correzioni atomiche con controllo updateTime...');
+ console.log('Lettura dei due documenti live prima del recupero...');
+ const fresh={project:PROJECT,uid:UID,database:TARGET,documents:FIXES.map(([id])=>request('GET',base+`/users/${UID}/transactions/${id}`))};
+ for(const document of fresh.documents)console.log(`LIVE ${document.name.split('/').at(-1)}: ${amount(document).toFixed(2)} EUR`);
+ writes=buildWrites(source,fresh);
+ if(!writes.length){console.log('RECUPERO COMPLETATO: entrambi gli importi sono già corretti, verificati sul live. Nessuna scrittura.');return;}
+ const stamp=new Date().toISOString().replace(/[:.]/g,'-');
+ const backup=join(dir,`prima-correzione-importi-${stamp}.json`);
+ fs.writeFileSync(backup,JSON.stringify({project:PROJECT,uid:UID,documents:fresh.documents},null,2),{mode:0o600,flag:'wx'});
+ const payload=join(dir,`commit-importi-${stamp}.json`);
+ fs.writeFileSync(payload,JSON.stringify({writes}),{mode:0o600,flag:'wx'});
+ console.log(`Invio di ${writes.length} correzioni atomiche con updateTime appena letto...`);
  let result;
  try{result=request('POST',base+':commit',payload);}
  catch(error){throw new Error(`${error.message}\nSe compare FAILED_PRECONDITION, i documenti sono cambiati: non forzare il recupero. In caso di timeout l’esito può essere incerto: verificare i due importi prima di riprovare.`);}
  fs.writeFileSync(join(dir,`esito-importi-${stamp}.json`),JSON.stringify(result,null,2),{mode:0o600,flag:'wx'});
- assert.equal(result.writeResults?.length,2,'Risposta commit inattesa: verificare i due importi');
+ assert.equal(result.writeResults?.length,writes.length,'Risposta commit inattesa: verificare i due importi');
  for(const [id,value] of FIXES){
   const document=request('GET',base+`/users/${UID}/transactions/${id}`);
   assert.equal(amount(document),value,`Verifica live fallita per ${id}`);
   console.log(`VERIFICATO ${id}: ${value.toFixed(2)} EUR`);
  }
- console.log('RECUPERO COMPLETATO: 2 importi ripristinati e verificati sul live.');
+ console.log(`RECUPERO COMPLETATO: ${writes.length} correzioni applicate, entrambi gli importi verificati sul live.`);
 }
 if(process.argv[1]&&import.meta.url===pathToFileURL(resolve(process.argv[1])).href){
  try{main();}catch(error){console.error(error.message??'Recupero non completato');process.exitCode=1;}

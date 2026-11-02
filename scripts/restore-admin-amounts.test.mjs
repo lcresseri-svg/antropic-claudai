@@ -39,14 +39,23 @@ test('CLI preview has no network; apply saves backup then commits once and verif
     if(!files.some(f=>f.startsWith('prima-correzione-importi-')))throw new Error('Backup missing');
     const payload=JSON.parse(fs.readFileSync(args[args.indexOf('--data-binary')+1].slice(1),'utf8'));
     if(payload.writes.length!==2||payload.writes.some(w=>w.updateMask.fieldPaths.join()!=='amount'||!w.currentDocument.updateTime))throw new Error('Unsafe commit');
+    fs.writeFileSync(${JSON.stringify(join(dir,'committed'))},'yes');
     process.stdout.write(JSON.stringify({writeResults:[{},{}],commitTime:'2026-11-02T09:00:00Z'})+'\\n200');
    }else{
-    const amount=args.at(-1).endsWith('${ids[0]}')?1.24:234.33;
-    process.stdout.write(JSON.stringify({fields:{amount:{doubleValue:amount}}})+'\\n200');
+    const amount=fs.existsSync(${JSON.stringify(join(dir,'committed'))})?(args.at(-1).endsWith('${ids[0]}')?1.24:234.33):.74;
+    process.stdout.write(JSON.stringify({name:args.at(-1).split('/v1/')[1],updateTime:'2026-11-02T09:00:00Z',fields:{type:{stringValue:'expense'},amount:{doubleValue:amount}}})+'\\n200');
    }
   `,{mode:0o700});
   result=spawnSync(process.execPath,[cmd,dir,'--apply'],{env:{...process.env,PATH:join(dir,'bin')+':'+process.env.PATH},encoding:'utf8'});
   assert.equal(result.status,0,result.stderr);assert.match(result.stdout,/RECUPERO COMPLETATO/);
-  assert.equal(await fs.readFile(join(dir,'calls'),'utf8'),'POST\nGET\nGET\n');
+  assert.equal(await fs.readFile(join(dir,'calls'),'utf8'),'GET\nGET\nPOST\nGET\nGET\n');
  }finally{await fs.rm(dir,{recursive:true,force:true});}
+});
+
+test('fresh live values skip amounts already restored and refuse unknown newer amounts',()=>{
+ const source=docs('prima-aggiornamento-ricorrenti',[1.24,234.33]);
+ const live=docs('(default)',[.74,234.33]);live.documents[0].updateTime='2026-11-02T09:00:00Z';
+ const writes=buildWrites(source,live);assert.equal(writes.length,1);assert.equal(writes[0].currentDocument.updateTime,'2026-11-02T09:00:00Z');
+ assert.deepEqual(buildWrites(source,docs('(default)',[1.24,234.33])),[]);
+ assert.throws(()=>buildWrites(source,docs('(default)',[10,234.33])),/Importo live/);
 });
