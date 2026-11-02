@@ -4,7 +4,7 @@ import { doc, getDocFromServer } from 'firebase/firestore';
 import { Transaction, TransactionType } from '../types';
 import { useTransactions } from '../shared/hooks/useTransactions';
 import { useTodayRomeISO } from '../shared/hooks/useTodayRomeISO';
-import { buildProjectedOccurrences, seriesInstanceUpdates, dissolveSeries } from '../shared/recurrence';
+import { buildProjectedOccurrences, seriesInstanceUpdates, futureSeriesPayloads, dissolveSeries } from '../shared/recurrence';
 import { buildMerchantIndex, recognizeCategory, Candidate, Recognition } from '../features/transactions/categoryRecognition';
 import { isAdminUser } from '../shared/featureFlags';
 import { logEvent } from '../shared/analytics/metrics';
@@ -86,6 +86,15 @@ export function useTransactionEditing(user: User, tx: Tx) {
     if (isCreditCardSettlement(t)) { setSettlementDetail(t); return; }
     if (refundGroupIdOf(t) || t.type === 'refund') { openRefund(undefined, t); return; }
     setEditing(t); setSeriesEdit(asSeries); setModalOpen(true);
+  };
+
+  const openSeriesEdit = (t: Transaction) => {
+    const template = findTemplate(t);
+    // A deleted/absent template must not silently turn "edit series" into
+    // an edit of the historical occurrence used to open the detail.
+    if (!template) return;
+    setSeriesDetail(null);
+    startEdit(template, true);
   };
 
   const openAdd = () => { setEditing(null); setSeriesEdit(false); setDefaultType(undefined); setModalOpen(true); };
@@ -192,13 +201,16 @@ export function useTransactionEditing(user: User, tx: Tx) {
   const groupTransfers = (editing?.groupId && (editing.type === 'expense' || editing.type === 'transfer' || editing.type === 'investment'))
     ? tx.transactions.filter(t =>
         t.groupId === editing.groupId && t.id !== editing.id &&
-        (!editing.seriesId || t.date === editing.date))
+        t.date === editing.date && (editing.recurring
+          ? !!t.recurring || (t.date > todayISO && t.type === 'expense' && editing.type !== 'expense')
+          : !t.recurring))
     : [];
 
   // Returns a Promise that settles with the underlying writes: the modal AWAITS
   // it for all existing edits and investments so failures keep the draft open.
   // Plain new movements retain their offline-safe path.
   const handleSave = async (deleteIds: string[], create: Omit<Transaction, 'id'>[]): Promise<void> => {
+    if (seriesEdit && editing?.recurring) create = futureSeriesPayloads(create, todayISO);
     // Simple single-document edit → update IN PLACE (same id, no delete), so an
     // already-inserted transaction is never removed by the code. Group restructures
     // (split expense / commission → multiple docs) still go through replaceGroup.
@@ -220,12 +232,10 @@ export function useTransactionEditing(user: User, tx: Tx) {
       }
       const payload = { ...create[0], createdAt: editing.createdAt ?? Date.now() };
       await tx.replaceInPlace(editing.id, payload);
-      // Editing the whole SERIES propagates the change to every already-recorded
-      // ("contabilizzata") occurrence too — not just the template + future
-      // projections. Each occurrence keeps its OWN date/id/link; only the content
-      // changes. In place (setDoc, same id), so nothing is ever deleted.
+      // Series changes apply only to planned occurrences after the Rome day.
+      // A booked occurrence is changed only through its explicit single edit.
       if (seriesEdit) {
-        for (const u of seriesInstanceUpdates(tx.allTransactions, editing, payload)) {
+        for (const u of seriesInstanceUpdates(tx.allTransactions, editing, payload, todayISO)) {
           await tx.replaceInPlace(u.id, u.data);
         }
       }
@@ -241,7 +251,7 @@ export function useTransactionEditing(user: User, tx: Tx) {
     openScheduledExpense: (date: string) => { setScheduledDate(date); openAddWithType('expense'); },
     editing, seriesEdit, seriesDetail, modalOpen, defaultType,
     projected, recognize, groupTransfers,
-    openAdd, openAddWithType, openEdit, startEdit, findTemplate, handleSave,
+    openAdd, openAddWithType, openEdit, startEdit, findTemplate, openSeriesEdit, handleSave,
     refundOpen, refundExpenseId, refundEditing, openRefund, closeRefund, saveRefund,
     multiRefundOpen, multiRefundExpenseIds, multiRefundGroupId, multiRefundLoading, multiRefundError,
     openSelectedRefund, closeMultiRefund, saveMultiRefund, deleteMultiRefund,

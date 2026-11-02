@@ -1,5 +1,5 @@
 import { describe, it, expect } from 'vitest';
-import { expandRecurringOnCreate, catchUpRecurring, isPending, isExpiredTemplate, shouldExpandOnSave, seriesInstanceUpdates, dissolveSeries, addPeriod, monthlyEquivalent, nthOccurrenceDate, buildSeriesSummary } from './recurrence';
+import { expandRecurringOnCreate, catchUpRecurring, isPending, isExpiredTemplate, shouldExpandOnSave, seriesInstanceUpdates, futureSeriesPayloads, dissolveSeries, addPeriod, monthlyEquivalent, nthOccurrenceDate, buildSeriesSummary } from './recurrence';
 import { Transaction } from '../types';
 
 const TODAY = '2026-06-04';
@@ -148,59 +148,67 @@ describe('catchUpRecurring', () => {
 });
 
 describe('seriesInstanceUpdates', () => {
-  const t = (over: Partial<Transaction>): Transaction => ({
-    id: Math.random().toString(36).slice(2), date: '2026-06-04', description: 'X', amount: 10,
-    type: 'expense', category: 'casa', account: 'conto', ...over,
+  const template: Transaction = { id: 'tpl', date: '2026-07-04', description: 'Affitto', amount: 800,
+    type: 'expense', category: 'casa', account: 'conto', recurring: { freq: 'monthly' }, seriesId: 's' };
+  const payload = { ...template, amount: 850, description: 'Nuovo affitto', category: 'nuova', account: 'nuovo' };
+  const occurrence = (id: string, date: string, extra: Partial<Transaction> = {}): Transaction => ({
+    ...template, id, date, recurring: undefined, createdAt: 111, ...extra,
   });
 
-  it('propagates edited fields to every recorded occurrence, keeping each own date/id/createdAt', () => {
-    const all = [
-      t({ id: 'tpl', date: '2026-07-04', recurring: { freq: 'monthly' }, seriesId: 's', description: 'Affitto', amount: 800 }),
-      t({ id: 'i1', date: '2026-04-04', seriesId: 's', description: 'Affitto', amount: 800, createdAt: 111 }),
-      t({ id: 'i2', date: '2026-05-04', seriesId: 's', description: 'Affitto', amount: 800, createdAt: 222 }),
+  it('preserves past and today including refunds, shared amounts and investment value stamps', () => {
+    const all = [template,
+      occurrence('past', '2026-05-04', { notes: 'Originale', shared: 200 }),
+      occurrence('today', TODAY),
+      occurrence('invest', '2026-05-04', { type: 'investment', valueEffect: { category: 'casa', delta: 800, appliedAt: 1 } }),
+      occurrence('refund', '2026-05-05', { type: 'refund', refundOf: 'past' }),
     ];
-    // Edited template payload: rename + bump the amount + new category.
-    const payload: Omit<Transaction, 'id'> = {
-      date: '2026-07-04', description: 'Affitto casa', amount: 850, type: 'expense',
-      category: 'affitto', account: 'conto', recurring: { freq: 'monthly' }, seriesId: 's', createdAt: 999,
-    };
-    const updates = seriesInstanceUpdates(all, { id: 'tpl', seriesId: 's' }, payload);
-
-    expect(updates.map(u => u.id).sort()).toEqual(['i1', 'i2']);
-    const u1 = updates.find(u => u.id === 'i1')!;
-    expect(u1.data.description).toBe('Affitto casa');   // content propagated
-    expect(u1.data.amount).toBe(850);
-    expect(u1.data.category).toBe('affitto');
-    expect(u1.data.date).toBe('2026-04-04');            // occurrence keeps its own date
-    expect(u1.data.createdAt).toBe(111);                // and its own createdAt
-    expect(u1.data.seriesId).toBe('s');                 // series link preserved
-    expect(u1.data.recurring).toBeUndefined();          // rule stripped (instances aren't templates)
-    expect(updates.find(u => u.id === 'i2')!.data.date).toBe('2026-05-04');
+    const before = structuredClone(all);
+    expect(seriesInstanceUpdates(all, template, payload, TODAY)).toEqual([]);
+    expect(all).toEqual(before);
   });
 
-  it('skips the template, projected rows, and other series', () => {
-    const all = [
-      t({ id: 'tpl', date: '2026-07-04', recurring: { freq: 'monthly' }, seriesId: 's' }),
-      t({ id: 'i1', date: '2026-05-04', seriesId: 's' }),
-      t({ id: 'proj', date: '2026-08-04', seriesId: 's', projected: true }),   // virtual row
-      t({ id: 'other', date: '2026-05-04', seriesId: 'other' }),               // different series
-      t({ id: 'oneoff', date: '2026-05-04' }),                                 // unrelated one-off
+  it('updates only real future occurrences, keeping their identity, date and group', () => {
+    const all = [template, occurrence('past', '2026-05-04'), occurrence('today', TODAY),
+      occurrence('future', '2026-07-04', { groupId: 'g' }),
+      occurrence('virtual', '2026-08-04', { projected: true }),
+      occurrence('other', '2026-07-04', { seriesId: 'other' }),
     ];
-    const payload: Omit<Transaction, 'id'> = {
-      date: '2026-07-04', description: 'X', amount: 10, type: 'expense',
-      category: 'casa', account: 'conto', recurring: { freq: 'monthly' }, seriesId: 's',
-    };
-    const updates = seriesInstanceUpdates(all, { id: 'tpl', seriesId: 's' }, payload);
-    expect(updates.map(u => u.id)).toEqual(['i1']);
+    const updates = seriesInstanceUpdates(all, template, payload, TODAY);
+    expect(updates).toEqual([{ id: 'future', data: expect.objectContaining({
+      amount: 850, description: 'Nuovo affitto', category: 'nuova', account: 'nuovo',
+      date: '2026-07-04', createdAt: 111, groupId: 'g', seriesId: 's', recurring: undefined,
+    }) }]);
   });
 
-  it('returns nothing when the series has no recorded occurrences yet', () => {
-    const all = [t({ id: 'tpl', date: '2026-07-04', recurring: { freq: 'monthly' }, seriesId: 's' })];
-    const payload: Omit<Transaction, 'id'> = {
-      date: '2026-07-04', description: 'X', amount: 10, type: 'expense',
-      category: 'casa', account: 'conto', recurring: { freq: 'monthly' }, seriesId: 's',
-    };
-    expect(seriesInstanceUpdates(all, { id: 'tpl', seriesId: 's' }, payload)).toHaveLength(0);
+  it('protects today at the Rome day rollover and resolves legacy template IDs', () => {
+    const legacy = { ...template, seriesId: undefined };
+    const all = [occurrence('tomorrow', '2026-06-05', { seriesId: 'tpl' })];
+    expect(seriesInstanceUpdates(all, legacy, payload, TODAY).map(u => u.id)).toEqual(['tomorrow']);
+    expect(seriesInstanceUpdates(all, legacy, payload, '2026-06-05')).toEqual([]);
+  });
+});
+
+describe('futureSeriesPayloads', () => {
+  it('preserves the original day through February and subsequent monthly catch-up', () => {
+    const original = base({date:'2026-01-31',recurring:{freq:'monthly'},seriesId:'s'});
+    const [next] = futureSeriesPayloads([original], '2026-02-01');
+    expect(next.date).toBe('2026-02-28');
+    expect(addPeriod(next.date, next.recurring!)).toBe('2026-03-31');
+    expect(original.date).toBe('2026-01-31');
+  });
+  it('keeps an ended installment series expired without creating any past occurrences', () => {
+    const [next] = futureSeriesPayloads([base({date:'2026-01-01',recurring:{freq:'monthly',until:'2026-03-01'}})], TODAY);
+    expect(next.date).toBe('2026-07-01');
+    expect(isExpiredTemplate({...next,id:'tpl'})).toBe(true);
+    expect(catchUpRecurring([{...next,id:'tpl'}], TODAY).creates).toEqual([]);
+  });
+  it('keeps a custom interval phase and calendar rule, and leaves future payloads alone', () => {
+    const daily = base({date:'2026-06-01',recurring:{freq:'daily',interval:3}});
+    const calendar = base({date:'2026-05-31',recurring:{freq:'monthly',mode:'calendar',dayOfMonth:'last'}});
+    const future = base({date:'2026-09-01',recurring:{freq:'monthly'}});
+    const next = futureSeriesPayloads([daily,calendar,future], TODAY);
+    expect(next.map(t=>t.date)).toEqual(['2026-06-07','2026-06-30','2026-09-01']);
+    expect(next[2]).toBe(future);
   });
 });
 

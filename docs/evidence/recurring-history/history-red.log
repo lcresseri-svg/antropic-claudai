@@ -1,0 +1,263 @@
+
+> sunny-finance@2.2.0 test
+> vitest run src/shared/recurrence.test.ts src/app/useTransactionEditing.refunds.test.ts
+
+7:02:58 AM [vite] warning: `esbuild` option was specified by "vite:react-babel" plugin. This option is deprecated, please use `oxc` instead.
+7:02:58 AM [vite] warning: `optimizeDeps.esbuildOptions` option was specified by "vite:react-babel" plugin. This option is deprecated, please use `optimizeDeps.rolldownOptions` instead.
+Both esbuild and oxc options were set. oxc options will be used and esbuild options will be ignored. The following esbuild options were set: `{ jsx: 'automatic', jsxImportSource: undefined }`
+
+ RUN  v4.1.7 /workspace/antropic-claudai/sunny
+
+ ❯ src/shared/recurrence.test.ts (41 tests | 3 failed) 37ms
+     × preserves past and today including refunds, shared amounts and investment value stamps 7ms
+     × updates only real future occurrences, keeping their identity, date and group 5ms
+     × protects today at the Rome day rollover and resolves legacy template IDs 1ms
+ ❯ src/app/useTransactionEditing.refunds.test.ts (12 tests | 5 failed) 25ms
+     × editing a expense series never writes booked history 7ms
+     × editing a income series never writes booked history 1ms
+     × editing a investment series never writes booked history 1ms
+     × editing a transfer series never writes booked history 1ms
+     × legacy shared templates select only template siblings, never booked transfers 1ms
+
+⎯⎯⎯⎯⎯⎯⎯ Failed Tests 8 ⎯⎯⎯⎯⎯⎯⎯
+
+ FAIL  src/app/useTransactionEditing.refunds.test.ts > transaction refund and card editor routing > editing a expense series never writes booked history
+ FAIL  src/app/useTransactionEditing.refunds.test.ts > transaction refund and card editor routing > editing a income series never writes booked history
+ FAIL  src/app/useTransactionEditing.refunds.test.ts > transaction refund and card editor routing > editing a investment series never writes booked history
+ FAIL  src/app/useTransactionEditing.refunds.test.ts > transaction refund and card editor routing > editing a transfer series never writes booked history
+AssertionError: expected [ 'template', 'past', 'today', …(1) ] to deeply equal [ 'template', 'future' ]
+
+- Expected
++ Received
+
+  [
+    "template",
++   "past",
++   "today",
+    "future",
+  ]
+
+ ❯ src/app/useTransactionEditing.refunds.test.ts:72:61
+     70|     hook(rows).startEdit(template,true);
+     71|     await hook(rows).handleSave(['template'],[{...template,amount:90,c…
+     72|     expect(tx.replaceInPlace.mock.calls.map(call=>call[0])).toEqual(['…
+       |                                                             ^
+     73|     expect(tx.replaceGroup).not.toHaveBeenCalled();
+     74|     expect(tx.deleteTransactions).not.toHaveBeenCalled();
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[1/8]⎯
+
+ FAIL  src/app/useTransactionEditing.refunds.test.ts > transaction refund and card editor routing > legacy shared templates select only template siblings, never booked transfers
+AssertionError: expected [ Array(3) ] to deeply equal [ 'quota-template' ]
+
+- Expected
++ Received
+
+  [
+    "quota-template",
++   "past-quota",
++   "today-quota",
+  ]
+
+ ❯ src/app/useTransactionEditing.refunds.test.ts:83:52
+     81|     const rows=[template,sibling,past,today];
+     82|     hook(rows).startEdit(template,true);
+     83|     expect(hook(rows).groupTransfers.map(t=>t.id)).toEqual(['quota-tem…
+       |                                                    ^
+     84|   });
+     85|   it('an explicit single occurrence edit still changes only the select…
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[2/8]⎯
+
+ FAIL  src/shared/recurrence.test.ts > seriesInstanceUpdates > preserves past and today including refunds, shared amounts and investment value stamps
+AssertionError: expected [ …(4) ] to deeply equal []
+
+- Expected
++ Received
+
+- []
++ [
++   {
++     "data": {
++       "account": "nuovo",
++       "amount": 850,
++       "category": "nuova",
++       "createdAt": 111,
++       "date": "2026-05-04",
++       "description": "Nuovo affitto",
++       "groupId": undefined,
++       "id": "tpl",
++       "recurring": undefined,
++       "seriesId": "s",
++       "type": "expense",
++     },
++     "id": "past",
++   },
++   {
++     "data": {
++       "account": "nuovo",
++       "amount": 850,
++       "category": "nuova",
++       "createdAt": 111,
++       "date": "2026-06-04",
++       "description": "Nuovo affitto",
++       "groupId": undefined,
++       "id": "tpl",
++       "recurring": undefined,
++       "seriesId": "s",
++       "type": "expense",
++     },
++     "id": "today",
++   },
++   {
++     "data": {
++       "account": "nuovo",
++       "amount": 850,
++       "category": "nuova",
++       "createdAt": 111,
++       "date": "2026-05-04",
++       "description": "Nuovo affitto",
++       "groupId": undefined,
++       "id": "tpl",
++       "recurring": undefined,
++       "seriesId": "s",
++       "type": "expense",
++     },
++     "id": "invest",
++   },
++   {
++     "data": {
++       "account": "nuovo",
++       "amount": 850,
++       "category": "nuova",
++       "createdAt": 111,
++       "date": "2026-05-05",
++       "description": "Nuovo affitto",
++       "groupId": undefined,
++       "id": "tpl",
++       "recurring": undefined,
++       "seriesId": "s",
++       "type": "expense",
++     },
++     "id": "refund",
++   },
++ ]
+
+ ❯ src/shared/recurrence.test.ts:166:66
+    164|     ];
+    165|     const before = structuredClone(all);
+    166|     expect(seriesInstanceUpdates(all, template, payload, TODAY)).toEqu…
+       |                                                                  ^
+    167|     expect(all).toEqual(before);
+    168|   });
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[3/8]⎯
+
+ FAIL  src/shared/recurrence.test.ts > seriesInstanceUpdates > updates only real future occurrences, keeping their identity, date and group
+AssertionError: expected [ …(3) ] to deeply equal [ { id: 'future', …(1) } ]
+
+- Expected
++ Received
+
+@@ -3,14 +3,48 @@
+      "data": {
+        "account": "nuovo",
+        "amount": 850,
+        "category": "nuova",
+        "createdAt": 111,
++       "date": "2026-05-04",
++       "description": "Nuovo affitto",
++       "groupId": undefined,
++       "id": "tpl",
++       "recurring": undefined,
++       "seriesId": "s",
++       "type": "expense",
++     },
++     "id": "past",
++   },
++   {
++     "data": {
++       "account": "nuovo",
++       "amount": 850,
++       "category": "nuova",
++       "createdAt": 111,
++       "date": "2026-06-04",
++       "description": "Nuovo affitto",
++       "groupId": undefined,
++       "id": "tpl",
++       "recurring": undefined,
++       "seriesId": "s",
++       "type": "expense",
++     },
++     "id": "today",
++   },
++   {
++     "data": {
++       "account": "nuovo",
++       "amount": 850,
++       "category": "nuova",
++       "createdAt": 111,
+        "date": "2026-07-04",
+        "description": "Nuovo affitto",
+        "groupId": "g",
++       "id": "tpl",
+        "recurring": undefined,
+        "seriesId": "s",
++       "type": "expense",
+      },
+      "id": "future",
+    },
+  ]
+
+ ❯ src/shared/recurrence.test.ts:177:21
+    175|     ];
+    176|     const updates = seriesInstanceUpdates(all, template, payload, TODA…
+    177|     expect(updates).toEqual([{ id: 'future', data: expect.objectContai…
+       |                     ^
+    178|       amount: 850, description: 'Nuovo affitto', category: 'nuova', ac…
+    179|       date: '2026-07-04', createdAt: 111, groupId: 'g', seriesId: 's',…
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[4/8]⎯
+
+ FAIL  src/shared/recurrence.test.ts > seriesInstanceUpdates > protects today at the Rome day rollover and resolves legacy template IDs
+AssertionError: expected [ { id: 'tomorrow', …(1) } ] to deeply equal []
+
+- Expected
++ Received
+
+- []
++ [
++   {
++     "data": {
++       "account": "nuovo",
++       "amount": 850,
++       "category": "nuova",
++       "createdAt": 111,
++       "date": "2026-06-05",
++       "description": "Nuovo affitto",
++       "groupId": undefined,
++       "id": "tpl",
++       "recurring": undefined,
++       "seriesId": "tpl",
++       "type": "expense",
++     },
++     "id": "tomorrow",
++   },
++ ]
+
+ ❯ src/shared/recurrence.test.ts:187:71
+    185|     const all = [occurrence('tomorrow', '2026-06-05', { seriesId: 'tpl…
+    186|     expect(seriesInstanceUpdates(all, legacy, payload, TODAY).map(u =>…
+    187|     expect(seriesInstanceUpdates(all, legacy, payload, '2026-06-05')).…
+       |                                                                       ^
+    188|   });
+    189| });
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[5/8]⎯
+
+
+ Test Files  2 failed (2)
+      Tests  8 failed | 45 passed (53)
+   Start at  07:02:58
+   Duration  661ms (transform 136ms, setup 0ms, import 188ms, tests 63ms, environment 0ms)
+

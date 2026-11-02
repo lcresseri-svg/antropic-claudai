@@ -160,10 +160,10 @@ export function SeriesDetailSheet({ open, anchor, allTransactions, onClose, onEd
               : 'Vedi i movimenti della serie'}
           </button>
           <div className="flex gap-2">
-            <button onClick={() => onEditSeries(anchor)}
+            {s.template && <button onClick={() => onEditSeries(anchor)}
               className="flex-1 py-2.5 rounded-2xl text-sm font-medium text-primary bg-elevated active:bg-card-hover transition-colors">
               Modifica serie
-            </button>
+            </button>}
             {canEditSingle && (
               <button onClick={() => onEditSingle(anchor)}
                 className="flex-1 py-2.5 rounded-2xl text-sm font-medium text-primary bg-elevated active:bg-card-hover transition-colors">
