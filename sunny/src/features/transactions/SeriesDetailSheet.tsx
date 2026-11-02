@@ -81,6 +81,7 @@ export function SeriesDetailSheet({ open, anchor, allTransactions, onClose, onEd
               {!isOccurrence && s.freq && <span className="text-[13px] font-medium text-secondary ml-1.5">{FREQ_LABEL[s.freq]}</span>}
             </p>
             {isOccurrence && <p className="mt-2 text-[13px] text-secondary">{formatDateFull(selected.date)}</p>}
+            {selected.seriesOverride && <p className="mt-2 text-[12px] text-gold">Occorrenza personalizzata</p>}
             {isOccurrence && s.template && <p className="mt-2 text-[12px] text-secondary">Importo della serie: {formatCurrency(s.amount)}{s.freq ? ` ${FREQ_LABEL[s.freq]}` : ''}</p>}
           </div>
 

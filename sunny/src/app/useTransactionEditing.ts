@@ -211,34 +211,40 @@ export function useTransactionEditing(user: User, tx: Tx) {
   // Plain new movements retain their offline-safe path.
   const handleSave = async (deleteIds: string[], create: Omit<Transaction, 'id'>[]): Promise<void> => {
     if (seriesEdit && editing?.recurring) create = futureSeriesPayloads(create, todayISO);
-    // Simple single-document edit → update IN PLACE (same id, no delete), so an
-    // already-inserted transaction is never removed by the code. Group restructures
-    // (split expense / commission → multiple docs) still go through replaceGroup.
-    if (editing && deleteIds.length === 1 && deleteIds[0] === editing.id && create.length === 1) {
-      // DISSOLVE: editing the whole series and turning OFF "ricorrente". The edited
-      // template becomes a normal one-off (no rule, no series link); future
-      // occurrences are deleted and past recorded ones are unlinked (→ normal, no
-      // recurring badge). User-initiated, so the future-delete is intended here.
-      if (seriesEdit && editing.recurring && !create[0].recurring) {
-        const sid = editing.seriesId ?? editing.id;
-        await tx.replaceInPlace(editing.id, {
-          ...create[0], recurring: undefined, seriesId: undefined,
-          createdAt: editing.createdAt ?? Date.now(),
-        });
-        const { unlink, remove } = dissolveSeries(tx.allTransactions, { id: editing.id, seriesId: sid }, todayISO);
-        for (const u of unlink) await tx.replaceInPlace(u.id, u.data);
-        if (remove.length) await tx.deleteTransactions(remove);
+    if (!seriesEdit && editing?.seriesId && !editing.recurring) {
+      create = create.map(data => ({ ...data, seriesOverride: data.recurring ? undefined : true }));
+    }
+    if (seriesEdit && editing?.recurring) {
+      const originals = tx.allTransactions.filter(t => deleteIds.includes(t.id));
+      const templates = originals.filter(t => t.recurring);
+      const pairs = templates.map(template => ({template, next:create.find(data => data.recurring && data.seriesId === (template.seriesId ?? template.id))}));
+      // Stable series membership: template(s) and all ordinary instances commit
+      // together, so a rejected refund or network failure cannot partially apply.
+      if (originals.length === deleteIds.length && templates.length === originals.length && create.length === pairs.length && pairs.every(pair => pair.next)) {
+        const changes = pairs.flatMap(({template,next}) => [
+          {id:template.id,data:{...next!,createdAt:template.createdAt ?? Date.now()},expectedTemplate:template},
+          ...seriesInstanceUpdates(tx.allTransactions,template,next!,todayISO).map(update=>({...update,seriesTemplate:template})),
+        ]);
+        await tx.replaceSeries(changes);
         return;
       }
-      const payload = { ...create[0], createdAt: editing.createdAt ?? Date.now() };
-      await tx.replaceInPlace(editing.id, payload);
-      // Series changes apply only to planned occurrences after the Rome day.
-      // A booked occurrence is changed only through its explicit single edit.
-      if (seriesEdit) {
-        for (const u of seriesInstanceUpdates(tx.allTransactions, editing, payload, todayISO)) {
-          await tx.replaceInPlace(u.id, u.data);
-        }
+      if (deleteIds.length === 1 && deleteIds[0] === editing.id && create.length === 1 && !create[0].recurring) {
+        const {unlink,remove} = dissolveSeries(tx.allTransactions,{id:editing.id,seriesId:editing.seriesId ?? editing.id},todayISO);
+        await tx.replaceSeries([
+          {id:editing.id,data:{...create[0],recurring:undefined,seriesId:undefined,createdAt:editing.createdAt ?? Date.now()},expectedTemplate:editing},
+          ...unlink.map(update=>({...update,unlinkSeries:editing.seriesId ?? editing.id})),
+          ...remove.map(id=>({id,data:null,seriesTemplate:editing})),
+        ]);
+        return;
       }
+      // Adding/removing linked legs changes the composition of a shared charge
+      // or commission. Preserve historical groups as a whole; apply the new
+      // composition to the template(s), never to only half an old payment.
+      await tx.replaceGroup(deleteIds, create);
+      return;
+    }
+    if (editing && deleteIds.length === 1 && deleteIds[0] === editing.id && create.length === 1) {
+      await tx.replaceInPlace(editing.id, {...create[0],createdAt:editing.createdAt ?? Date.now()});
     } else {
       await tx.replaceGroup(deleteIds, create);
     }

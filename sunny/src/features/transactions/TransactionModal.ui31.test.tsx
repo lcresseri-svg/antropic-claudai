@@ -146,10 +146,17 @@ describe('UI3 movement editor',()=>{
     expect(created[0]).toMatchObject({type:'transfer',amount:40,toAccount:'cash',groupId:'shared'});
     expect(created[1]).toMatchObject({type:'expense',amount:60,groupId:'shared'});
   });
+  it('retains the linked settlement series identity when editing a shared series',()=>{
+    const editing={id:'main',type:'expense' as const,description:'Quota',amount:60,date:'2026-11-01',category:'food',account:'bank',groupId:'group',seriesId:'main',recurring:{freq:'monthly' as const}};
+    const transfer={...editing,id:'quota',seriesId:'quota',amount:40,type:'transfer' as const,toAccount:'cash'};
+    const tree=view({editing,seriesEdit:true,groupTransfers:[transfer],awaitSave:true});
+    tree.find(el=>el.type==='form')!.props.onSubmit({preventDefault:vi.fn()});
+    expect(callbacks.onSave.mock.calls[0][1].find((t:any)=>t.type==='transfer').seriesId).toBe('quota');
+  });
   it('preserves a subscription series link and its future-occurrence scope',()=>{
     const editing={id:'template',type:'expense' as const,description:'Abbonamento',amount:19,date:'2026-11-01',category:'food',account:'bank',seriesId:'series',seriesMeta:{kind:'subscription' as const,createdAt:42},recurring:{freq:'monthly' as const,mode:'interval' as const,interval:1,until:'2027-11-01'}};
     const tree=view({editing,seriesEdit:true,awaitSave:true});
-    expect(tree.some(el=>String(el.props.children).includes('occorrenze future'))).toBe(true);
+    expect(tree.some(el=>String(el.props.children).includes('occorrenze passate'))).toBe(true);
     tree.find(el=>el.type==='form')!.props.onSubmit({preventDefault:vi.fn()});
     expect(callbacks.onSave.mock.calls[0][1]).toHaveLength(1);
     expect(callbacks.onSave.mock.calls[0][1][0]).toMatchObject({type:'expense',amount:19,seriesId:'series',seriesMeta:{kind:'subscription',createdAt:42},recurring:{freq:'monthly',until:'2027-11-01'}});

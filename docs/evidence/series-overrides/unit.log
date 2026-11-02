@@ -1,0 +1,19 @@
+
+> sunny-finance@2.2.0 test
+> vitest run
+
+8:44:31 AM [vite] warning: `esbuild` option was specified by "vite:react-babel" plugin. This option is deprecated, please use `oxc` instead.
+8:44:31 AM [vite] warning: `optimizeDeps.esbuildOptions` option was specified by "vite:react-babel" plugin. This option is deprecated, please use `optimizeDeps.rolldownOptions` instead.
+Both esbuild and oxc options were set. oxc options will be used and esbuild options will be ignored. The following esbuild options were set: `{ jsx: 'automatic', jsxImportSource: undefined }`
+
+ RUN  v4.1.7 /workspace/antropic-claudai/sunny
+
+Browserslist: browsers data (caniuse-lite) is 6 months old. Please run:
+  npx update-browserslist-db@latest
+  Why you should do it regularly: https://github.com/browserslist/update-db#readme
+
+ Test Files  117 passed (117)
+      Tests  1173 passed (1173)
+   Start at  08:44:31
+   Duration  62.94s (transform 8.11s, setup 0ms, import 18.78s, tests 8.50s, environment 14ms)
+

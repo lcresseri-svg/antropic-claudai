@@ -19,6 +19,8 @@ git.
 
 ## 2026-11-02
 
+- **[Codex]** Ricorrenti: modifica singola libera con indicatore persistente di occorrenza personalizzata; la modifica serie aggiorna anche lo storico allineato e preserva le personalizzazioni esplicite e legacy. Salvataggio atomico di regole e occorrenze, verifica delle modifiche concorrenti, protezione di storni legacy e controvalori; cessazione con scollegamento dei dati aggiornati. Cambi di composizione delle quote/commissioni limitati alle scadenze successive. Test e prove UI2/UI3 in `docs/evidence/series-overrides/`. `(pending)`
+
 - **[Codex]** Il dettaglio di un movimento appartenente a una serie mostra ora importo, data, descrizione e categoria dell’occorrenza selezionata, aggiornati dall’ultimo snapshot. Importo ed equivalenti della regola restano espliciti e separati. Corretto il caso in cui una modifica o un recupero storico sembravano non avere effetto perché il riepilogo mostrava ancora il template. Verifica di persistenza su Firestore locale, 8 scenari browser, 1.167 test frontend. `(pending)`
 
 - **[Codex]** Modificare una serie ricorrente non propaga più importi, categorie o conti sui movimenti già contabilizzati (incluso oggi, calendario Europe/Rome). Isolati i trasferimenti storici dalle serie condivise legacy; commissioni future ancora modificabili. Modifiche a rate o serie retrodatate ripartono dalla prossima scadenza futura, preservando cadenza e termine, senza ricreare lo storico. Guida al recupero selettivo da backup Firestore in `docs/firebase-backup-recovery.md`. `(pending)`

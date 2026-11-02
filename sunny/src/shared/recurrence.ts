@@ -319,28 +319,45 @@ export function catchUpRecurring(
   return { creates, advance };
 }
 
-/** Update only saved FUTURE occurrences when changing a series. Past and
- * today's booked movements are immutable through this path, including their
- * refunds, shared amounts and managed investment effects. Editing one explicit
- * occurrence remains a separate action. The caller supplies the Rome day.
+/** An explicit override always wins. Legacy instances differing from the old
+ * rule are conservatively treated as personal exceptions: their intent cannot
+ * be reconstructed from the old schema. Bookkeeping and dates are not content.
  */
+export function isSeriesOverride(instance: Partial<Transaction>, template: Partial<Transaction>): boolean {
+  if (instance.seriesOverride) return true;
+  const fields = ['type','amount','description','category','account','toAccount','notes','shared','direction','tfr','statsSpreadMonths'] as const;
+  return fields.some(key => {
+    const a = instance[key], b = template[key];
+    if (key === 'direction') return (a ?? 'in') !== (b ?? 'in');
+    if (key === 'notes') return (a ?? '') !== (b ?? '');
+    if (key === 'shared' || key === 'tfr') return (a ?? 0) !== (b ?? 0);
+    return a !== b;
+  });
+}
+
+/** Series edits reach ordinary history and future rows, preserving exceptions. */
 export function seriesInstanceUpdates(
   all: Transaction[],
-  template: Pick<Transaction, 'id' | 'seriesId'>,
+  template: Transaction,
   payload: Omit<Transaction, 'id'>,
-  todayISO: string,
+  _todayISO: string,
 ): { id: string; data: Omit<Transaction, 'id'> }[] {
   const sid = template.seriesId ?? template.id;
   const updates: { id: string; data: Omit<Transaction, 'id'> }[] = [];
   for (const inst of all) {
-    if (inst.date <= todayISO) continue;             // never rewrite booked history
+    if (isSeriesOverride(inst, template)) continue; // explicit or legacy exception
     if (inst.recurring || inst.projected) continue;    // skip templates & virtual rows
     if (inst.id === template.id) continue;             // template written separately
     if ((inst.seriesId ?? inst.id) !== sid) continue;  // a different series
+    const { id: _instanceId, ...original } = inst;
+    const { id: _payloadId, ...content } = payload as Transaction;
     updates.push({
       id: inst.id,
       data: {
-        ...payload,
+        ...original, ...content,
+        notes: content.notes, shared: content.shared, toAccount: content.toAccount,
+        direction: content.direction, tfr: content.tfr, statsSpreadMonths: content.statsSpreadMonths,
+        seriesOverride: undefined,
         date: inst.date,                 // keep the occurrence's own date
         seriesId: sid,                   // keep the series link
         recurring: undefined,            // instances are not templates
@@ -398,11 +415,13 @@ export function dissolveSeries(
   const sid = template.seriesId;
   const unlink: { id: string; data: Omit<Transaction, 'id'> }[] = [];
   const remove: string[] = [];
+  const oldTemplate = all.find(row => row.id === template.id);
   for (const t of all) {
     if (t.id === template.id) continue;          // template handled by the caller
     if (t.projected) continue;                   // virtual rows vanish on their own
     if ((t.seriesId ?? t.id) !== sid) continue;  // a different series
-    if (t.date > todayISO) {
+    const customized = t.seriesOverride || (oldTemplate && isSeriesOverride(t, oldTemplate));
+    if (t.date > todayISO && !customized) {
       remove.push(t.id);                         // future occurrence → delete
     } else {
       const { id: _id, recurring: _r, seriesId: _s, seriesMeta: _m, ...rest } = t;

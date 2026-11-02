@@ -7,7 +7,7 @@ import { calculateAccountPositions } from '../accountPositions';
 import { useTodayRomeISO } from './useTodayRomeISO';
 import { resolveCreditCardTransactions, withCreditCardCashEffects, isCreditCardSettlement } from '../../../../functions/src/domain/creditCards';
 import { deleteRefundReceipt, deleteSingleRefund } from '../../features/transactions/refundReceiptStore';
-import { assertOrdinaryMutation } from '../refundMutationPolicy';
+import { assertOrdinaryMutation, assertSeriesMutations } from '../refundMutationPolicy';
 import { applyRefunds } from '../refunds';
 import { isPending, isExpiredTemplate } from '../recurrence';
 import { db } from '../../lib/firebase';
@@ -15,8 +15,8 @@ import { db } from '../../lib/firebase';
 // atomically update the category's currentValue (stamped + idempotent), all
 // other movements fall through to plain batched writes.
 import {
-  createTransactionsSynced, replaceTransactionSynced, replaceGroupSynced,
-  deleteTransactionsSynced, patchTransactionsSynced,
+  createTransactionsSynced, replaceTransactionSynced, replaceSeriesSynced, replaceGroupSynced,
+  deleteTransactionsSynced, patchTransactionsSynced, type SeriesChange,
 } from '../../features/investments/investmentValueSync';
 
 export function useTransactions(user: User | null, accounts: AccountDef[] = [], includeInvestments = true, categories: CategoryDef[] = [], enableInvestments = true) {
@@ -117,11 +117,17 @@ export function useTransactions(user: User | null, accounts: AccountDef[] = [], 
   // an already-inserted transaction is never removed by an edit — only its
   // contents change (and its id/createdAt survive). Investment edits revert the
   // previously applied controvalore delta and apply the new one atomically.
-  const replaceInPlace = useCallback(async (id: string, data: Omit<Transaction, 'id'>) => {
+  const replaceInPlace = useCallback(async (id: string, data: Omit<Transaction, 'id'>, opts?: { seriesTemplate: Transaction }) => {
     if (!user) return;
     const before = rawTransactions.find(t=>t.id===id);
     if (before) assertOrdinaryMutation(before, data, rawTransactions);
-    await replaceTransactionSynced(user.uid, id, data);
+    await replaceTransactionSynced(user.uid, id, data, opts);
+  }, [user, rawTransactions]);
+
+  const replaceSeries = useCallback(async (changes: SeriesChange[]) => {
+    if (!user) return;
+    assertSeriesMutations(changes,rawTransactions);
+    await replaceSeriesSynced(user.uid, changes);
   }, [user, rawTransactions]);
 
   // Materialize overdue recurring occurrences: create the realized instances and
@@ -287,7 +293,7 @@ export function useTransactions(user: User | null, accounts: AccountDef[] = [], 
 
   return {
     transactions, allTransactions: rawTransactions, loading, synced, error,
-    addTransaction, addTransactions, replaceGroup, replaceInPlace, materializeRecurring,
+    addTransaction, addTransactions, replaceGroup, replaceInPlace, replaceSeries, materializeRecurring,
     updateTransactions,
     deleteTransaction, deleteTransactions, deleteAll,
     ...derived,
