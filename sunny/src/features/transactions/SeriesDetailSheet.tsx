@@ -36,10 +36,13 @@ export function SeriesDetailSheet({ open, anchor, allTransactions, onClose, onEd
   if (!open || !anchor) return null;
 
   const todayISO = new Date().toISOString().slice(0, 10);
-  const s = buildSeriesSummary(allTransactions, anchor, todayISO);
-  const cat = getCat(s.category);
+  const selected = allTransactions.find(t => t.id === anchor.id) ?? anchor;
+  const s = buildSeriesSummary(allTransactions, selected, todayISO);
+  const displayed = selected.projected && s.template ? s.template : selected;
+  const isOccurrence = !selected.recurring;
+  const cat = getCat(isOccurrence ? displayed.category : s.category);
   // "Edit this occurrence" only makes sense on a REAL recorded occurrence.
-  const canEditSingle = !anchor.projected && !anchor.recurring;
+  const canEditSingle = !selected.projected && isOccurrence;
   const recent = [...s.occurrences].reverse().slice(0, 4);
 
   return (
@@ -55,7 +58,7 @@ export function SeriesDetailSheet({ open, anchor, allTransactions, onClose, onEd
             {cat.icon}
           </div>
           <div className="min-w-0 flex-1">
-            <h3 className="text-base font-semibold text-primary leading-snug truncate">{s.description}</h3>
+            <h3 className="text-base font-semibold text-primary leading-snug truncate">{isOccurrence ? displayed.description : s.description}</h3>
             <span className="mt-1 inline-flex items-center rounded-full bg-gold/15 text-gold text-[10px] font-semibold px-1.5 py-0.5 leading-none">
               {KIND_BADGE[s.kind]}
             </span>
@@ -71,19 +74,21 @@ export function SeriesDetailSheet({ open, anchor, allTransactions, onClose, onEd
           {/* Importo / frequenza */}
           <div className="glass-card rounded-[18px] px-4 py-3.5">
             <p className="label-caps text-secondary mb-1">
-              {s.kind === 'installment' ? 'Importo rata' : 'Importo'}
+              {isOccurrence ? (selected.projected ? 'Occorrenza programmata' : 'Questa occorrenza') : s.kind === 'installment' ? 'Importo rata' : 'Importo'}
             </p>
             <p className="text-[26px] font-bold text-primary balance-num leading-none">
-              {formatCurrency(s.amount)}
-              {s.freq && <span className="text-[13px] font-medium text-secondary ml-1.5">{FREQ_LABEL[s.freq]}</span>}
+              {formatCurrency(isOccurrence ? displayed.amount : s.amount)}
+              {!isOccurrence && s.freq && <span className="text-[13px] font-medium text-secondary ml-1.5">{FREQ_LABEL[s.freq]}</span>}
             </p>
+            {isOccurrence && <p className="mt-2 text-[13px] text-secondary">{formatDateFull(selected.date)}</p>}
+            {isOccurrence && s.template && <p className="mt-2 text-[12px] text-secondary">Importo della serie: {formatCurrency(s.amount)}{s.freq ? ` ${FREQ_LABEL[s.freq]}` : ''}</p>}
           </div>
 
           {/* Equivalenti — subscriptions and plain recurring, never installments
               (a rata is a slice of a fixed plan, not an ongoing cost rate). */}
           {s.kind !== 'installment' && s.freq && (
             <div>
-              <p className="label-caps text-secondary mb-2 px-1">Equivalenti</p>
+              <p className="label-caps text-secondary mb-2 px-1">Equivalenti della serie</p>
               <div className="bg-card rounded-2xl px-4 py-3 space-y-2">
                 {buildEquivalentRows(s.amount, s.freq).map(e => (
                   <Line key={e.label} label={e.label} value={e.value} />
@@ -160,12 +165,12 @@ export function SeriesDetailSheet({ open, anchor, allTransactions, onClose, onEd
               : 'Vedi i movimenti della serie'}
           </button>
           <div className="flex gap-2">
-            {s.template && <button onClick={() => onEditSeries(anchor)}
+            {s.template && <button onClick={() => onEditSeries(selected)}
               className="flex-1 py-2.5 rounded-2xl text-sm font-medium text-primary bg-elevated active:bg-card-hover transition-colors">
               Modifica serie
             </button>}
             {canEditSingle && (
-              <button onClick={() => onEditSingle(anchor)}
+              <button onClick={() => onEditSingle(selected)}
                 className="flex-1 py-2.5 rounded-2xl text-sm font-medium text-primary bg-elevated active:bg-card-hover transition-colors">
                 Modifica occorrenza
               </button>

@@ -1,0 +1,40 @@
+
+> sunny-finance@2.2.0 test
+> vitest run src/features/transactions/SeriesDetailSheet.test.tsx
+
+8:22:28 AM [vite] warning: `esbuild` option was specified by "vite:react-babel" plugin. This option is deprecated, please use `oxc` instead.
+8:22:28 AM [vite] warning: `optimizeDeps.esbuildOptions` option was specified by "vite:react-babel" plugin. This option is deprecated, please use `optimizeDeps.rolldownOptions` instead.
+Both esbuild and oxc options were set. oxc options will be used and esbuild options will be ignored. The following esbuild options were set: `{ jsx: 'automatic', jsxImportSource: undefined }`
+
+ RUN  v4.1.7 /workspace/antropic-claudai/sunny
+
+ ❯ src/features/transactions/SeriesDetailSheet.test.tsx (4 tests | 1 failed) 31ms
+     × refreshes projected content from the current template while keeping its occurrence date 5ms
+
+⎯⎯⎯⎯⎯⎯⎯ Failed Tests 1 ⎯⎯⎯⎯⎯⎯⎯
+
+ FAIL  src/features/transactions/SeriesDetailSheet.test.tsx > selected series occurrence > refreshes projected content from the current template while keeping its occurrence date
+AssertionError: expected '<div class="fixed inset-0 z-[60] flex…' to match /text-\[26px\][^>]*>1,24/
+
+- Expected:
+/text-\[26px\][^>]*>1,24/
+
++ Received:
+"<div class=\"fixed inset-0 z-[60] flex items-end sm:items-center justify-center p-3\"><div class=\"absolute inset-0 bg-black/70 backdrop-blur-md animate-fade-in-fast\"></div><section><div class=\"shrink-0 flex items-start gap-3.5 px-6 pt-6 pb-4\"><div class=\"w-11 h-11 rounded-2xl flex items-center justify-center text-lg flex-shrink-0\" style=\"background-color:#99660018\">🍎</div><div class=\"min-w-0 flex-1\"><h3 class=\"text-base font-semibold text-primary leading-snug truncate\">Voce originale</h3><span class=\"mt-1 inline-flex items-center rounded-full bg-gold/15 text-gold text-[10px] font-semibold px-1.5 py-0.5 leading-none\">🔁 Ricorrente</span><span class=\"ml-1.5 text-[10px] text-tertiary\">· serie conclusa</span></div><button aria-label=\"Chiudi\" class=\"w-8 h-8 rounded-full bg-elevated flex items-center justify-center text-secondary text-sm flex-shrink-0\">✕</button></div><div class=\"flex-1 min-h-0 overflow-y-auto overscroll-contain scrollbar-hide px-6 pb-4 space-y-4\"><div class=\"glass-card rounded-[18px] px-4 py-3.5\"><p class=\"label-caps text-secondary mb-1\">Occorrenza programmata</p><p class=\"text-[26px] font-bold text-primary balance-num leading-none\">0,74 €</p><p class=\"mt-2 text-[13px] text-secondary\">30 dic 2026</p><p class=\"mt-2 text-[12px] text-secondary\">Importo della serie: 1,24 € al mese</p></div><div><p class=\"label-caps text-secondary mb-2 px-1\">Equivalenti della serie</p><div class=\"bg-card rounded-2xl px-4 py-3 space-y-2\"><div class=\"flex items-center justify-between gap-3\"><span class=\"text-[13px] text-secondary\">Mensile</span><span class=\"text-[13px] font-medium text-primary balance-num text-right\">1,24 €</span></div><div class=\"flex items-center justify-between gap-3\"><span class=\"text-[13px] text-secondary\">Annuale</span><span class=\"text-[13px] font-medium text-primary balance-num text-right\">≈ 14,88 €</span></div></div></div><div class=\"bg-card rounded-2xl px-4 py-3 space-y-2\"><div class=\"flex items-center justify-between gap-3\"><span class=\"text-[13px] text-secondary\">Prossima occorrenza</span><span class=\"text-[13px] font-medium text-primary balance-num text-right\">—</span></div><div class=\"flex items-center justify-between gap-3\"><span class=\"text-[13px] text-secondary\">Totale registrato</span><span class=\"text-[13px] font-medium text-primary balance-num text-right\">0,00 € · 0 occorrenze</span></div><div class=\"flex items-center justify-between gap-3\"><span class=\"text-[13px] text-secondary\">Fine serie</span><span class=\"text-[13px] font-medium text-primary balance-num text-right\">30 ott 2026</span></div></div></div><div class=\"shrink-0 px-6 pt-3 pb-6 bg-[var(--modal-hdr-bg)] space-y-2\"><button class=\"w-full py-3.5 rounded-2xl cta-gold-fill text-[14px] font-semibold active:scale-[0.98] transition-transform\">Vedi i movimenti della serie</button><div class=\"flex gap-2\"><button class=\"flex-1 py-2.5 rounded-2xl text-sm font-medium text-primary bg-elevated active:bg-card-hover transition-colors\">Modifica serie</button></div><button class=\"w-full py-2.5 rounded-2xl text-sm font-medium text-secondary\">Chiudi</button></div></section></div>"
+
+ ❯ src/features/transactions/SeriesDetailSheet.test.tsx:25:16
+     23|   const projection={...past,id:'projection',amount:.74,projected:true,…
+     24|   const html=renderToStaticMarkup(<SeriesDetailSheet {...props} anchor…
+     25|   expect(html).toMatch(/text-\[26px\][^>]*>1,24/);expect(html).toConta…
+       |                ^
+     26|  });
+     27|  it('keeps the template amount when opening the series itself',()=>{
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[1/1]⎯
+
+
+ Test Files  1 failed (1)
+      Tests  1 failed | 3 passed (4)
+   Start at  08:22:28
+   Duration  416ms (transform 109ms, setup 0ms, import 163ms, tests 31ms, environment 0ms)
+

@@ -1,0 +1,77 @@
+{
+  "results": [
+    {
+      "ui": 2,
+      "theme": "light",
+      "width": 390,
+      "status": "passed",
+      "amount": 7.5,
+      "templateAmount": 0.74,
+      "siblingAmount": 234.33
+    },
+    {
+      "ui": 2,
+      "theme": "light",
+      "width": 1440,
+      "status": "passed",
+      "amount": 7.5,
+      "templateAmount": 0.74,
+      "siblingAmount": 234.33
+    },
+    {
+      "ui": 2,
+      "theme": "dark",
+      "width": 390,
+      "status": "passed",
+      "amount": 7.5,
+      "templateAmount": 0.74,
+      "siblingAmount": 234.33
+    },
+    {
+      "ui": 2,
+      "theme": "dark",
+      "width": 1440,
+      "status": "passed",
+      "amount": 7.5,
+      "templateAmount": 0.74,
+      "siblingAmount": 234.33
+    },
+    {
+      "ui": 3,
+      "theme": "light",
+      "width": 390,
+      "status": "passed",
+      "amount": 7.5,
+      "templateAmount": 0.74,
+      "siblingAmount": 234.33
+    },
+    {
+      "ui": 3,
+      "theme": "light",
+      "width": 1440,
+      "status": "passed",
+      "amount": 7.5,
+      "templateAmount": 0.74,
+      "siblingAmount": 234.33
+    },
+    {
+      "ui": 3,
+      "theme": "dark",
+      "width": 390,
+      "status": "passed",
+      "amount": 7.5,
+      "templateAmount": 0.74,
+      "siblingAmount": 234.33
+    },
+    {
+      "ui": 3,
+      "theme": "dark",
+      "width": 1440,
+      "status": "passed",
+      "amount": 7.5,
+      "templateAmount": 0.74,
+      "siblingAmount": 234.33
+    }
+  ],
+  "errors": []
+}

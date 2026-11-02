@@ -37,6 +37,16 @@ run('ordinary mutations contend with refund allocations', () => {
   afterAll(async () => { await env?.cleanup(); if (app) await deleteApp(app); });
   beforeEach(async () => { await env.clearFirestore(); await seed('source', expense()); });
 
+  it('persists a historical series occurrence edit without changing its ended template or siblings', async () => {
+    const original = expense({ amount: 0.74, date: '2026-09-30', seriesId: 'series' });
+    const template = expense({ amount: 0.74, date: '2026-11-30', seriesId: 'series', recurring: { freq: 'monthly', until: '2026-10-30' } });
+    const sibling = expense({ amount: 234.33, date: '2026-08-31', seriesId: 'series' });
+    await seed('source', original); await seed('template', template); await seed('sibling', sibling);
+    await sync.replaceTransactionSynced(uid, 'source', { ...original, amount: 1.24, description: 'Occorrenza corretta' });
+    expect((await getDoc(sourceRef())).data()).toMatchObject({ amount: 1.24, description: 'Occorrenza corretta', seriesId: 'series', date: '2026-09-30' });
+    expect((await getDoc(doc(db, 'users', uid, 'transactions', 'template'))).data()).toEqual(template);
+    expect((await getDoc(doc(db, 'users', uid, 'transactions', 'sibling'))).data()).toEqual(sibling);
+  });
   it('blocks deletion through the noninvestment and investment paths', async () => {
     await saveRefundReceipt(db, uid, draft());
     for (const mustSync of [false, true]) {
