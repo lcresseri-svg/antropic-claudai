@@ -47,12 +47,17 @@ test('main exports the live backup and restored documents with no write request'
   await mkdir(join(temp,'bin'));
   await writeFile(join(temp,'bin','gcloud'),'#!/bin/sh\nprintf test-only-token',{mode:0o700});
   const preload=join(temp,'fetch.mjs');
-  await writeFile(preload,`globalThis.fetch=async(url,options)=>{
-   if(options.method!=='GET')throw new Error('Firestore write attempted');
+  await writeFile(preload,`globalThis.fetch=()=>{throw new Error('Node fetch unavailable in this environment');};`);
+  await writeFile(join(temp,'bin','curl'),`#!${process.execPath}
+   const fs=require('node:fs'); const args=process.argv.slice(2);
+   if(args[args.indexOf('--request')+1]!=='GET')throw new Error('Firestore write attempted');
+   if(args.some(a=>a.includes('test-only-token')))throw new Error('Credential leaked into argv');
+   if(!fs.readFileSync(0,'utf8').includes('Authorization: Bearer test-only-token'))throw new Error('Missing auth');
+   const url=args.at(-1);
    const database=url.includes('/databases/(default)/')?'(default)':'prima-aggiornamento-ricorrenti';
    const name='projects/sunny-a2a98/databases/'+database+'/documents/users/${UID}/transactions/example';
-   return {ok:true,json:async()=>({documents:[{name,fields:{amount:{doubleValue:database==='(default)'?20:10},date:{timestampValue:'2026-01-01T00:00:00Z'}}}]})};
-  };`);
+   process.stdout.write(JSON.stringify({documents:[{name,fields:{amount:{doubleValue:database==='(default)'?20:10},date:{timestampValue:'2026-01-01T00:00:00Z'}}}]} )+'\\n200');
+  `,{mode:0o700});
   const output=join(temp,'export');
   const run=()=>spawnSync(process.execPath,['--import',preload,resolve('scripts/export-admin-recovery.mjs'),output],{env:{...process.env,PATH:join(temp,'bin')+':'+process.env.PATH},encoding:'utf8'});
   const result=run();assert.equal(result.status,0,result.stderr);

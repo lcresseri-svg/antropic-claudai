@@ -64,7 +64,21 @@ async function main(){
  try{credential=execFileSync('gcloud',['auth','print-access-token'],{encoding:'utf8',stdio:['ignore','pipe','pipe'],timeout:45000}).trim();}
  catch{throw new Error('Accesso Google non completato. Esegui separatamente: gcloud auth print-access-token > /dev/null ; autorizza Cloud Shell, poi riprova.');}
  if(!credential)throw new Error('Accesso Google non disponibile.');
- const request=(url,opts)=>fetch(url,{...opts,headers:{Authorization:`Bearer ${credential}`},signal:AbortSignal.timeout(60000)});
+ const request=async(url,opts)=>{
+  if(opts.method!=='GET'||!url.startsWith(ROOT))throw new Error('Richiesta non consentita.');
+  let output;
+  try{
+   // Pass credentials through stdin, never through argv or console output.
+   output=execFileSync('curl',['--silent','--show-error','--request','GET',
+    '--connect-timeout','15','--max-time','60','--write-out','\\n%{http_code}',
+    '--config','-',url],{input:`header = ${JSON.stringify(`Authorization: Bearer ${credential}`)}\n`,
+    encoding:'utf8',stdio:['pipe','pipe','pipe'],timeout:65000,maxBuffer:64*1024*1024});
+  }catch(error){throw new Error(`Lettura Firestore via curl fallita (codice ${error.status??'timeout'}). Nessuna scrittura eseguita.`);}
+  const split=output.lastIndexOf('\n');
+  const status=Number(output.slice(split+1));
+  if(split<0||!Number.isInteger(status)||status<100||status>599)throw new Error('Risposta HTTP curl non valida.');
+  return {ok:status>=200&&status<300,status,json:async()=>JSON.parse(output.slice(0,split))};
+ };
  const save=async(name,body)=>{const temp=join(output,name+'.tmp');await writeFile(temp,JSON.stringify(body,null,2),{mode:0o600,flag:'wx'});await rename(temp,join(output,name));};
  const metadata={project:PROJECT,uid:UID,exportedAt:new Date().toISOString(),format:'firestore-rest-v1',scope:'transactions-only'};
  // Save current production transactions BEFORE reading the restored source.

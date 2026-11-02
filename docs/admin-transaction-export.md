@@ -2,7 +2,7 @@
 
 Sorgente `prima-aggiornamento-ricorrenti`, destinazione prevista `(default)`, progetto `sunny-a2a98`, UID `qPtCOJGRrwOZ2EfjxMHwW6ZISXX2`.
 
-Lo script `scripts/export-admin-recovery.mjs` è esclusivamente di lettura. Richiede Node >=18 e gcloud autenticato, disponibili in Google Cloud Shell. Non richiede pacchetti npm, chiavi di servizio o modifiche alle regole Firestore.
+Lo script `scripts/export-admin-recovery.mjs` è esclusivamente di lettura. Richiede Node >=18, curl e gcloud autenticato, disponibili in Google Cloud Shell. Non richiede pacchetti npm, chiavi di servizio o modifiche alle regole Firestore.
 
 1. Aprire https://console.cloud.google.com/?project=sunny-a2a98 e attivare Cloud Shell.
 2. Caricare `export-admin-recovery.mjs` nella cartella corrente (menu del terminale → carica file).
@@ -22,3 +22,5 @@ Il risultato serve a preparare il piano d'importazione con gli stessi ID. Non us
 Inviare inizialmente solo il riepilogo testuale. Non condividere token di accesso o chiavi. Non è stata effettuata alcuna lettura o scrittura sui database reali in questa sessione: l'ambiente non ha accesso Firebase autenticato.
 
 Verifica locale: `node --test scripts/export-admin-recovery.test.mjs` — 6 test passati, compresa esecuzione CLI con API simulate, paginazione, isolamento UID e verifica della copia live prima del recupero.
+
+Il trasporto HTTP usa curl (token su stdin), con timeout di connessione 15 secondi e di richiesta 60 secondi. Questo evita di dipendere dal comportamento di rete di Node fetch in Cloud Shell; il token non viene mostrato né passato negli argomenti del processo. Test CLI verificato anche con fetch di Node indisponibile.
