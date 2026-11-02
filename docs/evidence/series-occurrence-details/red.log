@@ -1,0 +1,57 @@
+
+> sunny-finance@2.2.0 test
+> vitest run src/features/transactions/SeriesDetailSheet.test.tsx
+
+8:19:27 AM [vite] warning: `esbuild` option was specified by "vite:react-babel" plugin. This option is deprecated, please use `oxc` instead.
+8:19:27 AM [vite] warning: `optimizeDeps.esbuildOptions` option was specified by "vite:react-babel" plugin. This option is deprecated, please use `optimizeDeps.rolldownOptions` instead.
+Both esbuild and oxc options were set. oxc options will be used and esbuild options will be ignored. The following esbuild options were set: `{ jsx: 'automatic', jsxImportSource: undefined }`
+
+ RUN  v4.1.7 /workspace/antropic-claudai/sunny
+
+ ❯ src/features/transactions/SeriesDetailSheet.test.tsx (3 tests | 2 failed) 36ms
+     × shows the actual selected amount and description separately from the template 29ms
+     × refreshes a selected occurrence from the latest snapshot after recovery or edit 3ms
+
+⎯⎯⎯⎯⎯⎯⎯ Failed Tests 2 ⎯⎯⎯⎯⎯⎯⎯
+
+ FAIL  src/features/transactions/SeriesDetailSheet.test.tsx > selected series occurrence > shows the actual selected amount and description separately from the template
+AssertionError: expected '<div class="fixed inset-0 z-[60] flex…' to contain 'Questa occorrenza'
+
+Expected: "Questa occorrenza"
+Received: "<div class="fixed inset-0 z-[60] flex items-end sm:items-center justify-center p-3"><div class="absolute inset-0 bg-black/70 backdrop-blur-md animate-fade-in-fast"></div><section><div class="shrink-0 flex items-start gap-3.5 px-6 pt-6 pb-4"><div class="w-11 h-11 rounded-2xl flex items-center justify-center text-lg flex-shrink-0" style="background-color:#99660018">🍎</div><div class="min-w-0 flex-1"><h3 class="text-base font-semibold text-primary leading-snug truncate">Regola futura</h3><span class="mt-1 inline-flex items-center rounded-full bg-gold/15 text-gold text-[10px] font-semibold px-1.5 py-0.5 leading-none">🔁 Ricorrente</span><span class="ml-1.5 text-[10px] text-tertiary">· serie conclusa</span></div><button aria-label="Chiudi" class="w-8 h-8 rounded-full bg-elevated flex items-center justify-center text-secondary text-sm flex-shrink-0">✕</button></div><div class="flex-1 min-h-0 overflow-y-auto overscroll-contain scrollbar-hide px-6 pb-4 space-y-4"><div class="glass-card rounded-[18px] px-4 py-3.5"><p class="label-caps text-secondary mb-1">Importo</p><p class="text-[26px] font-bold text-primary balance-num leading-none">0,74 €<span class="text-[13px] font-medium text-secondary ml-1.5">al mese</span></p></div><div><p class="label-caps text-secondary mb-2 px-1">Equivalenti</p><div class="bg-card rounded-2xl px-4 py-3 space-y-2"><div class="flex items-center justify-between gap-3"><span class="text-[13px] text-secondary">Mensile</span><span class="text-[13px] font-medium text-primary balance-num text-right">0,74 €</span></div><div class="flex items-center justify-between gap-3"><span class="text-[13px] text-secondary">Annuale</span><span class="text-[13px] font-medium text-primary balance-num text-right">≈ 8,88 €</span></div></div></div><div class="bg-card rounded-2xl px-4 py-3 space-y-2"><div class="flex items-center justify-between gap-3"><span class="text-[13px] text-secondary">Prossima occorrenza</span><span class="text-[13px] font-medium text-primary balance-num text-right">—</span></div><div class="flex items-center justify-between gap-3"><span class="text-[13px] text-secondary">Totale registrato</span><span class="text-[13px] font-medium text-primary balance-num text-right">1,24 € · 1 occorrenza</span></div><div class="flex items-center justify-between gap-3"><span class="text-[13px] text-secondary">Fine serie</span><span class="text-[13px] font-medium text-primary balance-num text-right">30 ott 2026</span></div></div><div><p class="label-caps text-secondary mb-2 px-1">Ultime occorrenze</p><div class="bg-card rounded-2xl px-4 divide-y divide-divider"><div class="py-2.5 flex items-center justify-between gap-3"><span class="text-[13px] text-secondary">30 set 2026</span><span class="text-[13px] font-medium text-primary balance-num">1,24 €</span></div></div></div></div><div class="shrink-0 px-6 pt-3 pb-6 bg-[var(--modal-hdr-bg)] space-y-2"><button class="w-full py-3.5 rounded-2xl cta-gold-fill text-[14px] font-semibold active:scale-[0.98] transition-transform">Vedi i 1 movimenti della serie</button><div class="flex gap-2"><button class="flex-1 py-2.5 rounded-2xl text-sm font-medium text-primary bg-elevated active:bg-card-hover transition-colors">Modifica serie</button><button class="flex-1 py-2.5 rounded-2xl text-sm font-medium text-primary bg-elevated active:bg-card-hover transition-colors">Modifica occorrenza</button></div><button class="w-full py-2.5 rounded-2xl text-sm font-medium text-secondary">Chiudi</button></div></section></div>"
+
+ ❯ src/features/transactions/SeriesDetailSheet.test.tsx:15:16
+     13|  it('shows the actual selected amount and description separately from …
+     14|   const html=renderToStaticMarkup(<SeriesDetailSheet {...props} anchor…
+     15|   expect(html).toContain('Questa occorrenza');expect(html).toContain('…
+       |                ^
+     16|   expect(html).toMatch(/text-\[26px\][^>]*>1,24/);
+     17|  });
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[1/2]⎯
+
+ FAIL  src/features/transactions/SeriesDetailSheet.test.tsx > selected series occurrence > refreshes a selected occurrence from the latest snapshot after recovery or edit
+AssertionError: expected '<div class="fixed inset-0 z-[60] flex…' to match /text-\[26px\][^>]*>1,24/
+
+- Expected:
+/text-\[26px\][^>]*>1,24/
+
++ Received:
+"<div class=\"fixed inset-0 z-[60] flex items-end sm:items-center justify-center p-3\"><div class=\"absolute inset-0 bg-black/70 backdrop-blur-md animate-fade-in-fast\"></div><section><div class=\"shrink-0 flex items-start gap-3.5 px-6 pt-6 pb-4\"><div class=\"w-11 h-11 rounded-2xl flex items-center justify-center text-lg flex-shrink-0\" style=\"background-color:#99660018\">🍎</div><div class=\"min-w-0 flex-1\"><h3 class=\"text-base font-semibold text-primary leading-snug truncate\">Regola futura</h3><span class=\"mt-1 inline-flex items-center rounded-full bg-gold/15 text-gold text-[10px] font-semibold px-1.5 py-0.5 leading-none\">🔁 Ricorrente</span><span class=\"ml-1.5 text-[10px] text-tertiary\">· serie conclusa</span></div><button aria-label=\"Chiudi\" class=\"w-8 h-8 rounded-full bg-elevated flex items-center justify-center text-secondary text-sm flex-shrink-0\">✕</button></div><div class=\"flex-1 min-h-0 overflow-y-auto overscroll-contain scrollbar-hide px-6 pb-4 space-y-4\"><div class=\"glass-card rounded-[18px] px-4 py-3.5\"><p class=\"label-caps text-secondary mb-1\">Importo</p><p class=\"text-[26px] font-bold text-primary balance-num leading-none\">0,74 €<span class=\"text-[13px] font-medium text-secondary ml-1.5\">al mese</span></p></div><div><p class=\"label-caps text-secondary mb-2 px-1\">Equivalenti</p><div class=\"bg-card rounded-2xl px-4 py-3 space-y-2\"><div class=\"flex items-center justify-between gap-3\"><span class=\"text-[13px] text-secondary\">Mensile</span><span class=\"text-[13px] font-medium text-primary balance-num text-right\">0,74 €</span></div><div class=\"flex items-center justify-between gap-3\"><span class=\"text-[13px] text-secondary\">Annuale</span><span class=\"text-[13px] font-medium text-primary balance-num text-right\">≈ 8,88 €</span></div></div></div><div class=\"bg-card rounded-2xl px-4 py-3 space-y-2\"><div class=\"flex items-center justify-between gap-3\"><span class=\"text-[13px] text-secondary\">Prossima occorrenza</span><span class=\"text-[13px] font-medium text-primary balance-num text-right\">—</span></div><div class=\"flex items-center justify-between gap-3\"><span class=\"text-[13px] text-secondary\">Totale registrato</span><span class=\"text-[13px] font-medium text-primary balance-num text-right\">1,24 € · 1 occorrenza</span></div><div class=\"flex items-center justify-between gap-3\"><span class=\"text-[13px] text-secondary\">Fine serie</span><span class=\"text-[13px] font-medium text-primary balance-num text-right\">30 ott 2026</span></div></div><div><p class=\"label-caps text-secondary mb-2 px-1\">Ultime occorrenze</p><div class=\"bg-card rounded-2xl px-4 divide-y divide-divider\"><div class=\"py-2.5 flex items-center justify-between gap-3\"><span class=\"text-[13px] text-secondary\">30 set 2026</span><span class=\"text-[13px] font-medium text-primary balance-num\">1,24 €</span></div></div></div></div><div class=\"shrink-0 px-6 pt-3 pb-6 bg-[var(--modal-hdr-bg)] space-y-2\"><button class=\"w-full py-3.5 rounded-2xl cta-gold-fill text-[14px] font-semibold active:scale-[0.98] transition-transform\">Vedi i 1 movimenti della serie</button><div class=\"flex gap-2\"><button class=\"flex-1 py-2.5 rounded-2xl text-sm font-medium text-primary bg-elevated active:bg-card-hover transition-colors\">Modifica serie</button><button class=\"flex-1 py-2.5 rounded-2xl text-sm font-medium text-primary bg-elevated active:bg-card-hover transition-colors\">Modifica occorrenza</button></div><button class=\"w-full py-2.5 rounded-2xl text-sm font-medium text-secondary\">Chiudi</button></div></section></div>"
+
+ ❯ src/features/transactions/SeriesDetailSheet.test.tsx:20:16
+     18|  it('refreshes a selected occurrence from the latest snapshot after re…
+     19|   const html=renderToStaticMarkup(<SeriesDetailSheet {...props} anchor…
+     20|   expect(html).toMatch(/text-\[26px\][^>]*>1,24/);
+       |                ^
+     21|  });
+     22|  it('keeps the template amount when opening the series itself',()=>{
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[2/2]⎯
+
+
+ Test Files  1 failed (1)
+      Tests  2 failed | 1 passed (3)
+   Start at  08:19:28
+   Duration  503ms (transform 136ms, setup 0ms, import 180ms, tests 36ms, environment 0ms)
+

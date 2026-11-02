@@ -4,6 +4,8 @@ import { OnboardingScreen } from '../src/features/onboarding/OnboardingScreen';
 import { LoginScreen } from '../src/shared/components/LoginScreen';
 import { ImportModal } from '../src/features/transactions/ImportModal';
 import { useMemo, useState } from 'react';
+import { useTransactionEditing } from '../src/app/useTransactionEditing';
+import { SeriesDetailSheet } from '../src/features/transactions/SeriesDetailSheet';
 import { createRoot } from 'react-dom/client';
 import { BrowserRouter, useLocation, useNavigate } from 'react-router-dom';
 import { createPortal } from 'react-dom';
@@ -42,6 +44,7 @@ function Preview() {
   </SettingsProvider></UiVersionProvider>;
 }
 function PreviewShell({uid,onSwitch}:{uid:string;onSwitch:(uid:string)=>void}) {
+  if(query.has('seriesOccurrence'))return <SeriesOccurrencePreview/>;
   const uiVersion=useUiVersion(), settings=useSettings(), budget=useBudget();
   const route=useLocation(),navigate=useNavigate();
   useUiRouteFocus();
@@ -160,3 +163,23 @@ function PreviewShell({uid,onSwitch}:{uid:string;onSwitch:(uid:string)=>void}) {
   </div>;
 }
 createRoot(document.getElementById('root')!).render(<BrowserRouter><Preview/></BrowserRouter>);
+
+function SeriesOccurrencePreview(){
+ const [rows,setRows]=useState<Transaction[]>([
+  {id:'past',type:'expense',amount:1.24,date:'2026-09-30',description:'Voce originale',category:'casa',account:'conto_corrente',seriesId:'s'},
+  {id:'sibling',type:'expense',amount:234.33,date:'2026-08-31',description:'Altra occorrenza',category:'casa',account:'conto_corrente',seriesId:'s'},
+  {id:'template',type:'expense',amount:.74,date:'2026-11-30',description:'Regola futura',category:'casa',account:'conto_corrente',seriesId:'s',recurring:{freq:'monthly',until:'2026-10-30'}},
+ ]);
+ const tx=useMemo(()=>({transactions:rows,allTransactions:rows,
+  replaceInPlace:async(id:string,data:Omit<Transaction,'id'>)=>setRows(current=>current.map(t=>t.id===id?{...data,id}:t)),
+ }),[rows]);
+ const editor=useTransactionEditing(userFor(pilotUid) as any,tx as any);
+ return <div className="min-h-screen bg-bg text-primary p-6">
+  <button onClick={()=>editor.openEdit(rows[0])}>Apri occorrenza</button>
+  <output id="series-preview-rows" hidden>{JSON.stringify(rows)}</output>
+  <SeriesDetailSheet open={!!editor.seriesDetail} anchor={editor.seriesDetail} allTransactions={rows} onClose={editor.closeSeriesDetail}
+   onEditSingle={t=>{editor.closeSeriesDetail();editor.startEdit(t,false);}} onEditSeries={editor.openSeriesEdit} onViewMovements={()=>{}}/>
+  <TransactionModal open={editor.modalOpen} editing={editor.editing} groupTransfers={editor.groupTransfers} seriesEdit={editor.seriesEdit}
+   awaitSave transactions={rows} onClose={editor.closeModal} onSave={editor.handleSave}/>
+ </div>;
+}
