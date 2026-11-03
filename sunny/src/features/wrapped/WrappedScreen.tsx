@@ -233,7 +233,7 @@ export function WrappedScreen({ transactions, projected, user, onSetSavingsTarge
           <CloseButton onClick={close} />
         </div>
 
-        <div className="flex-1 flex flex-col justify-center min-h-0 overflow-y-auto scrollbar-hide">
+        <div key={id} className="flex-1 flex flex-col min-h-0 overflow-y-auto scrollbar-hide">
           <WrappedStoryBody key={id} id={id} w={w} />
         </div>
 
