@@ -20,13 +20,21 @@ export function InvestmentPeriodSummaryCard({ transactions }: { transactions: Tr
       <PeriodControls period={period} onPeriodChange={setPeriod}
         offset={offset} onOffsetChange={setOffset} label={range.label} />
       <div className="glass-card rounded-2xl p-5" aria-live="polite" aria-atomic="true">
-        <p className="label-caps text-secondary mb-2">Totale versato · {range.label}</p>
-        <p className="text-[30px] leading-none font-bold balance-num text-primary">{formatCurrency(summary.deposits)}</p>
+        <p className="label-caps text-secondary mb-2">Versato netto · {range.label}</p>
+        <p className="text-[30px] leading-none font-bold balance-num text-primary">{formatCurrency(summary.netDeposits)}</p>
         <div className="flex items-baseline justify-between gap-3 mt-4 pt-3 border-t border-divider">
+          <span className="text-[13px] text-secondary">Versamenti lordi</span>
+          <span className="text-[14px] font-semibold balance-num text-primary">{formatCurrency(summary.deposits)}</span>
+        </div>
+        <div className="flex items-baseline justify-between gap-3 mt-3">
+          <span className="text-[13px] text-secondary">Di cui TFR (escluso dal netto)</span>
+          <span className="text-[14px] font-semibold balance-num text-primary">{formatCurrency(summary.tfr)}</span>
+        </div>
+        <div className="flex items-baseline justify-between gap-3 mt-3">
           <span className="text-[13px] text-secondary">Capitale rimborsato dai disinvestimenti</span>
           <span className="text-[14px] font-semibold balance-num text-primary">{formatCurrency(summary.returnedCapital)}</span>
         </div>
-        <p className="text-xs text-secondary mt-3">Versamenti alle date effettive, inclusi TFR e contributi senza conto. Il capitale rimborsato esclude guadagni e perdite.</p>
+        <p className="text-xs text-secondary mt-3">Versato netto = versamenti lordi − TFR − capitale rimborsato dai disinvestimenti, alle date effettive. Il capitale rimborsato esclude guadagni e perdite.</p>
         {summary.deposits === 0 && summary.returnedCapital === 0 && (
           <p className="text-[13px] text-secondary mt-3">Nessun versamento o disinvestimento in questo periodo.</p>
         )}
