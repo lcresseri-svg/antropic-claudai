@@ -1,4 +1,5 @@
 import './ui31Analysis.css';
+import { InvestmentPeriodSummaryCard } from './InvestmentPeriodSummaryCard';
 import { PortfolioValuationSummary } from './PortfolioValuationSummary';
 import { InvestmentPositions } from './InvestmentPositions';
 import { PeriodSelector } from '../../shared/components/PeriodSelector';
@@ -233,6 +234,8 @@ export function InvestmentsScreen({ investmentByCategory, investmentTotal, month
           </div>
         )}
       </section>
+
+      <InvestmentPeriodSummaryCard transactions={transactions} />
 
       {/* ── Un solo avviso per i controvalori fermi ── */}
       {stalePositions.length > 0 && (
