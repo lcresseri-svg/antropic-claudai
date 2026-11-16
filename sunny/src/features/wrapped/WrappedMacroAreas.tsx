@@ -3,7 +3,7 @@ import type {WrappedMacroArea} from './wrappedSpendingStories';
 
 /** Labels, amounts and proportional bands stay readable without relying on color. */
 export function WrappedMacroAreas({areas}:{areas:WrappedMacroArea[]}){
-  return <div className="space-y-3 mt-5">
+  return <div className="space-y-2.5 mt-6">
     {areas.slice(0,3).map(area=><div key={area.id===null?'unassigned':`macro:${area.id}`}>
       <div className="flex items-start gap-2 text-[13px] leading-snug">
         <span aria-hidden="true" className="flex-none">{area.icon}</span>
