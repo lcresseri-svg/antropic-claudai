@@ -1,16 +1,10 @@
-// "Registra storno" — bottom sheet coerente con le sheet investimenti
-// (SheetShell: stesso scaffold, stessi campi, stesso comportamento di salvataggio).
-//
-// Uno storno è SEMPRE legato a una spesa: eredita la sua categoria e non ne ha
-// una propria. Aumenta il saldo del conto di accredito alla sua data reale, ma
-// non è un'entrata; nelle statistiche riduce la spesa originale nel mese in cui
-// la spesa è avvenuta (vedi shared/refunds.ts).
-
 import { useState, useEffect, useMemo } from 'react';
-import { Transaction } from '../../types';
+import { grossOwnShare, Transaction } from '../../types';
 import { useSettings } from '../../shared/providers/settings';
 import { formatCurrency, formatDate, capitalize } from '../../utils';
-import { refundsFor, summarizeRefunds, refundableExpenses } from '../../shared/refunds';
+import { refundsFor, summarizeRefunds } from '../../shared/refunds';
+import { isRefundableSource, toRefundCents } from '../../shared/multiRefunds';
+import { RefundPreview, RefundProgress } from './RefundPreview';
 import { SheetShell, Field, Select, AmountBlock, OptionList, OptionRow, parseNum } from '../investments/SheetShell';
 
 interface Props {
@@ -37,17 +31,8 @@ export function RefundSheet({ open, transactions, expenseId, editing, onSave, on
   const [saving, setSaving] = useState(false);
   const [saveError, setSaveError] = useState(false);
 
-  // Spese ancora stornabili — più quella in modifica/preselezionata, che deve
-  // restare selezionabile anche se già stornata per intero.
-  const options = useMemo(() => {
-    const list = refundableExpenses(transactions);
-    const pinnedId = editing?.refundOf ?? expenseId;
-    if (pinnedId && !list.some(t => t.id === pinnedId)) {
-      const pinned = transactions.find(t => t.id === pinnedId);
-      if (pinned) return [pinned, ...list];
-    }
-    return list;
-  }, [transactions, expenseId, editing]);
+  const options = useMemo(() => transactions.filter(t => isRefundableSource(t) && grossOwnShare(t) >= 0.005)
+    .sort((a, b) => b.date.localeCompare(a.date) || (b.createdAt ?? 0) - (a.createdAt ?? 0)), [transactions]);
 
   useEffect(() => {
     if (!open) return;
@@ -60,16 +45,18 @@ export function RefundSheet({ open, transactions, expenseId, editing, onSave, on
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [open]);
 
-  const expense = transactions.find(t => t.id === selectedId);
+  const expense = options.find(t => t.id === selectedId);
   const summary = expense
     ? summarizeRefunds(expense, refundsFor(transactions, expense.id), editing?.id)
     : null;
 
   const amountN = parseNum(amount);
-  // Vincolo chiave: gli storni cumulativi non possono superare la spesa.
-  const overLimit = !!summary && amountN > summary.remaining + 0.005;
-  const valid = !!expense && amountN > 0 && !overLimit && !!account && !!date;
-  const afterRefund = summary ? Math.max(0, summary.remaining - amountN) : 0;
+  const received = amountN > 0 && amountN <= 1_000_000_000 ? toRefundCents(amountN) : 0;
+  const remaining = summary ? Math.max(0, toRefundCents(summary.gross) - toRefundCents(summary.refunded)) : 0;
+  const covered = Math.min(remaining, received);
+  const gain = received - covered;
+  const afterRefund = (remaining - covered) / 100;
+  const valid = !!expense && received > 0 && !!account && !!date;
 
   const save = async () => {
     if (!valid || !expense || saving) return;
@@ -78,7 +65,7 @@ export function RefundSheet({ open, transactions, expenseId, editing, onSave, on
       await onSave({
         type: 'refund',
         description: `Storno · ${expense.description || getCat(expense.category).label}`,
-        amount: amountN,
+        amount: received / 100,
         date,
         // Eredita la categoria della spesa: nelle statistiche lo sconto cade
         // sulla categoria giusta senza che lo storno ne abbia una propria.
@@ -133,20 +120,11 @@ export function RefundSheet({ open, transactions, expenseId, editing, onSave, on
           <AmountBlock label="Importo rimborsato" value={amount} onChange={setAmount} autoFocus
             hint={summary && (
               <>
-                <span className="block h-[5px] rounded-full overflow-hidden mb-2"
-                  style={{ background: 'rgba(var(--c-primary) / 0.08)' }}>
-                  <span className="block h-full rounded-full bg-green"
-                    style={{ width: `${Math.min(100, ((summary.refunded + Math.max(0, amountN)) / Math.max(1, summary.gross)) * 100)}%` }} />
-                </span>
-                Massimo stornabile {formatCurrency(summary.remaining)}
+                <RefundProgress gross={summary.gross} remaining={afterRefund} />
+                Spesa residua {formatCurrency(summary.remaining)}
                 {summary.refunded > 0
                   ? ` · già stornati ${formatCurrency(summary.refunded)}`
                   : ' · nessuno storno precedente'}
-                {overLimit && (
-                  <span className="block text-red mt-1">
-                    Lo storno non può superare {formatCurrency(summary.remaining)}.
-                  </span>
-                )}
               </>
             )} />
 
@@ -173,24 +151,13 @@ export function RefundSheet({ open, transactions, expenseId, editing, onSave, on
             </OptionRow>
           </OptionList>
 
-          {/* Preview: com'è la spesa dopo lo storno */}
-          {summary && amountN > 0 && !overLimit && (
-            <div className="bg-card rounded-2xl px-4 py-3.5 space-y-2">
-              <p className="label-caps text-secondary">Spesa dopo lo storno</p>
-              <PreviewRow label="Spesa originale" value={formatCurrency(summary.gross)} />
-              {summary.refunded > 0 && (
-                <PreviewRow label="Già stornato" value={`−${formatCurrency(summary.refunded)}`} />
-              )}
-              <PreviewRow label="Questo storno" value={`−${formatCurrency(amountN)}`} tone="text-green" />
-              <div className="flex items-baseline justify-between gap-3 pt-2 border-t border-divider">
-                <span className="text-[13px] font-semibold text-primary">Spesa effettiva</span>
-                <span className="text-[21px] font-bold text-primary balance-num">{formatCurrency(afterRefund)}</span>
-              </div>
-              <p className="text-[11px] text-secondary/70 leading-snug pt-1">
-                {formatCurrency(amountN)} tornano su {getAcc(account).label} il {formatDate(date)}.
-                Nelle statistiche la spesa scende a {formatCurrency(afterRefund)} nel mese in cui l'hai fatta.
-              </p>
-            </div>
+          {summary && received > 0 && (
+            <RefundPreview gross={summary.gross} refunded={summary.refunded} covered={covered / 100}
+              remaining={afterRefund} gain={gain / 100}>
+              {formatCurrency(received / 100)} su {getAcc(account).label} il {formatDate(date)}.
+              {' '}Lo storno riduce la spesa nel mese in cui l'hai fatta.
+              {gain > 0 && ' L’entrata conta alla data di accredito.'}
+            </RefundPreview>
           )}
 
           {saveError && (
@@ -206,14 +173,5 @@ export function RefundSheet({ open, transactions, expenseId, editing, onSave, on
         </>
       )}
     </SheetShell>
-  );
-}
-
-function PreviewRow({ label, value, tone }: { label: string; value: string; tone?: string }) {
-  return (
-    <div className="flex items-baseline justify-between gap-3">
-      <span className="text-[12px] text-secondary">{label}</span>
-      <span className={`text-[13px] font-semibold balance-num ${tone ?? 'text-primary'}`}>{value}</span>
-    </div>
   );
 }

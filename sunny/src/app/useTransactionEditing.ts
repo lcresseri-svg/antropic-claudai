@@ -11,7 +11,7 @@ import { logEvent } from '../shared/analytics/metrics';
 import { db } from '../lib/firebase';
 import { isCreditCardSettlement } from '../../../functions/src/domain/creditCards';
 import { allocateRefundReceipt, refundGroupIdOf, type RefundReceiptDraft } from '../shared/multiRefunds';
-import { saveSingleRefund, saveRefundReceipt, deleteRefundReceipt } from '../features/transactions/refundReceiptStore';
+import { saveRefundReceipt, deleteRefundReceipt } from '../features/transactions/refundReceiptStore';
 
 type Tx = ReturnType<typeof useTransactions>;
 
@@ -108,8 +108,7 @@ export function useTransactionEditing(user: User, tx: Tx) {
   // projected row) opens the SERIES DETAIL sheet — summary + actions. Plain
   // one-off movements go straight to the edit modal as before.
   const openEdit = (t: Transaction) => {
-    // Uno storno si modifica dalla SUA sheet: lì vive il vincolo sul massimo
-    // stornabile e il legame con la spesa, che la modale generica non conosce.
+    // Gli storni si modificano dal modulo che conserva il legame con la spesa.
     if (isCreditCardSettlement(t)) {
       setSettlementDetail(t);
     } else if (refundGroupIdOf(t) || t.type === 'refund') {
@@ -181,13 +180,13 @@ export function useTransactionEditing(user: User, tx: Tx) {
     singleRefundId.current = '';
   };
 
-  /** Salva/aggiorna uno storno. La modifica avviene IN PLACE (stesso doc), così
-   *  saldo e statistiche si ricalcolano da soli al prossimo snapshot. */
   const saveRefund = async (data: Omit<Transaction, 'id'>, editingId?: string) => {
-    // Identity belongs to the open flow, so failed writes/retries target the
-    // same document and contend with multi receipts on the source control.
-    const id = editingId ?? (singleRefundId.current ||= crypto.randomUUID());
-    await saveSingleRefund(db, user.uid, id, data);
+    if (data.type !== 'refund' || !data.refundOf) throw new Error('Storno non valido.');
+    const receiptId = editingId ?? (singleRefundId.current ||= crypto.randomUUID());
+    await saveRefundReceipt(db, user.uid, {
+      receiptId, expenseIds: [data.refundOf], amount: data.amount, date: data.date,
+      account: data.account, notes: data.notes,
+    }, editingId);
     if (!editingId) logEvent(user.uid, 'tx_add');
   };
 

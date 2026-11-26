@@ -1,6 +1,7 @@
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 import type { ReactElement, ReactNode } from 'react';
 import { MultiRefundSheet } from './MultiRefundSheet';
+import { RefundPreview } from './RefundPreview';
 import { AmountBlock } from '../investments/SheetShell';
 const state=vi.hoisted(()=>({locals:[] as any[],index:0,effectIndex:0,deps:[] as any[],effects:[] as (()=>void)[],dirty:false}));
 vi.mock('react',async original=>({...await original<typeof import('react')>(),useState:(init:any)=>{
@@ -28,6 +29,15 @@ describe('MultiRefundSheet',()=>{
     const first=props.onSave.mock.calls[0][0],second=props.onSave.mock.calls[1][0];
     expect(first.receiptId).toBe(second.receiptId);expect(first.expenseIds).toEqual(['a','b']);expect(first.amount).toBe(80);
     expect(props.onClose).toHaveBeenCalledOnce();
+  });
+  it('uses the shared refund summary and shows each allocation when the total exceeds the expenses', () => {
+    view().find(el => el.type === AmountBlock)!.props.onChange('120');
+    const tree = view();
+    expect(tree.find(el => el.type === RefundPreview)?.props).toMatchObject({
+      gross: 100, refunded: 0, covered: 100, remaining: 0, gain: 20,
+    });
+    expect(tree.filter(el => el.type === 'li')).toHaveLength(2);
+    expect(submit(tree).props.disabled).toBe(false);
   });
   it('opens an existing receipt with its full amount including gain and existing identity',()=>{
     const transactions=[...props.transactions,{...source('r1',60),type:'refund' as const,refundOf:'a',refundGroupId:'existing'},{...source('r2',40),type:'refund' as const,refundOf:'b',refundGroupId:'existing'},{...source('gain',20),type:'income' as const,refundGroupId:'existing'}];

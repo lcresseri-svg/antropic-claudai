@@ -216,7 +216,9 @@ service cloud.firestore {
       match /refundControls/{expenseId} {
         allow read: if owner(userId);
         allow create, update: if owner(userId)
-          && request.resource.data.keys().hasOnly(['allocatedCents', 'revision'])
+          && request.resource.data.keys().hasOnly(['allocatedCents', 'revision', 'gainOnlyReceipts'])
+          && (!('gainOnlyReceipts' in request.resource.data)
+            || (request.resource.data.gainOnlyReceipts is int && request.resource.data.gainOnlyReceipts >= 0))
           && request.resource.data.allocatedCents is int
           && request.resource.data.allocatedCents >= 0
           && request.resource.data.allocatedCents <= 100000000000

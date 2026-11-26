@@ -15,7 +15,7 @@ import {
 } from '../../shared/multiRefunds';
 
 export type { RefundReceiptDraft } from '../../shared/multiRefunds';
-export interface RefundControl { allocatedCents: number; revision: number }
+export interface RefundControl { allocatedCents: number; revision: number; gainOnlyReceipts?: number }
 interface RefundReceiptHeader { expenseIds: string[]; rowIds: string[]; revision: number }
 type TxData = Omit<Transaction, 'id'>;
 const txRef = (db: Firestore, uid: string, id: string) => doc(db, 'users', uid, 'transactions', id);
@@ -65,24 +65,31 @@ export async function assertRefundSourceMutation(
 ): Promise<void> {
   if (before.type !== 'expense') return;
   const snap = await transaction.get(controlRef(db, uid, before.id));
-  const allocated = controlFrom(snap.data(), 0).allocatedCents;
-  if (!allocated) return;
-  if (!next || !isRefundableSource({ ...next, id: before.id }) || toRefundCents(grossOwnShare({ ...next, id: before.id })) < allocated) {
+  const { allocatedCents, gainOnlyReceipts } = controlFrom(snap.data(), 0);
+  if (!allocatedCents && !gainOnlyReceipts) return;
+  const source = next && { ...next, id: before.id };
+  if (!source || !isRefundableSource(source) || toRefundCents(grossOwnShare(source)) < Math.max(1, allocatedCents)) {
     throw new Error('La spesa è collegata a rimborsi: modifica o elimina prima il rimborso.');
   }
 }
 
-/** New and edited multi receipts use the same stable receiptId. Never chunk a receipt. */
-export async function saveRefundReceipt(db: Firestore, uid: string, draft: RefundReceiptDraft): Promise<void> {
+/** Saves the whole receipt, optionally replacing a legacy single refund in the same transaction. */
+export async function saveRefundReceipt(db: Firestore, uid: string, draft: RefundReceiptDraft, legacyRefundId?: string): Promise<void> {
   assertDraft(draft);
   const receiptRef = headerRef(db, uid, draft.receiptId);
   const preflight = (await getDocFromServer(receiptRef)).data() as RefundReceiptHeader | undefined;
-  const allIds = unique([...draft.expenseIds, ...(preflight?.expenseIds ?? [])]);
+  if (legacyRefundId && (legacyRefundId !== draft.receiptId || draft.expenseIds.length !== 1)) {
+    throw new Error('Identificativo dello storno non valido.');
+  }
+  const legacyRef = legacyRefundId ? txRef(db, uid, legacyRefundId) : undefined;
+  const legacy = legacyRef && !preflight ? (await getDocFromServer(legacyRef)).data() : undefined;
+  const allIds = unique([...draft.expenseIds, ...(preflight?.expenseIds ?? []),
+    ...(legacy?.refundOf ? [legacy.refundOf as string] : [])]);
   const baselines = await legacyBaselines(db, uid, allIds);
   await runTransaction(db, async trx => {
     const headerSnap = await trx.get(receiptRef);
     const header = headerSnap.data() as RefundReceiptHeader | undefined;
-    if (header && !sameIds(header.expenseIds, preflight?.expenseIds ?? [])) throw new Error('Questo rimborso è cambiato. Riaprilo e riprova.');
+    if (header && !sameIds(header.expenseIds, preflight?.expenseIds ?? (legacyRefundId ? draft.expenseIds : []))) throw new Error('Questo rimborso è cambiato. Riaprilo e riprova.');
     const oldRows = await Promise.all((header?.rowIds ?? []).map(async id => {
       const snap = await trx.get(txRef(db, uid, id));
       if (!snap.exists()) throw new Error('Una parte del rimborso è assente. Aggiorna i dati.');
@@ -90,6 +97,14 @@ export async function saveRefundReceipt(db: Firestore, uid: string, draft: Refun
       if (refundGroupIdOf(row) !== draft.receiptId) throw new Error('Collegamento del rimborso non valido.');
       return row;
     }));
+    if (legacyRef && !header) {
+      const snapshot = await trx.get(legacyRef);
+      const row = snapshot.data() as TxData | undefined;
+      if (!row || row.type !== 'refund' || !row.refundOf || row.refundGroupId || row.refundOf !== legacy?.refundOf) {
+        throw new Error('Lo storno è cambiato. Riaprilo e riprova.');
+      }
+      oldRows.push({ ...row, id: snapshot.id });
+    }
     if (header && sameIds(header.expenseIds, draft.expenseIds)
       && oldRows.reduce((sum, row) => sum + toRefundCents(row.amount), 0) === toRefundCents(draft.amount)
       && oldRows.every(row => row.date === draft.date && row.account === draft.account && (row.notes ?? '') === (draft.notes?.trim() ?? ''))) return;
@@ -105,7 +120,7 @@ export async function saveRefundReceipt(db: Firestore, uid: string, draft: Refun
     for (const row of oldRows) if (row.type === 'refund' && row.refundOf) oldBySource.set(row.refundOf, (oldBySource.get(row.refundOf) ?? 0) + toRefundCents(row.amount));
     const available = draft.expenseIds.map(id => {
       const source = sources.get(id);
-      if (!source || !isRefundableSource(source)) throw new Error('Una spesa è stata eliminata o modificata. Aggiorna la selezione.');
+      if (!source || !isRefundableSource(source) || toRefundCents(grossOwnShare(source)) === 0) throw new Error('Una spesa è stata eliminata o modificata. Aggiorna la selezione.');
       const other = controls.get(id)!.allocatedCents - (oldBySource.get(id) ?? 0);
       if (other < 0) throw new Error('Controllo rimborso incoerente. Aggiorna i dati.');
       return { expenseId: id, availableCents: toRefundCents(grossOwnShare(source)) - other };
@@ -127,11 +142,15 @@ export async function saveRefundReceipt(db: Firestore, uid: string, draft: Refun
       if (existing.exists() && !(header?.rowIds.includes(row.id))) throw new Error('Identificativo ricevuta già utilizzato.');
     }
     const newBySource = new Map(allocation.allocations.map(a => [a.expenseId, a.allocatedCents]));
+    const oldGainOnlySource = header?.expenseIds.length === 1 && oldRows.every(row => row.type === 'income')
+      ? header.expenseIds[0] : undefined;
+    const newGainOnlySource = allocation.refundedCents === 0 ? draft.expenseIds[0] : undefined;
     for (const id of allIds) {
       const prior = controls.get(id)!;
       const total = prior.allocatedCents - (oldBySource.get(id) ?? 0) + (newBySource.get(id) ?? 0);
-      if (total < 0) throw new Error('Controllo rimborso incoerente.');
-      trx.set(controlRef(db, uid, id), { allocatedCents: total, revision: prior.revision + 1 });
+      const gainOnlyReceipts = (prior.gainOnlyReceipts ?? 0) - Number(oldGainOnlySource === id) + Number(newGainOnlySource === id);
+      if (total < 0 || gainOnlyReceipts < 0) throw new Error('Controllo rimborso incoerente.');
+      trx.set(controlRef(db, uid, id), { allocatedCents: total, revision: prior.revision + 1, ...(gainOnlyReceipts ? { gainOnlyReceipts } : {}) });
     }
     const nextIds = new Set(rows.map(r => r.id));
     for (const row of oldRows) if (!nextIds.has(row.id)) trx.delete(txRef(db, uid, row.id));
@@ -157,17 +176,19 @@ export async function deleteRefundReceipt(db: Firestore, uid: string, receiptId:
     }));
     const controls = await Promise.all(header.expenseIds.map(async id => ({ id,
       control: controlFrom((await trx.get(controlRef(db, uid, id))).data(), baselines.get(id) ?? 0) })));
+    const gainOnly = header.expenseIds.length === 1 && rows.every(row => row.type === 'income');
     for (const { id, control } of controls) {
       const removed = rows.filter(r => r.type === 'refund' && r.refundOf === id).reduce((sum, r) => sum + toRefundCents(r.amount), 0);
-      if (control.allocatedCents < removed) throw new Error('Controllo rimborso incoerente.');
-      trx.set(controlRef(db, uid, id), { allocatedCents: control.allocatedCents - removed, revision: control.revision + 1 });
+      const gainOnlyReceipts = (control.gainOnlyReceipts ?? 0) - Number(gainOnly);
+      if (control.allocatedCents < removed || gainOnlyReceipts < 0) throw new Error('Controllo rimborso incoerente.');
+      trx.set(controlRef(db, uid, id), { allocatedCents: control.allocatedCents - removed, revision: control.revision + 1, ...(gainOnlyReceipts ? { gainOnlyReceipts } : {}) });
     }
     rows.forEach(row => trx.delete(txRef(db, uid, row.id)));
     trx.delete(receiptRef);
   });
 }
 
-/** Single UI remains unchanged, but its writes contend on the same source controls. */
+/** Writes a standalone legacy refund against the same source controls. */
 export async function saveSingleRefund(db: Firestore, uid: string, refundId: string, data: TxData): Promise<void> {
   assertId(refundId);
   if (data.type !== 'refund' || !data.refundOf || refundGroupIdOf(data as Transaction) || toRefundCents(data.amount) <= 0) throw new Error('Storno non valido.');
@@ -195,7 +216,7 @@ export async function saveSingleRefund(db: Firestore, uid: string, refundId: str
       const control = controls.get(id)!;
       const total = control.allocatedCents - (before?.refundOf === id ? oldCents : 0) + (data.refundOf === id ? nextCents : 0);
       if (total < 0 || (data.refundOf === id && total > toRefundCents(grossOwnShare(source)))) throw new Error('Lo storno supera il residuo disponibile. Aggiorna i dati.');
-      trx.set(controlRef(db, uid, id), { allocatedCents: total, revision: control.revision + 1 });
+      trx.set(controlRef(db, uid, id), { ...control, allocatedCents: total, revision: control.revision + 1 });
     }
     trx.set(ref, clean({ ...data, amount: nextCents / 100, category: source.category, createdAt: before?.createdAt ?? data.createdAt ?? Date.now() }));
   });
@@ -216,7 +237,7 @@ export async function deleteSingleRefund(db: Firestore, uid: string, refundId: s
     const control = controlFrom((await trx.get(controlRef(db, uid, sourceId))).data(), baselines.get(sourceId) ?? 0);
     const amount = toRefundCents(before.amount);
     if (control.allocatedCents < amount) throw new Error('Controllo rimborso incoerente.');
-    trx.set(controlRef(db, uid, sourceId), { allocatedCents: control.allocatedCents - amount, revision: control.revision + 1 });
+    trx.set(controlRef(db, uid, sourceId), { ...control, allocatedCents: control.allocatedCents - amount, revision: control.revision + 1 });
     trx.delete(ref);
   });
 }
