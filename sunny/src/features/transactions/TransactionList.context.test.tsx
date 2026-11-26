@@ -134,13 +134,13 @@ describe('Movimenti independent context', () => {
     expect(tree.find(el=>el.props.children==='Conto')!.props.disabled).toBe(true);
     expect(tree.find(el=>el.props.children==='Rimborso')!.props.disabled).toBe(true);
   });
-  it('disables refunds after a source is fully covered or becomes a recurring template', () => {
+  it('allows additional refunds on one fully covered expense and excludes recurring templates', () => {
     state.query=new URLSearchParams();
     const expense={id:'a',type:'expense' as const,date:'2026-09-15',description:'Market',amount:60,account:'bank',category:'food'};
     view([expense]).find(el=>el.props.label==='Seleziona')!.props.onClick();
     view([expense]).find(el=>el.props.tx?.id==='a')!.props.onToggle('a');
     const refund={...expense,id:'refund',type:'refund' as const,refundOf:'a'};
-    expect(view([expense,refund]).find(el=>el.props.children==='Rimborso')!.props.disabled).toBe(true);
+    expect(view([expense,refund]).find(el=>el.props.children==='Rimborso')!.props.disabled).toBe(false);
     expect(view([{...expense,recurring:{freq:'monthly'}}]).find(el=>el.props.children==='Rimborso')!.props.disabled).toBe(true);
   });
 });

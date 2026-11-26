@@ -54,6 +54,28 @@ run('refund receipt repository — real emulator and production rules',()=>{
     expect((await getDoc(controlRef('a'))).data()?.allocatedCents).toBe(0);
     expect((await getDocs(collection(db,'users',uid,'transactions'))).size).toBe(2);
   });
+  it('converts a legacy single refund and saves only the excess as income', async () => {
+    await seed('legacy', 20, { type: 'refund', refundOf: 'a' });
+    const edit = draft('legacy', 80, ['a']);
+    await saveRefundReceipt(db, uid, edit, 'legacy');
+    await saveRefundReceipt(db, uid, edit, 'legacy');
+    expect((await getDoc(txRef('legacy'))).exists()).toBe(false);
+    expect((await getDoc(txRef('legacy__refund__a'))).data()).toMatchObject({ type: 'refund', amount: 60, refundOf: 'a' });
+    expect((await getDoc(txRef('legacy__gain'))).data()).toMatchObject({ type: 'income', amount: 20, date: edit.date, account: edit.account });
+    expect((await getDoc(controlRef('a'))).data()?.allocatedCents).toBe(6000);
+    await saveRefundReceipt(db, uid, draft('extra', 5, ['a']));
+    expect((await getDoc(txRef('extra__gain'))).data()).toMatchObject({ type: 'income', amount: 5 });
+    expect((await getDoc(txRef('extra__refund__a'))).exists()).toBe(false);
+    await deleteRefundReceipt(db, uid, 'legacy');
+    await expect(runTransaction(db, async trx => {
+      const before = { ...(await trx.get(txRef('a'))).data(), id: 'a' } as Transaction;
+      await assertRefundSourceMutation(db, uid, before, null, trx);
+      trx.delete(txRef('a'));
+    })).rejects.toThrow();
+    await saveRefundReceipt(db, uid, draft('extra', 5, ['a']));
+    await deleteRefundReceipt(db, uid, 'extra');
+    expect((await getDoc(controlRef('a'))).data()?.gainOnlyReceipts).toBeUndefined();
+  });
   it('coordinates legacy baseline, shared portions, new singles and multis',async()=>{
     await seed('a',100,{shared:40});
     await seed('legacy',20,{type:'refund',refundOf:'a'});

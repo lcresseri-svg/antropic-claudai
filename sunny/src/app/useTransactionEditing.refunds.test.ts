@@ -2,7 +2,7 @@ import { beforeEach, describe, expect, it, vi } from 'vitest';
 import type { User } from 'firebase/auth';
 import type { Transaction } from '../types';
 import { useTransactionEditing } from './useTransactionEditing';
-import { saveRefundReceipt, saveSingleRefund, deleteRefundReceipt } from '../features/transactions/refundReceiptStore';
+import { saveRefundReceipt, deleteRefundReceipt } from '../features/transactions/refundReceiptStore';
 
 const state=vi.hoisted(()=>({locals:[] as any[],refs:[] as {current:any}[],index:0,refIndex:0,getHeader:vi.fn(),today:'2026-10-28'}));
 vi.mock('react',()=>({
@@ -15,7 +15,7 @@ vi.mock('firebase/firestore',()=>({doc:vi.fn((...args)=>args),getDocFromServer:(
 vi.mock('../shared/featureFlags',()=>({isAdminUser:()=>false}));
 vi.mock('../shared/analytics/metrics',()=>({logEvent:vi.fn()}));
 vi.mock('../shared/hooks/useTodayRomeISO',()=>({useTodayRomeISO:()=>state.today}));
-vi.mock('../features/transactions/refundReceiptStore',()=>({saveSingleRefund:vi.fn(),saveRefundReceipt:vi.fn(),deleteRefundReceipt:vi.fn()}));
+vi.mock('../features/transactions/refundReceiptStore',()=>({saveRefundReceipt:vi.fn(),deleteRefundReceipt:vi.fn()}));
 const expense=(id:string,amount:number):Transaction=>({id,type:'expense',amount,date:'2026-09-01',description:id,category:'food',account:'bank'});
 const sources=[expense('a',60),expense('b',40)];
 const tx={transactions:sources,allTransactions:sources,addTransactions:vi.fn(),replaceInPlace:vi.fn(),replaceSeries:vi.fn(),replaceGroup:vi.fn(),deleteTransactions:vi.fn()};
@@ -24,14 +24,16 @@ describe('transaction refund and card editor routing',()=>{
   beforeEach(()=>{state.locals=[];state.refs=[];state.today='2026-10-28';vi.clearAllMocks();state.getHeader.mockResolvedValue({exists:()=>true,data:()=>({expenseIds:['a','b','zero-allocation-source']})});});
   it('keeps single-sheet save identity across a failed retry, with a new identity for the next flow',async()=>{
     hook().openSelectedRefund(['a']);expect(hook().refundOpen).toBe(true);expect(hook().multiRefundOpen).toBe(false);
-    const data={...sources[0],type:'refund' as const,refundOf:'a',amount:20};
-    vi.mocked(saveSingleRefund).mockRejectedValueOnce(new Error('offline')).mockResolvedValue(undefined);
+    const data={...sources[0],type:'refund' as const,refundOf:'a',amount:80};
+    vi.mocked(saveRefundReceipt).mockRejectedValueOnce(new Error('offline')).mockResolvedValue(undefined);
     await expect(hook().saveRefund(data)).rejects.toThrow('offline');
     await hook().saveRefund(data);
-    const first=vi.mocked(saveSingleRefund).mock.calls[0][2];expect(vi.mocked(saveSingleRefund).mock.calls[1][2]).toBe(first);
+    const first=vi.mocked(saveRefundReceipt).mock.calls[0][2];
+    expect(first).toMatchObject({expenseIds:['a'],amount:80});
+    expect(vi.mocked(saveRefundReceipt).mock.calls[1][2]).toEqual(first);
     expect(tx.addTransactions).not.toHaveBeenCalled();expect(tx.replaceInPlace).not.toHaveBeenCalled();
     hook().closeRefund();hook().openRefund('a');await hook().saveRefund(data);
-    expect(vi.mocked(saveSingleRefund).mock.calls[2][2]).not.toBe(first);
+    expect(vi.mocked(saveRefundReceipt).mock.calls[2][2].receiptId).not.toBe(first.receiptId);
   });
   it('opens multiple sources and routes every allocation and gain through the complete receipt header',async()=>{
     hook().openSelectedRefund(['a','b']);expect(hook().multiRefundExpenseIds).toEqual(['a','b']);expect(hook().refundOpen).toBe(false);

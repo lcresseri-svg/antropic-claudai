@@ -1,10 +1,11 @@
 import { useEffect, useMemo, useState } from 'react';
-import type { Transaction } from '../../types';
+import { grossOwnShare, type Transaction } from '../../types';
 import { useSettings } from '../../shared/providers/settings';
 import { formatCurrency, formatDate } from '../../utils';
 import {
-  allocateRefundReceipt, MAX_REFUND_SOURCES, refundGroupIdOf, type RefundReceiptDraft,
+  allocateRefundReceipt, MAX_REFUND_SOURCES, refundGroupIdOf, toRefundCents, type RefundReceiptDraft,
 } from '../../shared/multiRefunds';
+import { RefundPreview, RefundProgress } from './RefundPreview';
 import { SheetShell, Field, Select, AmountBlock, OptionList, OptionRow, parseNum } from '../investments/SheetShell';
 
 export interface MultiRefundSheetProps {
@@ -80,9 +81,11 @@ export function MultiRefundSheet({ open, transactions, expenseIds, editingGroupI
   };
   if (!open) return null;
   const allocation = preview.allocation;
+  const gross = allocation ? sources.reduce((sum, source) => sum + toRefundCents(grossOwnShare(source)), 0) / 100 : 0;
+  const alreadyRefunded = allocation ? gross - allocation.availableCents / 100 : 0;
   return (
-    <SheetShell open={open} title={editingGroupId ? 'Modifica rimborso multiplo' : 'Rimborso di più spese'}
-      subtitle={`${expenseIds.length} spese selezionate`} onClose={onClose} saving={saving}
+    <SheetShell open={open} title={editingGroupId ? (expenseIds.length === 1 ? 'Modifica rimborso' : 'Modifica rimborso multiplo') : 'Rimborso di più spese'}
+      subtitle={expenseIds.length === 1 ? '1 spesa selezionata' : `${expenseIds.length} spese selezionate`} onClose={onClose} saving={saving}
       draftSignature={JSON.stringify([receiptId,expenseIds,amount,date,account,notes])}>
       <Field label="Spese da rimborsare">
         <ul className="bg-elevated rounded-2xl px-4 divide-y divide-divider max-h-48 overflow-y-auto">
@@ -103,8 +106,14 @@ export function MultiRefundSheet({ open, transactions, expenseIds, editingGroupI
       </Field>
       {loadingSources && <p role="status" className="text-[12px] text-secondary px-1">Caricamento ricevuta…</p>}
       {(sourceError || (!loadingSources && preview.error)) && <p role="alert" className="text-[12px] text-red px-1">{sourceError || preview.error}</p>}
-      <AmountBlock label="Totale ricevuto" value={amount} onChange={setAmount}
-        hint={allocation ? <>Costi ancora rimborsabili {formatCurrency(allocation.availableCents / 100)}. Puoi inserire anche un importo inferiore o superiore.</> : undefined} />
+      <AmountBlock label="Importo rimborsato" value={amount} onChange={setAmount} autoFocus
+        hint={allocation && (
+          <>
+            <RefundProgress gross={gross} remaining={(amountN > 0 ? allocation.remainingCents : allocation.availableCents) / 100} />
+            Spesa residua {formatCurrency(allocation.availableCents / 100)}
+            {alreadyRefunded > 0 ? ` · già stornati ${formatCurrency(alreadyRefunded)}` : ' · nessuno storno precedente'}
+          </>
+        )} />
       <Field label="Data di accredito">
         <input type="date" value={date} onChange={e => setDate(e.target.value)}
           className="block w-full min-w-0 box-border appearance-none bg-elevated rounded-2xl px-4 py-3 text-primary text-sm outline-none focus:ring-1 focus:ring-gold/40" />
@@ -116,17 +125,15 @@ export function MultiRefundSheet({ open, transactions, expenseIds, editingGroupI
         <input type="text" value={notes} onChange={e => setNotes(e.target.value)} maxLength={200} placeholder="Es. rimborso trasferta…"
           className="w-full bg-elevated rounded-xl px-3.5 py-2.5 text-primary text-sm placeholder:text-secondary/50 outline-none focus:ring-1 focus:ring-gold/40" />
       </OptionRow></OptionList>
-      {allocation && amountN > 0 && <div className="bg-card rounded-2xl px-4 py-3.5 space-y-2">
-        <p className="label-caps text-secondary">Dopo il rimborso</p>
-        <PreviewRow label="Costi coperti" amount={allocation.refundedCents / 100} />
-        <PreviewRow label="Costi residui" amount={allocation.remainingCents / 100} />
-        {allocation.gainCents > 0 && <PreviewRow label="Guadagno" amount={allocation.gainCents / 100} />}
-        <p className="text-[11px] text-secondary/70 leading-snug pt-1">
-          {formatCurrency(amountN)} su {getAcc(account).label} il {formatDate(date)}.
-          {' '}I costi residui restano proporzionalmente nelle categorie e nei mesi delle spese originali.
-          {allocation.gainCents > 0 && ' Il guadagno è un’entrata alla data di accredito.'}
-        </p>
-      </div>}
+      {allocation && amountN > 0 && (
+        <RefundPreview gross={gross} refunded={alreadyRefunded} covered={allocation.refundedCents / 100}
+          remaining={allocation.remainingCents / 100} gain={allocation.gainCents / 100}>
+          {formatCurrency(allocation.receivedCents / 100)} su {getAcc(account).label} il {formatDate(date)}.
+          {' '}Gli storni riducono le spese nei rispettivi mesi.
+          {allocation.gainCents > 0 && ' L’entrata conta alla data di accredito.'}
+        </RefundPreview>
+      )}
+
       {saveError && <p role="alert" className="text-[12px] text-red px-1">{saveError}</p>}
       <button type="button" onClick={save} disabled={!valid || saving}
         className="w-full py-3.5 rounded-2xl cta-gold-fill text-[14px] font-semibold disabled:opacity-40 transition-opacity">
@@ -142,10 +149,4 @@ export function MultiRefundSheet({ open, transactions, expenseIds, editingGroupI
       </div>}
     </SheetShell>
   );
-}
-function PreviewRow({ label, amount }: { label: string; amount: number }) {
-  return <div className="flex items-baseline justify-between gap-3">
-    <span className="text-[12px] text-secondary">{label}</span>
-    <span className="text-[13px] font-semibold text-primary balance-num">{formatCurrency(amount)}</span>
-  </div>;
 }

@@ -582,12 +582,11 @@ export function TransactionModal({ open, editing, groupTransfers = [], seriesEdi
 
               {refundSummary.fullyRefunded ? (
                 <p className="text-[11px] text-secondary/70">Spesa stornata per intero.</p>
-              ) : (
-                <button type="button" onClick={() => onRegisterRefund?.(editing!.id)}
-                  className="w-full py-2.5 rounded-xl bg-elevated text-gold text-sm font-medium">
-                  Registra storno
-                </button>
-              )}
+              ) : null}
+              <button type="button" onClick={() => onRegisterRefund?.(editing!.id)}
+                className="w-full py-2.5 rounded-xl bg-elevated text-gold text-sm font-medium">
+                Registra storno
+              </button>
             </div>
           )}
 

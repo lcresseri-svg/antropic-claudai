@@ -50,11 +50,15 @@ export function allocateRefundCents(
     throw new Error(`Seleziona da 1 a ${MAX_REFUND_SOURCES} spese diverse.`);
   }
   if (!Number.isSafeInteger(receivedCents) || receivedCents <= 0 || receivedCents > 100_000_000_000
-      || available.some(a => !Number.isSafeInteger(a.availableCents) || a.availableCents <= 0)) {
+      || available.some(a => !Number.isSafeInteger(a.availableCents) || a.availableCents < 0 || (a.availableCents === 0 && available.length > 1))) {
     throw new Error('Una spesa non ha più un importo rimborsabile. Aggiorna la selezione.');
   }
   const total = available.reduce((sum, a) => sum + a.availableCents, 0);
   if (!Number.isSafeInteger(total)) throw new Error('Importo totale non valido.');
+  if (total === 0) return {
+    allocations: available.map(a => ({ ...a, allocatedCents: 0, remainingCents: 0 })),
+    availableCents: 0, receivedCents, refundedCents: 0, gainCents: receivedCents, remainingCents: 0,
+  };
   const covered = Math.min(total, receivedCents);
   // Integer products can exceed Number.MAX_SAFE_INTEGER even for valid individual
   // amounts. BigInt preserves cents and remainder ordering across the full range.
@@ -78,7 +82,7 @@ export function allocateRefundCents(
 export function allocateRefundReceipt(
   sources: Transaction[], transactions: Transaction[], amount: number, excludeGroupId?: string,
 ): RefundReceiptAllocation {
-  if (sources.some(t => !isRefundableSource(t))) throw new Error('Seleziona soltanto spese reali, senza proiezioni o serie.');
+  if (sources.some(t => !isRefundableSource(t) || toRefundCents(grossOwnShare(t)) === 0)) throw new Error('Seleziona soltanto spese reali, senza proiezioni o serie.');
   const refunded = new Map<string, number>();
   for (const t of transactions) {
     if (t.type !== 'refund' || !t.refundOf || t.projected || (excludeGroupId && refundGroupIdOf(t) === excludeGroupId)) continue;

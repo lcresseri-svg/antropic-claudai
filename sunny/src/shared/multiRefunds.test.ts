@@ -31,12 +31,12 @@ describe('multi expense refund allocation', () => {
     expect(result.allocations.reduce((s,a)=>s+a.allocatedCents,0)).toBe(99999999999);
     expect(toRefundCents(1.005)).toBe(101);
   });
-  it('rejects mixed, missing, duplicate, fully-covered or excessive selections and invalid money',()=>{
+  it('rejects mixed, missing, duplicate, fully-covered multi or excessive selections and invalid money',()=>{
     for(const invalid of [[],[sources[0],sources[0]],[expense('x',0)],[expense('x',10,{type:'income'})],[expense('x',10,{projected:true})],[expense('x',10,{recurring:{frequency:'monthly'} as any})],Array.from({length:101},(_,i)=>expense(String(i),1))]) {
       expect(()=>allocateRefundReceipt(invalid,invalid,1)).toThrow();
     }
     for(const amount of [0,-1,NaN,Infinity,0.001,1000000001])expect(()=>allocateRefundReceipt(sources,sources,amount)).toThrow();
-    expect(()=>allocateRefundReceipt([sources[0]],[{...expense('r',60),type:'refund',refundOf:'a'}],1)).toThrow();
+    expect(()=>allocateRefundReceipt(sources,[{...expense('r',60),type:'refund',refundOf:'a'}],1)).toThrow();
   });
   it('namespaces allocation ids so a source named gain cannot collide with receipt income',()=>{
     expect(refundAllocationRowId('receipt','gain')).not.toBe('receipt__gain');
