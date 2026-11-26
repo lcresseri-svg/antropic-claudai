@@ -13,7 +13,7 @@
 | Stile | Tailwind CSS + variabili CSS custom (dark/light, reduced motion) |
 | Backend dati | Firebase Firestore + IndexedDB offline |
 | Auth | Firebase Auth — solo Google Sign-In (+ App Check opzionale) |
-| Cloud Functions | Node 20, `europe-west1`, moduli per dominio |
+| Cloud Functions | Node 22, `europe-west1`, moduli per dominio |
 | AI | Gemini REST via Cloud Function (chiave server-side, rate-limit) |
 | Push | Firebase Cloud Messaging (FCM) |
 | Deploy | GitHub Actions → Hosting + Functions (solo push a `main`) |
