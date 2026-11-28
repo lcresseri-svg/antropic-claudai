@@ -30,6 +30,7 @@ function splitPercent(fraction: number, signed = false): [string, string] {
 }
 
 const nf = new Intl.NumberFormat('it-IT');
+const DETAIL_TITLE = 'text-[34px] font-bold text-primary tracking-[-0.03em] leading-tight break-words';
 
 type Tone = 'primary' | 'gold' | 'green' | 'red';
 const TONE: Record<Tone, string> = {
@@ -53,7 +54,7 @@ function Story({ label, children, punch, note }: {
   label: string; children?: ReactNode; punch: string; note?: ReactNode;
 }) {
   return (
-    <div className="animate-rise-in">
+    <div className="animate-rise-in my-auto flex-none">
       <p className="label-caps text-secondary mb-[18px]">{label}</p>
       {children}
       <p className="text-[19px] font-semibold text-primary leading-[1.35] tracking-[-0.02em] mt-6"
@@ -191,7 +192,7 @@ export function WrappedStoryBody({ id, w }: { id: WrappedStoryId; w: YearWrapped
     case 'cover': {
       const planned = plannedNote(w);
       return (
-        <div className="animate-rise-in">
+        <div className="animate-rise-in my-auto flex-none">
           <p className="balance-num font-bold text-gold leading-[0.9] tracking-[-0.05em]"
             style={{ fontSize: 110 }}>{w.year}</p>
           <p className="text-[19px] font-semibold text-primary leading-[1.35] tracking-[-0.02em] mt-7">
@@ -251,10 +252,12 @@ export function WrappedStoryBody({ id, w }: { id: WrappedStoryId; w: YearWrapped
       const top = w.macroAreas[0];
       return (
         <Story label="Le grandi aree del tuo anno"
-          punch="Il quadro generale, prima di entrare nei dettagli."
+          punch={top.id === null
+            ? 'Anche i soldi senza etichetta hanno una storia. La loro è ancora un po’ misteriosa.'
+            : 'I soldi non sono spariti. Si erano solo divisi i compiti.'}
           note={<>Secondo le tue categorie attuali.{w.hasPlanned && ' Il programmato è compreso.'}</>}>
           <Big head={`${Math.round(top.share * 100)}%`} size={84} tone="gold" fit />
-          <p className="text-[25px] font-bold text-primary leading-tight tracking-[-0.03em] mt-3 break-words">{top.icon} {top.label}</p>
+          <p className={`${DETAIL_TITLE} mt-3`}>{top.icon} {top.label}</p>
           <WrappedMacroAreas areas={w.macroAreas} />
         </Story>
       );
@@ -264,16 +267,18 @@ export function WrappedStoryBody({ id, w }: { id: WrappedStoryId; w: YearWrapped
       const frequent = w.frequentExpense!;
       return (
         <Story label="La voce che torna più spesso"
-          punch="Una volta passa. Poi cominci a riconoscerla."
+          punch="La costanza non ti manca. Anche il conto se n’è accorto."
           note={<>
-            {formatCurrency(frequent.total)} in totale, {formatCurrency(frequent.average)} in media per spesa,
-            {' '}su {frequent.months} {frequent.months === 1 ? 'mese' : 'mesi'}.
+            In {frequent.months} {frequent.months === 1 ? 'mese' : 'mesi'}.
             {' '}{frequent.source === 'series' ? 'Registrazioni della stessa serie.' : 'Registrazioni con la stessa descrizione e categoria.'}
             {' '}Solo spese già avvenute, al netto di quote altrui e rimborsi.
           </>}>
           <Big head={nf.format(frequent.count)} size={116} tone="gold" fit />
-          <p className="text-[14px] text-secondary mt-2">{frequent.count} registrazioni</p>
-          <p className="text-[25px] font-bold text-primary leading-tight tracking-[-0.03em] mt-5 break-words">{frequent.categoryIcon} {frequent.description}</p>
+          <p className="text-[14px] text-secondary mt-2">volte registrate</p>
+          <p className={`${DETAIL_TITLE} mt-5`}>{frequent.categoryIcon} {frequent.description}</p>
+          <p className="text-[14px] text-secondary leading-relaxed mt-3 break-words">
+            {formatCurrency(frequent.total)} in totale · {formatCurrency(frequent.average)} in media per spesa
+          </p>
         </Story>
       );
     }
@@ -284,11 +289,11 @@ export function WrappedStoryBody({ id, w }: { id: WrappedStoryId; w: YearWrapped
       const area = w.macroAreas.find(m=>m.id!==null && m.categoryIds.includes(top.id));
       return (
         <Story label="Categoria numero uno"
-          punch={`Il ${Math.round(top.share * 100)}% delle uscite, in una categoria.`}
-          note={<>{area && <>Area: {area.label}. </>}{rest.length > 0
+          punch="Ha vinto lei. Il premio, però, è a carico tuo."
+          note={<>Il {Math.round(top.share * 100)}% delle uscite. {area && <>Area: {area.label}. </>}{rest.length > 0
             ? <>Seguono: {rest.map(c => `${c.label} ${formatCurrency(c.total)}`).join(' e ')}.</>
             : <>È l'unica categoria in cui hai speso qualcosa.</>}</>}>
-          <p className="text-[34px] font-bold text-primary tracking-[-0.03em] leading-tight break-words">
+          <p className={DETAIL_TITLE}>
             {top.icon} {top.label}
           </p>
           <div className="mt-2"><Big head={splitAmount(top.total)[0]} tail={splitAmount(top.total)[1]} size={40} tone="gold" fit /></div>
@@ -386,9 +391,9 @@ export function WrappedStoryBody({ id, w }: { id: WrappedStoryId; w: YearWrapped
       const head = formatEuroRound(l.amount);
       return (
         <Story label={l.planned ? 'La spesa più grande (già in programma)' : 'La spesa più grande'}
-          punch={w.peakMonth && l.date.slice(0, 7) === w.peakMonth.key
-            ? `Ecco cosa è successo a ${w.peakMonth.label.toLowerCase()}.`
-            : 'Una sola voce, e si è sentita.'}
+          punch={l.planned
+            ? 'Il conto si sta preparando. Almeno questa non arriva a sorpresa.'
+            : 'Una spesa da ricordare. Il conto, di sicuro, non se la dimentica.'}
           note={<>Vale il {Math.round((l.amount / Math.max(1, w.expenseTotal)) * 100)}% delle uscite dell’anno. È la quota a tuo carico, al netto di condivisioni e rimborsi.{l.planned && ' Questa spesa è ancora in programma.'}</>}>
           <Big head={head} size={sizeFor(head)} fit />
           <div className="glass-card rounded-[18px] p-[15px] flex items-center gap-3 mt-6">
